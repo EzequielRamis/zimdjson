@@ -8,7 +8,7 @@ const testing = std.testing;
 // Stage 1:
 // [X] Identification of the quoted substrings
 // [X] Vectorized Classification
-// [ ] Identification of White-Space and Pseudo-Structural Characters
+// [X] Identification of White-Space and Pseudo-Structural Characters
 // [ ] Index Extraction
 // [ ] Character-Encoding Validation
 // Stage 2:
@@ -39,8 +39,11 @@ fn reverseMask(input: mask) mask {
 }
 
 pub fn fromSlice(input: []const u8) !void {
+    var array = std.ArrayList(usize).init(testing.allocator);
+    defer array.deinit();
     std.debug.print("\n", .{});
     var buffer = [_]u8{0} ** vector_size;
+    var base: usize = 0;
     var i: usize = 0;
     while (i < input.len) : (i += vector_size) {
         const slice = input[i..];
@@ -50,20 +53,38 @@ pub fn fromSlice(input: []const u8) !void {
         const stream: vector = buffer;
 
         std.debug.print("{s}\n", .{buffer});
-        const low_nibbles = stream & @as(vector, @splat(0xF));
-        const high_nibbles = stream >> @as(vector, @splat(4));
-        const low_lookup_values = lookupTable(ln_table, low_nibbles);
-        const high_lookup_values = lookupTable(hn_table, high_nibbles);
-        const desired_values = low_lookup_values & high_lookup_values;
-        const structural_chars = anyBitsSet(desired_values, @as(vector, @splat(0b111)));
-        std.debug.print("{b:0>32}\n", .{reverseMask(structural_chars)});
-        const whitespace_chars = anyBitsSet(desired_values, @as(vector, @splat(0b11000)));
-        std.debug.print("{b:0>32}\n", .{reverseMask(whitespace_chars)});
-        std.debug.print("{b:0>32}\n", .{reverseMask(identifyQuotedRange(@bitCast(stream == quote), maskStructuralQuotes(stream)))});
+        std.debug.print("{b:0>32}\n", .{reverseMask(identifyStructuralChars(stream))});
+
+        try indexExtraction(&array, &base, i, identifyStructuralChars(stream));
 
         @memset(&buffer, 0);
     }
     std.debug.print("\n", .{});
+}
+
+fn identifyStructuralChars(vec: vector) mask {
+    const quotes_mask = maskStructuralQuotes(vec);
+    const quoted_ranges = identifyQuotedRanges(@bitCast(vec == quote), quotes_mask);
+
+    const low_nibbles = vec & @as(vector, @splat(0xF));
+    const high_nibbles = vec >> @as(vector, @splat(4));
+    const low_lookup_values = lookupTable(ln_table, low_nibbles);
+    const high_lookup_values = lookupTable(hn_table, high_nibbles);
+    const desired_values = low_lookup_values & high_lookup_values;
+    const whitespace_chars = anyBitsSet(desired_values, @as(vector, @splat(0b11000)));
+    var structural_chars = anyBitsSet(desired_values, @as(vector, @splat(0b111)));
+
+    structural_chars &= ~quoted_ranges;
+    structural_chars |= quotes_mask;
+
+    var pseudo_structural_chars = structural_chars | whitespace_chars;
+    pseudo_structural_chars <<= 1;
+    pseudo_structural_chars &= ~whitespace_chars & ~quoted_ranges;
+
+    structural_chars |= pseudo_structural_chars;
+    structural_chars &= ~(quotes_mask & ~quoted_ranges);
+
+    return structural_chars;
 }
 
 fn lookupTable(table: vector, nibbles: vector) vector {
@@ -110,8 +131,8 @@ fn maskStructuralQuotes(vec: vector) mask {
     const starts = backs & ~(backs << 1);
     const evn_starts = starts & evn_mask;
     const odd_starts = starts & odd_mask;
-    const evn_start_carries = @addWithOverflow(backs, evn_starts)[0];
-    const odd_start_carries = @addWithOverflow(backs, odd_starts)[0];
+    const evn_start_carries = backs +% evn_starts;
+    const odd_start_carries = backs +% odd_starts;
     const evn_carries = evn_start_carries & ~backs;
     const odd_carries = odd_start_carries & ~backs;
     const odd1_ending_backs = evn_carries & odd_mask;
@@ -121,7 +142,7 @@ fn maskStructuralQuotes(vec: vector) mask {
     return structural_quotes;
 }
 
-fn identifyQuotedRange(quotes_mask: mask, structural_mask: mask) mask {
+fn identifyQuotedRanges(quotes_mask: mask, structural_mask: mask) mask {
     switch (cpu.arch) {
         .x86_64 => {
             const range = @as(@Vector(16, u8), @bitCast(simd.repeat(128 / vector_size, [_]mask{quotes_mask & structural_mask})));
@@ -146,6 +167,23 @@ fn identifyQuotedRange(quotes_mask: mask, structural_mask: mask) mask {
         },
         else => return @as(mask, @bitCast(simd.prefixScan(builtin.ReduceOp.Xor, 1, @as(vector_mask, @bitCast(quotes_mask))))),
     }
+}
+
+const index_ratio = (8 / 64) * vector_size;
+fn indexExtraction(indexes: *std.ArrayList(usize), base: *usize, vec_idx: usize, bitset: mask) std.mem.Allocator.Error!void {
+    const cnt = @popCount(bitset);
+    const next_base = base.* + cnt;
+    var s = bitset;
+    while (s != 0) {
+        const new_indexes: [index_ratio]usize = undefined;
+        var i: usize = 0;
+        while (i < index_ratio) : (i += 1) {
+            new_indexes[i] = vec_idx + @ctz(s);
+            s &= (s - 1);
+        }
+        try indexes.*.insertSlice(base.*, &new_indexes);
+    }
+    base.* = next_base;
 }
 
 test "basic add functionality" {

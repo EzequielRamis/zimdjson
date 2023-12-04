@@ -1,1 +1,7 @@
 .direnv
+zig-cache
+zig-out
+*.o
+*.a
+exe
+.gdb-history

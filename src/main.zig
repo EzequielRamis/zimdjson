@@ -1,35 +1,41 @@
 const std = @import("std");
 const builtin = @import("builtin");
+const simd = std.simd;
+const cpu = builtin.cpu;
 const testing = std.testing;
 
-const vector_size = std.simd.suggestVectorSize(u8) orelse @compileError("SIMD features not supported at current target");
+// TODO:
+// Stage 1:
+// [X] Identification of the quoted substrings
+// [X] Vectorized Classification
+// [ ] Identification of White-Space and Pseudo-Structural Characters
+// [ ] Index Extraction
+// [ ] Character-Encoding Validation
+// Stage 2:
+// [ ] Number Parsing
+// [ ] String Validation and Normalization
+
+const vector_size = simd.suggestVectorSize(u8) orelse @compileError("SIMD features not supported at current target");
 const vector = @Vector(vector_size, u8);
 const mask = std.meta.Int(std.builtin.Signedness.unsigned, vector_size);
+const vector_mask = @Vector(vector_size, bool);
 
 const zer_mask: mask = 0;
-const one_mask: mask = @bitCast(std.simd.repeat(vector_size, [_]u1{1}));
-const evn_mask: mask = @bitCast(std.simd.repeat(vector_size, [_]u1{ 1, 0 }));
-const odd_mask: mask = @bitCast(std.simd.repeat(vector_size, [_]u1{ 0, 1 }));
+const one_mask: mask = @bitCast(simd.repeat(vector_size, [_]u1{1}));
+const evn_mask: mask = @bitCast(simd.repeat(vector_size, [_]u1{ 1, 0 }));
+const odd_mask: mask = @bitCast(simd.repeat(vector_size, [_]u1{ 0, 1 }));
 
-const evn_vector: @Vector(vector_size, bool) = @bitCast(evn_mask);
-const odd_vector: @Vector(vector_size, bool) = @bitCast(odd_mask);
-const zer_vector: @Vector(vector_size, bool) = @bitCast(zer_mask);
-const one_vector: @Vector(vector_size, bool) = @bitCast(one_mask);
+const zer_vector: vector_mask = @bitCast(zer_mask);
+const one_vector: vector_mask = @bitCast(one_mask);
 
-const brack_str: vector = @splat('[');
-const brack_end: vector = @splat(']');
-const brace_str: vector = @splat('{');
-const brace_end: vector = @splat('}');
-const comma: vector = @splat(',');
-const colon: vector = @splat(':');
 const quote: vector = @splat('"');
 const slash: vector = @splat('\\');
 
-const ln_table: vector = std.simd.repeat(vector_size, [_]u8{ 16, 0, 0, 0, 0, 0, 0, 0, 0, 8, 10, 4, 1, 12, 0, 0 });
-const hn_table: vector = std.simd.repeat(vector_size, [_]u8{ 8, 0, 17, 2, 0, 4, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0 });
+const ln_table: vector = simd.repeat(vector_size, [_]u8{ 16, 0, 0, 0, 0, 0, 0, 0, 0, 8, 10, 4, 1, 12, 0, 0 });
+const hn_table: vector = simd.repeat(vector_size, [_]u8{ 8, 0, 17, 2, 0, 4, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0 });
 
 fn reverseMask(input: mask) mask {
-    return @bitCast(std.simd.reverseOrder(@as(@Vector(vector_size, bool), @bitCast(input))));
+    return @bitCast(simd.reverseOrder(@as(vector_mask, @bitCast(input))));
 }
 
 pub fn fromSlice(input: []const u8) !void {
@@ -43,12 +49,7 @@ pub fn fromSlice(input: []const u8) !void {
         @memcpy(sub_buffer, slice[0..slice_len]);
         const stream: vector = buffer;
 
-        // const quotes_mask = maskStructuralQuotes(stream);
-        // anda pero ver de usar el carry-less mul
-        // const quoted_strings_mask = @as(mask, @bitCast(std.simd.prefixScan(std.builtin.ReduceOp.Xor, 1, @as(@Vector(vector_size, bool), @bitCast(quotes_mask)))));
-
         std.debug.print("{s}\n", .{buffer});
-        // std.debug.print("{x:0>2}\n", .{stream});
         const low_nibbles = stream & @as(vector, @splat(0xF));
         const high_nibbles = stream >> @as(vector, @splat(4));
         const low_lookup_values = lookupTable(ln_table, low_nibbles);
@@ -66,19 +67,40 @@ pub fn fromSlice(input: []const u8) !void {
 }
 
 fn lookupTable(table: vector, nibbles: vector) vector {
-    return asm volatile (
-        \\vpshufb %[nibbles], %[table], %[ret]
-        : [ret] "=x" (-> vector),
-        : [table] "x" (table),
-          [nibbles] "x" (nibbles),
-    );
+    // TODO:
+    // [] arm
+    // [] aarch64
+    // [] ppc
+    // [] mips
+    // [] riscv
+    // [] wasm
+    switch (cpu.arch) {
+        .x86_64 => {
+            if (vector_size >= 32) {
+                return asm volatile (
+                    \\vpshufb %[nibbles], %[table], %[ret]
+                    : [ret] "=x" (-> vector),
+                    : [table] "x" (table),
+                      [nibbles] "x" (nibbles),
+                );
+            } else {
+                return asm volatile (
+                    \\pshufb %[nibbles], %[table], %[ret]
+                    : [ret] "=x" (-> vector),
+                    : [table] "x" (table),
+                      [nibbles] "x" (nibbles),
+                );
+            }
+        },
+        else => @compileError("Table lookup not implemented for this target"),
+    }
 }
 
 fn anyBitsSet(vec: vector, bits: vector) mask {
     return ~@as(mask, @bitCast(bitsNotSet(vec & bits)));
 }
 
-fn bitsNotSet(vec: vector) @Vector(vector_size, bool) {
+fn bitsNotSet(vec: vector) vector_mask {
     return @select(bool, vec == @as(vector, @splat(0)), one_vector, zer_vector);
 }
 
@@ -100,15 +122,30 @@ fn maskStructuralQuotes(vec: vector) mask {
 }
 
 fn identifyQuotedRange(quotes_mask: mask, structural_mask: mask) mask {
-    const q = @as(@Vector(16, u8), @bitCast(std.simd.repeat(128 / vector_size, [_]mask{quotes_mask & structural_mask})));
-    const ones = @as(@Vector(16, u8), @bitCast(std.simd.repeat(128, [_]u1{1})));
-    return asm (
-        \\pclmulqdq $0, %[ones], %[q]
-        \\movd %[q], %[ret]
-        : [ret] "={eax}" (-> mask),
-        : [ones] "x" (ones),
-          [q] "x" (q),
-    );
+    switch (cpu.arch) {
+        .x86_64 => {
+            const range = @as(@Vector(16, u8), @bitCast(simd.repeat(128 / vector_size, [_]mask{quotes_mask & structural_mask})));
+            const ones = @as(@Vector(16, u8), @bitCast(simd.repeat(128, [_]u1{1})));
+            if (vector_size == 64) {
+                return asm (
+                    \\pclmulqdq $0, %[ones], %[range]
+                    \\movq %[range], %[ret]
+                    : [ret] "=r" (-> mask),
+                    : [ones] "x" (ones),
+                      [range] "x" (range),
+                );
+            } else {
+                return asm (
+                    \\pclmulqdq $0, %[ones], %[range]
+                    \\movd %[range], %[ret]
+                    : [ret] "=r" (-> mask),
+                    : [ones] "x" (ones),
+                      [range] "x" (range),
+                );
+            }
+        },
+        else => return @as(mask, @bitCast(simd.prefixScan(builtin.ReduceOp.Xor, 1, @as(vector_mask, @bitCast(quotes_mask))))),
+    }
 }
 
 test "basic add functionality" {

@@ -9,7 +9,7 @@ const testing = std.testing;
 // [X] Identification of the quoted substrings
 // [X] Vectorized Classification
 // [X] Identification of White-Space and Pseudo-Structural Characters
-// [ ] Index Extraction
+// [X] Index Extraction
 // [ ] Character-Encoding Validation
 // Stage 2:
 // [ ] Number Parsing
@@ -39,7 +39,7 @@ fn reverseMask(input: mask) mask {
 }
 
 pub fn fromSlice(input: []const u8) !void {
-    var array = std.ArrayList(usize).init(testing.allocator);
+    var array = std.ArrayList(usize).init(std.heap.page_allocator);
     defer array.deinit();
     std.debug.print("\n", .{});
     var buffer = [_]u8{0} ** vector_size;
@@ -58,6 +58,9 @@ pub fn fromSlice(input: []const u8) !void {
         try indexExtraction(&array, &base, i, identifyStructuralChars(stream));
 
         @memset(&buffer, 0);
+    }
+    for (array.items) |item| {
+        std.debug.print("{} ", .{item});
     }
     std.debug.print("\n", .{});
 }
@@ -169,26 +172,28 @@ fn identifyQuotedRanges(quotes_mask: mask, structural_mask: mask) mask {
     }
 }
 
-const index_ratio = (8 / 64) * vector_size;
-fn indexExtraction(indexes: *std.ArrayList(usize), base: *usize, vec_idx: usize, bitset: mask) std.mem.Allocator.Error!void {
+const unconditional_extractions = @as(usize, (8.0 / 64.0) * @as(comptime_float, vector_size));
+var extractions: [unconditional_extractions]usize = undefined;
+
+pub fn indexExtraction(indexes: *std.ArrayList(usize), base: *usize, idx: usize, bitset: mask) std.mem.Allocator.Error!void {
     const cnt = @popCount(bitset);
     const next_base = base.* + cnt;
     var s = bitset;
     while (s != 0) {
-        const new_indexes: [index_ratio]usize = undefined;
-        var i: usize = 0;
-        while (i < index_ratio) : (i += 1) {
-            new_indexes[i] = vec_idx + @ctz(s);
-            s &= (s - 1);
+        for (&extractions) |*ext| {
+            const trailing_zeroes = @ctz(s);
+            ext.* = idx + trailing_zeroes;
+            s &= (s -% 1);
         }
-        try indexes.*.insertSlice(base.*, &new_indexes);
+        try indexes.*.insertSlice(base.*, &extractions);
+        base.* += unconditional_extractions;
     }
     base.* = next_base;
+    indexes.*.shrinkRetainingCapacity(next_base);
 }
 
-test "basic add functionality" {
+pub fn main() !void {
     try fromSlice(
         \\{ "\\\"Nam[{": [ 116,"\\\\" , 234, "true", false ], "t":"\\\"" }
     );
-    try testing.expect(10 == 10);
 }

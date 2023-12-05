@@ -31,8 +31,8 @@ const one_vector: vector_mask = @bitCast(one_mask);
 const quote: vector = @splat('"');
 const slash: vector = @splat('\\');
 
-const ln_table: vector = simd.repeat(vector_size, [_]u8{ 16, 0, 0, 0, 0, 0, 0, 0, 0, 8, 10, 4, 1, 12, 0, 0 });
-const hn_table: vector = simd.repeat(vector_size, [_]u8{ 8, 0, 17, 2, 0, 4, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0 });
+const ln_struct_table: vector = simd.repeat(vector_size, [_]u8{ 16, 0, 0, 0, 0, 0, 0, 0, 0, 8, 10, 4, 1, 12, 0, 0 });
+const hn_struct_table: vector = simd.repeat(vector_size, [_]u8{ 8, 0, 17, 2, 0, 4, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0 });
 
 fn reverseMask(input: mask) mask {
     return @bitCast(simd.reverseOrder(@as(vector_mask, @bitCast(input))));
@@ -42,8 +42,9 @@ pub fn fromSlice(input: []const u8) !void {
     var array = std.ArrayList(usize).init(std.heap.page_allocator);
     defer array.deinit();
     std.debug.print("\n", .{});
-    var buffer = [_]u8{0} ** vector_size;
+    var buffer = [_]u8{' '} ** vector_size;
     var base: usize = 0;
+    var inside_string: mask = 0;
     var i: usize = 0;
     while (i < input.len) : (i += vector_size) {
         const slice = input[i..];
@@ -52,12 +53,13 @@ pub fn fromSlice(input: []const u8) !void {
         @memcpy(sub_buffer, slice[0..slice_len]);
         const stream: vector = buffer;
 
+        const structural_chars = identifyStructuralChars(stream, &inside_string);
         std.debug.print("{s}\n", .{buffer});
-        std.debug.print("{b:0>32}\n", .{reverseMask(identifyStructuralChars(stream))});
+        std.debug.print("{b:0>32}\n", .{reverseMask(structural_chars)});
 
-        try indexExtraction(&array, &base, i, identifyStructuralChars(stream));
+        try indexExtraction(&array, &base, i, structural_chars);
 
-        @memset(&buffer, 0);
+        @memset(&buffer, ' ');
     }
     for (array.items) |item| {
         std.debug.print("{} ", .{item});
@@ -65,14 +67,15 @@ pub fn fromSlice(input: []const u8) !void {
     std.debug.print("\n", .{});
 }
 
-fn identifyStructuralChars(vec: vector) mask {
+fn identifyStructuralChars(vec: vector, inside_string: *mask) mask {
     const quotes_mask = maskStructuralQuotes(vec);
-    const quoted_ranges = identifyQuotedRanges(@bitCast(vec == quote), quotes_mask);
+    const quoted_ranges = identifyQuotedRanges(@bitCast(vec == quote), quotes_mask) ^ inside_string.*;
+    inside_string.* = @bitCast(@as(std.meta.Int(std.builtin.Signedness.signed, vector_size), @bitCast(quoted_ranges)) >> (vector_size - 1));
 
     const low_nibbles = vec & @as(vector, @splat(0xF));
     const high_nibbles = vec >> @as(vector, @splat(4));
-    const low_lookup_values = lookupTable(ln_table, low_nibbles);
-    const high_lookup_values = lookupTable(hn_table, high_nibbles);
+    const low_lookup_values = lookupTable(ln_struct_table, low_nibbles);
+    const high_lookup_values = lookupTable(hn_struct_table, high_nibbles);
     const desired_values = low_lookup_values & high_lookup_values;
     const whitespace_chars = anyBitsSet(desired_values, @as(vector, @splat(0b11000)));
     var structural_chars = anyBitsSet(desired_values, @as(vector, @splat(0b111)));
@@ -183,7 +186,7 @@ pub fn indexExtraction(indexes: *std.ArrayList(usize), base: *usize, idx: usize,
         for (&extractions) |*ext| {
             const trailing_zeroes = @ctz(s);
             ext.* = idx + trailing_zeroes;
-            s &= (s -% 1);
+            s &= (s -| 1);
         }
         try indexes.*.insertSlice(base.*, &extractions);
         base.* += unconditional_extractions;

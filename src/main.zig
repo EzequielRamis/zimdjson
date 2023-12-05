@@ -45,6 +45,8 @@ pub fn fromSlice(input: []const u8) !void {
     var buffer = [_]u8{' '} ** vector_size;
     var base: usize = 0;
     var inside_string: mask = 0;
+    var prev_evn_slash: u1 = 0;
+    var prev_odd_slash: u1 = 0;
     var i: usize = 0;
     while (i < input.len) : (i += vector_size) {
         const slice = input[i..];
@@ -53,8 +55,8 @@ pub fn fromSlice(input: []const u8) !void {
         @memcpy(sub_buffer, slice[0..slice_len]);
         const stream: vector = buffer;
 
-        const structural_chars = identifyStructuralChars(stream, &inside_string);
         std.debug.print("{s}\n", .{buffer});
+        const structural_chars = identifyStructuralChars(stream, &inside_string, &prev_evn_slash, &prev_odd_slash);
         std.debug.print("{b:0>32}\n", .{reverseMask(structural_chars)});
 
         try indexExtraction(&array, &base, i, structural_chars);
@@ -67,9 +69,10 @@ pub fn fromSlice(input: []const u8) !void {
     std.debug.print("\n", .{});
 }
 
-fn identifyStructuralChars(vec: vector, inside_string: *mask) mask {
-    const quotes_mask = maskStructuralQuotes(vec);
+fn identifyStructuralChars(vec: vector, inside_string: *mask, prev_evn_slash: *u1, prev_odd_slash: *u1) mask {
+    const quotes_mask = maskStructuralQuotes(vec, prev_evn_slash, prev_odd_slash);
     const quoted_ranges = identifyQuotedRanges(@bitCast(vec == quote), quotes_mask) ^ inside_string.*;
+    // std.debug.print("insd {}\n", .{inside_string.*});
     inside_string.* = @bitCast(@as(std.meta.Int(std.builtin.Signedness.signed, vector_size), @bitCast(quoted_ranges)) >> (vector_size - 1));
 
     const low_nibbles = vec & @as(vector, @splat(0xF));
@@ -131,20 +134,24 @@ fn bitsNotSet(vec: vector) vector_mask {
     return @select(bool, vec == @as(vector, @splat(0)), one_vector, zer_vector);
 }
 
-fn maskStructuralQuotes(vec: vector) mask {
+fn maskStructuralQuotes(vec: vector, prev_evn_slash: *u1, prev_odd_slash: *u1) mask {
     const backs: mask = @bitCast(vec == slash);
     const quotes: mask = @bitCast(vec == quote);
     const starts = backs & ~(backs << 1);
     const evn_starts = starts & evn_mask;
     const odd_starts = starts & odd_mask;
-    const evn_start_carries = backs +% evn_starts;
-    const odd_start_carries = backs +% odd_starts;
-    const evn_carries = evn_start_carries & ~backs;
-    const odd_carries = odd_start_carries & ~backs;
+
+    const evn_start_carries_with_overflow = @addWithOverflow(backs, evn_starts);
+    const odd_start_carries_with_overflow = @addWithOverflow(backs, odd_starts);
+    const evn_carries = (evn_start_carries_with_overflow[0] + prev_evn_slash.*) & ~backs;
+    const odd_carries = (odd_start_carries_with_overflow[0] + prev_odd_slash.*) & ~backs;
+    prev_evn_slash.* = evn_start_carries_with_overflow[1];
+    prev_odd_slash.* = odd_start_carries_with_overflow[1];
+
     const odd1_ending_backs = evn_carries & odd_mask;
     const odd2_ending_backs = odd_carries & evn_mask;
-    const odd_ends = odd1_ending_backs | odd2_ending_backs;
-    const structural_quotes = quotes & ~odd_ends;
+    const odd_length_ends = odd1_ending_backs | odd2_ending_backs;
+    const structural_quotes = quotes & ~odd_length_ends;
     return structural_quotes;
 }
 

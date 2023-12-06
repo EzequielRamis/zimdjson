@@ -63,5 +63,5 @@ pub fn reverseMask(input: mask) mask {
 }
 
 pub fn partialChunk(len: usize) usize {
-    return (len / vector_size) * vector_size;
+    return ((len -| 1) / vector_size) * vector_size;
 }

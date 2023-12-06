@@ -1,0 +1,4 @@
+- [ ] Encapsular estados en structs
+- [ ] Calcular ciclos de chunks llenos y ver el último chunk del archivo aparte
+- [ ] Ver instrucciones en otros targets
+- [ ] Benchmarks

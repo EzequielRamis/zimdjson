@@ -65,3 +65,56 @@ pub fn reverseMask(input: mask) mask {
 pub fn partialChunk(len: usize) usize {
     return ((len -| 1) / vector_size) * vector_size;
 }
+
+pub const TapeError = error{
+    TrueAtom,
+    FalseAtom,
+    NullAtom,
+    String,
+    Number,
+    NonValue,
+    Empty,
+    Colon,
+};
+
+pub const Tables = struct {
+    pub const is_structural_or_whitespace: [256]bool = init: {
+        var res: [256]bool = undefined;
+        for (0..res.len) |i| {
+            switch (i) {
+                // structural characters
+                0x7b, 0x7d, 0x3a, 0x5b, 0x5d, 0x2c => res[i] = true,
+                // whitespace characters
+                0x20, 0x0a, 0x09, 0x0d => res[i] = true,
+                _ => res[i] = false,
+            }
+        }
+        break :init res;
+    };
+
+    pub const is_structural_or_whitespace_negated: [256]bool = init: {
+        var res: [256]bool = undefined;
+        for (0..res.len) |i| {
+            res[i] = !is_structural_or_whitespace[i];
+        }
+        break :init res;
+    };
+
+    pub const escape_map: [256]u8 = init: {
+        var res: [256]u8 = undefined;
+        for (0..res.len) |i| {
+            switch (i) {
+                '"' => res[i] = 0x22,
+                '\\' => res[i] = 0x5c,
+                '/' => res[i] = 0x2f,
+                'b' => res[i] = 0x08,
+                'f' => res[i] = 0x0c,
+                'n' => res[i] = 0x0a,
+                'r' => res[i] = 0x0d,
+                't' => res[i] = 0x09,
+                _ => res[i] = 0,
+            }
+        }
+        break :init res;
+    };
+};

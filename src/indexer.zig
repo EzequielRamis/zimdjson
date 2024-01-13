@@ -14,7 +14,7 @@ pub const Indexer = struct {
     const hn_table: vector = simd.repeat(vector_size, [_]u8{ 8, 0, 17, 2, 0, 4, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0 });
 
     indexes: std.ArrayList(usize),
-    buffer: vector = [_]u8{' '} ** vector_size,
+    buffer: vector = [_]u8{0} ** vector_size,
     was_inside_string: mask = 0,
     previous_evn_slash: u1 = 0,
     previous_odd_slash: u1 = 0,
@@ -58,12 +58,10 @@ pub const Indexer = struct {
 
     pub fn extract(self: *Indexer, index: usize, bitset: mask) Allocator.Error!void {
         var s = bitset;
-        // NOTE: no encuentro una forma de hacer un loop unrolling, ni siquiera con la keyword inline
-        // Además, da lo mismo si copio el body manualmente, el asm es el mismo
         while (s != 0) {
             const tz = @ctz(s);
             try self.indexes.append(index + tz);
-            s &= (s -| 1);
+            s &= (s - 1);
         }
     }
 

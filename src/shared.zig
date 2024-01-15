@@ -4,7 +4,7 @@ const simd = std.simd;
 const cpu = builtin.cpu;
 const testing = std.testing;
 
-pub const vector_size = simd.suggestVectorSize(u8) orelse @compileError("SIMD features not supported at current target");
+pub const vector_size = simd.suggestVectorLength(u8) orelse @compileError("SIMD features not supported at current target");
 pub const vector = @Vector(vector_size, u8);
 pub const mask = std.meta.Int(std.builtin.Signedness.unsigned, vector_size);
 pub const vector_mask = @Vector(vector_size, bool);
@@ -75,6 +75,13 @@ pub const TapeError = error{
     NonValue,
     Empty,
     Colon,
+    NonTerminatedString,
+    ObjectBegin,
+    ArrayBegin,
+    MissingValue,
+    MissingKey,
+    MissingComma,
+    InvalidEscape,
 };
 
 pub const Tables = struct {

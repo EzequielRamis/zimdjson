@@ -21,7 +21,7 @@ pub fn fromSlice(input: []const u8) !void {
         try indexer.extract(i, structural_chars);
     }
     var eof_chunk = [_]u8{' '} ** vector_size;
-    var sub_chunk = eof_chunk[0..(input.len - i)];
+    const sub_chunk = eof_chunk[0..(input.len - i)];
     @memcpy(sub_chunk, input[i..input.len]);
     const structural_chars = indexer.identify(eof_chunk);
     try indexer.extract(i, structural_chars);

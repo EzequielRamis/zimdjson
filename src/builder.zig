@@ -126,23 +126,21 @@ pub const Tape = struct {
                     if (first_char.len < 1) {
                         return TapeError.NonTerminatedString;
                     }
-                    const strings_len = self.strings_value.items.len;
-                    try validator.string(self.strings_value, first_char[1..]);
-                    const string_slice = self.strings_value.items[strings_len..];
+                    const string_slice = try validator.string(&self.strings_value, first_char[1..]);
                     try self.string_slices.append(string_slice);
-                    try self.parsed.append(Node{ .string = .{ .value = @intCast(strings_len) } });
+                    try self.parsed.append(.{ .string = .{ .value = @intCast(@intFromPtr(string_slice.ptr)) } });
                 },
                 't' => {
                     try validator.true_atom(first_char);
-                    try self.parsed.append(Node{.true_atom});
+                    try self.parsed.append(Node{ .true_atom = .{} });
                 },
                 'f' => {
                     try validator.false_atom(first_char);
-                    try self.parsed.append(Node{.false_atom});
+                    try self.parsed.append(.{ .false_atom = .{} });
                 },
                 'n' => {
                     try validator.null_atom(first_char);
-                    try self.parsed.append(Node{.null_atom});
+                    try self.parsed.append(.{ .null_atom = .{} });
                 },
                 '-', '0'...'9' => {},
                 else => return TapeError.NonValue,
@@ -154,7 +152,7 @@ pub const Tape = struct {
         while (self.state) |state| {
             switch (state) {
                 .object_begin => {
-                    try self.stack.is_array.push(false);
+                    try self.stack.is_array.push(0);
                     if (self.next()) |char| {
                         switch (char[0]) {
                             '"' => {
@@ -186,23 +184,21 @@ pub const Tape = struct {
                                         if (value.len < 1) {
                                             return TapeError.NonTerminatedString;
                                         }
-                                        const strings_len = self.strings_value.items.len;
-                                        try validator.string(self.strings_value, value[1..]);
-                                        const string_slice = self.strings_value.items[strings_len..];
+                                        const string_slice = try validator.string(&self.strings_value, value[1..]);
                                         try self.string_slices.append(string_slice);
-                                        try self.parsed.append(Node{ .string = .{ .value = @intCast(strings_len) } });
+                                        try self.parsed.append(Node{ .string = .{ .value = @intCast(@intFromPtr(string_slice.ptr)) } });
                                     },
                                     't' => {
                                         try validator.true_atom(value);
-                                        try self.parsed.append(Node{.true_atom});
+                                        try self.parsed.append(Node{ .true_atom = .{} });
                                     },
                                     'f' => {
                                         try validator.false_atom(value);
-                                        try self.parsed.append(Node{.false_atom});
+                                        try self.parsed.append(Node{ .false_atom = .{} });
                                     },
                                     'n' => {
                                         try validator.null_atom(value);
-                                        try self.parsed.append(Node{.null_atom});
+                                        try self.parsed.append(Node{ .null_atom = .{} });
                                     },
                                     '-', '0'...'9' => {},
                                     else => return TapeError.NonValue,
@@ -243,11 +239,11 @@ pub const Tape = struct {
                     }
                 },
                 .array_begin => {
-                    try self.stack.is_array.push(false);
+                    try self.stack.is_array.push(1);
                     if (self.next()) |char| {
                         switch (char[0]) {
                             '"' => {
-                                self.state = State.array_field;
+                                self.state = State.array_value;
                             },
                             ']' => {
                                 self.state = State.scope_end;
@@ -273,23 +269,21 @@ pub const Tape = struct {
                                 if (value.len < 1) {
                                     return TapeError.NonTerminatedString;
                                 }
-                                const strings_len = self.strings_value.items.len;
-                                try validator.string(self.strings_value, value[1..]);
-                                const string_slice = self.strings_value.items[strings_len..];
+                                const string_slice = try validator.string(&self.strings_value, value[1..]);
                                 try self.string_slices.append(string_slice);
-                                try self.parsed.append(Node{ .string = .{ .value = @intCast(strings_len) } });
+                                try self.parsed.append(Node{ .string = .{ .value = @intCast(@intFromPtr(string_slice.ptr)) } });
                             },
                             't' => {
                                 try validator.true_atom(value);
-                                try self.parsed.append(Node{.true_atom});
+                                try self.parsed.append(Node{ .true_atom = .{} });
                             },
                             'f' => {
                                 try validator.false_atom(value);
-                                try self.parsed.append(Node{.false_atom});
+                                try self.parsed.append(Node{ .false_atom = .{} });
                             },
                             'n' => {
                                 try validator.null_atom(value);
-                                try self.parsed.append(Node{.null_atom});
+                                try self.parsed.append(Node{ .null_atom = .{} });
                             },
                             '-', '0'...'9' => {},
                             else => return TapeError.NonValue,
@@ -321,7 +315,7 @@ pub const Tape = struct {
                         self.state = null;
                         break;
                     }
-                    if (self.stack.is_array[self.stack.indexes.items.len - 1]) {
+                    if (self.stack.is_array.peek() == 1) {
                         self.state = State.array_continue;
                     } else {
                         self.state = State.object_continue;

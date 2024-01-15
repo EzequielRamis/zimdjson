@@ -11,7 +11,7 @@ pub fn true_atom(input: []const u8) TapeError!void {
     if (remaining_chars < 4) {
         return TapeError.TrueAtom;
     }
-    const vec_true: @Vector(4, u8) = [_]u8{ 't', 'r', 'u', 'e' };
+    const vec_true: @Vector(4, u8) = "true".*;
     const vec_atom: @Vector(4, u8) = input[0..4].*;
     const valid = check: {
         if (remaining_chars == 4) {
@@ -31,7 +31,7 @@ pub fn false_atom(input: []const u8) TapeError!void {
     if (remaining_chars < 5) {
         return TapeError.FalseAtom;
     }
-    const vec_false: @Vector(5, u8) = [_]u8{ 'f', 'a', 'l', 's', 'e' };
+    const vec_false: @Vector(5, u8) = "false".*;
     const vec_atom: @Vector(5, u8) = input[0..5].*;
     const valid = check: {
         if (remaining_chars == 5) {
@@ -51,7 +51,7 @@ pub fn null_atom(input: []const u8) TapeError!void {
     if (remaining_chars < 4) {
         return TapeError.NullAtom;
     }
-    const vec_null: @Vector(4, u8) = [_]u8{ 'n', 'u', 'l', 'l' };
+    const vec_null: @Vector(4, u8) = "null".*;
     const vec_atom: @Vector(4, u8) = input[0..4].*;
     const valid = check: {
         if (remaining_chars == 4) {
@@ -99,15 +99,52 @@ pub fn string(strings: *ArrayList(u8), input: []const u8) TapeError!void {
         i += first_slash_index;
         const escape_char = iter[1];
         if (escape_char == 'u') {
-            // encode utf-8
-        } else {
-            const escaped_char = shared.Tables.escape_map[escape_char];
-            if (escaped_char == 0) {
-                return TapeError.InvalidEscape;
+            if (iter.len < 6) {
+                break;
             }
+            const first_literal = iter[2..6];
+            if (iter.len > 7) {
+                const utf_literal = undefined;
+                if (iter[7] == '\\' and iter[8] == 'u') {
+                    const second_literal = iter[9..13];
+                    utf_literal = try parse_utf8_literal(first_literal, second_literal);
+                    i += 12;
+                } else {
+                    utf_literal = try parse_utf8_literal(first_literal, null);
+                    i += 6;
+                }
+                const codepoint = try std.unicode.utf8Decode(utf_literal);
+                const encoded_buffer = try strings.addManyAsSlice(4);
+                try std.unicode.utf8Encode(codepoint, encoded_buffer);
+            }
+        } else {
+            const escaped_char = shared.Tables.escape_map[escape_char] orelse return TapeError.InvalidEscape;
             strings.append(escaped_char);
             i += 2;
         }
     }
     return TapeError.NonTerminatedString;
+}
+
+fn parse_utf8_literal(dword: [4]u8, pair: ?[4]u8) TapeError![]const u8 {
+    var high_surr = [_]u8{ 0, 0 };
+    var low_surr = [_]u8{ 0, 0 };
+    const codepoint = undefined;
+    high_surr[0] = shared.Tables.digit_map[dword[0]] orelse return TapeError.InvalidEscape;
+    high_surr[0] += (shared.Tables.digit_map[dword[1]] orelse return TapeError.InvalidEscape) << 4;
+    high_surr[1] = shared.Tables.digit_map[dword[2]] orelse return TapeError.InvalidEscape;
+    high_surr[1] += (shared.Tables.digit_map[dword[3]] orelse return TapeError.InvalidEscape) << 4;
+    if (pair) {
+        low_surr[0] = shared.Tables.digit_map[pair[0]] orelse return TapeError.InvalidEscape;
+        low_surr[0] += (shared.Tables.digit_map[pair[1]] orelse return TapeError.InvalidEscape) << 4;
+        low_surr[1] = shared.Tables.digit_map[pair[2]] orelse return TapeError.InvalidEscape;
+        low_surr[1] += (shared.Tables.digit_map[pair[3]] orelse return TapeError.InvalidEscape) << 4;
+        codepoint = high_surr ++ low_surr;
+    } else {
+        codepoint = high_surr;
+    }
+    if (codepoint[0] == 0) {
+        return &codepoint[1..];
+    }
+    return &codepoint;
 }

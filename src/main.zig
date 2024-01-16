@@ -8,6 +8,7 @@ const cpu = builtin.cpu;
 const testing = std.testing;
 const vector = shared.vector;
 const vector_size = shared.vector_size;
+const mask = shared.mask;
 
 pub fn fromSlice(input: []const u8) !void {
     // stage 1
@@ -20,10 +21,13 @@ pub fn fromSlice(input: []const u8) !void {
         const structural_chars = indexer.identify(chunk);
         try indexer.extract(i, structural_chars);
     }
-    var eof_chunk = [_]u8{' '} ** vector_size;
-    const sub_chunk = eof_chunk[0..(input.len - i)];
+    var eof_chunk = [_]u8{0} ** vector_size;
+    const remainder_len = input.len - i;
+    const sub_chunk = eof_chunk[0..remainder_len];
     @memcpy(sub_chunk, input[i..input.len]);
-    const structural_chars = indexer.identify(eof_chunk);
+    var structural_chars = indexer.identify(eof_chunk);
+    const zero_mask = (@as(mask, 1) << @truncate(remainder_len)) -| 1;
+    structural_chars &= zero_mask;
     try indexer.extract(i, structural_chars);
 
     // stage 2

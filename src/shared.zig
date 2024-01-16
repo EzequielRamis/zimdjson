@@ -51,11 +51,7 @@ pub fn lookupTable(table: vector, nibbles: vector) vector {
 }
 
 pub fn anyBitsSet(vec: vector, bits: vector) mask {
-    return ~@as(mask, @bitCast(bitsNotSet(vec & bits)));
-}
-
-pub fn bitsNotSet(vec: vector) vector_mask {
-    return @select(bool, vec == @as(vector, @splat(0)), one_vector, zer_vector);
+    return ~@as(mask, @bitCast((vec & bits) == @as(vector, @splat(0))));
 }
 
 pub fn reverseMask(input: mask) mask {

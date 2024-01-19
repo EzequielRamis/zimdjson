@@ -19,8 +19,7 @@
           ];
         };
       in {
-        devShell = pkgs.mkShell {
-          buildInputs = with pkgs; [ zig zls gdb nasm valgrind ];
-        };
+        devShell =
+          pkgs.mkShell { buildInputs = with pkgs; [ zig zls gdb valgrind ]; };
       });
 }

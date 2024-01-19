@@ -11,35 +11,7 @@ const mask = shared.mask;
 const ArrayList = std.ArrayList;
 const Allocator = std.mem.Allocator;
 const TapeError = shared.TapeError;
-
-fn NodeWord(comptime tag: u8) type {
-    return packed struct {
-        tag: u8 = tag,
-        value: u56 = 0,
-    };
-}
-
-fn NodeDWord(comptime tag: u8) type {
-    return packed struct {
-        tag: u64 = tag,
-        value: u64 = 0,
-    };
-}
-
-pub const Node = packed union {
-    true_atom: NodeWord('t'),
-    false_atom: NodeWord('f'),
-    null_atom: NodeWord('n'),
-    signed: NodeDWord('i'),
-    unsigned: NodeDWord('u'),
-    float: NodeDWord('d'),
-    string: NodeWord('"'),
-    array_begin: NodeWord('['),
-    array_end: NodeWord(']'),
-    object_begin: NodeWord('{'),
-    object_end: NodeWord('}'),
-    root: NodeWord('r'),
-};
+const Node = shared.Node;
 
 const State = enum {
     object_begin,
@@ -142,7 +114,10 @@ pub const Tape = struct {
                     try validator.null_atom(first_char);
                     try self.parsed.append(.{ .null_atom = .{} });
                 },
-                '-', '0'...'9' => {},
+                '-', '0'...'9' => {
+                    const number = try validator.number(first_char);
+                    try self.parsed.append(Node{ .unsigned = .{ .value = number } });
+                },
                 else => return TapeError.NonValue,
             }
         } else {
@@ -200,7 +175,10 @@ pub const Tape = struct {
                                         try validator.null_atom(value);
                                         try self.parsed.append(Node{ .null_atom = .{} });
                                     },
-                                    '-', '0'...'9' => {},
+                                    '-', '0'...'9' => {
+                                        const number = try validator.number(value);
+                                        try self.parsed.append(Node{ .unsigned = .{ .value = number } });
+                                    },
                                     else => return TapeError.NonValue,
                                 }
                                 self.state = State.object_continue;
@@ -285,7 +263,10 @@ pub const Tape = struct {
                                 try validator.null_atom(value);
                                 try self.parsed.append(Node{ .null_atom = .{} });
                             },
-                            '-', '0'...'9' => {},
+                            '-', '0'...'9' => {
+                                const number = try validator.number(value);
+                                try self.parsed.append(Node{ .unsigned = .{ .value = number } });
+                            },
                             else => return TapeError.NonValue,
                         }
                         self.state = State.array_continue;

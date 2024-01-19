@@ -10,28 +10,28 @@ const vector = shared.vector;
 const vector_size = shared.vector_size;
 const mask = shared.mask;
 
-pub fn fromSlice(input: []const u8) !void {
+pub fn fromSlice(document: []const u8) !void {
     // stage 1
     var indexer = Indexer.init(std.heap.page_allocator);
     defer indexer.deinit();
 
     var i: usize = 0;
-    while (i < shared.partialChunk(input.len)) : (i += vector_size) {
-        const chunk: vector = input[i..][0..vector_size].*;
+    while (i < shared.partialChunk(document.len)) : (i += vector_size) {
+        const chunk: vector = document[i..][0..vector_size].*;
         const structural_chars = indexer.identify(chunk);
         try indexer.extract(i, structural_chars);
     }
     var eof_chunk = [_]u8{0} ** vector_size;
-    const remainder_len = input.len - i;
+    const remainder_len = document.len - i;
     const sub_chunk = eof_chunk[0..remainder_len];
-    @memcpy(sub_chunk, input[i..input.len]);
+    @memcpy(sub_chunk, document[i..document.len]);
     var structural_chars = indexer.identify(eof_chunk);
     const zero_mask = (@as(mask, 1) << @truncate(remainder_len)) -| 1;
     structural_chars &= zero_mask;
     try indexer.extract(i, structural_chars);
 
     // stage 2
-    var tape = builder.Tape.init(std.heap.page_allocator, input, indexer.indexes);
+    var tape = builder.Tape.init(std.heap.page_allocator, document, indexer.indexes);
     try tape.build();
     defer tape.deinit();
 }

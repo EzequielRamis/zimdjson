@@ -78,6 +78,7 @@ pub const TapeError = error{
     MissingKey,
     MissingComma,
     InvalidEscape,
+    InvalidNumber,
 };
 
 pub const Tables = struct {
@@ -147,3 +148,36 @@ pub const Tables = struct {
         break :init res;
     };
 };
+
+fn NodeWord(comptime tag: u8) type {
+    return packed struct {
+        tag: u8 = tag,
+        value: u56 = 0,
+    };
+}
+
+fn NodeDWord(comptime tag: u8) type {
+    return packed struct {
+        tag: u64 = tag,
+        value: u64 = 0,
+    };
+}
+
+pub const Node = packed union {
+    true_atom: NodeWord('t'),
+    false_atom: NodeWord('f'),
+    null_atom: NodeWord('n'),
+    signed: NodeDWord('i'),
+    unsigned: NodeDWord('u'),
+    float: NodeDWord('d'),
+    string: NodeWord('"'),
+    array_begin: NodeWord('['),
+    array_end: NodeWord(']'),
+    object_begin: NodeWord('{'),
+    object_end: NodeWord('}'),
+    root: NodeWord('r'),
+};
+
+pub fn intFromSlice(comptime T: type, str: []const u8) T {
+    return @as(*align(1) T, @ptrCast(@constCast(str))).*;
+}

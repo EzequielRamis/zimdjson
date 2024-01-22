@@ -2,6 +2,7 @@ const std = @import("std");
 const builtin = @import("builtin");
 const shared = @import("shared.zig");
 const validator = @import("validator.zig");
+const log = std.log;
 const simd = std.simd;
 const vector = shared.vector;
 const vector_size = shared.vector_size;
@@ -59,14 +60,6 @@ pub const Tape = struct {
         return res;
     }
 
-    fn peek(self: *Tape) ?[]const u8 {
-        if (self.next_structural == self.indexes.items.len) {
-            return null;
-        }
-        const res = self.document[self.indexes.items[self.next_structural]..];
-        return res;
-    }
-
     pub fn init(allocator: Allocator, input: []const u8, indexes: ArrayList(usize)) Tape {
         return Tape{
             .document = input,
@@ -100,23 +93,41 @@ pub const Tape = struct {
                     }
                     const string_slice = try validator.string(&self.strings_value, first_char[1..]);
                     try self.string_slices.append(string_slice);
+
                     try self.parsed.append(.{ .string = .{ .value = @intCast(@intFromPtr(string_slice.ptr)) } });
+                    log.debug("STR {s}", .{string_slice});
                 },
                 't' => {
                     try validator.true_atom(first_char);
                     try self.parsed.append(Node{ .true_atom = .{} });
+                    log.debug("TRU", .{});
                 },
                 'f' => {
                     try validator.false_atom(first_char);
                     try self.parsed.append(.{ .false_atom = .{} });
+                    log.debug("FAL", .{});
                 },
                 'n' => {
                     try validator.null_atom(first_char);
                     try self.parsed.append(.{ .null_atom = .{} });
+                    log.debug("NUL", .{});
                 },
                 '-', '0'...'9' => {
                     const number = try validator.number(first_char);
-                    try self.parsed.append(Node{ .unsigned = .{ .value = number } });
+                    switch (number) {
+                        .unsigned => |n| {
+                            try self.parsed.append(Node{ .unsigned = .{ .value = n } });
+                            log.debug("NUM {}", .{n});
+                        },
+                        .signed => |n| {
+                            try self.parsed.append(Node{ .signed = .{ .value = @bitCast(n) } });
+                            log.debug("NUM {}", .{n});
+                        },
+                        .float => |n| {
+                            try self.parsed.append(Node{ .float = .{ .value = @bitCast(n) } });
+                            log.debug("NUM {}", .{n});
+                        },
+                    }
                 },
                 else => return TapeError.NonValue,
             }
@@ -127,14 +138,21 @@ pub const Tape = struct {
         while (self.state) |state| {
             switch (state) {
                 .object_begin => {
-                    try self.stack.is_array.push(0);
+                    log.debug("OBJ BEGIN", .{});
                     if (self.next()) |char| {
                         switch (char[0]) {
                             '"' => {
-                                self.state = State.object_field;
+                                if (char.len > 1) {
+                                    const field_slice = try validator.string(&self.strings_value, char[1..]);
+                                    log.debug("OBJ KEY {s}", .{field_slice});
+                                    self.state = State.object_field;
+                                } else {
+                                    return TapeError.MissingKey;
+                                }
                             },
                             '}' => {
                                 self.state = State.scope_end;
+                                log.debug("OBJ END", .{});
                             },
                             else => return TapeError.ObjectBegin,
                         }
@@ -149,10 +167,12 @@ pub const Tape = struct {
                                 switch (value[0]) {
                                     '{' => {
                                         self.state = State.object_begin;
+                                        try self.stack.is_array.push(0);
                                         continue;
                                     },
                                     '[' => {
                                         self.state = State.array_begin;
+                                        try self.stack.is_array.push(0);
                                         continue;
                                     },
                                     '"' => {
@@ -162,26 +182,44 @@ pub const Tape = struct {
                                         const string_slice = try validator.string(&self.strings_value, value[1..]);
                                         try self.string_slices.append(string_slice);
                                         try self.parsed.append(Node{ .string = .{ .value = @intCast(@intFromPtr(string_slice.ptr)) } });
+                                        log.debug("STR {s}", .{string_slice});
                                     },
                                     't' => {
                                         try validator.true_atom(value);
                                         try self.parsed.append(Node{ .true_atom = .{} });
+                                        log.debug("TRU", .{});
                                     },
                                     'f' => {
                                         try validator.false_atom(value);
                                         try self.parsed.append(Node{ .false_atom = .{} });
+                                        log.debug("FAL", .{});
                                     },
                                     'n' => {
                                         try validator.null_atom(value);
                                         try self.parsed.append(Node{ .null_atom = .{} });
+                                        log.debug("NUL", .{});
                                     },
                                     '-', '0'...'9' => {
                                         const number = try validator.number(value);
-                                        try self.parsed.append(Node{ .unsigned = .{ .value = number } });
+                                        switch (number) {
+                                            .unsigned => |n| {
+                                                try self.parsed.append(Node{ .unsigned = .{ .value = n } });
+                                                log.debug("NUM {}", .{n});
+                                            },
+                                            .signed => |n| {
+                                                try self.parsed.append(Node{ .signed = .{ .value = @bitCast(n) } });
+                                                log.debug("NUM {}", .{n});
+                                            },
+                                            .float => |n| {
+                                                try self.parsed.append(Node{ .float = .{ .value = @bitCast(n) } });
+                                                log.debug("NUM {}", .{n});
+                                            },
+                                        }
                                     },
                                     else => return TapeError.NonValue,
                                 }
                                 self.state = State.object_continue;
+                                log.debug("OBJ CONTINUE", .{});
                             } else {
                                 return TapeError.MissingValue;
                             }
@@ -198,7 +236,9 @@ pub const Tape = struct {
                             ',' => {
                                 // increment count
                                 if (self.next()) |maybe_key| {
-                                    if (maybe_key[0] == '"') {
+                                    if (maybe_key[0] == '"' and maybe_key.len > 1) {
+                                        const field_slice = try validator.string(&self.strings_value, maybe_key[1..]);
+                                        log.debug("OBJ KEY {s}", .{field_slice});
                                         self.state = State.object_field;
                                     } else {
                                         return TapeError.MissingKey;
@@ -217,17 +257,68 @@ pub const Tape = struct {
                     }
                 },
                 .array_begin => {
-                    try self.stack.is_array.push(1);
+                    log.debug("ARR BEGIN", .{});
                     if (self.next()) |char| {
+                        log.debug("NEXT ARR {s}", .{char});
                         switch (char[0]) {
+                            '{' => {
+                                self.state = State.object_begin;
+                                try self.stack.is_array.push(1);
+                                continue;
+                            },
+                            '[' => {
+                                self.state = State.array_begin;
+                                try self.stack.is_array.push(1);
+                                continue;
+                            },
                             '"' => {
-                                self.state = State.array_value;
+                                if (char.len < 1) {
+                                    return TapeError.NonTerminatedString;
+                                }
+                                const string_slice = try validator.string(&self.strings_value, char[1..]);
+                                try self.string_slices.append(string_slice);
+                                try self.parsed.append(Node{ .string = .{ .value = @intCast(@intFromPtr(string_slice.ptr)) } });
+                                log.debug("STR {s}", .{string_slice});
+                            },
+                            't' => {
+                                try validator.true_atom(char);
+                                try self.parsed.append(Node{ .true_atom = .{} });
+                                log.debug("TRU", .{});
+                            },
+                            'f' => {
+                                try validator.false_atom(char);
+                                try self.parsed.append(Node{ .false_atom = .{} });
+                                log.debug("FAL", .{});
+                            },
+                            'n' => {
+                                try validator.null_atom(char);
+                                try self.parsed.append(Node{ .null_atom = .{} });
+                                log.debug("NUL", .{});
+                            },
+                            '-', '0'...'9' => {
+                                const number = try validator.number(char);
+                                switch (number) {
+                                    .unsigned => |n| {
+                                        try self.parsed.append(Node{ .unsigned = .{ .value = n } });
+                                        log.debug("NUM {}", .{n});
+                                    },
+                                    .signed => |n| {
+                                        try self.parsed.append(Node{ .signed = .{ .value = @bitCast(n) } });
+                                        log.debug("NUM {}", .{n});
+                                    },
+                                    .float => |n| {
+                                        try self.parsed.append(Node{ .float = .{ .value = @bitCast(n) } });
+                                        log.debug("NUM {}", .{n});
+                                    },
+                                }
                             },
                             ']' => {
                                 self.state = State.scope_end;
+                                continue;
                             },
                             else => return TapeError.ArrayBegin,
                         }
+                        self.state = State.array_continue;
                     } else {
                         return TapeError.ArrayBegin;
                     }
@@ -237,10 +328,12 @@ pub const Tape = struct {
                         switch (value[0]) {
                             '{' => {
                                 self.state = State.object_begin;
+                                try self.stack.is_array.push(1);
                                 continue;
                             },
                             '[' => {
                                 self.state = State.array_begin;
+                                try self.stack.is_array.push(1);
                                 continue;
                             },
                             '"' => {
@@ -250,26 +343,44 @@ pub const Tape = struct {
                                 const string_slice = try validator.string(&self.strings_value, value[1..]);
                                 try self.string_slices.append(string_slice);
                                 try self.parsed.append(Node{ .string = .{ .value = @intCast(@intFromPtr(string_slice.ptr)) } });
+                                log.debug("STR {s}", .{string_slice});
                             },
                             't' => {
                                 try validator.true_atom(value);
                                 try self.parsed.append(Node{ .true_atom = .{} });
+                                log.debug("TRU", .{});
                             },
                             'f' => {
                                 try validator.false_atom(value);
                                 try self.parsed.append(Node{ .false_atom = .{} });
+                                log.debug("FAL", .{});
                             },
                             'n' => {
                                 try validator.null_atom(value);
                                 try self.parsed.append(Node{ .null_atom = .{} });
+                                log.debug("NUL", .{});
                             },
                             '-', '0'...'9' => {
                                 const number = try validator.number(value);
-                                try self.parsed.append(Node{ .unsigned = .{ .value = number } });
+                                switch (number) {
+                                    .unsigned => |n| {
+                                        try self.parsed.append(Node{ .unsigned = .{ .value = n } });
+                                        log.debug("NUM {}", .{n});
+                                    },
+                                    .signed => |n| {
+                                        try self.parsed.append(Node{ .signed = .{ .value = @bitCast(n) } });
+                                        log.debug("NUM {}", .{n});
+                                    },
+                                    .float => |n| {
+                                        try self.parsed.append(Node{ .float = .{ .value = @bitCast(n) } });
+                                        log.debug("NUM {}", .{n});
+                                    },
+                                }
                             },
                             else => return TapeError.NonValue,
                         }
                         self.state = State.array_continue;
+                        log.debug("ARR CONTINUE", .{});
                     } else {
                         return TapeError.MissingValue;
                     }
@@ -280,6 +391,7 @@ pub const Tape = struct {
                             ',' => {
                                 // increment count
                                 self.state = State.array_value;
+                                log.debug("ARR VALUE", .{});
                             },
                             ']' => {
                                 self.state = State.scope_end;
@@ -291,15 +403,19 @@ pub const Tape = struct {
                     }
                 },
                 .scope_end => {
-                    // decrement count
-                    if (self.stack.indexes.items.len == 0) {
+                    log.debug("SCOPE END", .{});
+                    if (self.stack.is_array.bit_len == 0) {
                         self.state = null;
-                        break;
+                        continue;
                     }
-                    if (self.stack.is_array.peek() == 1) {
+                    _ = self.stack.indexes.popOrNull();
+                    const last = self.stack.is_array.pop();
+                    if (last == 1) {
                         self.state = State.array_continue;
+                        log.debug("ARR LAST", .{});
                     } else {
                         self.state = State.object_continue;
+                        log.debug("OBJ LAST", .{});
                     }
                 },
             }

@@ -136,6 +136,26 @@ pub const Tables = struct {
                 '7' => res[i] = 7,
                 '8' => res[i] = 8,
                 '9' => res[i] = 9,
+                else => res[i] = null,
+            }
+        }
+        break :init res;
+    };
+
+    pub const hex_digit_map: [256]?u8 = init: {
+        var res: [256]?u8 = undefined;
+        for (0..res.len) |i| {
+            switch (i) {
+                '0' => res[i] = 0,
+                '1' => res[i] = 1,
+                '2' => res[i] = 2,
+                '3' => res[i] = 3,
+                '4' => res[i] = 4,
+                '5' => res[i] = 5,
+                '6' => res[i] = 6,
+                '7' => res[i] = 7,
+                '8' => res[i] = 8,
+                '9' => res[i] = 9,
                 'a', 'A' => res[i] = 10,
                 'b', 'B' => res[i] = 11,
                 'c', 'C' => res[i] = 12,
@@ -149,34 +169,59 @@ pub const Tables = struct {
     };
 };
 
-fn NodeWord(comptime tag: u8) type {
-    return packed struct {
-        tag: u8 = tag,
-        value: u56 = 0,
-    };
-}
-
-fn NodeDWord(comptime tag: u8) type {
-    return packed struct {
-        tag: u64 = tag,
-        value: u64 = 0,
-    };
-}
-
-pub const Node = packed union {
-    true_atom: NodeWord('t'),
-    false_atom: NodeWord('f'),
-    null_atom: NodeWord('n'),
-    signed: NodeDWord('i'),
-    unsigned: NodeDWord('u'),
-    float: NodeDWord('d'),
-    string: NodeWord('"'),
-    array_begin: NodeWord('['),
-    array_end: NodeWord(']'),
-    object_begin: NodeWord('{'),
-    object_end: NodeWord('}'),
-    root: NodeWord('r'),
+const Value = enum {
+    object,
+    array,
+    string,
+    number,
+    true_atom,
+    false_atom,
+    null_atom,
 };
+
+pub const ElementTag = enum {
+    true_atom,
+    false_atom,
+    null_atom,
+
+    signed,
+    unsigned,
+    float,
+
+    string_key,
+    string_value,
+
+    object_begin,
+    object_end,
+
+    array_begin,
+    array_end,
+
+    root,
+};
+
+pub const Element = union(ElementTag) {
+    true_atom: void,
+    false_atom: void,
+    null_atom: void,
+
+    signed: i64,
+    unsigned: u64,
+    float: f64,
+
+    string_key: [:0]const u8,
+    string_value: [:0]const u8,
+
+    object_begin: usize,
+    object_end: usize,
+
+    array_begin: usize,
+    array_end: usize,
+
+    root: usize,
+};
+
+pub const Tape = std.MultiArrayList(Element);
 
 pub fn intFromSlice(comptime T: type, str: []const u8) T {
     return @as(*align(1) T, @ptrCast(@constCast(str))).*;

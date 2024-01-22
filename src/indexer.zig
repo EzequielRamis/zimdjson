@@ -1,6 +1,8 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const shared = @import("shared.zig");
+const Reader = @import("reader.zig");
+
 const simd = std.simd;
 const vector = shared.vector;
 const vector_size = shared.vector_size;
@@ -8,6 +10,10 @@ const vector_mask = shared.vector_mask;
 const mask = shared.mask;
 
 const Allocator = std.mem.Allocator;
+pub const Token = struct {
+    index: usize,
+    value: u8,
+};
 const Self = @This();
 
 const ln_table: vector = simd.repeat(vector_size, [_]u8{ 16, 0, 0, 0, 0, 0, 0, 0, 0, 8, 10, 4, 1, 12, 0, 0 });
@@ -16,18 +22,25 @@ var previous_evn_slash: u1 = 0;
 var previous_odd_slash: u1 = 0;
 var was_inside_string: mask = 0;
 
-document: []const u8,
-indexes: std.ArrayList(usize),
+reader: Reader,
+tokens: std.MultiArrayList(Token),
 
-pub fn init(allocator: Allocator, doc: []const u8) Self {
+pub fn init(allocator: Allocator, document: []const u8) Self {
     return Self{
-        .document = doc,
-        .indexes = std.ArrayList(usize).init(allocator),
+        .reader = Reader.init(document),
+        .tokens = std.MultiArrayList(Token).init(allocator),
     };
 }
 
 pub fn deinit(self: *Self) void {
-    self.indexes.deinit();
+    self.tokens.deinit();
+}
+
+pub fn index(self: *Self) Allocator.Error!void {
+    while (self.reader.next()) |block| {
+        const structural_mask = self.identify(block);
+        try self.extract(self.reader.index, structural_mask);
+    }
 }
 
 pub fn identify(self: *Self, vec: vector) mask {
@@ -38,8 +51,8 @@ pub fn identify(self: *Self, vec: vector) mask {
 
     const low_nibbles = vec & @as(vector, @splat(0xF));
     const high_nibbles = vec >> @as(vector, @splat(4));
-    const low_lookup_values = shared.lookupTable(ln_table, low_nibbles);
-    const high_lookup_values = shared.lookupTable(hn_table, high_nibbles);
+    const low_lookup_values = shared.lut(ln_table, low_nibbles);
+    const high_lookup_values = shared.lut(hn_table, high_nibbles);
     const desired_values = low_lookup_values & high_lookup_values;
     const whitespace_chars = shared.anyBitsSet(desired_values, @as(vector, @splat(0b11000)));
     var structural_chars = shared.anyBitsSet(desired_values, @as(vector, @splat(0b111)));
@@ -57,11 +70,12 @@ pub fn identify(self: *Self, vec: vector) mask {
     return structural_chars;
 }
 
-pub fn extract(self: *Self, index: usize, bitset: mask) Allocator.Error!void {
+pub fn extract(self: *Self, i: usize, bitset: mask) Allocator.Error!void {
     var s = bitset;
     while (s != 0) {
         const tz = @ctz(s);
-        try self.indexes.append(index + tz);
+        const idx = i + tz;
+        try self.indexes.append(Token{ .index = idx, .value = self.reader.document[idx] });
         s &= (s - 1);
     }
 }

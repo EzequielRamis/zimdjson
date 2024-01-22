@@ -4,7 +4,7 @@ const simd = std.simd;
 const cpu = builtin.cpu;
 const testing = std.testing;
 
-pub const vector_size = simd.suggestVectorLength(u8) orelse @compileError("SIMD features not supported at current target");
+pub const vector_size = simd.suggestVectorLength(u8) orelse 4;
 pub const vector = @Vector(vector_size, u8);
 pub const mask = std.meta.Int(std.builtin.Signedness.unsigned, vector_size);
 pub const vector_mask = @Vector(vector_size, bool);
@@ -20,7 +20,7 @@ pub const one_vector: vector_mask = @bitCast(one_mask);
 pub const quote: vector = @splat('"');
 pub const slash: vector = @splat('\\');
 
-pub fn lookupTable(table: vector, nibbles: vector) vector {
+pub fn lut(table: vector, nibbles: vector) vector {
     // TODO:
     // [] arm
     // [] aarch64
@@ -46,7 +46,16 @@ pub fn lookupTable(table: vector, nibbles: vector) vector {
                 );
             }
         },
-        else => @compileError("Table lookup not implemented for this target"),
+        else => {
+            var fallback: vector = [_]u8{0} ** vector_size;
+            for (0..vector_size) |i| {
+                const n = nibbles[i];
+                if (n < vector_size) {
+                    fallback[i] = table[n];
+                }
+            }
+            return fallback;
+        },
     }
 }
 

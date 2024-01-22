@@ -1,8 +1,12 @@
 const std = @import("std");
 const Indexer = @import("indexer.zig");
 
-document: []const u8,
-string_escaped_values: std.ArrayList(u8),
+const ArrayList = std.ArrayList;
+const Allocator = std.mem.Allocator;
+const Self = @This();
+
+tape: Tape,
+string_escaped_values: ArrayList(u8),
 indexer: *Indexer,
 
 const NodeTag = enum {
@@ -24,7 +28,7 @@ const NodeTag = enum {
     array_end,
 };
 
-const Node = union(NodeTag) {
+pub const Node = union(NodeTag) {
     root: usize,
     true_atom: void,
     false_atom: void,
@@ -44,3 +48,17 @@ const Node = union(NodeTag) {
 };
 
 pub const Tape = std.MultiArrayList(Node);
+
+pub fn init(allocator: Allocator, document: []const u8) Self {
+    return Self{
+        .tape = Tape{},
+        .string_escaped_values = ArrayList(u8).init(allocator),
+        .indexer = Indexer.init(allocator, document),
+    };
+}
+
+pub fn deinit(self: *Self) void {
+    self.tape.deinit();
+    self.string_escaped_values.deinit();
+    self.indexer.deinit();
+}

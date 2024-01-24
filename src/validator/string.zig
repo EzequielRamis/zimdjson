@@ -24,7 +24,7 @@ pub fn string(strings: *ArrayList(u8), input: []const u8) ![:0]const u8 {
         const first_slash_index = @ctz(bslash);
         // none of the characters are present in the buffer
         if (first_quote_index == first_slash_index) {
-            try strings.appendSlice(iter);
+            try strings.appendSlice(iter[0..vector_size]);
             i += vector_size;
             continue;
         }

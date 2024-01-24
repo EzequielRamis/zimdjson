@@ -10,36 +10,33 @@ const vector_mask = shared.vector_mask;
 const mask = shared.mask;
 
 const Allocator = std.mem.Allocator;
-pub const Token = struct {
-    index: usize,
-    value: u8,
-};
 const Self = @This();
 
 const ln_table: vector = simd.repeat(vector_size, [_]u8{ 16, 0, 0, 0, 0, 0, 0, 0, 0, 8, 10, 4, 1, 12, 0, 0 });
 const hn_table: vector = simd.repeat(vector_size, [_]u8{ 8, 0, 17, 2, 0, 4, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0 });
 var previous_evn_slash: u1 = 0;
 var previous_odd_slash: u1 = 0;
+var last_was_struct_or_white: u1 = 0;
 var was_inside_string: mask = 0;
 
 reader: Reader,
-tokens: std.MultiArrayList(Token),
+indexes: std.ArrayList(usize),
 
 pub fn init(allocator: Allocator, document: []const u8) Self {
     return Self{
         .reader = Reader.init(document),
-        .tokens = std.MultiArrayList(Token).init(allocator),
+        .indexes = std.ArrayList(usize).init(allocator),
     };
 }
 
 pub fn deinit(self: *Self) void {
-    self.tokens.deinit();
+    self.indexes.deinit();
 }
 
 pub fn index(self: *Self) Allocator.Error!void {
     while (self.reader.next()) |block| {
-        const structural_mask = self.identify(block);
-        try self.extract(self.reader.index, structural_mask);
+        const structural_mask = self.identify(block.value);
+        try self.extract(block.index, structural_mask);
     }
 }
 
@@ -47,7 +44,6 @@ pub fn identify(self: *Self, vec: vector) mask {
     const quotes_mask = maskStructuralQuotes(self, vec);
     const quoted_ranges = identifyQuotedRanges(@bitCast(vec == shared.quote), quotes_mask) ^ was_inside_string;
     const signed_quoted_ranges: std.meta.Int(std.builtin.Signedness.signed, vector_size) = @bitCast(quoted_ranges);
-    was_inside_string = @bitCast(signed_quoted_ranges >> (vector_size - 1));
 
     const low_nibbles = vec & @as(vector, @splat(0xF));
     const high_nibbles = vec >> @as(vector, @splat(4));
@@ -67,6 +63,11 @@ pub fn identify(self: *Self, vec: vector) mask {
     structural_chars |= pseudo_structural_chars;
     structural_chars &= ~(quotes_mask & ~quoted_ranges);
 
+    structural_chars |= 1 & ~was_inside_string & last_was_struct_or_white & ~whitespace_chars;
+
+    was_inside_string = @bitCast(signed_quoted_ranges >> (vector_size - 1));
+    last_was_struct_or_white = @intFromBool(shared.Tables.is_structural_or_whitespace[vec[vector_size - 1]]);
+
     return structural_chars;
 }
 
@@ -74,8 +75,7 @@ pub fn extract(self: *Self, i: usize, bitset: mask) Allocator.Error!void {
     var s = bitset;
     while (s != 0) {
         const tz = @ctz(s);
-        const idx = i + tz;
-        try self.indexes.append(Token{ .index = idx, .value = self.reader.document[idx] });
+        try self.indexes.append(i + tz);
         s &= (s - 1);
     }
 }

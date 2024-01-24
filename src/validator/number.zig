@@ -37,7 +37,7 @@ pub fn number(input: []const u8) !Result {
         return TapeError.InvalidNumber;
     }
     const number_slice = input[0..i];
-    const literal = std.zig.parseNumberLiteral(number_slice);
+    const literal = std.zig.parseNumberLiteral(number_slice[is_negative..]);
     switch (literal) {
         .int => {
             if (is_negative == 1) {

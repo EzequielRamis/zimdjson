@@ -178,16 +178,6 @@ pub const Tables = struct {
     };
 };
 
-const Value = enum {
-    object,
-    array,
-    string,
-    number,
-    true_atom,
-    false_atom,
-    null_atom,
-};
-
 pub const ElementTag = enum {
     true_atom,
     false_atom,

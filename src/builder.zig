@@ -1,18 +1,14 @@
 const std = @import("std");
-const builtin = @import("builtin");
 const shared = @import("shared.zig");
 const validator = @import("validator.zig");
+const Prefixes = @import("prefixes.zig");
+const Prefix = Prefixes.Prefix;
 const log = std.log;
-const simd = std.simd;
-const vector = shared.vector;
-const vector_size = shared.vector_size;
-const vector_mask = shared.vector_mask;
-const mask = shared.mask;
 
 const ArrayList = std.ArrayList;
 const Allocator = std.mem.Allocator;
 const TapeError = shared.TapeError;
-const Node = shared.Node;
+const Self = @This();
 
 const State = enum {
     object_begin,
@@ -22,6 +18,44 @@ const State = enum {
     array_value,
     array_continue,
     scope_end,
+};
+
+const NodeTag = enum {
+    root,
+    true_atom,
+    false_atom,
+    null_atom,
+    unsigned,
+    signed,
+    float,
+    big_int,
+    string_key,
+    string_key_raw,
+    string_value,
+    string_value_raw,
+    object_begin,
+    object_end,
+    array_begin,
+    array_end,
+};
+
+const Node = union(NodeTag) {
+    root: usize,
+    true_atom: void,
+    false_atom: void,
+    null_atom: void,
+    unsigned: u64,
+    signed: i64,
+    float: f64,
+    big_int: [:0]const u8,
+    string_key: [:0]const u8,
+    string_key_raw: [:0]const u8,
+    string_value: [:0]const u8,
+    string_value_raw: [:0]const u8,
+    object_begin: usize,
+    object_end: usize,
+    array_begin: usize,
+    array_end: usize,
 };
 
 const Stack = struct {
@@ -41,386 +75,260 @@ const Stack = struct {
     }
 };
 
-pub const Tape = struct {
-    document: []const u8,
-    parsed: ArrayList(Node),
-    string_slices: ArrayList([:0]const u8),
-    strings_value: ArrayList(u8),
-    state: ?State = null,
-    stack: Stack,
-    indexes: ArrayList(usize),
-    next_structural: usize = 0,
+prefixes: Prefixes,
+parsed: std.MultiArrayList(Node),
+string_slices: ArrayList([:0]const u8),
+strings_value: ArrayList(u8),
+state: ?State = null,
+stack: Stack,
+allocator: Allocator,
 
-    fn next(self: *Tape) ?[]const u8 {
-        if (self.next_structural == self.indexes.items.len) {
-            return null;
+pub fn init(allocator: Allocator, prefixes: Prefixes) Self {
+    return Self{
+        .prefixes = prefixes,
+        .parsed = std.MultiArrayList(Node){},
+        .string_slices = ArrayList([:0]const u8).init(allocator),
+        .strings_value = ArrayList(u8).init(allocator),
+        .stack = Stack.init(allocator),
+        .allocator = allocator,
+    };
+}
+
+pub fn deinit(self: *Self) void {
+    self.parsed.deinit(self.allocator);
+    self.string_slices.deinit();
+    self.strings_value.deinit();
+    self.stack.deinit();
+}
+
+pub fn build(self: *Self) !void {
+    if (self.prefixes.next()) |prefix| {
+        switch (prefix.value()) {
+            .object => self.state = State.object_begin,
+            .array => self.state = State.array_begin,
+            else => try self.visit_primitive(prefix),
         }
-        const res = self.document[self.indexes.items[self.next_structural]..];
-        self.next_structural += 1;
-        return res;
+    } else {
+        return TapeError.Empty;
     }
 
-    pub fn init(allocator: Allocator, input: []const u8, indexes: ArrayList(usize)) Tape {
-        return Tape{
-            .document = input,
-            .parsed = ArrayList(Node).init(allocator),
-            .string_slices = ArrayList([:0]const u8).init(allocator),
-            .strings_value = ArrayList(u8).init(allocator),
-            .stack = Stack.init(allocator),
-            .indexes = indexes,
-        };
-    }
-
-    pub fn deinit(self: *Tape) void {
-        self.parsed.deinit();
-        self.string_slices.deinit();
-        self.strings_value.deinit();
-        self.stack.deinit();
-    }
-
-    pub fn build(self: *Tape) !void {
-        if (self.next()) |first_char| {
-            switch (first_char[0]) {
-                '{' => {
-                    self.state = State.object_begin;
-                },
-                '[' => {
-                    self.state = State.array_begin;
-                },
-                '"' => {
-                    if (first_char.len < 1) {
-                        return TapeError.NonTerminatedString;
-                    }
-                    const string_slice = try validator.string(&self.strings_value, first_char[1..]);
-                    try self.string_slices.append(string_slice);
-
-                    try self.parsed.append(.{ .string = .{ .value = @intCast(@intFromPtr(string_slice.ptr)) } });
-                    log.debug("STR {s}", .{string_slice});
-                },
-                't' => {
-                    try validator.true_atom(first_char);
-                    try self.parsed.append(Node{ .true_atom = .{} });
-                    log.debug("TRU", .{});
-                },
-                'f' => {
-                    try validator.false_atom(first_char);
-                    try self.parsed.append(.{ .false_atom = .{} });
-                    log.debug("FAL", .{});
-                },
-                'n' => {
-                    try validator.null_atom(first_char);
-                    try self.parsed.append(.{ .null_atom = .{} });
-                    log.debug("NUL", .{});
-                },
-                '-', '0'...'9' => {
-                    const number = try validator.number(first_char);
-                    switch (number) {
-                        .unsigned => |n| {
-                            try self.parsed.append(Node{ .unsigned = .{ .value = n } });
-                            log.debug("NUM {}", .{n});
+    while (self.state) |state| {
+        switch (state) {
+            .object_begin => {
+                log.debug("OBJ BEGIN", .{});
+                if (self.prefixes.next()) |prefix| {
+                    switch (prefix.value()) {
+                        .string => try self.visit_key(prefix),
+                        .object_end => {
+                            self.state = State.scope_end;
+                            log.debug("OBJ END", .{});
                         },
-                        .signed => |n| {
-                            try self.parsed.append(Node{ .signed = .{ .value = @bitCast(n) } });
-                            log.debug("NUM {}", .{n});
-                        },
-                        .float => |n| {
-                            try self.parsed.append(Node{ .float = .{ .value = @bitCast(n) } });
-                            log.debug("NUM {}", .{n});
-                        },
+                        else => return TapeError.ObjectBegin,
                     }
-                },
-                else => return TapeError.NonValue,
-            }
-        } else {
-            return TapeError.Empty;
-        }
-
-        while (self.state) |state| {
-            switch (state) {
-                .object_begin => {
-                    log.debug("OBJ BEGIN", .{});
-                    if (self.next()) |char| {
-                        switch (char[0]) {
-                            '"' => {
-                                if (char.len > 1) {
-                                    const field_slice = try validator.string(&self.strings_value, char[1..]);
-                                    log.debug("OBJ KEY {s}", .{field_slice});
-                                    self.state = State.object_field;
-                                } else {
-                                    return TapeError.MissingKey;
-                                }
-                            },
-                            '}' => {
-                                self.state = State.scope_end;
-                                log.debug("OBJ END", .{});
-                            },
-                            else => return TapeError.ObjectBegin,
-                        }
-                    } else {
-                        return TapeError.ObjectBegin;
-                    }
-                },
-                .object_field => {
-                    if (self.next()) |maybe_colon| {
-                        if (maybe_colon[0] == ':') {
-                            if (self.next()) |value| {
-                                switch (value[0]) {
-                                    '{' => {
-                                        self.state = State.object_begin;
-                                        try self.stack.is_array.push(0);
-                                        continue;
-                                    },
-                                    '[' => {
-                                        self.state = State.array_begin;
-                                        try self.stack.is_array.push(0);
-                                        continue;
-                                    },
-                                    '"' => {
-                                        if (value.len < 1) {
-                                            return TapeError.NonTerminatedString;
-                                        }
-                                        const string_slice = try validator.string(&self.strings_value, value[1..]);
-                                        try self.string_slices.append(string_slice);
-                                        try self.parsed.append(Node{ .string = .{ .value = @intCast(@intFromPtr(string_slice.ptr)) } });
-                                        log.debug("STR {s}", .{string_slice});
-                                    },
-                                    't' => {
-                                        try validator.true_atom(value);
-                                        try self.parsed.append(Node{ .true_atom = .{} });
-                                        log.debug("TRU", .{});
-                                    },
-                                    'f' => {
-                                        try validator.false_atom(value);
-                                        try self.parsed.append(Node{ .false_atom = .{} });
-                                        log.debug("FAL", .{});
-                                    },
-                                    'n' => {
-                                        try validator.null_atom(value);
-                                        try self.parsed.append(Node{ .null_atom = .{} });
-                                        log.debug("NUL", .{});
-                                    },
-                                    '-', '0'...'9' => {
-                                        const number = try validator.number(value);
-                                        switch (number) {
-                                            .unsigned => |n| {
-                                                try self.parsed.append(Node{ .unsigned = .{ .value = n } });
-                                                log.debug("NUM {}", .{n});
-                                            },
-                                            .signed => |n| {
-                                                try self.parsed.append(Node{ .signed = .{ .value = @bitCast(n) } });
-                                                log.debug("NUM {}", .{n});
-                                            },
-                                            .float => |n| {
-                                                try self.parsed.append(Node{ .float = .{ .value = @bitCast(n) } });
-                                                log.debug("NUM {}", .{n});
-                                            },
-                                        }
-                                    },
-                                    else => return TapeError.NonValue,
-                                }
-                                self.state = State.object_continue;
-                                log.debug("OBJ CONTINUE", .{});
-                            } else {
-                                return TapeError.MissingValue;
+                } else {
+                    return TapeError.ObjectBegin;
+                }
+            },
+            .object_field => {
+                if (self.prefixes.next()) |colon| {
+                    if (colon.value() == .colon) {
+                        if (self.prefixes.next()) |prefix| {
+                            switch (prefix.value()) {
+                                .object => {
+                                    self.state = State.object_begin;
+                                    try self.stack.is_array.push(0);
+                                    continue;
+                                },
+                                .array => {
+                                    self.state = State.array_begin;
+                                    try self.stack.is_array.push(0);
+                                    continue;
+                                },
+                                else => try self.visit_primitive(prefix),
                             }
+                            self.state = State.object_continue;
                         } else {
-                            return TapeError.Colon;
+                            return TapeError.MissingValue;
                         }
                     } else {
                         return TapeError.Colon;
                     }
-                },
-                .object_continue => {
-                    if (self.next()) |char| {
-                        switch (char[0]) {
-                            ',' => {
-                                // increment count
-                                if (self.next()) |maybe_key| {
-                                    if (maybe_key[0] == '"' and maybe_key.len > 1) {
-                                        const field_slice = try validator.string(&self.strings_value, maybe_key[1..]);
-                                        log.debug("OBJ KEY {s}", .{field_slice});
-                                        self.state = State.object_field;
-                                    } else {
-                                        return TapeError.MissingKey;
-                                    }
+                } else {
+                    return TapeError.Colon;
+                }
+            },
+            .object_continue => {
+                if (self.prefixes.next()) |prefix| {
+                    switch (prefix.value()) {
+                        .comma => {
+                            if (self.prefixes.next()) |maybe_key| {
+                                if (maybe_key.value() == .string) {
+                                    try self.visit_key(maybe_key);
                                 } else {
                                     return TapeError.MissingKey;
                                 }
-                            },
-                            '}' => {
-                                self.state = State.scope_end;
-                            },
-                            else => return TapeError.MissingComma,
-                        }
-                    } else {
-                        return TapeError.MissingComma;
+                            } else {
+                                return TapeError.MissingKey;
+                            }
+                        },
+                        .object_end => {
+                            self.state = State.scope_end;
+                            log.debug("OBJ END", .{});
+                        },
+                        else => return TapeError.MissingComma,
                     }
-                },
-                .array_begin => {
-                    log.debug("ARR BEGIN", .{});
-                    if (self.next()) |char| {
-                        log.debug("NEXT ARR {s}", .{char});
-                        switch (char[0]) {
-                            '{' => {
-                                self.state = State.object_begin;
-                                try self.stack.is_array.push(1);
-                                continue;
-                            },
-                            '[' => {
-                                self.state = State.array_begin;
-                                try self.stack.is_array.push(1);
-                                continue;
-                            },
-                            '"' => {
-                                if (char.len < 1) {
-                                    return TapeError.NonTerminatedString;
-                                }
-                                const string_slice = try validator.string(&self.strings_value, char[1..]);
-                                try self.string_slices.append(string_slice);
-                                try self.parsed.append(Node{ .string = .{ .value = @intCast(@intFromPtr(string_slice.ptr)) } });
-                                log.debug("STR {s}", .{string_slice});
-                            },
-                            't' => {
-                                try validator.true_atom(char);
-                                try self.parsed.append(Node{ .true_atom = .{} });
-                                log.debug("TRU", .{});
-                            },
-                            'f' => {
-                                try validator.false_atom(char);
-                                try self.parsed.append(Node{ .false_atom = .{} });
-                                log.debug("FAL", .{});
-                            },
-                            'n' => {
-                                try validator.null_atom(char);
-                                try self.parsed.append(Node{ .null_atom = .{} });
-                                log.debug("NUL", .{});
-                            },
-                            '-', '0'...'9' => {
-                                const number = try validator.number(char);
-                                switch (number) {
-                                    .unsigned => |n| {
-                                        try self.parsed.append(Node{ .unsigned = .{ .value = n } });
-                                        log.debug("NUM {}", .{n});
-                                    },
-                                    .signed => |n| {
-                                        try self.parsed.append(Node{ .signed = .{ .value = @bitCast(n) } });
-                                        log.debug("NUM {}", .{n});
-                                    },
-                                    .float => |n| {
-                                        try self.parsed.append(Node{ .float = .{ .value = @bitCast(n) } });
-                                        log.debug("NUM {}", .{n});
-                                    },
-                                }
-                            },
-                            ']' => {
-                                self.state = State.scope_end;
-                                continue;
-                            },
-                            else => return TapeError.ArrayBegin,
-                        }
-                        self.state = State.array_continue;
-                    } else {
-                        return TapeError.ArrayBegin;
+                } else {
+                    return TapeError.MissingComma;
+                }
+            },
+            .array_begin => {
+                log.debug("ARR BEGIN", .{});
+                if (self.prefixes.next()) |prefix| {
+                    switch (prefix.value()) {
+                        .array => {
+                            try self.stack.is_array.push(1);
+                            continue;
+                        },
+                        .array_end => {
+                            self.state = State.scope_end;
+                            log.debug("ARR END", .{});
+                            continue;
+                        },
+                        .object => {
+                            self.state = State.object_begin;
+                            try self.stack.is_array.push(1);
+                            continue;
+                        },
+                        else => try self.visit_primitive(prefix),
                     }
-                },
-                .array_value => {
-                    if (self.next()) |value| {
-                        switch (value[0]) {
-                            '{' => {
-                                self.state = State.object_begin;
-                                try self.stack.is_array.push(1);
-                                continue;
-                            },
-                            '[' => {
-                                self.state = State.array_begin;
-                                try self.stack.is_array.push(1);
-                                continue;
-                            },
-                            '"' => {
-                                if (value.len < 1) {
-                                    return TapeError.NonTerminatedString;
-                                }
-                                const string_slice = try validator.string(&self.strings_value, value[1..]);
-                                try self.string_slices.append(string_slice);
-                                try self.parsed.append(Node{ .string = .{ .value = @intCast(@intFromPtr(string_slice.ptr)) } });
-                                log.debug("STR {s}", .{string_slice});
-                            },
-                            't' => {
-                                try validator.true_atom(value);
-                                try self.parsed.append(Node{ .true_atom = .{} });
-                                log.debug("TRU", .{});
-                            },
-                            'f' => {
-                                try validator.false_atom(value);
-                                try self.parsed.append(Node{ .false_atom = .{} });
-                                log.debug("FAL", .{});
-                            },
-                            'n' => {
-                                try validator.null_atom(value);
-                                try self.parsed.append(Node{ .null_atom = .{} });
-                                log.debug("NUL", .{});
-                            },
-                            '-', '0'...'9' => {
-                                const number = try validator.number(value);
-                                switch (number) {
-                                    .unsigned => |n| {
-                                        try self.parsed.append(Node{ .unsigned = .{ .value = n } });
-                                        log.debug("NUM {}", .{n});
-                                    },
-                                    .signed => |n| {
-                                        try self.parsed.append(Node{ .signed = .{ .value = @bitCast(n) } });
-                                        log.debug("NUM {}", .{n});
-                                    },
-                                    .float => |n| {
-                                        try self.parsed.append(Node{ .float = .{ .value = @bitCast(n) } });
-                                        log.debug("NUM {}", .{n});
-                                    },
-                                }
-                            },
-                            else => return TapeError.NonValue,
-                        }
-                        self.state = State.array_continue;
-                        log.debug("ARR CONTINUE", .{});
-                    } else {
-                        return TapeError.MissingValue;
+                    self.state = State.array_continue;
+                } else {
+                    return TapeError.ArrayBegin;
+                }
+            },
+            .array_value => {
+                if (self.prefixes.next()) |prefix| {
+                    switch (prefix.value()) {
+                        .object => {
+                            self.state = State.object_begin;
+                            try self.stack.is_array.push(1);
+                            continue;
+                        },
+                        .array => {
+                            self.state = State.array_begin;
+                            try self.stack.is_array.push(1);
+                            continue;
+                        },
+                        else => try self.visit_primitive(prefix),
                     }
-                },
-                .array_continue => {
-                    if (self.next()) |char| {
-                        switch (char[0]) {
-                            ',' => {
-                                // increment count
-                                self.state = State.array_value;
-                                log.debug("ARR VALUE", .{});
-                            },
-                            ']' => {
-                                self.state = State.scope_end;
-                            },
-                            else => return TapeError.MissingComma,
-                        }
-                    } else {
-                        return TapeError.MissingComma;
+                    self.state = State.array_continue;
+                } else {
+                    return TapeError.MissingValue;
+                }
+            },
+            .array_continue => {
+                if (self.prefixes.next()) |prefix| {
+                    switch (prefix.value()) {
+                        .comma => {
+                            // increment count
+                            self.state = State.array_value;
+                        },
+                        .array_end => {
+                            self.state = State.scope_end;
+                            log.debug("ARR END", .{});
+                        },
+                        else => return TapeError.MissingComma,
                     }
-                },
-                .scope_end => {
-                    log.debug("SCOPE END", .{});
-                    if (self.stack.is_array.bit_len == 0) {
-                        self.state = null;
-                        continue;
-                    }
-                    _ = self.stack.indexes.popOrNull();
-                    const last = self.stack.is_array.pop();
-                    if (last == 1) {
-                        self.state = State.array_continue;
-                        log.debug("ARR LAST", .{});
-                    } else {
-                        self.state = State.object_continue;
-                        log.debug("OBJ LAST", .{});
-                    }
-                },
-            }
+                } else {
+                    return TapeError.MissingComma;
+                }
+            },
+            .scope_end => {
+                if (self.stack.is_array.bit_len == 0) {
+                    self.state = null;
+                    continue;
+                }
+                _ = self.stack.indexes.popOrNull();
+                const last = self.stack.is_array.pop();
+                if (last == 1) {
+                    self.state = State.array_continue;
+                } else {
+                    self.state = State.object_continue;
+                }
+            },
         }
-
-        // document_end handle
     }
-};
+
+    log.info("Node size: {}", .{@bitSizeOf(Node) / 8});
+    log.info("Tape size: {}", .{self.parsed.len * (@bitSizeOf(Node) / 8)});
+}
+
+fn visit_primitive(self: *Self, prefix: Prefix) !void {
+    switch (prefix.value()) {
+        .string => try self.visit_string(prefix),
+        .tru => try self.visit_true(prefix),
+        .fal => try self.visit_false(prefix),
+        .nul => try self.visit_null(prefix),
+        .number => try self.visit_number(prefix),
+        else => return TapeError.NonValue,
+    }
+}
+
+fn visit_key(self: *Self, prefix: Prefix) !void {
+    if (prefix.next()) |key| {
+        const field_slice = try validator.string(&self.strings_value, key.slice);
+        try self.string_slices.append(field_slice);
+        try self.parsed.append(self.allocator, .{ .string_value = field_slice });
+        log.debug("OBJ KEY {s}", .{field_slice});
+        self.state = State.object_field;
+    } else {
+        return TapeError.MissingKey;
+    }
+}
+
+fn visit_string(self: *Self, prefix: Prefix) !void {
+    if (prefix.next()) |str| {
+        const string_slice = try validator.string(&self.strings_value, str.slice);
+        try self.string_slices.append(string_slice);
+        try self.parsed.append(self.allocator, .{ .string_value = string_slice });
+        log.debug("STR {s}", .{string_slice});
+    } else {
+        return TapeError.NonTerminatedString;
+    }
+}
+
+fn visit_number(self: *Self, prefix: Prefix) !void {
+    const number = try validator.number(prefix.slice);
+    switch (number) {
+        .unsigned => |n| {
+            try self.parsed.append(self.allocator, Node{ .unsigned = n });
+            log.debug("NUM {}", .{n});
+        },
+        .signed => |n| {
+            try self.parsed.append(self.allocator, Node{ .signed = @bitCast(n) });
+            log.debug("NUM {}", .{n});
+        },
+        .float => |n| {
+            try self.parsed.append(self.allocator, Node{ .float = @bitCast(n) });
+            log.debug("NUM {}", .{n});
+        },
+    }
+}
+
+fn visit_true(self: *Self, prefix: Prefix) !void {
+    try validator.true_atom(prefix.slice);
+    try self.parsed.append(self.allocator, Node{ .true_atom = {} });
+    log.debug("TRU", .{});
+}
+
+fn visit_false(self: *Self, prefix: Prefix) !void {
+    try validator.false_atom(prefix.slice);
+    try self.parsed.append(self.allocator, .{ .false_atom = {} });
+    log.debug("FAL", .{});
+}
+
+fn visit_null(self: *Self, prefix: Prefix) !void {
+    try validator.null_atom(prefix.slice);
+    try self.parsed.append(self.allocator, .{ .null_atom = {} });
+    log.debug("NUL", .{});
+}

@@ -1,6 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const shared = @import("shared.zig");
+const cpu = builtin.cpu;
 const Reader = @import("reader.zig");
 
 const simd = std.simd;
@@ -14,10 +15,11 @@ const Self = @This();
 
 const ln_table: vector = simd.repeat(vector_size, [_]u8{ 16, 0, 0, 0, 0, 0, 0, 0, 0, 8, 10, 4, 1, 12, 0, 0 });
 const hn_table: vector = simd.repeat(vector_size, [_]u8{ 8, 0, 17, 2, 0, 4, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0 });
-var previous_evn_slash: u1 = 0;
-var previous_odd_slash: u1 = 0;
-var last_was_struct_or_white: u1 = 0;
-var was_inside_string: mask = 0;
+
+var prev_scanned: Scanner = .{ .whitespace = 0, .structural = 0, .backslash = 0, .quotes = 0 };
+var prev_odd_carry: u1 = 0;
+var prev_scalar: u1 = 0;
+var prev_inside_string: mask = 0;
 
 reader: Reader,
 indexes: std.ArrayList(usize),
@@ -35,44 +37,39 @@ pub fn deinit(self: *Self) void {
 
 pub fn index(self: *Self) Allocator.Error!void {
     while (self.reader.next()) |block| {
-        const structural_mask = self.identify(block.value);
-        try self.extract(block.index, structural_mask);
+        const scanned = Scanner.from(block.value);
+
+        const tokens = identify(scanned);
+        try self.extract(tokens, block.index);
+
+        prev_scanned = scanned;
+        prev_scalar = @truncate(prev_scanned.scalar() >> (vector_size - 1));
     }
 }
 
-pub fn identify(self: *Self, vec: vector) mask {
-    const quotes_mask = maskStructuralQuotes(self, vec);
-    const quoted_ranges = identifyQuotedRanges(@bitCast(vec == shared.quote), quotes_mask) ^ was_inside_string;
-    const signed_quoted_ranges: std.meta.Int(std.builtin.Signedness.signed, vector_size) = @bitCast(quoted_ranges);
+pub fn identify(sc: Scanner) mask {
+    const unescaped_quotes = sc.quotes & ~escapedChars(sc.backslash);
+    const quoted_ranges = clmul(unescaped_quotes) ^ prev_inside_string;
+    var structural = sc.structural;
 
-    const low_nibbles = vec & @as(vector, @splat(0xF));
-    const high_nibbles = vec >> @as(vector, @splat(4));
-    const low_lookup_values = shared.lut(ln_table, low_nibbles);
-    const high_lookup_values = shared.lut(hn_table, high_nibbles);
-    const desired_values = low_lookup_values & high_lookup_values;
-    const whitespace_chars = shared.anyBitsSet(desired_values, @as(vector, @splat(0b11000)));
-    var structural_chars = shared.anyBitsSet(desired_values, @as(vector, @splat(0b111)));
+    structural &= ~quoted_ranges;
+    structural |= unescaped_quotes;
 
-    structural_chars &= ~quoted_ranges;
-    structural_chars |= quotes_mask;
-
-    var pseudo_structural_chars = structural_chars | whitespace_chars;
+    var pseudo_structural_chars = structural | sc.whitespace;
     pseudo_structural_chars <<= 1;
-    pseudo_structural_chars &= ~whitespace_chars & ~quoted_ranges;
+    pseudo_structural_chars |= ~prev_scalar & sc.scalar();
+    pseudo_structural_chars &= ~sc.whitespace & ~quoted_ranges;
 
-    structural_chars |= pseudo_structural_chars;
-    structural_chars &= ~(quotes_mask & ~quoted_ranges);
+    structural |= pseudo_structural_chars;
+    structural &= ~(unescaped_quotes & ~quoted_ranges);
 
-    structural_chars |= 1 & ~was_inside_string & last_was_struct_or_white & ~whitespace_chars;
+    prev_inside_string = @bitCast(@as(shared.signed_mask, @bitCast(quoted_ranges)) >> (vector_size - 1));
 
-    was_inside_string = @bitCast(signed_quoted_ranges >> (vector_size - 1));
-    last_was_struct_or_white = @intFromBool(shared.Tables.is_structural_or_whitespace[vec[vector_size - 1]]);
-
-    return structural_chars;
+    return structural;
 }
 
-pub fn extract(self: *Self, i: usize, bitset: mask) Allocator.Error!void {
-    var s = bitset;
+pub fn extract(self: *Self, tokens: mask, i: usize) Allocator.Error!void {
+    var s = tokens;
     while (s != 0) {
         const tz = @ctz(s);
         try self.indexes.append(i + tz);
@@ -80,31 +77,31 @@ pub fn extract(self: *Self, i: usize, bitset: mask) Allocator.Error!void {
     }
 }
 
-fn maskStructuralQuotes(_: *Self, vec: vector) mask {
-    const backs: mask = @bitCast(vec == shared.slash);
-    const quotes: mask = @bitCast(vec == shared.quote);
+fn escapedChars(backs: mask) mask {
     const starts = backs & ~(backs << 1);
-    const evn_starts = starts & shared.evn_mask;
-    const odd_starts = starts & shared.odd_mask;
 
-    const evn_start_carries_with_overflow = @addWithOverflow(backs, evn_starts);
-    const odd_start_carries_with_overflow = @addWithOverflow(backs, odd_starts);
-    const evn_carries = (evn_start_carries_with_overflow[0] + previous_evn_slash) & ~backs;
-    const odd_carries = (odd_start_carries_with_overflow[0] + previous_odd_slash) & ~backs;
-    previous_evn_slash = evn_start_carries_with_overflow[1];
-    previous_odd_slash = odd_start_carries_with_overflow[1];
+    const first_backslash = starts & 1;
+    const evn_starts = starts & shared.evn_mask;
+    const evn_yields = @addWithOverflow(backs, evn_starts);
+    const evn_carries = (evn_yields[0] - (prev_odd_carry & first_backslash)) & ~backs;
+
+    const odd_starts = starts & shared.odd_mask;
+    const odd_yields = @addWithOverflow(backs, odd_starts);
+    const odd_carries = (odd_yields[0] + prev_odd_carry) & ~backs;
+
+    const is_all_backslash = @intFromBool(@as(shared.signed_mask, @bitCast(backs)) == -1);
+    prev_odd_carry = (is_all_backslash & prev_odd_carry) | odd_yields[1];
 
     const odd1_ending_backs = evn_carries & shared.odd_mask;
     const odd2_ending_backs = odd_carries & shared.evn_mask;
     const odd_length_ends = odd1_ending_backs | odd2_ending_backs;
-    const structural_quotes = quotes & ~odd_length_ends;
-    return structural_quotes;
+    return odd_length_ends;
 }
 
-fn identifyQuotedRanges(quotes_mask: mask, structural_mask: mask) mask {
+fn clmul(quotes_mask: mask) mask {
     switch (builtin.cpu.arch) {
         .x86_64 => {
-            const range: @Vector(16, u8) = @bitCast(simd.repeat(128 / vector_size, [_]mask{quotes_mask & structural_mask}));
+            const range: @Vector(16, u8) = @bitCast(simd.repeat(128 / vector_size, [_]mask{quotes_mask}));
             const ones: @Vector(16, u8) = @bitCast(simd.repeat(128, [_]u1{1}));
             if (vector_size == 64) {
                 return asm (
@@ -129,4 +126,75 @@ fn identifyQuotedRanges(quotes_mask: mask, structural_mask: mask) mask {
             return @as(mask, @bitCast(prefix_xor));
         },
     }
+}
+
+const Scanner = struct {
+    whitespace: mask,
+    structural: mask,
+    backslash: mask,
+    quotes: mask,
+
+    pub fn from(vec: vector) @This() {
+        const low_nibbles = vec & @as(vector, @splat(0xF));
+        const high_nibbles = vec >> @as(vector, @splat(4));
+        const low_lookup_values = lut(ln_table, low_nibbles);
+        const high_lookup_values = lut(hn_table, high_nibbles);
+        const desired_values = low_lookup_values & high_lookup_values;
+        const whitespace = anyBitSet(desired_values & @as(vector, @splat(0b11000)));
+        const structural = anyBitSet(desired_values & @as(vector, @splat(0b111)));
+        return .{
+            .whitespace = whitespace,
+            .structural = structural,
+            .backslash = @bitCast(vec == shared.slash),
+            .quotes = @bitCast(vec == shared.quote),
+        };
+    }
+
+    pub fn scalar(self: @This()) mask {
+        return ~(self.structural | self.whitespace);
+    }
+};
+
+fn lut(table: vector, nibbles: vector) vector {
+    // TODO:
+    // [] arm
+    // [] aarch64
+    // [] ppc
+    // [] mips
+    // [] riscv
+    // [] wasm
+    switch (cpu.arch) {
+        .x86_64 => {
+            if (vector_size >= 32) {
+                return asm volatile (
+                    \\vpshufb %[nibbles], %[table], %[ret]
+                    : [ret] "=x" (-> vector),
+                    : [table] "x" (table),
+                      [nibbles] "x" (nibbles),
+                );
+            } else {
+                return asm volatile (
+                    \\pshufb %[nibbles], %[table], %[ret]
+                    : [ret] "=x" (-> vector),
+                    : [table] "x" (table),
+                      [nibbles] "x" (nibbles),
+                );
+            }
+        },
+        else => {
+            @compileLog("Table lookup instruction not supported on this target.");
+            var fallback: vector = [_]u8{0} ** vector_size;
+            for (0..vector_size) |i| {
+                const n = nibbles[i];
+                if (n < vector_size) {
+                    fallback[i] = table[n];
+                }
+            }
+            return fallback;
+        },
+    }
+}
+
+fn anyBitSet(vec: vector) mask {
+    return ~@as(mask, @bitCast(vec == shared.zer_vector));
 }

@@ -1,74 +1,33 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const simd = std.simd;
-const cpu = builtin.cpu;
 const testing = std.testing;
 
-pub const vector_size = simd.suggestVectorLength(u8) orelse 4;
+pub const vector_size = simd.suggestVectorLength(u8) orelse fallback: {
+    @compileLog("SIMD not supported on this target.");
+    break :fallback 1;
+};
+
 pub const vector = @Vector(vector_size, u8);
 pub const mask = std.meta.Int(std.builtin.Signedness.unsigned, vector_size);
 pub const vector_mask = @Vector(vector_size, bool);
+pub const signed_mask = std.meta.Int(std.builtin.Signedness.signed, vector_size);
 
 pub const zer_mask: mask = 0;
 pub const one_mask: mask = @bitCast(simd.repeat(vector_size, [_]u1{1}));
 pub const evn_mask: mask = @bitCast(simd.repeat(vector_size, [_]u1{ 1, 0 }));
 pub const odd_mask: mask = @bitCast(simd.repeat(vector_size, [_]u1{ 0, 1 }));
 
-pub const zer_vector: vector_mask = @bitCast(zer_mask);
-pub const one_vector: vector_mask = @bitCast(one_mask);
+pub const zer_vector_mask: vector_mask = @bitCast(zer_mask);
+pub const one_vector_mask: vector_mask = @bitCast(one_mask);
 
+pub const zer_vector: vector = @splat(0);
+pub const one_vector: vector = ~zer_vector;
 pub const quote: vector = @splat('"');
 pub const slash: vector = @splat('\\');
 
-pub fn lut(table: vector, nibbles: vector) vector {
-    // TODO:
-    // [] arm
-    // [] aarch64
-    // [] ppc
-    // [] mips
-    // [] riscv
-    // [] wasm
-    switch (cpu.arch) {
-        .x86_64 => {
-            if (vector_size >= 32) {
-                return asm volatile (
-                    \\vpshufb %[nibbles], %[table], %[ret]
-                    : [ret] "=x" (-> vector),
-                    : [table] "x" (table),
-                      [nibbles] "x" (nibbles),
-                );
-            } else {
-                return asm volatile (
-                    \\pshufb %[nibbles], %[table], %[ret]
-                    : [ret] "=x" (-> vector),
-                    : [table] "x" (table),
-                      [nibbles] "x" (nibbles),
-                );
-            }
-        },
-        else => {
-            var fallback: vector = [_]u8{0} ** vector_size;
-            for (0..vector_size) |i| {
-                const n = nibbles[i];
-                if (n < vector_size) {
-                    fallback[i] = table[n];
-                }
-            }
-            return fallback;
-        },
-    }
-}
-
-pub fn anyBitsSet(vec: vector, bits: vector) mask {
-    return ~@as(mask, @bitCast((vec & bits) == @as(vector, @splat(0))));
-}
-
 pub fn reverseMask(input: mask) mask {
     return @bitCast(simd.reverseOrder(@as(vector_mask, @bitCast(input))));
-}
-
-pub fn partialChunk(len: usize) usize {
-    return ((len -| 1) / vector_size) * vector_size;
 }
 
 pub const TapeError = error{
@@ -219,8 +178,6 @@ pub const Element = union(ElementTag) {
 
     root: usize,
 };
-
-pub const Tape = std.MultiArrayList(Element);
 
 pub fn intFromSlice(comptime T: type, str: []const u8) T {
     return @as(*align(1) T, @ptrCast(@constCast(str))).*;

@@ -18,6 +18,7 @@ const State = enum {
     array_value,
     array_continue,
     scope_end,
+    end,
 };
 
 const NodeTag = enum {
@@ -79,7 +80,7 @@ prefixes: Prefixes,
 parsed: std.MultiArrayList(Node),
 string_slices: ArrayList([:0]const u8),
 strings_value: ArrayList(u8),
-state: ?State = null,
+state: State = .end,
 stack: Stack,
 allocator: Allocator,
 
@@ -104,23 +105,23 @@ pub fn deinit(self: *Self) void {
 pub fn build(self: *Self) !void {
     if (self.prefixes.next()) |prefix| {
         switch (prefix.value()) {
-            .object => self.state = State.object_begin,
-            .array => self.state = State.array_begin,
+            .object => self.state = .object_begin,
+            .array => self.state = .array_begin,
             else => try self.visit_primitive(prefix),
         }
     } else {
         return TapeError.Empty;
     }
 
-    while (self.state) |state| {
-        switch (state) {
+    while (true) {
+        switch (self.state) {
             .object_begin => {
                 log.debug("OBJ BEGIN", .{});
                 if (self.prefixes.next()) |prefix| {
                     switch (prefix.value()) {
                         .string => try self.visit_key(prefix),
                         .object_end => {
-                            self.state = State.scope_end;
+                            self.state = .scope_end;
                             log.debug("OBJ END", .{});
                         },
                         else => return TapeError.ObjectBegin,
@@ -135,18 +136,18 @@ pub fn build(self: *Self) !void {
                         if (self.prefixes.next()) |prefix| {
                             switch (prefix.value()) {
                                 .object => {
-                                    self.state = State.object_begin;
+                                    self.state = .object_begin;
                                     try self.stack.is_array.push(0);
                                     continue;
                                 },
                                 .array => {
-                                    self.state = State.array_begin;
+                                    self.state = .array_begin;
                                     try self.stack.is_array.push(0);
                                     continue;
                                 },
                                 else => try self.visit_primitive(prefix),
                             }
-                            self.state = State.object_continue;
+                            self.state = .object_continue;
                         } else {
                             return TapeError.MissingValue;
                         }
@@ -172,7 +173,7 @@ pub fn build(self: *Self) !void {
                             }
                         },
                         .object_end => {
-                            self.state = State.scope_end;
+                            self.state = .scope_end;
                             log.debug("OBJ END", .{});
                         },
                         else => return TapeError.MissingComma,
@@ -190,18 +191,18 @@ pub fn build(self: *Self) !void {
                             continue;
                         },
                         .array_end => {
-                            self.state = State.scope_end;
+                            self.state = .scope_end;
                             log.debug("ARR END", .{});
                             continue;
                         },
                         .object => {
-                            self.state = State.object_begin;
+                            self.state = .object_begin;
                             try self.stack.is_array.push(1);
                             continue;
                         },
                         else => try self.visit_primitive(prefix),
                     }
-                    self.state = State.array_continue;
+                    self.state = .array_continue;
                 } else {
                     return TapeError.ArrayBegin;
                 }
@@ -221,7 +222,7 @@ pub fn build(self: *Self) !void {
                         },
                         else => try self.visit_primitive(prefix),
                     }
-                    self.state = State.array_continue;
+                    self.state = .array_continue;
                 } else {
                     return TapeError.MissingValue;
                 }
@@ -231,10 +232,10 @@ pub fn build(self: *Self) !void {
                     switch (prefix.value()) {
                         .comma => {
                             // increment count
-                            self.state = State.array_value;
+                            self.state = .array_value;
                         },
                         .array_end => {
-                            self.state = State.scope_end;
+                            self.state = .scope_end;
                             log.debug("ARR END", .{});
                         },
                         else => return TapeError.MissingComma,
@@ -245,17 +246,18 @@ pub fn build(self: *Self) !void {
             },
             .scope_end => {
                 if (self.stack.is_array.bit_len == 0) {
-                    self.state = null;
-                    continue;
+                    self.state = .end;
+                    break;
                 }
                 _ = self.stack.indexes.popOrNull();
                 const last = self.stack.is_array.pop();
                 if (last == 1) {
-                    self.state = State.array_continue;
+                    self.state = .array_continue;
                 } else {
-                    self.state = State.object_continue;
+                    self.state = .object_continue;
                 }
             },
+            .end => break,
         }
     }
 
@@ -280,7 +282,7 @@ fn visit_key(self: *Self, prefix: Prefix) !void {
         try self.string_slices.append(field_slice);
         try self.parsed.append(self.allocator, .{ .string_value = field_slice });
         log.debug("OBJ KEY {s}", .{field_slice});
-        self.state = State.object_field;
+        self.state = .object_field;
     } else {
         return TapeError.MissingKey;
     }

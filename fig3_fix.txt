@@ -1,0 +1,146 @@
+                                        age":"simpler non-flash version\               \","distinct":true,"url":"https:
+
+backslashes                             00000000000000000000000000000001               10000000000000000000000000000000
+even                                    10101010101010101010101010101010               10101010101010101010101010101010
+odd                                     01010101010101010101010101010101               01010101010101010101010101010101
+starts                                  00000000000000000000000000000001               10000000000000000000000000000000
+
+even_starts                             00000000000000000000000000000000               10000000000000000000000000000000
+even_yields                             00000000000000000000000000000001               01000000000000000000000000000000
+even_carries                            00000000000000000000000000000000               01000000000000000000000000000000
+odd_endings                             00000000000000000000000000000000               01000000000000000000000000000000
+
+odd_starts                              00000000000000000000000000000001               00000000000000000000000000000000
+odd_yields                              00000000000000000000000000000000 1             10000000000000000000000000000000
+odd_carries                             00000000000000000000000000000000               00000000000000000000000000000000
+even_endings                            00000000000000000000000000000000               00000000000000000000000000000000
+
+Descripcion y comportamientos de Fig. 3 paso por paso:
+
+- Mascara de backslashes
+- Mascara de posiciones pares
+- Mascara de posiciones impares
+- Mascara de backslashes que comienzan secuencias de otros. Aunque haya habido una secuencia final en el buffer anterior, se toma el primero del buffer actual si está al principio.
+- Mascara de comienzos en posiciones pares. La idea es buscar secuencias de tamaño impar para escapar el caracter siguiente. Si el comienzo es par, el caracter escapado es impar.
+- Sumando los comienzos pares con las secuencias se setean solamente los caracteres siguientes. Puede haber carry si hay una secuencia par al final del buffer. No pasaria nada si hay simplemente un backslash porque es impar.
+- Filtra los carries con la mascara de backslashes para ignorar las secuencias en posicion impar.
+- Filtra los carries que son impares ya que los pares no estas escapados. Primer resultado.
+- Comienza segunda tanda. Mascara de comienzos en posiciones impares. Si el comienzo es impar, el caracter escapado es par.
+- Sumando los comienzos impares con las secuencias se setean solamente los caracteres siguientes. Puede haber carry si hay una secuencia impar al final del buffer. Con un solo backslash alcanza.
+- Filtra los carries con la mascara de backslashes para ignorar las secuencias en posicion par.
+- Filtra los carries que son pares ya que los impares no estas escapados.
+- OR entre el 1er y 2do resultado. Se obtiene los carries escapados.
+
+Aclaraciones:
+- No se toma en cuenta el carry del buffer anterior.
+- Los casos borde son estos: Dado el buffer 1 -> 2
+
+if_first_backslash == 1 & backslash
+
+                        1           2
+                        eoeoeoeo    eoeoeoeo
+
+                                    u
+                        --------    "-------    1)
+quiero
+backslash
+carry
++ prev_odd
+
+& ~backslash
+& evn_mask
+
+                                    ue
+                        --------    \"------    2)
+quiero                               x
+backslash                           x
+carry                                x
+-(prev_odd & first_back)             x
+
+& ~backslash                         x
+& odd_mask                           x
+
+                                    e
+                        -------\    "-------    3)
+quiero                              x
+backslash                      x
+carry                           c
++ prev_odd                          x
+
+& ~backslash
+& evn_mask
+
+                                    u
+                        ------\\    "-------    4)
+quiero
+backslash                     xx
+carry                           c
++ prev_odd                          x
+
+& ~backslash
+& evn_mask
+
+                                    eu
+                        -------\    \"------    5)
+quiero
+backslash                      x    x
+carry                           c    x
+-(prev_odd & first_back)            x
+
+& ~backslash
+& odd_mask
+
+                                    ue
+                        ------\\    \"------    6)
+quiero                               x
+backslash                     xx    x
+carry                           c    x
+-(prev_odd & first_back)             x
+
+& ~backslash
+& odd_mask
+                                    ue
+                        ------\\    \"------    4)
+quiero                               x
+backslash                     xx
+carry                           c
++ prev_odd                          x
+
+& ~backslash
+& evn_mask
+
+                                    eueueueueueueueueueueueueueueueu
+                        -------\    \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\    6)
+quiero                                                              c
+backslash                      x    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+carry                           c                                   c
+-(prev_odd & first_back)             xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+& ~backslash
+& odd_mask
+
+                                    ueueueueueueueueueueueueueueueue
+                        ------\\    \\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\\    6)
+quiero                                                              c
+backslash                     xx    xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+carry                           c                                   c
+-(prev_odd & first_back)             xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx
+
+& ~backslash
+& odd_mask
+
+prev_evn_carry      prev_odd_carry      must_escape
+0                   0                   0
+0                   1                   1
+1                   0                   0
+1                   1                   -
+
+is_all_backslash    prev_carry          carry   carry_res   (is & prev) | carry
+0                   0                   0       0           0
+0                   0                   1       1           1
+0                   1                   0       0           0
+0                   1                   1       1           1
+1                   0                   0       0           0
+1                   0                   1       1           1
+1                   1                   0       1           1
+1                   1                   1       1           1

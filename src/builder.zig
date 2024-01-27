@@ -80,7 +80,6 @@ prefixes: Prefixes,
 parsed: std.MultiArrayList(Node),
 string_slices: ArrayList([:0]const u8),
 strings_value: ArrayList(u8),
-state: State = .end,
 stack: Stack,
 allocator: Allocator,
 
@@ -103,10 +102,12 @@ pub fn deinit(self: *Self) void {
 }
 
 pub fn build(self: *Self) !void {
+    var state: State = .end;
+
     if (self.prefixes.next()) |prefix| {
         switch (prefix.value()) {
-            .object => self.state = .object_begin,
-            .array => self.state = .array_begin,
+            '{' => state = .object_begin,
+            '[' => state = .array_begin,
             else => try self.visit_primitive(prefix),
         }
     } else {
@@ -114,150 +115,36 @@ pub fn build(self: *Self) !void {
     }
 
     while (true) {
-        switch (self.state) {
+        switch (state) {
+            .end => break,
             .object_begin => {
-                log.debug("OBJ BEGIN", .{});
-                if (self.prefixes.next()) |prefix| {
-                    switch (prefix.value()) {
-                        .string => try self.visit_key(prefix),
-                        .object_end => {
-                            self.state = .scope_end;
-                            log.debug("OBJ END", .{});
-                        },
-                        else => return TapeError.ObjectBegin,
-                    }
-                } else {
-                    return TapeError.ObjectBegin;
-                }
+                state = try self.analyze_object_begin();
+                continue;
             },
             .object_field => {
-                if (self.prefixes.next()) |colon| {
-                    if (colon.value() == .colon) {
-                        if (self.prefixes.next()) |prefix| {
-                            switch (prefix.value()) {
-                                .object => {
-                                    self.state = .object_begin;
-                                    try self.stack.is_array.push(0);
-                                    continue;
-                                },
-                                .array => {
-                                    self.state = .array_begin;
-                                    try self.stack.is_array.push(0);
-                                    continue;
-                                },
-                                else => try self.visit_primitive(prefix),
-                            }
-                            self.state = .object_continue;
-                        } else {
-                            return TapeError.MissingValue;
-                        }
-                    } else {
-                        return TapeError.Colon;
-                    }
-                } else {
-                    return TapeError.Colon;
-                }
+                state = try self.analyze_object_field();
+                continue;
             },
             .object_continue => {
-                if (self.prefixes.next()) |prefix| {
-                    switch (prefix.value()) {
-                        .comma => {
-                            if (self.prefixes.next()) |maybe_key| {
-                                if (maybe_key.value() == .string) {
-                                    try self.visit_key(maybe_key);
-                                } else {
-                                    return TapeError.MissingKey;
-                                }
-                            } else {
-                                return TapeError.MissingKey;
-                            }
-                        },
-                        .object_end => {
-                            self.state = .scope_end;
-                            log.debug("OBJ END", .{});
-                        },
-                        else => return TapeError.MissingComma,
-                    }
-                } else {
-                    return TapeError.MissingComma;
-                }
+                state = try self.analyze_object_continue();
+                continue;
             },
             .array_begin => {
-                log.debug("ARR BEGIN", .{});
-                if (self.prefixes.next()) |prefix| {
-                    switch (prefix.value()) {
-                        .array => {
-                            try self.stack.is_array.push(1);
-                            continue;
-                        },
-                        .array_end => {
-                            self.state = .scope_end;
-                            log.debug("ARR END", .{});
-                            continue;
-                        },
-                        .object => {
-                            self.state = .object_begin;
-                            try self.stack.is_array.push(1);
-                            continue;
-                        },
-                        else => try self.visit_primitive(prefix),
-                    }
-                    self.state = .array_continue;
-                } else {
-                    return TapeError.ArrayBegin;
-                }
+                state = try self.analyze_array_begin();
+                continue;
             },
             .array_value => {
-                if (self.prefixes.next()) |prefix| {
-                    switch (prefix.value()) {
-                        .object => {
-                            self.state = State.object_begin;
-                            try self.stack.is_array.push(1);
-                            continue;
-                        },
-                        .array => {
-                            self.state = State.array_begin;
-                            try self.stack.is_array.push(1);
-                            continue;
-                        },
-                        else => try self.visit_primitive(prefix),
-                    }
-                    self.state = .array_continue;
-                } else {
-                    return TapeError.MissingValue;
-                }
+                state = try self.analyze_array_value();
+                continue;
             },
             .array_continue => {
-                if (self.prefixes.next()) |prefix| {
-                    switch (prefix.value()) {
-                        .comma => {
-                            // increment count
-                            self.state = .array_value;
-                        },
-                        .array_end => {
-                            self.state = .scope_end;
-                            log.debug("ARR END", .{});
-                        },
-                        else => return TapeError.MissingComma,
-                    }
-                } else {
-                    return TapeError.MissingComma;
-                }
+                state = try self.analyze_array_continue();
+                continue;
             },
             .scope_end => {
-                if (self.stack.is_array.bit_len == 0) {
-                    self.state = .end;
-                    break;
-                }
-                _ = self.stack.indexes.popOrNull();
-                const last = self.stack.is_array.pop();
-                if (last == 1) {
-                    self.state = .array_continue;
-                } else {
-                    self.state = .object_continue;
-                }
+                state = try self.analyze_scope_end();
+                continue;
             },
-            .end => break,
         }
     }
 
@@ -265,26 +152,160 @@ pub fn build(self: *Self) !void {
     log.info("Tape size: {}", .{self.parsed.len * (@bitSizeOf(Node) / 8)});
 }
 
-fn visit_primitive(self: *Self, prefix: Prefix) !void {
-    switch (prefix.value()) {
-        .string => try self.visit_string(prefix),
-        .tru => try self.visit_true(prefix),
-        .fal => try self.visit_false(prefix),
-        .nul => try self.visit_null(prefix),
-        .number => try self.visit_number(prefix),
-        else => return TapeError.NonValue,
+fn analyze_object_begin(self: *Self) !State {
+    log.debug("OBJ BEGIN", .{});
+    if (self.prefixes.next()) |prefix| {
+        switch (prefix.value()) {
+            '"' => {
+                try self.visit_string(prefix);
+                return .object_field;
+            },
+            '}' => {
+                log.debug("OBJ END", .{});
+                return .scope_end;
+            },
+            else => return TapeError.ObjectBegin,
+        }
+    } else {
+        return TapeError.ObjectBegin;
     }
 }
 
-fn visit_key(self: *Self, prefix: Prefix) !void {
-    if (prefix.next()) |key| {
-        const field_slice = try validator.string(&self.strings_value, key.slice);
-        try self.string_slices.append(field_slice);
-        try self.parsed.append(self.allocator, .{ .string_value = field_slice });
-        log.debug("OBJ KEY {s}", .{field_slice});
-        self.state = .object_field;
+fn analyze_object_field(self: *Self) !State {
+    if (self.prefixes.next()) |colon| {
+        if (colon.value() == ':') {
+            if (self.prefixes.next()) |prefix| {
+                switch (prefix.value()) {
+                    '{' => {
+                        try self.stack.is_array.push(0);
+                        return .object_begin;
+                    },
+                    '[' => {
+                        try self.stack.is_array.push(0);
+                        return .array_begin;
+                    },
+                    else => try self.visit_primitive(prefix),
+                }
+            } else {
+                return TapeError.MissingValue;
+            }
+        } else {
+            return TapeError.Colon;
+        }
     } else {
-        return TapeError.MissingKey;
+        return TapeError.Colon;
+    }
+    return .object_continue;
+}
+
+fn analyze_object_continue(self: *Self) !State {
+    if (self.prefixes.next()) |prefix| {
+        switch (prefix.value()) {
+            ',' => {
+                if (self.prefixes.next()) |maybe_key| {
+                    if (maybe_key.value() == '"') {
+                        try self.visit_string(maybe_key);
+                        return .object_field;
+                    } else {
+                        return TapeError.MissingKey;
+                    }
+                } else {
+                    return TapeError.MissingKey;
+                }
+            },
+            '}' => {
+                log.debug("OBJ END", .{});
+                return .scope_end;
+            },
+            else => return TapeError.MissingComma,
+        }
+    } else {
+        return TapeError.MissingComma;
+    }
+}
+
+fn analyze_array_begin(self: *Self) !State {
+    log.debug("ARR BEGIN", .{});
+    if (self.prefixes.next()) |prefix| {
+        switch (prefix.value()) {
+            '[' => {
+                try self.stack.is_array.push(1);
+                return .array_begin;
+            },
+            ']' => {
+                log.debug("ARR END", .{});
+                return .scope_end;
+            },
+            '{' => {
+                try self.stack.is_array.push(1);
+                return .object_begin;
+            },
+            else => try self.visit_primitive(prefix),
+        }
+    } else {
+        return TapeError.ArrayBegin;
+    }
+    return .array_continue;
+}
+
+fn analyze_array_value(self: *Self) !State {
+    if (self.prefixes.next()) |prefix| {
+        switch (prefix.value()) {
+            '{' => {
+                try self.stack.is_array.push(1);
+                return .object_begin;
+            },
+            '[' => {
+                try self.stack.is_array.push(1);
+                return .array_begin;
+            },
+            else => try self.visit_primitive(prefix),
+        }
+    } else {
+        return TapeError.MissingValue;
+    }
+    return .array_continue;
+}
+
+fn analyze_array_continue(self: *Self) !State {
+    if (self.prefixes.next()) |prefix| {
+        switch (prefix.value()) {
+            ',' => {
+                // increment count
+                return .array_value;
+            },
+            ']' => {
+                log.debug("ARR END", .{});
+                return .scope_end;
+            },
+            else => return TapeError.MissingComma,
+        }
+    } else {
+        return TapeError.MissingComma;
+    }
+}
+
+fn analyze_scope_end(self: *Self) !State {
+    if (self.stack.is_array.bit_len == 0) {
+        return .end;
+    }
+    _ = self.stack.indexes.popOrNull();
+    const last = self.stack.is_array.pop();
+    if (last == 1) {
+        return .array_continue;
+    } else {
+        return .object_continue;
+    }
+}
+
+fn visit_primitive(self: *Self, prefix: Prefix) !void {
+    switch (prefix.value()) {
+        '"' => try self.visit_string(prefix),
+        't' => try self.visit_true(prefix),
+        'f' => try self.visit_false(prefix),
+        'n' => try self.visit_null(prefix),
+        '-', '0'...'9' => try self.visit_number(prefix),
+        else => return TapeError.NonValue,
     }
 }
 

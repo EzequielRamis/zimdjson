@@ -9,21 +9,6 @@ const Self = @This();
 pub const Prefix = struct {
     slice: []const u8,
 
-    const Value = enum {
-        object,
-        object_end,
-        array,
-        array_end,
-        colon,
-        comma,
-        string,
-        tru,
-        fal,
-        nul,
-        number,
-        unknown,
-    };
-
     pub fn from(slice: []const u8) @This() {
         return @This(){
             .slice = slice,
@@ -39,21 +24,8 @@ pub const Prefix = struct {
         };
     }
 
-    pub fn value(self: @This()) Value {
-        switch (self.slice[0]) {
-            '{' => return .object,
-            '}' => return .object_end,
-            '[' => return .array,
-            ']' => return .array_end,
-            ':' => return .colon,
-            ',' => return .comma,
-            '"' => return .string,
-            't' => return .tru,
-            'f' => return .fal,
-            'n' => return .nul,
-            '-', '0'...'9' => return .number,
-            else => return .unknown,
-        }
+    pub fn value(self: @This()) u8 {
+        return self.slice[0];
     }
 };
 

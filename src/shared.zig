@@ -8,18 +8,24 @@ pub const vector_size = simd.suggestVectorLength(u8) orelse fallback: {
     break :fallback 1;
 };
 
+pub const register_size = builtin.target.ptrBitWidth();
+pub const register_vector_ratio = register_size / @min(register_size, vector_size);
+
+pub const mask = usize;
+pub const signed_mask = isize;
 pub const vector = @Vector(vector_size, u8);
-pub const mask = std.meta.Int(std.builtin.Signedness.unsigned, vector_size);
-pub const vector_mask = @Vector(vector_size, bool);
-pub const signed_mask = std.meta.Int(std.builtin.Signedness.signed, vector_size);
+pub const vector_mask = std.meta.Int(std.builtin.Signedness.unsigned, vector_size);
+pub const vectorized_mask = @Vector(vector_size, u1);
+
+pub const vectors = [register_vector_ratio]vector;
 
 pub const zer_mask: mask = 0;
-pub const one_mask: mask = @bitCast(simd.repeat(vector_size, [_]u1{1}));
-pub const evn_mask: mask = @bitCast(simd.repeat(vector_size, [_]u1{ 1, 0 }));
-pub const odd_mask: mask = @bitCast(simd.repeat(vector_size, [_]u1{ 0, 1 }));
+pub const one_mask: mask = @bitCast(@as(isize, -1));
+pub const evn_mask: mask = @bitCast(simd.repeat(register_size, [_]u1{ 1, 0 }));
+pub const odd_mask: mask = @bitCast(simd.repeat(register_size, [_]u1{ 0, 1 }));
 
-pub const zer_vector_mask: vector_mask = @bitCast(zer_mask);
-pub const one_vector_mask: vector_mask = @bitCast(one_mask);
+pub const zer_vector_mask: vectorized_mask = @bitCast(zer_mask);
+pub const one_vector_mask: vectorized_mask = @bitCast(one_mask);
 
 pub const zer_vector: vector = @splat(0);
 pub const one_vector: vector = ~zer_vector;
@@ -27,7 +33,7 @@ pub const quote: vector = @splat('"');
 pub const slash: vector = @splat('\\');
 
 pub fn reverseMask(input: mask) mask {
-    return @bitCast(simd.reverseOrder(@as(vector_mask, @bitCast(input))));
+    return @bitCast(simd.reverseOrder(@as(vectorized_mask, @bitCast(input))));
 }
 
 pub const TapeError = error{

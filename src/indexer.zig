@@ -3,11 +3,15 @@ const builtin = @import("builtin");
 const shared = @import("shared.zig");
 const cpu = builtin.cpu;
 const Reader = @import("reader.zig");
+const Block = Reader.Block;
 
 const simd = std.simd;
 const vector = shared.vector;
+const vectors = shared.vectors;
 const vector_size = shared.vector_size;
+const register_size = shared.register_size;
 const vector_mask = shared.vector_mask;
+const vectorized_mask = shared.vectorized_mask;
 const mask = shared.mask;
 
 const Allocator = std.mem.Allocator;
@@ -37,13 +41,13 @@ pub fn deinit(self: *Self) void {
 
 pub fn index(self: *Self) Allocator.Error!void {
     while (self.reader.next()) |block| {
-        const scanned = Scanner.from(block.value);
+        const scanned = Scanner.from(block);
 
         const tokens = identify(scanned);
         try self.extract(tokens, block.index);
 
         prev_scanned = scanned;
-        prev_scalar = @truncate(prev_scanned.scalar() >> (vector_size - 1));
+        prev_scalar = @truncate(prev_scanned.scalar() >> (register_size - 1));
     }
 }
 
@@ -63,7 +67,7 @@ pub fn identify(sc: Scanner) mask {
     structural |= pseudo_structural_chars;
     structural &= ~(unescaped_quotes & ~quoted_ranges);
 
-    prev_inside_string = @bitCast(@as(shared.signed_mask, @bitCast(quoted_ranges)) >> (vector_size - 1));
+    prev_inside_string = @bitCast(@as(shared.signed_mask, @bitCast(quoted_ranges)) >> register_size - 1);
 
     return structural;
 }
@@ -101,9 +105,9 @@ fn escapedChars(backs: mask) mask {
 fn clmul(quotes_mask: mask) mask {
     switch (builtin.cpu.arch) {
         .x86_64 => {
-            const range: @Vector(16, u8) = @bitCast(simd.repeat(128 / vector_size, [_]mask{quotes_mask}));
+            const range: @Vector(16, u8) = @bitCast(simd.repeat(128 / register_size, [_]mask{quotes_mask}));
             const ones: @Vector(16, u8) = @bitCast(simd.repeat(128, [_]u1{1}));
-            if (vector_size == 64) {
+            if (register_size == 64) {
                 return asm (
                     \\pclmulqdq $0, %[ones], %[range]
                     \\movq %[range], %[ret]
@@ -122,7 +126,7 @@ fn clmul(quotes_mask: mask) mask {
             }
         },
         else => {
-            const prefix_xor = simd.prefixScan(std.builtin.ReduceOp.Xor, 1, @as(vector_mask, @bitCast(quotes_mask)));
+            const prefix_xor = simd.prefixScan(std.builtin.ReduceOp.Xor, 1, @as(vectorized_mask, @bitCast(quotes_mask)));
             return @as(mask, @bitCast(prefix_xor));
         },
     }
@@ -134,19 +138,32 @@ const Scanner = struct {
     backslash: mask,
     quotes: mask,
 
-    pub fn from(vec: vector) @This() {
-        const low_nibbles = vec & @as(vector, @splat(0xF));
-        const high_nibbles = vec >> @as(vector, @splat(4));
-        const low_lookup_values = lut(ln_table, low_nibbles);
-        const high_lookup_values = lut(hn_table, high_nibbles);
-        const desired_values = low_lookup_values & high_lookup_values;
-        const whitespace = anyBitSet(desired_values & @as(vector, @splat(0b11000)));
-        const structural = anyBitSet(desired_values & @as(vector, @splat(0b111)));
+    pub fn from(block: Block) @This() {
+        var mask_whitespace: mask = 0;
+        var mask_structural: mask = 0;
+        var mask_backslash: mask = 0;
+        var mask_quotes: mask = 0;
+        for (block.value, 0..) |vec, i_| {
+            const i: u6 = @truncate(i_);
+            const low_nibbles = vec & @as(vector, @splat(0xF));
+            const high_nibbles = vec >> @as(vector, @splat(4));
+            const low_lookup_values = lut(ln_table, low_nibbles);
+            const high_lookup_values = lut(hn_table, high_nibbles);
+            const desired_values = low_lookup_values & high_lookup_values;
+            const whitespace: vector_mask = @bitCast(desired_values & @as(vector, @splat(0b11000)) != shared.zer_vector);
+            const structural: vector_mask = @bitCast(desired_values & @as(vector, @splat(0b111)) != shared.zer_vector);
+            const backslash: vector_mask = @bitCast(vec == shared.slash);
+            const quotes: vector_mask = @bitCast(vec == shared.quote);
+            mask_whitespace |= @as(mask, whitespace) << @truncate(i * vector_size);
+            mask_structural |= @as(mask, structural) << @truncate(i * vector_size);
+            mask_backslash |= @as(mask, backslash) << @truncate(i * vector_size);
+            mask_quotes |= @as(mask, quotes) << @truncate(i * vector_size);
+        }
         return .{
-            .whitespace = whitespace,
-            .structural = structural,
-            .backslash = @bitCast(vec == shared.slash),
-            .quotes = @bitCast(vec == shared.quote),
+            .whitespace = mask_whitespace,
+            .structural = mask_structural,
+            .backslash = mask_backslash,
+            .quotes = mask_quotes,
         };
     }
 
@@ -193,8 +210,4 @@ fn lut(table: vector, nibbles: vector) vector {
             return fallback;
         },
     }
-}
-
-fn anyBitSet(vec: vector) mask {
-    return ~@as(mask, @bitCast(vec == shared.zer_vector));
 }

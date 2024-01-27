@@ -3,7 +3,7 @@ const shared = @import("../shared.zig");
 const unicode = std.unicode;
 const vector = shared.vector;
 const vector_size = shared.vector_size;
-const mask = shared.mask;
+const vector_mask = shared.vector_mask;
 const ArrayList = std.ArrayList;
 const TapeError = shared.TapeError;
 
@@ -18,8 +18,8 @@ pub fn string(strings: *ArrayList(u8), input: []const u8) ![:0]const u8 {
         const content_len = @min(iter.len, vector_size);
         @memcpy((&buffer_mem)[0..content_len], iter[0..content_len]);
         const buffer: vector = buffer_mem;
-        const quotes = @as(mask, @bitCast(buffer == shared.quote));
-        const bslash = @as(mask, @bitCast(buffer == shared.slash));
+        const quotes = @as(vector_mask, @bitCast(buffer == shared.quote));
+        const bslash = @as(vector_mask, @bitCast(buffer == shared.slash));
         const first_quote_index = @ctz(quotes);
         const first_slash_index = @ctz(bslash);
         // none of the characters are present in the buffer

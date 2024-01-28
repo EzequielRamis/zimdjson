@@ -10,6 +10,7 @@ const vector = shared.vector;
 const vectors = shared.vectors;
 const vector_size = shared.vector_size;
 const register_size = shared.register_size;
+const ratio = shared.register_vector_ratio;
 const vector_mask = shared.vector_mask;
 const vectorized_mask = shared.vectorized_mask;
 const mask = shared.mask;
@@ -143,8 +144,9 @@ const Scanner = struct {
         var mask_structural: mask = 0;
         var mask_backslash: mask = 0;
         var mask_quotes: mask = 0;
-        for (block.value, 0..) |vec, i_| {
+        for (0..ratio) |i_| {
             const i: u6 = @truncate(i_);
+            const vec: vector = block.value[i * vector_size ..][0..vector_size].*;
             const low_nibbles = vec & @as(vector, @splat(0xF));
             const high_nibbles = vec >> @as(vector, @splat(4));
             const low_lookup_values = lut(ln_table, low_nibbles);

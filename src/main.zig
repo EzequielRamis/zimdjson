@@ -43,10 +43,11 @@ pub fn fromFile(allocator: Allocator, path: []const u8) !void {
 }
 
 pub fn main() !void {
-    var general_purpose_allocator = std.heap.GeneralPurposeAllocator(.{}){};
-    const gpa = general_purpose_allocator.allocator();
-    const args = try std.process.argsAlloc(gpa);
-    defer std.process.argsFree(gpa, args);
+    // var general_purpose_allocator = std.heap.GeneralPurposeAllocator(.{}){};
+    // const gpa = general_purpose_allocator.allocator();
+    const malloc = std.heap.c_allocator;
+    const args = try std.process.argsAlloc(malloc);
+    defer std.process.argsFree(malloc, args);
 
-    try fromFile(gpa, args[1]);
+    try fromFile(malloc, args[1]);
 }

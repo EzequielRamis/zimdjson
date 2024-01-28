@@ -114,6 +114,7 @@ pub fn build(self: *Self) !void {
         return TapeError.Empty;
     }
 
+    // https://github.com/ziglang/zig/issues/8220
     while (true) {
         switch (state) {
             .end => break,

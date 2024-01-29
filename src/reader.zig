@@ -10,25 +10,28 @@ pub const block = [register_size]u8;
 const blank_buffer = [_]u8{' '} ** register_size;
 
 index: usize = 0,
+last_partial_index: usize,
 document: []const u8,
 buffer: block = blank_buffer,
 
 pub fn init(doc: []const u8) Self {
-    return Self{
+    const remaining = doc.len % register_size;
+    const last_partial_index = doc.len -| remaining;
+    var self = Self{
         .document = doc,
+        .last_partial_index = last_partial_index,
     };
+    @memcpy(self.buffer[0..remaining], self.document[self.last_partial_index..]);
+    return self;
 }
 
 pub fn next(self: *Self) ?*const block {
-    const remaining = self.document.len -| self.index;
-    if (remaining == 0) {
+    if (self.index > self.last_partial_index) {
         return null;
     }
-    if (remaining < register_size) {
-        @memcpy(self.buffer[0..remaining], self.document[self.index..]);
-        defer self.index += remaining;
-        return &self.buffer;
-    }
     defer self.index += register_size;
-    return self.document[self.index..][0..register_size];
+    if (self.index < self.last_partial_index) {
+        return self.document[self.index..][0..register_size];
+    }
+    return &self.buffer;
 }

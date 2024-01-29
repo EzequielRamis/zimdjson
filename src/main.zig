@@ -19,13 +19,13 @@ pub fn fromSlice(allocator: Allocator, document: []const u8) !void {
     defer indexer.deinit();
     try indexer.index();
 
-    const prefixes = Prefixes.init(indexer);
+    // const prefixes = Prefixes.init(indexer);
 
-    // stage 2
-    var tape = TapeBuilder.init(allocator, prefixes);
-    defer tape.deinit();
+    // // stage 2
+    // var tape = TapeBuilder.init(allocator, prefixes);
+    // defer tape.deinit();
 
-    try tape.build();
+    // try tape.build();
 }
 
 pub fn fromFile(allocator: Allocator, path: []const u8) !void {

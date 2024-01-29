@@ -15,11 +15,9 @@ const Allocator = std.mem.Allocator;
 
 pub fn fromSlice(allocator: Allocator, document: []const u8) !void {
     // stage 1
-    var timer = try std.time.Timer.start();
     var indexer = Indexer.init(allocator, document);
     defer indexer.deinit();
     try indexer.index();
-    std.debug.print("Stage 1: {}\n", .{timer.lap()});
 
     const prefixes = Prefixes.init(indexer);
 
@@ -28,7 +26,6 @@ pub fn fromSlice(allocator: Allocator, document: []const u8) !void {
     defer tape.deinit();
 
     try tape.build();
-    std.debug.print("Stage 2: {}\n", .{timer.lap()});
 }
 
 pub fn fromFile(allocator: Allocator, path: []const u8) !void {

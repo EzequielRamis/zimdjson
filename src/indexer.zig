@@ -3,7 +3,6 @@ const builtin = @import("builtin");
 const shared = @import("shared.zig");
 const cpu = builtin.cpu;
 const Reader = @import("reader.zig");
-const Block = Reader.Block;
 
 const simd = std.simd;
 const vector = shared.vector;
@@ -40,16 +39,20 @@ pub fn deinit(self: *Self) void {
     self.indexes.deinit();
 }
 
-pub fn index(self: *Self) Allocator.Error!void {
-    while (self.reader.next()) |block| {
+pub fn index(self: *Self) !void {
+    var iter = try self.indexes.addManyAsSlice(self.reader.document.len);
+    var timer = try std.time.Timer.start();
+    var i = self.reader.index;
+    while (self.reader.next()) |block| : (i = self.reader.index) {
         const scanned = Scanner.from(block);
 
         const tokens = identify(scanned);
-        try self.extract(tokens, block.index);
+        self.extract(tokens, i, &iter);
 
         prev_scanned = scanned;
         prev_scalar = @truncate(prev_scanned.scalar() >> (register_size - 1));
     }
+    std.debug.print("Stage 1: {}\n", .{timer.lap()});
 }
 
 pub fn identify(sc: Scanner) mask {
@@ -73,12 +76,12 @@ pub fn identify(sc: Scanner) mask {
     return structural;
 }
 
-pub fn extract(self: *Self, tokens: mask, i: usize) Allocator.Error!void {
+pub fn extract(_: *Self, tokens: mask, i: usize, dst: *[]usize) void {
     var s = tokens;
-    while (s != 0) {
+    while (s != 0) : (s &= (s - 1)) {
         const tz = @ctz(s);
-        try self.indexes.append(i + tz);
-        s &= (s - 1);
+        dst.*[0] = i + tz;
+        dst.* = dst.*[1..];
     }
 }
 
@@ -139,14 +142,14 @@ const Scanner = struct {
     backslash: mask,
     quotes: mask,
 
-    pub fn from(block: Block) @This() {
+    pub fn from(block: *const Reader.block) @This() {
         var mask_whitespace: mask = 0;
         var mask_structural: mask = 0;
         var mask_backslash: mask = 0;
         var mask_quotes: mask = 0;
-        for (0..ratio) |i_| {
-            const i: u6 = @truncate(i_);
-            const vec: vector = block.value[i * vector_size ..][0..vector_size].*;
+        for (0..ratio) |i| {
+            const offset = i * vector_size;
+            const vec: vector = block[offset..][0..vector_size].*;
             const low_nibbles = vec & @as(vector, @splat(0xF));
             const high_nibbles = vec >> @as(vector, @splat(4));
             const low_lookup_values = lut(ln_table, low_nibbles);
@@ -156,10 +159,10 @@ const Scanner = struct {
             const structural: vector_mask = @bitCast(desired_values & @as(vector, @splat(0b111)) != shared.zer_vector);
             const backslash: vector_mask = @bitCast(vec == shared.slash);
             const quotes: vector_mask = @bitCast(vec == shared.quote);
-            mask_whitespace |= @as(mask, whitespace) << @truncate(i * vector_size);
-            mask_structural |= @as(mask, structural) << @truncate(i * vector_size);
-            mask_backslash |= @as(mask, backslash) << @truncate(i * vector_size);
-            mask_quotes |= @as(mask, quotes) << @truncate(i * vector_size);
+            mask_whitespace |= @as(mask, whitespace) << @truncate(offset);
+            mask_structural |= @as(mask, structural) << @truncate(offset);
+            mask_backslash |= @as(mask, backslash) << @truncate(offset);
+            mask_quotes |= @as(mask, quotes) << @truncate(offset);
         }
         return .{
             .whitespace = mask_whitespace,

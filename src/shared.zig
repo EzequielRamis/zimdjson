@@ -29,6 +29,8 @@ pub const vectors = [register_vector_ratio]vector;
 
 pub const zer_mask: mask = 0;
 pub const one_mask: mask = @bitCast(@as(isize, -1));
+pub const evn_mask: mask = @bitCast(simd.repeat(register_size, [_]u1{ 1, 0 }));
+pub const odd_mask: mask = @bitCast(simd.repeat(register_size, [_]u1{ 0, 1 }));
 
 pub const zer_vector_mask: vectorized_mask = @bitCast(zer_mask);
 pub const one_vector_mask: vectorized_mask = @bitCast(one_mask);
@@ -37,9 +39,6 @@ pub const zer_vector: vector = @splat(0);
 pub const one_vector: vector = ~zer_vector;
 pub const quote: vector = @splat('"');
 pub const slash: vector = @splat('\\');
-
-pub const evn_vector: masks = @bitCast(simd.repeat(vector_size * 8, [_]u1{ 1, 0 }));
-pub const odd_vector: masks = @bitCast(simd.repeat(vector_size * 8, [_]u1{ 0, 1 }));
 
 pub fn reverseMask(input: mask) mask {
     return @bitCast(simd.reverseOrder(@as(vectorized_mask, @bitCast(input))));

@@ -41,17 +41,19 @@ pub fn deinit(self: *Self) void {
 
 pub fn index(self: *Self) !void {
     var iter = try self.indexes.addManyAsSlice(self.reader.document.len);
+    var iter_count: usize = 0;
     // var timer = try std.time.Timer.start();
     var i = self.reader.index;
     while (self.reader.next()) |block| : (i = self.reader.index) {
         const scanned = Scanner.from(block);
 
         const tokens = identify(scanned);
-        self.extract(tokens, i, &iter);
+        iter_count += self.extract(tokens, i, &iter);
 
         prev_scanned = scanned;
         prev_scalar = @truncate(prev_scanned.scalar() >> (register_size - 1));
     }
+    self.indexes.shrinkAndFree(iter_count);
     // std.debug.print("Stage 1: {}\n", .{timer.lap()});
 }
 
@@ -78,35 +80,44 @@ pub fn identify(sc: Scanner) mask {
 
 const indexes_bitmap: [256][8]usize = res: {
     @setEvalBranchQuota(5000);
-    var res: [256][8]usize = [_][8]usize{[_]usize{~@as(usize, 0)} ** 8} ** 256;
+    var res: [256][8]usize = [_][8]usize{[_]usize{@as(usize, 0)} ** 8} ** 256;
     for (0..256) |i| {
         var bitset = (std.bit_set.IntegerBitSet(8){ .mask = i }).iterator(.{});
         var j = 0;
         while (bitset.next()) |b| : (j += 1) {
-            res[i][j] = b + 1;
+            res[i][j] = b;
         }
     }
     break :res res;
 };
 
-pub fn extract(_: *Self, tokens: mask, i: usize, dst: *[]usize) void {
+pub fn extract(_: *Self, tokens: mask, i: usize, dst: *[]usize) usize {
+    var pop_count: usize = 0;
     var s = tokens;
-    while (s != 0) {
-        const tz = @ctz(s);
-        dst.*[0] = i + tz;
-        dst.* = dst.*[1..];
-        s &= s - 1;
+    inline for (0..8) |r| {
+        const tokens_byte = s & 0xFF;
+        const pop = @popCount(tokens_byte);
+        pop_count += pop;
+        var indexes = indexes_bitmap[tokens_byte];
+        for (&indexes) |*idx| {
+            idx.* +%= i;
+            idx.* +%= r * 8;
+        }
+        @memcpy(dst.*[0..8], &indexes);
+        dst.* = dst.*[pop..];
+        s >>= 8;
     }
+    return pop_count;
 }
 
-// pub fn extract(_: *Self, tokens: masks, _: usize, dst: []usize) usize {
-//     var pop_count: usize = 0;
-//     inline for (0..vector_register_ratio) |t| {
-//         pop_count += @popCount(tokens[t]);
+// pub fn extract(_: *Self, tokens: mask, i: usize, dst: *[]usize) void {
+//     var s = tokens;
+//     while (s != 0) {
+//         const tz = @ctz(s);
+//         dst.*[0] = i + tz;
+//         dst.* = dst.*[1..];
+//         s &= s - 1;
 //     }
-//     const store = dst[0..vector_register_ratio];
-//     store.* = tokens;
-//     return pop_count;
 // }
 
 fn escapedChars(backs: mask) mask {
@@ -115,11 +126,11 @@ fn escapedChars(backs: mask) mask {
     const first_backslash = starts & 1;
     const evn_starts = starts & shared.evn_mask;
     const evn_yields = @addWithOverflow(backs, evn_starts);
-    const evn_carries = (evn_yields[0] - (prev_odd_carry & first_backslash)) & ~backs;
+    const evn_carries = (evn_yields[0] -% (prev_odd_carry & first_backslash)) & ~backs;
 
     const odd_starts = starts & shared.odd_mask;
     const odd_yields = @addWithOverflow(backs, odd_starts);
-    const odd_carries = (odd_yields[0] + prev_odd_carry) & ~backs;
+    const odd_carries = (odd_yields[0] +% prev_odd_carry) & ~backs;
 
     const is_all_backslash = @intFromBool(@as(shared.imask, @bitCast(backs)) == -1);
     prev_odd_carry = (is_all_backslash & prev_odd_carry) | odd_yields[1];

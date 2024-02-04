@@ -5,3 +5,4 @@ zig-out
 *.a
 exe
 .gdb_history
+.ccls-cache

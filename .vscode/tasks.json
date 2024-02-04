@@ -2,9 +2,14 @@
   "version": "2.0.0",
   "tasks": [
     {
-      "label": "build",
+      "label": "build-zimdjson",
       "type": "shell",
-      "command": "zig build-exe src/main.zig"
+      "command": "zig build-exe src/main.zig -lc"
+    },
+    {
+      "label": "build-simdjson",
+      "type": "shell",
+      "command": "c++ -g -O3 -o simdjson/main simdjson/quickstart.cpp simdjson/simdjson.cpp"
     }
   ]
 }

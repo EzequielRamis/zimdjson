@@ -2,17 +2,22 @@
   "version": "0.2.0",
   "configurations": [
     {
-      "name": "(gdb) Launch",
-      "type": "cppdbg",
+      "name": "(lldb) Launch zimdjson",
+      "type": "lldb",
       "request": "launch",
       "program": "${workspaceFolder}/main",
       "args": ["tests/large-file.json"],
-      "stopAtEntry": false,
       "cwd": "${workspaceFolder}",
-      "environment": [],
-      "externalConsole": false,
-      "MIMode": "gdb",
-      "preLaunchTask": "build"
+      "preLaunchTask": "build-zimdjson"
+    },
+    {
+      "name": "(lldb) Launch simdjson",
+      "type": "lldb",
+      "request": "launch",
+      "program": "${workspaceFolder}/simdjson/main",
+      "args": ["../tests/large-file.json"],
+      "cwd": "${workspaceFolder}/simdjson",
+      "preLaunchTask": "build-simdjson"
     }
   ]
 }

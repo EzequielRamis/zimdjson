@@ -32,7 +32,7 @@ pub fn fromFile(allocator: Allocator, path: []const u8) !void {
     const file = try std.fs.cwd().openFile(path, .{});
     const len = (try file.metadata()).size();
 
-    const buffer = try allocator.alloc(u8, len);
+    const buffer = try allocator.alignedAlloc(u8, vector_size, len);
     defer allocator.free(buffer);
 
     _ = try file.read(buffer);

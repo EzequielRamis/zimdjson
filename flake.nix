@@ -20,7 +20,15 @@
         };
       in {
         devShell = pkgs.mkShell {
-          buildInputs = with pkgs; [ zig zls gdb valgrind poop ];
+          buildInputs = with pkgs; [
+            zig
+            zls
+            gdb
+            valgrind
+            poop
+            clang-tools
+            ccls
+          ];
         };
       });
 }

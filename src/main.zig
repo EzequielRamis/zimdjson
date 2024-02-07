@@ -7,9 +7,6 @@ const TapeBuilder = @import("builder.zig");
 const simd = std.simd;
 const cpu = builtin.cpu;
 const testing = std.testing;
-const vector = shared.vector;
-const vector_size = shared.vector_size;
-const mask = shared.mask;
 
 const Allocator = std.mem.Allocator;
 
@@ -32,7 +29,7 @@ pub fn fromFile(allocator: Allocator, path: []const u8) !void {
     const file = try std.fs.cwd().openFile(path, .{});
     const len = (try file.metadata()).size();
 
-    const buffer = try allocator.alignedAlloc(u8, vector_size, len);
+    const buffer = try allocator.alloc(u8, len);
     defer allocator.free(buffer);
 
     _ = try file.read(buffer);

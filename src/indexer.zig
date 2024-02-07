@@ -1,37 +1,36 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const shared = @import("shared.zig");
-const cpu = builtin.cpu;
 const Reader = @import("reader.zig");
-
+const types = @import("types.zig");
+const cpu = builtin.cpu;
 const simd = std.simd;
-const vector = shared.vector;
-const vectors = shared.vectors;
-const vector_size = shared.vector_size;
-const register_size = shared.register_size;
-const ratio = shared.register_vector_ratio;
-const vector_mask = shared.vector_mask;
-const vectorized_mask = shared.vectorized_mask;
-const mask = shared.mask;
+const vector = types.vector;
+const Vector = types.Vector;
+const umask = types.umask;
+const Mask = types.Mask;
+const Pred = types.Predicate;
 
 const Allocator = std.mem.Allocator;
 const Self = @This();
 
-const ln_table: vector = simd.repeat(vector_size, [_]u8{ 16, 0, 0, 0, 0, 0, 0, 0, 0, 8, 10, 4, 1, 12, 0, 0 });
-const hn_table: vector = simd.repeat(vector_size, [_]u8{ 8, 0, 17, 2, 0, 4, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0 });
+const ln_table: vector = simd.repeat(Vector.LEN_BYTES, [_]u8{ 16, 0, 0, 0, 0, 0, 0, 0, 0, 8, 10, 4, 1, 12, 0, 0 });
+const hn_table: vector = simd.repeat(Vector.LEN_BYTES, [_]u8{ 8, 0, 17, 2, 0, 4, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0 });
+const whitespace_table: vector = @splat(0b11000);
+const structural_table: vector = @splat(0b00111);
+const evn_mask: umask = @bitCast(simd.repeat(Mask.LEN_BITS, [_]u1{ 1, 0 }));
+const odd_mask: umask = @bitCast(simd.repeat(Mask.LEN_BITS, [_]u1{ 0, 1 }));
 
-var prev_scanned: Scanner = .{ .whitespace = 0, .structural = 0, .backslash = 0, .quotes = 0 };
-var prev_odd_carry: u1 = 0;
-var prev_scalar: u1 = 0;
-var prev_inside_string: mask = 0;
+var prev_scanned: Scanner = std.mem.zeroes(Scanner);
+var prev_inside_string: umask = 0;
+var next_is_escaped: umask = 0;
 
 reader: Reader,
-indexes: std.ArrayList(usize),
+indexes: std.ArrayList(u32),
 
 pub fn init(allocator: Allocator, document: []const u8) Self {
     return Self{
         .reader = Reader.init(document),
-        .indexes = std.ArrayList(usize).init(allocator),
+        .indexes = std.ArrayList(u32).init(allocator),
     };
 }
 
@@ -42,22 +41,22 @@ pub fn deinit(self: *Self) void {
 pub fn index(self: *Self) !void {
     var iter = try self.indexes.addManyAsSlice(self.reader.document.len);
     var iter_count: usize = 0;
-    // var timer = try std.time.Timer.start();
+    var timer = try std.time.Timer.start();
     var i = self.reader.index;
     while (self.reader.next()) |block| : (i = self.reader.index) {
         const scanned = Scanner.from(block);
 
         const tokens = identify(scanned);
-        iter_count += self.extract(tokens, i, &iter);
+
+        iter_count += extract(tokens, i, &iter);
 
         prev_scanned = scanned;
-        prev_scalar = @truncate(prev_scanned.scalar() >> (register_size - 1));
     }
     self.indexes.shrinkAndFree(iter_count);
-    // std.debug.print("Stage 1: {}\n", .{timer.lap()});
+    std.debug.print("Stage 1: {}\n", .{timer.lap()});
 }
 
-pub fn identify(sc: Scanner) mask {
+fn identify(sc: Scanner) umask {
     const unescaped_quotes = sc.quotes & ~escapedChars(sc.backslash);
     const quoted_ranges = clmul(unescaped_quotes) ^ prev_inside_string;
     var structural = sc.structural;
@@ -67,20 +66,20 @@ pub fn identify(sc: Scanner) mask {
 
     var pseudo_structural_chars = structural | sc.whitespace;
     pseudo_structural_chars <<= 1;
-    pseudo_structural_chars |= ~prev_scalar & sc.scalar();
+    pseudo_structural_chars |= ~@as(u1, @truncate(prev_scanned.scalar() >> Mask.LAST_BIT)) & sc.scalar();
     pseudo_structural_chars &= ~sc.whitespace & ~quoted_ranges;
 
     structural |= pseudo_structural_chars;
     structural &= ~(unescaped_quotes & ~quoted_ranges);
 
-    prev_inside_string = @bitCast(@as(shared.imask, @bitCast(quoted_ranges)) >> register_size - 1);
+    prev_inside_string = @bitCast(@as(types.imask, @bitCast(quoted_ranges)) >> Mask.LAST_BIT);
 
     return structural;
 }
 
-const indexes_bitmap: [256][8]usize = res: {
+const indexes_bitmap: [256][8]u32 = res: {
     @setEvalBranchQuota(5000);
-    var res: [256][8]usize = [_][8]usize{[_]usize{@as(usize, 0)} ** 8} ** 256;
+    var res: [256][8]u32 = [_][8]u32{[_]u32{@as(u32, 0)} ** 8} ** 256;
     for (0..256) |i| {
         var bitset = (std.bit_set.IntegerBitSet(8){ .mask = i }).iterator(.{});
         var j = 0;
@@ -91,108 +90,101 @@ const indexes_bitmap: [256][8]usize = res: {
     break :res res;
 };
 
-pub fn extract(_: *Self, tokens: mask, i: usize, dst: *[]usize) usize {
-    var pop_count: usize = 0;
+// fn extract(tokens: umask, i: usize, dst: *[]u32) usize {
+//     var pop_count: usize = 0;
+//     var s = tokens;
+//     inline for (0..8) |r| {
+//         const tokens_byte = s & 0xFF;
+//         const pop = @popCount(tokens_byte);
+//         pop_count += pop;
+//         var indexes = indexes_bitmap[tokens_byte];
+//         for (&indexes) |*idx| {
+//             idx.* +%= @truncate(i);
+//             idx.* +%= @truncate(r * 8);
+//         }
+//         @memcpy(dst.*[0..8], &indexes);
+//         dst.* = dst.*[pop..];
+//         s >>= 8;
+//     }
+//     return pop_count;
+// }
+
+fn extract(tokens: umask, i: usize, dst: *[]u32) usize {
+    const pop_count = @popCount(tokens);
+    var slice = dst.*;
     var s = tokens;
-    inline for (0..8) |r| {
-        const tokens_byte = s & 0xFF;
-        const pop = @popCount(tokens_byte);
-        pop_count += pop;
-        var indexes = indexes_bitmap[tokens_byte];
-        for (&indexes) |*idx| {
-            idx.* +%= i;
-            idx.* +%= r * 8;
+    while (s != 0) {
+        inline for (0..8) |_| {
+            const tz = @ctz(s);
+            slice[0] = @as(u32, @truncate(i)) + tz;
+            slice = slice[1..];
+            s &= s -% 1;
         }
-        @memcpy(dst.*[0..8], &indexes);
-        dst.* = dst.*[pop..];
-        s >>= 8;
     }
+    dst.* = dst.*[pop_count..];
     return pop_count;
 }
 
-// pub fn extract(_: *Self, tokens: mask, i: usize, dst: *[]usize) void {
-//     var s = tokens;
-//     while (s != 0) {
-//         const tz = @ctz(s);
-//         dst.*[0] = i + tz;
-//         dst.* = dst.*[1..];
-//         s &= s - 1;
-//     }
-// }
-
-fn escapedChars(backs: mask) mask {
-    const starts = backs & ~(backs << 1);
-
-    const first_backslash = starts & 1;
-    const evn_starts = starts & shared.evn_mask;
-    const evn_yields = @addWithOverflow(backs, evn_starts);
-    const evn_carries = (evn_yields[0] -% (prev_odd_carry & first_backslash)) & ~backs;
-
-    const odd_starts = starts & shared.odd_mask;
-    const odd_yields = @addWithOverflow(backs, odd_starts);
-    const odd_carries = (odd_yields[0] +% prev_odd_carry) & ~backs;
-
-    const is_all_backslash = @intFromBool(@as(shared.imask, @bitCast(backs)) == -1);
-    prev_odd_carry = (is_all_backslash & prev_odd_carry) | odd_yields[1];
-
-    const odd1_ending_backs = evn_carries & shared.odd_mask;
-    const odd2_ending_backs = odd_carries & shared.evn_mask;
-    const odd_length_ends = odd1_ending_backs | odd2_ending_backs;
-    return odd_length_ends;
+fn escapedChars(backs: umask) umask {
+    if (backs == 0) {
+        const escaped = next_is_escaped;
+        next_is_escaped = 0;
+        return escaped;
+    }
+    const potential_escape = backs & ~next_is_escaped;
+    const maybe_escaped = potential_escape << 1;
+    const maybe_escaped_and_odd_bits = maybe_escaped | odd_mask;
+    const even_series_codes_and_odd_bits = maybe_escaped_and_odd_bits -% potential_escape;
+    const escape_and_terminal_code = even_series_codes_and_odd_bits ^ odd_mask;
+    const escaped = escape_and_terminal_code ^ (backs | next_is_escaped);
+    const escape = escape_and_terminal_code & backs;
+    next_is_escaped = escape >> Mask.LAST_BIT;
+    return escaped;
 }
 
-fn clmul(quotes_mask: mask) mask {
+fn clmul(quotes_mask: umask) umask {
     switch (builtin.cpu.arch) {
         .x86_64 => {
-            const range: @Vector(16, u8) = @bitCast(
-                simd.repeat(128 / register_size, [_]mask{quotes_mask}),
-            );
             const ones: @Vector(16, u8) = @bitCast(simd.repeat(128, [_]u1{1}));
             return asm (
-                \\vpclmulqdq $0, %[ones], %[range], %[ret]
-                : [ret] "=v" (-> mask),
+                \\vpclmulqdq $0, %[ones], %[quotes], %[ret]
+                : [ret] "=v" (-> umask),
                 : [ones] "v" (ones),
-                  [range] "v" (range),
+                  [quotes] "v" (quotes_mask),
             );
         },
-        else => {
-            const prefix_xor = simd.prefixScan(
-                std.builtin.ReduceOp.Xor,
-                1,
-                @as(vectorized_mask, @bitCast(quotes_mask)),
-            );
-            return @as(mask, @bitCast(prefix_xor));
-        },
+        else => unreachable,
     }
 }
 
 const Scanner = struct {
-    whitespace: mask,
-    structural: mask,
-    backslash: mask,
-    quotes: mask,
+    whitespace: umask,
+    structural: umask,
+    backslash: umask,
+    quotes: umask,
 
     pub fn from(block: *const Reader.block) @This() {
-        var mask_whitespace: mask = 0;
-        var mask_structural: mask = 0;
-        var mask_backslash: mask = 0;
-        var mask_quotes: mask = 0;
-        for (0..ratio) |i| {
-            const offset = i * vector_size;
-            const vec: vector = block[offset..][0..vector_size].*;
+        var mask_whitespace: umask = 0;
+        var mask_structural: umask = 0;
+        var mask_backslash: umask = 0;
+        var mask_quotes: umask = 0;
+
+        for (0..Mask.COMPUTED_VECTORS) |i| {
+            const offset = i * Vector.LEN_BYTES;
+            const vec = Vector.from(block[offset..][0..Vector.LEN_BYTES]).to(.bytes);
             const low_nibbles = vec & @as(vector, @splat(0xF));
             const high_nibbles = vec >> @as(vector, @splat(4));
             const low_lookup_values = lut(ln_table, low_nibbles);
             const high_lookup_values = lut(hn_table, high_nibbles);
             const desired_values = low_lookup_values & high_lookup_values;
-            const whitespace: vector_mask = @bitCast(desired_values & @as(vector, @splat(0b11000)) != shared.zer_vector);
-            const structural: vector_mask = @bitCast(desired_values & @as(vector, @splat(0b111)) != shared.zer_vector);
-            const backslash: vector_mask = @bitCast(vec == shared.slash);
-            const quotes: vector_mask = @bitCast(vec == shared.quote);
-            mask_whitespace |= @as(mask, whitespace) << @truncate(offset);
-            mask_structural |= @as(mask, structural) << @truncate(offset);
-            mask_backslash |= @as(mask, backslash) << @truncate(offset);
-            mask_quotes |= @as(mask, quotes) << @truncate(offset);
+            const whitespace = ~Pred(.bytes).from(desired_values & whitespace_table == Vector.ZER).pack();
+            const structural = ~Pred(.bytes).from(desired_values & structural_table == Vector.ZER).pack();
+            const backslash = Pred(.bytes).from(vec == Vector.SLASH).pack();
+            const quotes = Pred(.bytes).from(vec == Vector.QUOTE).pack();
+            mask_whitespace |= @as(umask, whitespace) << @truncate(offset);
+            mask_structural |= @as(umask, structural) << @truncate(offset);
+            mask_backslash |= @as(umask, backslash) << @truncate(offset);
+            mask_quotes |= @as(umask, quotes) << @truncate(offset);
         }
         return .{
             .whitespace = mask_whitespace,
@@ -202,7 +194,7 @@ const Scanner = struct {
         };
     }
 
-    pub fn scalar(self: @This()) mask {
+    pub fn scalar(self: @This()) umask {
         return ~(self.structural | self.whitespace);
     }
 };
@@ -226,10 +218,10 @@ fn lut(table: vector, nibbles: vector) vector {
         },
         else => {
             @compileLog("Table lookup instruction not supported on this target.");
-            var fallback: vector = [_]u8{0} ** vector_size;
-            for (0..vector_size) |i| {
+            var fallback: vector = @splat(0);
+            for (0..Vector.LEN_BYTES) |i| {
                 const n = nibbles[i];
-                if (n < vector_size) {
+                if (n < Vector.LEN_BYTES) {
                     fallback[i] = table[n];
                 }
             }

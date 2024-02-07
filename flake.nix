@@ -24,10 +24,12 @@
             zig
             zls
             gdb
-            valgrind
+            valgrind-light
             poop
             clang-tools
             ccls
+            clang
+            kcachegrind
           ];
         };
       });

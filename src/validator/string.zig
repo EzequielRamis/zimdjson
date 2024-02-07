@@ -1,31 +1,33 @@
 const std = @import("std");
 const shared = @import("../shared.zig");
+const types = @import("../types.zig");
 const unicode = std.unicode;
-const vector = shared.vector;
-const vector_size = shared.vector_size;
-const vector_mask = shared.vector_mask;
+const vector = types.vector;
+const array = types.array;
+const Vector = types.Vector;
+const Pred = types.Predicate;
 const ArrayList = std.ArrayList;
 const TapeError = shared.TapeError;
 
 pub fn string(strings: *ArrayList(u8), input: []const u8) ![:0]const u8 {
     const strings_len = strings.items.len;
-    var buffer_mem = [_]u8{0} ** vector_size;
+    var buffer_mem: array = types.Vector.ZER;
     var iter: []const u8 = input;
     var i: usize = 0;
     while (i < input.len) {
         iter = input[i..];
-        buffer_mem = [_]u8{0} ** vector_size;
-        const content_len = @min(iter.len, vector_size);
+        buffer_mem = types.Vector.ZER;
+        const content_len = @min(iter.len, Vector.LEN_BYTES);
         @memcpy((&buffer_mem)[0..content_len], iter[0..content_len]);
         const buffer: vector = buffer_mem;
-        const quotes = @as(vector_mask, @bitCast(buffer == shared.quote));
-        const bslash = @as(vector_mask, @bitCast(buffer == shared.slash));
+        const quotes = Pred(.bytes).from(buffer == types.Vector.QUOTE).pack();
+        const bslash = Pred(.bytes).from(buffer == types.Vector.SLASH).pack();
         const first_quote_index = @ctz(quotes);
         const first_slash_index = @ctz(bslash);
         // none of the characters are present in the buffer
         if (first_quote_index == first_slash_index) {
-            try strings.appendSlice(iter[0..vector_size]);
-            i += vector_size;
+            try strings.appendSlice(iter[0..Vector.LEN_BYTES]);
+            i += Vector.LEN_BYTES;
             continue;
         }
         // end of string

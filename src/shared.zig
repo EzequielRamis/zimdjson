@@ -3,47 +3,6 @@ const builtin = @import("builtin");
 const simd = std.simd;
 const testing = std.testing;
 
-pub const vector_size = simd.suggestVectorLength(u8) orelse
-    @compileError("SIMD unsupported on this target.");
-
-pub const register_size = res: {
-    if (builtin.target.ptrBitWidth() == 64) {
-        break :res 64;
-    } else {
-        @compileError("Unsupported target.");
-    }
-};
-
-pub const register_vector_ratio = register_size / vector_size;
-pub const vector_register_ratio = vector_size * 8 / register_size;
-
-pub const mask = usize;
-pub const imask = isize;
-pub const vector = @Vector(vector_size, u8);
-pub const vector_mask = std.meta.Int(std.builtin.Signedness.unsigned, vector_size);
-pub const vectorized_mask = @Vector(vector_size, u1);
-pub const masks = @Vector(vector_register_ratio, mask);
-pub const imasks = @Vector(vector_register_ratio, imask);
-
-pub const vectors = [register_vector_ratio]vector;
-
-pub const zer_mask: mask = 0;
-pub const one_mask: mask = @bitCast(@as(isize, -1));
-pub const evn_mask: mask = @bitCast(simd.repeat(register_size, [_]u1{ 1, 0 }));
-pub const odd_mask: mask = @bitCast(simd.repeat(register_size, [_]u1{ 0, 1 }));
-
-pub const zer_vector_mask: vectorized_mask = @bitCast(zer_mask);
-pub const one_vector_mask: vectorized_mask = @bitCast(one_mask);
-
-pub const zer_vector: vector = @splat(0);
-pub const one_vector: vector = ~zer_vector;
-pub const quote: vector = @splat('"');
-pub const slash: vector = @splat('\\');
-
-pub fn reverseMask(input: mask) mask {
-    return @bitCast(simd.reverseOrder(@as(vectorized_mask, @bitCast(input))));
-}
-
 pub const TapeError = error{
     TrueAtom,
     FalseAtom,
@@ -195,30 +154,4 @@ pub const Element = union(ElementTag) {
 
 pub fn intFromSlice(comptime T: type, str: []const u8) T {
     return @as(*align(1) T, @ptrCast(@constCast(str))).*;
-}
-
-pub fn vectorizePredicate(comptime V: type, pred: @Vector(@typeInfo(V).Vector.len, bool)) @Vector(
-    @typeInfo(V).Vector.len,
-    std.meta.Int(
-        std.builtin.Signedness.unsigned,
-        @bitSizeOf(@typeInfo(V).Vector.child),
-    ),
-) {
-    const L = @typeInfo(V).Vector.len;
-    const E = @typeInfo(V).Vector.child;
-    const signed = std.builtin.Signedness.signed;
-    const unsigned = std.builtin.Signedness.unsigned;
-    return @as(@Vector(L, std.meta.Int(unsigned, @bitSizeOf(E))), @bitCast(
-        @as(
-            @Vector(L, std.meta.Int(signed, @bitSizeOf(E))),
-            @intCast(
-                @as(
-                    @Vector(L, i1),
-                    @bitCast(
-                        @as(@Vector(L, u1), @intFromBool(pred)),
-                    ),
-                ),
-            ),
-        ),
-    ));
 }

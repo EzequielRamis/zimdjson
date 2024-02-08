@@ -24,12 +24,17 @@ pub fn init(doc: []const u8) Self {
 }
 
 pub fn next(self: *Self) ?*const block {
-    if (self.index > self.last_partial_index) {
-        return null;
-    }
-    defer self.index += Mask.LEN_BITS;
     if (self.index < self.last_partial_index) {
+        defer self.index += Mask.LEN_BITS;
         return self.document[self.index..][0..Mask.LEN_BITS];
     }
-    return &self.buffer;
+    return null;
+}
+
+pub fn last(self: *Self) ?*const block {
+    if (self.index == self.last_partial_index) {
+        defer self.index += Mask.LEN_BITS;
+        return &self.buffer;
+    }
+    return null;
 }

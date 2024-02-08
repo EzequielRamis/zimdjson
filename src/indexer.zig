@@ -7,6 +7,7 @@ const simd = std.simd;
 const vector = types.vector;
 const Vector = types.Vector;
 const umask = types.umask;
+const imask = types.imask;
 const Mask = types.Mask;
 const Pred = types.Predicate;
 
@@ -20,7 +21,7 @@ const structural_table: vector = @splat(0b00111);
 const evn_mask: umask = @bitCast(simd.repeat(Mask.LEN_BITS, [_]u1{ 1, 0 }));
 const odd_mask: umask = @bitCast(simd.repeat(Mask.LEN_BITS, [_]u1{ 0, 1 }));
 
-var prev_scanned: Scanner = std.mem.zeroes(Scanner);
+var prev_scalar: umask = 0;
 var prev_inside_string: umask = 0;
 var next_is_escaped: umask = 0;
 
@@ -41,40 +42,39 @@ pub fn deinit(self: *Self) void {
 pub fn index(self: *Self) !void {
     var iter = try self.indexes.addManyAsSlice(self.reader.document.len);
     var iter_count: usize = 0;
-    var timer = try std.time.Timer.start();
     var i = self.reader.index;
     while (self.reader.next()) |block| : (i = self.reader.index) {
         const scanned = Scanner.from(block);
-
         const tokens = identify(scanned);
-
         iter_count += extract(tokens, i, &iter);
-
-        prev_scanned = scanned;
+    }
+    if (self.reader.last()) |block| {
+        const scanned = Scanner.from(block);
+        const tokens = identify(scanned);
+        iter_count += extract(tokens, i, &iter);
     }
     self.indexes.shrinkAndFree(iter_count);
-    std.debug.print("Stage 1: {}\n", .{timer.lap()});
 }
 
 fn identify(sc: Scanner) umask {
     const unescaped_quotes = sc.quotes & ~escapedChars(sc.backslash);
-    const quoted_ranges = clmul(unescaped_quotes) ^ prev_inside_string;
-    var structural = sc.structural;
+    const invert_ranges: umask = @bitCast(@as(imask, @bitCast(prev_inside_string)) >> Mask.LAST_BIT);
+    const quoted_ranges = clmul(unescaped_quotes) ^ invert_ranges;
+    const struct_white = sc.structural | sc.whitespace;
+    const scalar = ~struct_white;
 
-    structural &= ~quoted_ranges;
-    structural |= unescaped_quotes;
+    const nonquote_scalar = scalar & ~unescaped_quotes;
+    const follows_nonquote_scalar = nonquote_scalar << 1 | prev_scalar;
 
-    var pseudo_structural_chars = structural | sc.whitespace;
-    pseudo_structural_chars <<= 1;
-    pseudo_structural_chars |= ~@as(u1, @truncate(prev_scanned.scalar() >> Mask.LAST_BIT)) & sc.scalar();
-    pseudo_structural_chars &= ~sc.whitespace & ~quoted_ranges;
+    const string_tail = quoted_ranges ^ sc.quotes;
+    const potential_scalar_start = scalar & ~follows_nonquote_scalar;
+    const potential_structural_start = sc.structural | potential_scalar_start;
+    const structural_start = potential_structural_start & ~string_tail;
 
-    structural |= pseudo_structural_chars;
-    structural &= ~(unescaped_quotes & ~quoted_ranges);
+    prev_inside_string = quoted_ranges;
+    prev_scalar = scalar >> Mask.LAST_BIT;
 
-    prev_inside_string = @bitCast(@as(types.imask, @bitCast(quoted_ranges)) >> Mask.LAST_BIT);
-
-    return structural;
+    return structural_start;
 }
 
 const indexes_bitmap: [256][8]u32 = res: {
@@ -192,10 +192,6 @@ const Scanner = struct {
             .backslash = mask_backslash,
             .quotes = mask_quotes,
         };
-    }
-
-    pub fn scalar(self: @This()) umask {
-        return ~(self.structural | self.whitespace);
     }
 };
 

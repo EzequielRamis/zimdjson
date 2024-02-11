@@ -1,7 +1,8 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const Reader = @import("reader.zig");
 const types = @import("types.zig");
+const intr = @import("intrinsics.zig");
+const Reader = @import("reader.zig");
 const cpu = builtin.cpu;
 const simd = std.simd;
 const vector = types.vector;
@@ -59,7 +60,7 @@ pub fn index(self: *Self) !void {
 fn identify(sc: Scanner) umask {
     const unescaped_quotes = sc.quotes & ~escapedChars(sc.backslash);
     const invert_ranges: umask = @bitCast(@as(imask, @bitCast(prev_inside_string)) >> Mask.LAST_BIT);
-    const quoted_ranges = clmul(unescaped_quotes) ^ invert_ranges;
+    const quoted_ranges = intr.clmul(unescaped_quotes) ^ invert_ranges;
     const struct_white = sc.structural | sc.whitespace;
     const scalar = ~struct_white;
 
@@ -142,21 +143,6 @@ fn escapedChars(backs: umask) umask {
     return escaped;
 }
 
-fn clmul(quotes_mask: umask) umask {
-    switch (builtin.cpu.arch) {
-        .x86_64 => {
-            const ones: @Vector(16, u8) = @bitCast(simd.repeat(128, [_]u1{1}));
-            return asm (
-                \\vpclmulqdq $0, %[ones], %[quotes], %[ret]
-                : [ret] "=v" (-> umask),
-                : [ones] "v" (ones),
-                  [quotes] "v" (quotes_mask),
-            );
-        },
-        else => unreachable,
-    }
-}
-
 const Scanner = struct {
     whitespace: umask,
     structural: umask,
@@ -174,8 +160,8 @@ const Scanner = struct {
             const vec = Vector.from(block[offset..][0..Vector.LEN_BYTES]).to(.bytes);
             const low_nibbles = vec & @as(vector, @splat(0xF));
             const high_nibbles = vec >> @as(vector, @splat(4));
-            const low_lookup_values = lut(ln_table, low_nibbles);
-            const high_lookup_values = lut(hn_table, high_nibbles);
+            const low_lookup_values = intr.lut(ln_table, low_nibbles);
+            const high_lookup_values = intr.lut(hn_table, high_nibbles);
             const desired_values = low_lookup_values & high_lookup_values;
             const whitespace = ~Pred(.bytes).from(desired_values & whitespace_table == Vector.ZER).pack();
             const structural = ~Pred(.bytes).from(desired_values & structural_table == Vector.ZER).pack();
@@ -194,34 +180,3 @@ const Scanner = struct {
         };
     }
 };
-
-fn lut(table: vector, nibbles: vector) vector {
-    // TODO:
-    // [] arm
-    // [] aarch64
-    // [] ppc
-    // [] mips
-    // [] riscv
-    // [] wasm
-    switch (cpu.arch) {
-        .x86_64 => {
-            return asm (
-                \\vpshufb %[nibbles], %[table], %[ret]
-                : [ret] "=v" (-> vector),
-                : [table] "v" (table),
-                  [nibbles] "v" (nibbles),
-            );
-        },
-        else => {
-            @compileLog("Table lookup instruction not supported on this target.");
-            var fallback: vector = @splat(0);
-            for (0..Vector.LEN_BYTES) |i| {
-                const n = nibbles[i];
-                if (n < Vector.LEN_BYTES) {
-                    fallback[i] = table[n];
-                }
-            }
-            return fallback;
-        },
-    }
-}

@@ -1,6 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const shared = @import("shared.zig");
+const types = @import("types.zig");
 const Indexer = @import("indexer.zig");
 const Prefixes = @import("prefixes.zig");
 const TapeBuilder = @import("builder.zig");
@@ -29,7 +30,7 @@ pub fn fromFile(allocator: Allocator, path: []const u8) !void {
     const file = try std.fs.cwd().openFile(path, .{});
     const len = (try file.metadata()).size();
 
-    const buffer = try allocator.alloc(u8, len);
+    const buffer = try allocator.alignedAlloc(u8, types.Vector.LEN_BYTES, len);
     defer allocator.free(buffer);
 
     _ = try file.read(buffer);

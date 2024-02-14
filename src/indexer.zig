@@ -78,38 +78,6 @@ fn identify(sc: Scanner) umask {
     return structural_start;
 }
 
-const indexes_bitmap: [256][8]u32 = res: {
-    @setEvalBranchQuota(5000);
-    var res: [256][8]u32 = [_][8]u32{[_]u32{@as(u32, 0)} ** 8} ** 256;
-    for (0..256) |i| {
-        var bitset = (std.bit_set.IntegerBitSet(8){ .mask = i }).iterator(.{});
-        var j = 0;
-        while (bitset.next()) |b| : (j += 1) {
-            res[i][j] = b;
-        }
-    }
-    break :res res;
-};
-
-// fn extract(tokens: umask, i: usize, dst: *[]u32) usize {
-//     var pop_count: usize = 0;
-//     var s = tokens;
-//     inline for (0..8) |r| {
-//         const tokens_byte = s & 0xFF;
-//         const pop = @popCount(tokens_byte);
-//         pop_count += pop;
-//         var indexes = indexes_bitmap[tokens_byte];
-//         for (&indexes) |*idx| {
-//             idx.* +%= @truncate(i);
-//             idx.* +%= @truncate(r * 8);
-//         }
-//         @memcpy(dst.*[0..8], &indexes);
-//         dst.* = dst.*[pop..];
-//         s >>= 8;
-//     }
-//     return pop_count;
-// }
-
 fn extract(tokens: umask, i: usize, dst: *[]u32) usize {
     const pop_count = @popCount(tokens);
     var slice = dst.*;
@@ -155,9 +123,9 @@ const Scanner = struct {
         var mask_backslash: umask = 0;
         var mask_quotes: umask = 0;
 
-        for (0..Mask.COMPUTED_VECTORS) |i| {
+        inline for (0..Mask.COMPUTED_VECTORS) |i| {
             const offset = i * Vector.LEN_BYTES;
-            const vec = Vector.from(block[offset..][0..Vector.LEN_BYTES]).to(.bytes);
+            const vec = Vector.fromPtr(block[offset..][0..Vector.LEN_BYTES]).to(.bytes);
             const low_nibbles = vec & @as(vector, @splat(0xF));
             const high_nibbles = vec >> @as(vector, @splat(4));
             const low_lookup_values = intr.lut(ln_table, low_nibbles);

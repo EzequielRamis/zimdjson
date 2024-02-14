@@ -3,6 +3,9 @@ const builtin = @import("builtin");
 const meta = std.meta;
 const simd = std.simd;
 
+const SIGNED = std.builtin.Signedness.signed;
+const UNSIGNED = std.builtin.Signedness.unsigned;
+
 pub const vector = @Vector(Vector.LEN_BYTES, u8);
 pub const array = [Vector.LEN_BYTES]u8;
 
@@ -19,13 +22,14 @@ pub const Vector = struct {
     pub const SLASH: vector = @splat('\\');
     pub const QUOTE: vector = @splat('"');
 
-    const FormatTag = enum { bytes, words, dords, masks };
+    const FormatTag = enum { bytes, words, dords, masks, packs };
 
     const Format = union(FormatTag) {
         bytes: @Vector(LEN_BYTES, u8),
         words: @Vector(LEN_WORDS, u16),
         dords: @Vector(LEN_DORDS, u32),
         masks: @Vector(LEN_MASKS, u64),
+        packs: @Vector(8, meta.Int(UNSIGNED, LEN_BYTES)),
     };
 
     const ArrFormat = union(FormatTag) {
@@ -33,11 +37,21 @@ pub const Vector = struct {
         words: *const [LEN_WORDS]u16,
         dords: *const [LEN_DORDS]u32,
         masks: *const [LEN_MASKS]u64,
+        packs: *const [8]meta.Int(UNSIGNED, LEN_BYTES),
     };
+
+    pub const PackedElem = meta.Int(UNSIGNED, LEN_BYTES);
+    pub const Packed = @Vector(8, PackedElem);
+    pub const Masks = @Vector(LEN_MASKS, u64);
+    pub const LAST_MASK = LEN_MASKS - 1;
 
     v: *const [LEN_BYTES]u8,
 
     pub fn from(v: anytype) Self {
+        return .{ .v = @bitCast(v) };
+    }
+
+    pub fn fromPtr(v: anytype) Self {
         return .{ .v = @ptrCast(v) };
     }
 
@@ -89,6 +103,7 @@ pub fn Predicate(comptime f: Vector.FormatTag) type {
         .words => Vector.LEN_WORDS,
         .dords => Vector.LEN_DORDS,
         .masks => Vector.LEN_MASKS,
+        .packs => 8,
     };
 
     const E = switch (f) {
@@ -96,12 +111,10 @@ pub fn Predicate(comptime f: Vector.FormatTag) type {
         .words => 16,
         .dords => 32,
         .masks => 64,
+        .packs => Vector.LEN_BYTES,
     };
 
     const V = @Vector(L, bool);
-
-    const signed = std.builtin.Signedness.signed;
-    const unsigned = std.builtin.Signedness.unsigned;
 
     return struct {
         v: V,
@@ -110,13 +123,13 @@ pub fn Predicate(comptime f: Vector.FormatTag) type {
             return .{ .v = v };
         }
 
-        pub fn pack(self: @This()) meta.Int(unsigned, L) {
+        pub fn pack(self: @This()) meta.Int(UNSIGNED, L) {
             return @bitCast(self.v);
         }
 
         pub fn unpack(self: @This()) meta.fieldInfo(Vector.Format, f).type {
-            return @as(@Vector(L, meta.Int(unsigned, E)), @bitCast(@as(
-                @Vector(L, meta.Int(signed, E)),
+            return @as(@Vector(L, meta.Int(UNSIGNED, E)), @bitCast(@as(
+                @Vector(L, meta.Int(SIGNED, E)),
                 @intCast(@as(
                     @Vector(L, i1),
                     @bitCast(

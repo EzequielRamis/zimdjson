@@ -2307,7 +2307,7 @@ namespace std {
 #endif
 
 #ifndef SIMDJSON_UTF8VALIDATION
-#define SIMDJSON_UTF8VALIDATION 1
+#define SIMDJSON_UTF8VALIDATION 0
 #endif
 
 #ifdef __has_include

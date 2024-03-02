@@ -6,7 +6,7 @@
       "type": "lldb",
       "request": "launch",
       "program": "${workspaceFolder}/main",
-      "args": ["tests/large-file.json"],
+      "args": ["tests/gsoc-2018.json"],
       "cwd": "${workspaceFolder}",
       "preLaunchTask": "build-zimdjson"
     },
@@ -15,7 +15,7 @@
       "type": "lldb",
       "request": "launch",
       "program": "${workspaceFolder}/simdjson/main",
-      "args": ["../tests/large-file.json"],
+      "args": ["../tests/gsoc-2018.json"],
       "cwd": "${workspaceFolder}/simdjson",
       "preLaunchTask": "build-simdjson"
     }

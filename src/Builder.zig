@@ -1,11 +1,11 @@
 const std = @import("std");
 const shared = @import("shared.zig");
 const validator = @import("validator.zig");
-const Prefixes = @import("prefixes.zig");
-const Prefix = Prefixes.Prefix;
+const BoundedArrayList = @import("bounded_array_list.zig").BoundedArrayList;
+const Indexer = @import("Indexer.zig");
+const TokenIterator = @import("TokenIterator.zig");
 const log = std.log;
 
-const ArrayList = std.ArrayList;
 const Allocator = std.mem.Allocator;
 const TapeError = shared.TapeError;
 const Self = @This();
@@ -49,10 +49,10 @@ const Node = union(NodeTag) {
     signed: i64,
     float: f64,
     big_int: [:0]const u8,
-    string_key: [:0]const u8,
-    string_key_raw: [:0]const u8,
-    string_value: [:0]const u8,
-    string_value_raw: [:0]const u8,
+    string_key: usize,
+    string_key_raw: usize,
+    string_value: usize,
+    string_value_raw: usize,
     object_begin: usize,
     object_end: usize,
     array_begin: usize,
@@ -61,12 +61,12 @@ const Node = union(NodeTag) {
 
 const Stack = struct {
     is_array: std.BitStack,
-    indexes: ArrayList(u56),
+    indexes: std.ArrayList(u56),
 
     pub fn init(allocator: Allocator) Stack {
         return Stack{
             .is_array = std.BitStack.init(allocator),
-            .indexes = ArrayList(u56).init(allocator),
+            .indexes = std.ArrayList(u56).init(allocator),
         };
     }
 
@@ -76,42 +76,38 @@ const Stack = struct {
     }
 };
 
-prefixes: Prefixes,
-parsed: std.MultiArrayList(Node),
-string_slices: ArrayList([:0]const u8),
-strings_value: ArrayList(u8),
+tokens: TokenIterator,
+parsed: BoundedArrayList(Node),
+chars: BoundedArrayList(u8),
 stack: Stack,
-allocator: Allocator,
 
-pub fn init(allocator: Allocator, prefixes: Prefixes) Self {
+pub fn init(allocator: Allocator, indexer: Indexer) Self {
     return Self{
-        .prefixes = prefixes,
-        .parsed = std.MultiArrayList(Node){},
-        .string_slices = ArrayList([:0]const u8).init(allocator),
-        .strings_value = ArrayList(u8).init(allocator),
+        .tokens = TokenIterator.init(indexer),
+        .parsed = BoundedArrayList(Node).init(allocator),
+        .chars = BoundedArrayList(u8).init(allocator),
         .stack = Stack.init(allocator),
-        .allocator = allocator,
     };
 }
 
 pub fn deinit(self: *Self) void {
-    self.parsed.deinit(self.allocator);
-    self.string_slices.deinit();
-    self.strings_value.deinit();
+    self.parsed.deinit();
+    self.chars.deinit();
     self.stack.deinit();
 }
 
 pub fn build(self: *Self) !void {
     var state: State = .end;
+    try self.chars.withCapacity(self.tokens.indexer.reader.document.len);
+    try self.parsed.withCapacity(self.tokens.indexer.indexes.list.items.len);
 
-    if (self.prefixes.next()) |prefix| {
-        switch (prefix.value()) {
-            '{' => state = .object_begin,
-            '[' => state = .array_begin,
-            else => try self.visit_primitive(prefix),
-        }
-    } else {
+    if (self.tokens.empty()) {
         return TapeError.Empty;
+    }
+    switch (self.tokens.peek()) {
+        '{' => state = .object_begin,
+        '[' => state = .array_begin,
+        else => try self.visit_primitive(),
     }
 
     // https://github.com/ziglang/zig/issues/8220
@@ -149,20 +145,20 @@ pub fn build(self: *Self) !void {
         }
     }
 
-    log.info("Node size: {}", .{@bitSizeOf(Node) / 8});
-    log.info("Tape size: {}", .{self.parsed.len * (@bitSizeOf(Node) / 8)});
+    log.info("Node size: {}\n", .{@bitSizeOf(Node) / 8});
+    log.info("Tape size: {}\n", .{self.parsed.list.items.len * (@bitSizeOf(Node) / 8)});
 }
 
 fn analyze_object_begin(self: *Self) !State {
-    log.debug("OBJ BEGIN", .{});
-    if (self.prefixes.next()) |prefix| {
-        switch (prefix.value()) {
+    // std.debug.print("OBJ BEGIN\n", .{});
+    if (self.tokens.advance()) |t| {
+        switch (t.peek()) {
             '"' => {
-                try self.visit_string(prefix);
+                try self.visit_string();
                 return .object_field;
             },
             '}' => {
-                log.debug("OBJ END", .{});
+                // std.debug.print("OBJ END\n", .{});
                 return .scope_end;
             },
             else => return TapeError.ObjectBegin,
@@ -173,10 +169,10 @@ fn analyze_object_begin(self: *Self) !State {
 }
 
 fn analyze_object_field(self: *Self) !State {
-    if (self.prefixes.next()) |colon| {
-        if (colon.value() == ':') {
-            if (self.prefixes.next()) |prefix| {
-                switch (prefix.value()) {
+    if (self.tokens.advance()) |c| {
+        if (c.peek() == ':') {
+            if (c.advance()) |p| {
+                switch (p.peek()) {
                     '{' => {
                         try self.stack.is_array.push(0);
                         return .object_begin;
@@ -185,7 +181,7 @@ fn analyze_object_field(self: *Self) !State {
                         try self.stack.is_array.push(0);
                         return .array_begin;
                     },
-                    else => try self.visit_primitive(prefix),
+                    else => try self.visit_primitive(),
                 }
             } else {
                 return TapeError.MissingValue;
@@ -200,12 +196,12 @@ fn analyze_object_field(self: *Self) !State {
 }
 
 fn analyze_object_continue(self: *Self) !State {
-    if (self.prefixes.next()) |prefix| {
-        switch (prefix.value()) {
+    if (self.tokens.advance()) |p| {
+        switch (p.peek()) {
             ',' => {
-                if (self.prefixes.next()) |maybe_key| {
-                    if (maybe_key.value() == '"') {
-                        try self.visit_string(maybe_key);
+                if (p.advance()) |k| {
+                    if (k.peek() == '"') {
+                        try self.visit_string();
                         return .object_field;
                     } else {
                         return TapeError.MissingKey;
@@ -215,7 +211,7 @@ fn analyze_object_continue(self: *Self) !State {
                 }
             },
             '}' => {
-                log.debug("OBJ END", .{});
+                // std.debug.print("OBJ END\n", .{});
                 return .scope_end;
             },
             else => return TapeError.MissingComma,
@@ -226,22 +222,22 @@ fn analyze_object_continue(self: *Self) !State {
 }
 
 fn analyze_array_begin(self: *Self) !State {
-    log.debug("ARR BEGIN", .{});
-    if (self.prefixes.next()) |prefix| {
-        switch (prefix.value()) {
+    // std.debug.print("ARR BEGIN\n", .{});
+    if (self.tokens.advance()) |p| {
+        switch (p.peek()) {
             '[' => {
                 try self.stack.is_array.push(1);
                 return .array_begin;
             },
             ']' => {
-                log.debug("ARR END", .{});
+                // std.debug.print("ARR END\n", .{});
                 return .scope_end;
             },
             '{' => {
                 try self.stack.is_array.push(1);
                 return .object_begin;
             },
-            else => try self.visit_primitive(prefix),
+            else => try self.visit_primitive(),
         }
     } else {
         return TapeError.ArrayBegin;
@@ -250,8 +246,8 @@ fn analyze_array_begin(self: *Self) !State {
 }
 
 fn analyze_array_value(self: *Self) !State {
-    if (self.prefixes.next()) |prefix| {
-        switch (prefix.value()) {
+    if (self.tokens.advance()) |p| {
+        switch (p.peek()) {
             '{' => {
                 try self.stack.is_array.push(1);
                 return .object_begin;
@@ -260,7 +256,7 @@ fn analyze_array_value(self: *Self) !State {
                 try self.stack.is_array.push(1);
                 return .array_begin;
             },
-            else => try self.visit_primitive(prefix),
+            else => try self.visit_primitive(),
         }
     } else {
         return TapeError.MissingValue;
@@ -269,14 +265,14 @@ fn analyze_array_value(self: *Self) !State {
 }
 
 fn analyze_array_continue(self: *Self) !State {
-    if (self.prefixes.next()) |prefix| {
-        switch (prefix.value()) {
+    if (self.tokens.advance()) |p| {
+        switch (p.peek()) {
             ',' => {
                 // increment count
                 return .array_value;
             },
             ']' => {
-                log.debug("ARR END", .{});
+                // std.debug.print("ARR END\n", .{});
                 return .scope_end;
             },
             else => return TapeError.MissingComma,
@@ -299,60 +295,45 @@ fn analyze_scope_end(self: *Self) !State {
     }
 }
 
-fn visit_primitive(self: *Self, prefix: Prefix) !void {
-    switch (prefix.value()) {
-        '"' => try self.visit_string(prefix),
-        't' => try self.visit_true(prefix),
-        'f' => try self.visit_false(prefix),
-        'n' => try self.visit_null(prefix),
-        '-', '0'...'9' => try self.visit_number(prefix),
+fn visit_primitive(self: *Self) !void {
+    switch (self.tokens.peek()) {
+        '"' => try self.visit_string(),
+        't' => try self.visit_true(),
+        'f' => try self.visit_false(),
+        'n' => try self.visit_null(),
+        '-', '0'...'9' => try self.visit_number(),
         else => return TapeError.NonValue,
     }
 }
 
-fn visit_string(self: *Self, prefix: Prefix) !void {
-    if (prefix.next()) |str| {
-        const string_slice = try validator.string(&self.strings_value, str.slice);
-        try self.string_slices.append(string_slice);
-        try self.parsed.append(self.allocator, .{ .string_value = string_slice });
-        log.debug("STR {s}", .{string_slice});
-    } else {
-        return TapeError.NonTerminatedString;
-    }
+fn visit_string(self: *Self) !void {
+    self.tokens.nextVoid(1);
+    const next_str = self.chars.next;
+    try validator.string(&self.tokens, &self.chars);
+    self.parsed.append(.{ .string_value = next_str });
+    // std.debug.print("STR {s}\n", .{self.chars.list.items[next_str..]});
 }
 
-fn visit_number(self: *Self, prefix: Prefix) !void {
-    const number = try validator.number(prefix.slice);
-    switch (number) {
-        .unsigned => |n| {
-            try self.parsed.append(self.allocator, Node{ .unsigned = n });
-            log.debug("NUM {}", .{n});
-        },
-        .signed => |n| {
-            try self.parsed.append(self.allocator, Node{ .signed = @bitCast(n) });
-            log.debug("NUM {}", .{n});
-        },
-        .float => |n| {
-            try self.parsed.append(self.allocator, Node{ .float = @bitCast(n) });
-            log.debug("NUM {}", .{n});
-        },
-    }
+fn visit_number(_: *Self) !void {
+    // const number = try validator.number(tokens);
+    // try self.parsed.append(.{ .float = number });
+    // std.debug.print("NUM\n", .{});
 }
 
-fn visit_true(self: *Self, prefix: Prefix) !void {
-    try validator.true_atom(prefix.slice);
-    try self.parsed.append(self.allocator, Node{ .true_atom = {} });
-    log.debug("TRU", .{});
+fn visit_true(self: *Self) !void {
+    try validator.true_atom(&self.tokens);
+    self.parsed.append(.{ .true_atom = {} });
+    // std.debug.print("TRU\n", .{});
 }
 
-fn visit_false(self: *Self, prefix: Prefix) !void {
-    try validator.false_atom(prefix.slice);
-    try self.parsed.append(self.allocator, .{ .false_atom = {} });
-    log.debug("FAL", .{});
+fn visit_false(self: *Self) !void {
+    try validator.false_atom(&self.tokens);
+    self.parsed.append(.{ .false_atom = {} });
+    // std.debug.print("FAL\n", .{});
 }
 
-fn visit_null(self: *Self, prefix: Prefix) !void {
-    try validator.null_atom(prefix.slice);
-    try self.parsed.append(self.allocator, .{ .null_atom = {} });
-    log.debug("NUL", .{});
+fn visit_null(self: *Self) !void {
+    try validator.null_atom(&self.tokens);
+    self.parsed.append(.{ .null_atom = {} });
+    // std.debug.print("NUL\n", .{});
 }

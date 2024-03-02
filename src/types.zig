@@ -29,7 +29,7 @@ pub const Vector = struct {
         words: @Vector(LEN_WORDS, u16),
         dords: @Vector(LEN_DORDS, u32),
         masks: @Vector(LEN_MASKS, u64),
-        packs: @Vector(8, meta.Int(UNSIGNED, LEN_BYTES)),
+        packs: @Vector(8, PackedElem),
     };
 
     const ArrFormat = union(FormatTag) {
@@ -37,7 +37,7 @@ pub const Vector = struct {
         words: *const [LEN_WORDS]u16,
         dords: *const [LEN_DORDS]u32,
         masks: *const [LEN_MASKS]u64,
-        packs: *const [8]meta.Int(UNSIGNED, LEN_BYTES),
+        packs: *const [8]PackedElem,
     };
 
     pub const PackedElem = meta.Int(UNSIGNED, LEN_BYTES);

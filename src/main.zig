@@ -2,9 +2,8 @@ const std = @import("std");
 const builtin = @import("builtin");
 const shared = @import("shared.zig");
 const types = @import("types.zig");
-const Indexer = @import("indexer.zig");
-const Prefixes = @import("prefixes.zig");
-const TapeBuilder = @import("builder.zig");
+const Indexer = @import("Indexer.zig");
+const Builder = @import("Builder.zig");
 const simd = std.simd;
 const cpu = builtin.cpu;
 const testing = std.testing;
@@ -17,13 +16,10 @@ pub fn fromSlice(allocator: Allocator, document: []const u8) !void {
     defer indexer.deinit();
     try indexer.index();
 
-    // const prefixes = Prefixes.init(indexer);
-
-    // // stage 2
-    // var tape = TapeBuilder.init(allocator, prefixes);
-    // defer tape.deinit();
-
-    // try tape.build();
+    // stage 2
+    var tape = Builder.init(allocator, indexer);
+    defer tape.deinit();
+    try tape.build();
 }
 
 pub fn fromFile(allocator: Allocator, path: []const u8) !void {

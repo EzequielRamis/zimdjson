@@ -45,6 +45,25 @@ pub const Tables = struct {
         break :init res;
     };
 
+    pub const is_scalar: [256]bool = init: {
+        var res: [256]bool = undefined;
+        for (0..res.len) |i| {
+            switch (i) {
+                't', 'f', 'n', '"', '-', '0'...'9' => res[i] = true,
+                else => res[i] = false,
+            }
+        }
+        break :init res;
+    };
+
+    pub const is_not_scalar: [256]bool = init: {
+        var res: [256]bool = undefined;
+        for (0..res.len) |i| {
+            res[i] = !is_scalar[i];
+        }
+        break :init res;
+    };
+
     pub const escape_map: [256]?u8 = init: {
         var res: [256]?u8 = undefined;
         for (0..res.len) |i| {

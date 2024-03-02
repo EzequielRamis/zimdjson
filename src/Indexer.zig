@@ -2,7 +2,8 @@ const std = @import("std");
 const builtin = @import("builtin");
 const types = @import("types.zig");
 const intr = @import("intrinsics.zig");
-const Reader = @import("reader.zig");
+const Reader = @import("Reader.zig");
+const BoundedArrayList = @import("bounded_array_list.zig").BoundedArrayList;
 const cpu = builtin.cpu;
 const simd = std.simd;
 const vector = types.vector;
@@ -27,12 +28,12 @@ var prev_inside_string: umask = 0;
 var next_is_escaped: umask = 0;
 
 reader: Reader,
-indexes: std.ArrayList(u32),
+indexes: BoundedArrayList(u32),
 
 pub fn init(allocator: Allocator, document: []const u8) Self {
     return Self{
         .reader = Reader.init(document),
-        .indexes = std.ArrayList(u32).init(allocator),
+        .indexes = BoundedArrayList(u32).init(allocator),
     };
 }
 
@@ -41,22 +42,22 @@ pub fn deinit(self: *Self) void {
 }
 
 pub fn index(self: *Self) !void {
-    var iter = try self.indexes.addManyAsSlice(self.reader.document.len);
-    var iter_count: usize = 0;
+    try self.indexes.withCapacity(self.reader.document.len);
+
     var i = self.reader.index;
     while (self.reader.next()) |block| : (i = self.reader.index) {
         switch (Reader.MASKS_PER_ITER) {
             1 => {
                 const tokens = identify(block);
-                iter_count += extract(tokens, i, &iter);
+                self.extract(tokens, i);
             },
             2 => {
                 const chunk1 = block[0..Mask.LEN_BITS];
                 const chunk2 = block[Mask.LEN_BITS..][0..Mask.LEN_BITS];
                 const tokens1 = identify(chunk1);
                 const tokens2 = identify(chunk2);
-                iter_count += extract(tokens1, i, &iter);
-                iter_count += extract(tokens2, i + Mask.LEN_BITS, &iter);
+                self.extract(tokens1, i);
+                self.extract(tokens2, i + Mask.LEN_BITS);
             },
             else => unreachable,
         }
@@ -65,20 +66,23 @@ pub fn index(self: *Self) !void {
         switch (Reader.MASKS_PER_ITER) {
             1 => {
                 const tokens = identify(block);
-                iter_count += extract(tokens, i, &iter);
+                self.extract(tokens, i);
             },
             2 => {
                 const chunk1 = block[0..Mask.LEN_BITS];
                 const chunk2 = block[Mask.LEN_BITS..][0..Mask.LEN_BITS];
                 const tokens1 = identify(chunk1);
                 const tokens2 = identify(chunk2);
-                iter_count += extract(tokens1, i, &iter);
-                iter_count += extract(tokens2, i + Mask.LEN_BITS, &iter);
+                self.extract(tokens1, i);
+                self.extract(tokens2, i + Mask.LEN_BITS);
             },
             else => unreachable,
         }
     }
-    self.indexes.shrinkAndFree(iter_count);
+    if (prev_inside_string != 0) {
+        return error.NonTerminatedString;
+    }
+    self.indexes.clear();
 }
 
 fn identify(block: *const [Mask.LEN_BITS]u8) umask {
@@ -104,8 +108,7 @@ fn identify(block: *const [Mask.LEN_BITS]u8) umask {
         backslash |= @as(umask, b) << @truncate(offset);
     }
     const unescaped_quotes = quotes & ~escapedChars(backslash);
-    const invert_ranges: umask = @bitCast(@as(imask, @bitCast(prev_inside_string)) >> Mask.LAST_BIT);
-    const quoted_ranges = intr.clmul(unescaped_quotes) ^ invert_ranges;
+    const quoted_ranges = intr.clmul(unescaped_quotes) ^ prev_inside_string;
 
     const struct_white = structural | whitespace;
     const scalar = ~struct_white;
@@ -118,7 +121,7 @@ fn identify(block: *const [Mask.LEN_BITS]u8) umask {
     const potential_structural_start = structural | potential_scalar_start;
     const structural_start = potential_structural_start & ~string_tail;
 
-    prev_inside_string = quoted_ranges;
+    prev_inside_string = @bitCast(@as(imask, @bitCast(quoted_ranges)) >> Mask.LAST_BIT);
     prev_scalar = scalar >> Mask.LAST_BIT;
 
     return structural_start;
@@ -141,18 +144,16 @@ fn escapedChars(backs: umask) umask {
     return escaped;
 }
 
-fn extract(tokens: umask, i: usize, dst: *[]u32) usize {
+fn extract(self: *Self, tokens: umask, i: usize) void {
+    const last_size = self.indexes.next;
     const pop_count = @popCount(tokens);
-    var slice = dst.*;
     var s = tokens;
     while (s != 0) {
         inline for (0..8) |_| {
             const tz = @ctz(s);
-            slice[0] = @as(u32, @truncate(i)) + tz;
-            slice = slice[1..];
+            self.indexes.append(@as(u32, @truncate(i)) + tz);
             s &= s -% 1;
         }
     }
-    dst.* = dst.*[pop_count..];
-    return pop_count;
+    self.indexes.next = last_size + pop_count;
 }

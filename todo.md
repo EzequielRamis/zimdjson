@@ -14,3 +14,5 @@ Aparte de los stages:
 - [ ] Testing
 - [ ] Benchmarks
 - [ ] Informe
+
+TIL: el branch predictor predice funciones virtuales, por lo que sigo dependiendo de branch misses.

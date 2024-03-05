@@ -3,7 +3,7 @@ const builtin = @import("builtin");
 const simd = std.simd;
 const testing = std.testing;
 
-pub const TapeError = error{
+pub const ParseError = error{
     TrueAtom,
     FalseAtom,
     NullAtom,
@@ -20,7 +20,7 @@ pub const TapeError = error{
     MissingComma,
     InvalidEscape,
     InvalidNumber,
-};
+} || std.mem.Allocator.Error || error{ ExpectedSecondSurrogateHalf, CodepointTooLarge, Utf8CannotEncodeSurrogateHalf };
 
 pub const Tables = struct {
     pub const is_structural_or_whitespace: [256]bool = init: {
@@ -102,8 +102,8 @@ pub const Tables = struct {
         break :init res;
     };
 
-    pub const hex_digit_map: [256]?u8 = init: {
-        var res: [256]?u8 = undefined;
+    pub const hex_digit_map: [256]u8 = init: {
+        var res: [256]u8 = undefined;
         for (0..res.len) |i| {
             switch (i) {
                 '0' => res[i] = 0,
@@ -122,7 +122,7 @@ pub const Tables = struct {
                 'd', 'D' => res[i] = 13,
                 'e', 'E' => res[i] = 14,
                 'f', 'F' => res[i] = 15,
-                else => res[i] = null,
+                else => res[i] = 0xFF,
             }
         }
         break :init res;

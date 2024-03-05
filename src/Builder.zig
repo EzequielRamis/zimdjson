@@ -4,10 +4,12 @@ const validator = @import("validator.zig");
 const BoundedArrayList = @import("bounded_array_list.zig").BoundedArrayList;
 const Indexer = @import("Indexer.zig");
 const TokenIterator = @import("TokenIterator.zig");
+const TokenPhase = TokenIterator.Phase;
 const log = std.log;
+const assert = std.debug.assert;
 
 const Allocator = std.mem.Allocator;
-const TapeError = shared.TapeError;
+const ParseError = shared.ParseError;
 const Self = @This();
 
 const State = enum {
@@ -19,6 +21,13 @@ const State = enum {
     array_continue,
     scope_end,
     end,
+    resume_object_begin,
+    resume_object_field_colon,
+    resume_object_field_value,
+    resume_object_continue_comma,
+    resume_object_continue_key,
+    resume_array_value,
+    resume_array_continue,
 };
 
 const NodeTag = enum {
@@ -97,243 +106,376 @@ pub fn deinit(self: *Self) void {
 }
 
 pub fn build(self: *Self) !void {
-    var state: State = .end;
+    var t = &self.tokens;
     try self.chars.withCapacity(self.tokens.indexer.reader.document.len);
     try self.parsed.withCapacity(self.tokens.indexer.indexes.list.items.len);
 
-    if (self.tokens.empty()) {
-        return TapeError.Empty;
+    if (t.empty()) {
+        return ParseError.Empty;
     }
-    switch (self.tokens.peek()) {
-        '{' => state = .object_begin,
-        '[' => state = .array_begin,
-        else => try self.visit_primitive(),
-    }
-
-    // https://github.com/ziglang/zig/issues/8220
-    while (true) {
-        switch (state) {
-            .end => break,
-            .object_begin => {
-                state = try self.analyze_object_begin();
-                continue;
-            },
-            .object_field => {
-                state = try self.analyze_object_field();
-                continue;
-            },
-            .object_continue => {
-                state = try self.analyze_object_continue();
-                continue;
-            },
-            .array_begin => {
-                state = try self.analyze_array_begin();
-                continue;
-            },
-            .array_value => {
-                state = try self.analyze_array_value();
-                continue;
-            },
-            .array_continue => {
-                state = try self.analyze_array_continue();
-                continue;
-            },
-            .scope_end => {
-                state = try self.analyze_scope_end();
-                continue;
-            },
-        }
+    switch (t.peek(1)) {
+        '{' => try self.analyze_object_begin(.unbounded),
+        '[' => try self.analyze_array_begin(.unbounded),
+        else => try self.visit_primitive(.bounded),
     }
 
-    log.info("Node size: {}\n", .{@bitSizeOf(Node) / 8});
-    log.info("Tape size: {}\n", .{self.parsed.list.items.len * (@bitSizeOf(Node) / 8)});
+    log.info("Node size: {}", .{@bitSizeOf(Node) / 8});
+    log.info("Tape size: {}", .{self.parsed.list.items.len * (@bitSizeOf(Node) / 8)});
 }
 
-fn analyze_object_begin(self: *Self) !State {
-    // std.debug.print("OBJ BEGIN\n", .{});
-    if (self.tokens.advance()) |t| {
-        switch (t.peek()) {
+inline fn dispatch(self: *Self, comptime phase: TokenPhase, next_state: State) ParseError!void {
+    const next_op = switch (next_state) {
+        .object_begin => analyze_object_begin,
+        .object_field => analyze_object_field,
+        .object_continue => analyze_object_continue,
+        .array_begin => analyze_array_begin,
+        .array_value => analyze_array_value,
+        .array_continue => analyze_array_continue,
+        .scope_end => analyze_scope_end,
+        .resume_object_begin => resume_object_begin,
+        .resume_object_field_colon => resume_object_field_colon,
+        .resume_object_field_value => resume_object_field_value,
+        .resume_object_continue_comma => resume_object_continue_comma,
+        .resume_object_continue_key => resume_object_continue_key,
+        .resume_array_value => resume_array_value,
+        .resume_array_continue => resume_array_continue,
+        else => unreachable,
+    };
+
+    return @call(.always_tail, next_op, .{ self, phase });
+}
+
+fn analyze_object_begin(self: *Self, comptime phase: TokenPhase) ParseError!void {
+    assert(phase != .bounded);
+    var t = &self.tokens;
+    log.info("OBJ BEGIN", .{});
+    try self.stack.is_array.push(0);
+    if (t.advance(phase)) {
+        switch (t.peek(1)) {
             '"' => {
-                try self.visit_string();
-                return .object_field;
+                try self.visit_string(phase);
+                return self.dispatch(phase, .object_field);
             },
             '}' => {
-                // std.debug.print("OBJ END\n", .{});
-                return .scope_end;
+                log.info("OBJ END", .{});
+                return self.dispatch(phase, .scope_end);
             },
-            else => return TapeError.ObjectBegin,
+            else => return ParseError.ObjectBegin,
         }
     } else {
-        return TapeError.ObjectBegin;
+        if (phase == .unbounded) {
+            return self.dispatch(.bounded, .resume_object_begin);
+        } else {
+            return ParseError.ObjectBegin;
+        }
     }
 }
 
-fn analyze_object_field(self: *Self) !State {
-    if (self.tokens.advance()) |c| {
-        if (c.peek() == ':') {
-            if (c.advance()) |p| {
-                switch (p.peek()) {
-                    '{' => {
-                        try self.stack.is_array.push(0);
-                        return .object_begin;
+fn resume_object_begin(self: *Self, comptime phase: TokenPhase) ParseError!void {
+    assert(phase == .bounded);
+    var t = &self.tokens;
+    _ = t.advance(phase);
+    switch (t.peek(1)) {
+        '"' => {
+            try self.visit_string(.padded);
+            return self.dispatch(.padded, .object_field);
+        },
+        '}' => {
+            log.info("OBJ END", .{});
+            return self.dispatch(.padded, .scope_end);
+        },
+        else => return ParseError.ObjectBegin,
+    }
+}
+
+fn analyze_object_field(self: *Self, comptime phase: TokenPhase) ParseError!void {
+    assert(phase != .bounded);
+    var t = &self.tokens;
+    if (t.advance(phase)) {
+        if (t.peek(1) == ':') {
+            if (t.advance(phase)) {
+                switch (t.peek(1)) {
+                    '{' => self.dispatch(phase, .object_begin),
+                    '[' => return self.dispatch(phase, .array_begin),
+                    else => {
+                        try self.visit_primitive(phase);
+                        return self.dispatch(phase, .object_continue);
                     },
-                    '[' => {
-                        try self.stack.is_array.push(0);
-                        return .array_begin;
-                    },
-                    else => try self.visit_primitive(),
                 }
             } else {
-                return TapeError.MissingValue;
+                if (phase == .unbounded) {
+                    return self.dispatch(.bounded, .resume_object_field_value);
+                } else {
+                    return ParseError.MissingValue;
+                }
             }
         } else {
-            return TapeError.Colon;
+            return ParseError.Colon;
         }
     } else {
-        return TapeError.Colon;
+        if (phase == .unbounded) {
+            return self.dispatch(.bounded, .resume_object_field_colon);
+        } else {
+            return ParseError.Colon;
+        }
     }
-    return .object_continue;
 }
 
-fn analyze_object_continue(self: *Self) !State {
-    if (self.tokens.advance()) |p| {
-        switch (p.peek()) {
+fn resume_object_field_colon(self: *Self, comptime phase: TokenPhase) ParseError!void {
+    assert(phase == .bounded);
+    var t = &self.tokens;
+    _ = t.advance(phase);
+    if (t.peek(1) == ':') {
+        if (t.advance(.padded)) {
+            switch (t.peek(1)) {
+                '{' => return self.dispatch(.padded, .object_begin),
+                '[' => return self.dispatch(.padded, .array_begin),
+                else => {
+                    try self.visit_primitive(.padded);
+                    return self.dispatch(.padded, .object_continue);
+                },
+            }
+        } else {
+            return ParseError.MissingValue;
+        }
+    } else {
+        return ParseError.Colon;
+    }
+}
+
+fn resume_object_field_value(self: *Self, comptime phase: TokenPhase) ParseError!void {
+    assert(phase == .bounded);
+    var t = &self.tokens;
+    _ = t.advance(phase);
+    switch (t.peek(1)) {
+        '{' => return self.dispatch(.padded, .object_begin),
+        '[' => return self.dispatch(.padded, .array_begin),
+        else => {
+            try self.visit_primitive(.padded);
+            return self.dispatch(.padded, .object_continue);
+        },
+    }
+}
+
+fn analyze_object_continue(self: *Self, comptime phase: TokenPhase) ParseError!void {
+    assert(phase != .bounded);
+    var t = &self.tokens;
+    if (t.advance(phase)) {
+        switch (t.peek(1)) {
             ',' => {
-                if (p.advance()) |k| {
-                    if (k.peek() == '"') {
-                        try self.visit_string();
-                        return .object_field;
+                if (t.advance(phase)) {
+                    if (t.peek(1) == '"') {
+                        try self.visit_string(phase);
+                        return self.dispatch(phase, .object_field);
                     } else {
-                        return TapeError.MissingKey;
+                        return ParseError.MissingKey;
                     }
                 } else {
-                    return TapeError.MissingKey;
+                    if (phase == .unbounded) {
+                        return self.dispatch(.bounded, .resume_object_continue_key);
+                    } else {
+                        return ParseError.MissingKey;
+                    }
                 }
             },
             '}' => {
-                // std.debug.print("OBJ END\n", .{});
-                return .scope_end;
+                log.info("OBJ END", .{});
+                return self.dispatch(phase, .scope_end);
             },
-            else => return TapeError.MissingComma,
+            else => return ParseError.MissingComma,
         }
     } else {
-        return TapeError.MissingComma;
+        if (phase == .unbounded) {
+            return self.dispatch(.bounded, .resume_object_continue_comma);
+        } else {
+            return ParseError.MissingComma;
+        }
     }
 }
 
-fn analyze_array_begin(self: *Self) !State {
-    // std.debug.print("ARR BEGIN\n", .{});
-    if (self.tokens.advance()) |p| {
-        switch (p.peek()) {
-            '[' => {
-                try self.stack.is_array.push(1);
-                return .array_begin;
-            },
-            ']' => {
-                // std.debug.print("ARR END\n", .{});
-                return .scope_end;
-            },
-            '{' => {
-                try self.stack.is_array.push(1);
-                return .object_begin;
-            },
-            else => try self.visit_primitive(),
-        }
-    } else {
-        return TapeError.ArrayBegin;
+fn resume_object_continue_comma(self: *Self, comptime phase: TokenPhase) ParseError!void {
+    assert(phase == .bounded);
+    var t = &self.tokens;
+    _ = t.advance(phase);
+    switch (t.peek(1)) {
+        ',' => {
+            if (t.advance(.padded)) {
+                if (t.peek(1) == '"') {
+                    try self.visit_string(.padded);
+                    return self.dispatch(.padded, .object_field);
+                } else {
+                    return ParseError.MissingKey;
+                }
+            } else {
+                return ParseError.MissingKey;
+            }
+        },
+        '}' => {
+            log.info("OBJ END", .{});
+            return self.dispatch(.padded, .scope_end);
+        },
+        else => return ParseError.MissingComma,
     }
-    return .array_continue;
 }
 
-fn analyze_array_value(self: *Self) !State {
-    if (self.tokens.advance()) |p| {
-        switch (p.peek()) {
-            '{' => {
-                try self.stack.is_array.push(1);
-                return .object_begin;
-            },
-            '[' => {
-                try self.stack.is_array.push(1);
-                return .array_begin;
-            },
-            else => try self.visit_primitive(),
-        }
+fn resume_object_continue_key(self: *Self, comptime phase: TokenPhase) ParseError!void {
+    assert(phase == .bounded);
+    var t = &self.tokens;
+    _ = t.advance(phase);
+    if (t.peek(1) == '"') {
+        try self.visit_string(.padded);
+        return self.dispatch(.padded, .object_field);
     } else {
-        return TapeError.MissingValue;
+        return ParseError.MissingKey;
     }
-    return .array_continue;
 }
 
-fn analyze_array_continue(self: *Self) !State {
-    if (self.tokens.advance()) |p| {
-        switch (p.peek()) {
+fn analyze_array_begin(self: *Self, comptime phase: TokenPhase) ParseError!void {
+    assert(phase != .bounded);
+    log.info("ARR BEGIN", .{});
+    try self.stack.is_array.push(1);
+    return self.dispatch(phase, .array_value);
+}
+
+fn analyze_array_value(self: *Self, comptime phase: TokenPhase) ParseError!void {
+    assert(phase != .bounded);
+    var t = &self.tokens;
+    if (t.advance(phase)) {
+        switch (t.peek(1)) {
+            '{' => return self.dispatch(phase, .object_begin),
+            '[' => return self.dispatch(phase, .array_begin),
+            ']' => return self.dispatch(phase, .scope_end),
+            else => {
+                try self.visit_primitive(phase);
+                return self.dispatch(phase, .array_continue);
+            },
+        }
+    } else {
+        if (phase == .unbounded) {
+            return self.dispatch(.bounded, .resume_array_value);
+        } else {
+            return ParseError.MissingValue;
+        }
+    }
+}
+
+fn resume_array_value(self: *Self, comptime phase: TokenPhase) ParseError!void {
+    assert(phase == .bounded);
+    var t = &self.tokens;
+    _ = t.advance(phase);
+    switch (t.peek(1)) {
+        '{' => return self.dispatch(.padded, .object_begin),
+        '[' => return self.dispatch(.padded, .array_begin),
+        ']' => return self.dispatch(.padded, .scope_end),
+        else => {
+            try self.visit_primitive(.padded);
+            return self.dispatch(.padded, .array_continue);
+        },
+    }
+}
+
+fn analyze_array_continue(self: *Self, comptime phase: TokenPhase) ParseError!void {
+    assert(phase != .bounded);
+    var t = &self.tokens;
+    if (t.advance(phase)) {
+        switch (t.peek(1)) {
             ',' => {
                 // increment count
-                return .array_value;
+                return self.dispatch(phase, .array_value);
             },
             ']' => {
-                // std.debug.print("ARR END\n", .{});
-                return .scope_end;
+                log.info("ARR END", .{});
+                return self.dispatch(phase, .scope_end);
             },
-            else => return TapeError.MissingComma,
+            else => return ParseError.MissingComma,
         }
     } else {
-        return TapeError.MissingComma;
+        if (phase == .unbounded) {
+            return self.dispatch(.bounded, .resume_array_continue);
+        } else {
+            return ParseError.MissingComma;
+        }
     }
 }
 
-fn analyze_scope_end(self: *Self) !State {
-    if (self.stack.is_array.bit_len == 0) {
-        return .end;
+fn resume_array_continue(self: *Self, comptime phase: TokenPhase) ParseError!void {
+    assert(phase == .bounded);
+    var t = &self.tokens;
+    _ = t.advance(phase);
+    switch (t.peek(1)) {
+        ',' => {
+            // increment count
+            return self.dispatch(.padded, .array_value);
+        },
+        ']' => {
+            log.info("ARR END", .{});
+            return self.dispatch(.padded, .scope_end);
+        },
+        else => return ParseError.MissingComma,
     }
+}
+
+fn analyze_scope_end(self: *Self, comptime phase: TokenPhase) ParseError!void {
+    assert(phase != .bounded);
     _ = self.stack.indexes.popOrNull();
-    const last = self.stack.is_array.pop();
+    _ = self.stack.is_array.pop();
+    if (self.stack.is_array.bit_len == 0) {
+        return;
+    }
+    const last = self.stack.is_array.peek();
     if (last == 1) {
-        return .array_continue;
+        return self.dispatch(phase, .array_continue);
     } else {
-        return .object_continue;
+        return self.dispatch(phase, .object_continue);
     }
 }
 
-fn visit_primitive(self: *Self) !void {
-    switch (self.tokens.peek()) {
-        '"' => try self.visit_string(),
-        't' => try self.visit_true(),
-        'f' => try self.visit_false(),
-        'n' => try self.visit_null(),
-        '-', '0'...'9' => try self.visit_number(),
-        else => return TapeError.NonValue,
+inline fn visit_primitive(self: *Self, comptime phase: TokenPhase) ParseError!void {
+    var t = &self.tokens;
+    switch (t.peek(1)) {
+        '"' => try self.visit_string(phase),
+        't' => try self.visit_true(phase),
+        'f' => try self.visit_false(phase),
+        'n' => try self.visit_null(phase),
+        '-', '0'...'9' => try self.visit_number(phase),
+        else => return ParseError.NonValue,
     }
 }
 
-fn visit_string(self: *Self) !void {
-    self.tokens.nextVoid(1);
+inline fn visit_string(self: *Self, comptime phase: TokenPhase) ParseError!void {
+    var t = &self.tokens;
+    _ = t.next(1, phase);
     const next_str = self.chars.next;
-    try validator.string(&self.tokens, &self.chars);
+    try validator.string(t, &self.chars, phase);
+    const next_len = self.chars.next - 1;
     self.parsed.append(.{ .string_value = next_str });
-    // std.debug.print("STR {s}\n", .{self.chars.list.items[next_str..]});
+    log.info("STR {s}", .{self.chars.list.items[next_str..next_len]});
 }
 
-fn visit_number(_: *Self) !void {
+inline fn visit_number(_: *Self, comptime _: TokenPhase) ParseError!void {
+    // var t = &self.tokens;
     // const number = try validator.number(tokens);
     // try self.parsed.append(.{ .float = number });
-    // std.debug.print("NUM\n", .{});
+    log.info("NUM", .{});
 }
 
-fn visit_true(self: *Self) !void {
-    try validator.true_atom(&self.tokens);
+inline fn visit_true(self: *Self, comptime phase: TokenPhase) ParseError!void {
+    const t = &self.tokens;
+    try validator.true_atom(t, phase);
     self.parsed.append(.{ .true_atom = {} });
-    // std.debug.print("TRU\n", .{});
+    log.info("TRU", .{});
 }
 
-fn visit_false(self: *Self) !void {
-    try validator.false_atom(&self.tokens);
+inline fn visit_false(self: *Self, comptime phase: TokenPhase) ParseError!void {
+    const t = &self.tokens;
+    try validator.false_atom(t, phase);
     self.parsed.append(.{ .false_atom = {} });
-    // std.debug.print("FAL\n", .{});
+    log.info("FAL", .{});
 }
 
-fn visit_null(self: *Self) !void {
-    try validator.null_atom(&self.tokens);
+inline fn visit_null(self: *Self, comptime phase: TokenPhase) ParseError!void {
+    const t = &self.tokens;
+    try validator.null_atom(t, phase);
     self.parsed.append(.{ .null_atom = {} });
-    // std.debug.print("NUL\n", .{});
+    log.info("NUL", .{});
 }

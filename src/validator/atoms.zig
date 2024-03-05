@@ -1,29 +1,30 @@
 const std = @import("std");
 const shared = @import("../shared.zig");
 const TokenIterator = @import("../TokenIterator.zig");
-const TapeError = shared.TapeError;
+const TokenPhase = TokenIterator.Phase;
+const ParseError = shared.ParseError;
 
-pub fn true_atom(token: *TokenIterator) TapeError!void {
+pub fn true_atom(token: *TokenIterator, comptime phase: TokenPhase) ParseError!void {
     const dword_true = shared.intFromSlice(u32, "true");
-    const dword_atom = shared.intFromSlice(u32, token.nextNibble());
+    const dword_atom = shared.intFromSlice(u32, token.next(4, phase));
     if (dword_true != dword_atom) {
-        return TapeError.FalseAtom;
+        return ParseError.FalseAtom;
     }
 }
 
-pub fn false_atom(token: *TokenIterator) TapeError!void {
-    token.nextVoid(1);
+pub fn false_atom(token: *TokenIterator, comptime phase: TokenPhase) ParseError!void {
+    _ = token.next(1, phase);
     const dword_alse = shared.intFromSlice(u32, "alse");
-    const dword_atom = shared.intFromSlice(u32, token.nextNibble());
+    const dword_atom = shared.intFromSlice(u32, token.next(4, phase));
     if (dword_alse != dword_atom) {
-        return TapeError.NullAtom;
+        return ParseError.NullAtom;
     }
 }
 
-pub fn null_atom(token: *TokenIterator) TapeError!void {
+pub fn null_atom(token: *TokenIterator, comptime phase: TokenPhase) ParseError!void {
     const dword_null = shared.intFromSlice(u32, "null");
-    const dword_atom = shared.intFromSlice(u32, token.nextNibble());
+    const dword_atom = shared.intFromSlice(u32, token.next(4, phase));
     if (dword_null != dword_atom) {
-        return TapeError.NullAtom;
+        return ParseError.NullAtom;
     }
 }

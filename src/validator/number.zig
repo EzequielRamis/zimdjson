@@ -4,8 +4,8 @@ const math = std.math;
 const vector = shared.vector;
 const vector_size = shared.vector_size;
 const mask = shared.mask;
-const TapeError = shared.TapeError;
-const parseFloat = @import("./number/parse_float.zig").parseFloat;
+const ParseError = shared.ParseError;
+// const parseFloat = @import("./number/parse_float.zig").parseFloat;
 
 const Result = union(enum) {
     signed: i64,
@@ -35,7 +35,7 @@ const Result = union(enum) {
 //     // Optimization note: size_t is expected to be unsigned.
 //     const digit_count: u64 = p.ptr - start_digits.ptr;
 //     if (digit_count == 0 or ('0' == *start_digits and digit_count > 1)) {
-//         return TapeError.InvalidNumber;
+//         return ParseError.InvalidNumber;
 //     }
 
 //     //
@@ -58,7 +58,7 @@ const Result = union(enum) {
 //         const dirty_end: bool = shared.Tables.is_structural_or_whitespace_negated[p[0]];
 //         write_float(src, negative, i, start_digits, digit_count, exponent, writer);
 //         if (dirty_end) {
-//             return TapeError.InvalidNumber;
+//             return ParseError.InvalidNumber;
 //         }
 //         return;
 //     }
@@ -68,17 +68,17 @@ const Result = union(enum) {
 //     // We do it this way so we don't trigger this branch unless we must.
 //     const longest_digit_count: usize = if (negative) 19 else 20;
 //     if (digit_count > longest_digit_count) {
-//         return TapeError.InvalidNumber;
+//         return ParseError.InvalidNumber;
 //     }
 //     if (digit_count == longest_digit_count) {
 //         if (negative) {
 //             // Anything negative above INT64_MAX+1 is invalid
 //             if (i > uint64_t(INT64_MAX) + 1) {
-//                 return TapeError.InvalidNumber;
+//                 return ParseError.InvalidNumber;
 //             }
 //             WRITE_INTEGER(~i + 1, src, writer);
 //             if (is_not_structural_or_whitespace(*p)) {
-//                 return TapeError.InvalidNumber;
+//                 return ParseError.InvalidNumber;
 //             }
 //             return;
 //             // Positive overflow check:
@@ -94,7 +94,7 @@ const Result = union(enum) {
 //             // - The value we are looking at is less than or equal to INT64_MAX.
 //             //
 //         } else if (src[0] != uint8_t('1') or i <= uint64_t(INT64_MAX)) {
-//             return TapeError.InvalidNumber;
+//             return ParseError.InvalidNumber;
 //         }
 //     }
 
@@ -105,56 +105,56 @@ const Result = union(enum) {
 //         WRITE_INTEGER(if (negative) (~i + 1) else i, src, writer);
 //     }
 //     if (is_not_structural_or_whitespace(*p)) {
-//         return TapeError.InvalidNumber;
+//         return ParseError.InvalidNumber;
 //     }
 //     return;
 // }
 
-pub fn number(src: []const u8) !f64 {
-    // const is_negative = @intFromBool(src[0] == '-');
-    // if (src.len < is_negative) {
-    //     return TapeError.InvalidNumber;
-    // }
-    // var i: usize = is_negative;
-    // while (src.len > i and src[i] -% '0' <= 9) {
-    //     i += 1;
-    // }
-    // if (src.len > i and src[i] == '.') {
-    //     i += 1;
-    // }
-    // while (src.len > i and src[i] -% '0' <= 9) {
-    //     i += 1;
-    // }
-    // if (src.len > i and src[i] | 0x20 == 'e') {
-    //     i += 1;
-    // }
-    // while (src.len > i and src[i] -% '0' <= 9) {
-    //     i += 1;
-    // }
-    // if (src.len > i and shared.Tables.is_structural_or_whitespace_negated[src[i]]) {
-    //     return TapeError.InvalidNumber;
-    // }
-    // const number_slice = src[0..i];
-    // const literal = parseNumberLiteral(src);
-    // switch (literal) {
-    //     .int => {
-    //         if (is_negative == 1) {
-    //             return Result{ .signed = try std.fmt.parseInt(i64, number_slice, 10) };
-    //         } else {
-    //             return Result{ .unsigned = try std.fmt.parseUnsigned(u64, number_slice, 10) };
-    //         }
-    //     },
-    //     .float => return Result{ .float = try std.fmt.parseFloat(f64, number_slice) },
-    //     .big_int => return Result{ .float = try std.fmt.parseFloat(f64, number_slice) },
-    //     .failure => return TapeError.InvalidNumber,
-    // }
-    return parseFloat(src);
-}
+// pub fn number(src: []const u8) !f64 {
+// const is_negative = @intFromBool(src[0] == '-');
+// if (src.len < is_negative) {
+//     return ParseError.InvalidNumber;
+// }
+// var i: usize = is_negative;
+// while (src.len > i and src[i] -% '0' <= 9) {
+//     i += 1;
+// }
+// if (src.len > i and src[i] == '.') {
+//     i += 1;
+// }
+// while (src.len > i and src[i] -% '0' <= 9) {
+//     i += 1;
+// }
+// if (src.len > i and src[i] | 0x20 == 'e') {
+//     i += 1;
+// }
+// while (src.len > i and src[i] -% '0' <= 9) {
+//     i += 1;
+// }
+// if (src.len > i and shared.Tables.is_structural_or_whitespace_negated[src[i]]) {
+//     return ParseError.InvalidNumber;
+// }
+// const number_slice = src[0..i];
+// const literal = parseNumberLiteral(src);
+// switch (literal) {
+//     .int => {
+//         if (is_negative == 1) {
+//             return Result{ .signed = try std.fmt.parseInt(i64, number_slice, 10) };
+//         } else {
+//             return Result{ .unsigned = try std.fmt.parseUnsigned(u64, number_slice, 10) };
+//         }
+//     },
+//     .float => return Result{ .float = try std.fmt.parseFloat(f64, number_slice) },
+//     .big_int => return Result{ .float = try std.fmt.parseFloat(f64, number_slice) },
+//     .failure => return ParseError.InvalidNumber,
+// }
+// return parseFloat(src);
+// }
 
 // pub fn number(src: []const u8) !NumberResult {
 //     const is_negative = @intFromBool(src[0] == '-');
 //     if (src.len < is_negative) {
-//         return TapeError.InvalidNumber;
+//         return ParseError.InvalidNumber;
 //     }
 //     var p: u64 = 0;
 //     var i: usize = 0;
@@ -165,7 +165,7 @@ pub fn number(src: []const u8) !f64 {
 //     }
 //     const digit_count = i;
 //     if (digit_count == 0 or first_digit == '0') {
-//         return TapeError.InvalidNumber;
+//         return ParseError.InvalidNumber;
 //     }
 //     return NumberResult{ .unsigned = i };
 // }
@@ -291,7 +291,7 @@ fn parse_decimal_after_separator(_: []const u8, p: *[]const u8, i: *u64, exponen
     exponent = first_after_period - p[0];
     // Decimal without digits (123.) is illegal
     if (exponent == 0) {
-        return TapeError.InvalidNumber;
+        return ParseError.InvalidNumber;
     }
 }
 
@@ -343,7 +343,7 @@ fn parse_exponent(_: []const u8, p: *[]const u8, exponent: *i64) !void {
 
     // If there were no digits, it's an error.
     if (p.ptr == start_exp.ptr) {
-        return TapeError.InvalidNumber;
+        return ParseError.InvalidNumber;
     }
     // We have a valid positive exponent in exp_number at this point, except that
     // it may have overflowed.

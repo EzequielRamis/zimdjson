@@ -28,9 +28,9 @@ pub fn BoundedArrayList(comptime T: type) type {
             self.next += 1;
         }
 
-        pub fn appendSlice(self: *Self, items: []const u8) void {
-            @memcpy(self.list.items[self.next..][0..items.len], items);
-            self.next += items.len;
+        pub fn appendSlice(self: *Self, items: *const array, len: usize) void {
+            @memcpy(self.list.items[self.next..][0..Vector.LEN_BYTES], items);
+            self.next += len;
         }
 
         pub fn clear(self: *Self) void {

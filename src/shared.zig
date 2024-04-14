@@ -20,7 +20,8 @@ pub const ParseError = error{
     MissingComma,
     InvalidEscape,
     InvalidNumber,
-} || std.mem.Allocator.Error || error{ ExpectedSecondSurrogateHalf, CodepointTooLarge, Utf8CannotEncodeSurrogateHalf };
+    MaxDepth,
+} || std.mem.Allocator.Error;
 
 pub const Tables = struct {
     pub const is_structural_or_whitespace: [256]bool = init: {

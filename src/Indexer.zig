@@ -145,7 +145,7 @@ fn escapedChars(backs: umask) umask {
 }
 
 fn extract(self: *Self, tokens: umask, i: usize) void {
-    const last_size = self.indexes.next;
+    const last_size = self.indexes.len;
     const pop_count = @popCount(tokens);
     var s = tokens;
     while (s != 0) {
@@ -155,5 +155,5 @@ fn extract(self: *Self, tokens: umask, i: usize) void {
             s &= s -% 1;
         }
     }
-    self.indexes.next = last_size + pop_count;
+    self.indexes.len = last_size + pop_count;
 }

@@ -2,6 +2,7 @@ const std = @import("std");
 const shared = @import("shared.zig");
 const validator = @import("validator.zig");
 const BoundedArrayList = @import("bounded_array_list.zig").BoundedArrayList;
+const BoundedBitStack = @import("BoundedBitStack.zig");
 const Indexer = @import("Indexer.zig");
 const TokenIterator = @import("TokenIterator.zig");
 const TokenPhase = TokenIterator.Phase;
@@ -10,6 +11,8 @@ const assert = std.debug.assert;
 
 const Allocator = std.mem.Allocator;
 const ParseError = shared.ParseError;
+
+const MAX_DEPTH = 1024;
 const Self = @This();
 
 const State = enum {
@@ -69,19 +72,24 @@ const Node = union(NodeTag) {
 };
 
 const Stack = struct {
-    is_array: std.BitStack,
-    indexes: std.ArrayList(u56),
+    is_array: BoundedBitStack,
+    indexes: BoundedArrayList(u56),
 
     pub fn init(allocator: Allocator) Stack {
         return Stack{
-            .is_array = std.BitStack.init(allocator),
-            .indexes = std.ArrayList(u56).init(allocator),
+            .is_array = BoundedBitStack.init(allocator),
+            .indexes = BoundedArrayList(u56).init(allocator),
         };
     }
 
     pub fn deinit(self: *Stack) void {
         self.is_array.deinit();
         self.indexes.deinit();
+    }
+
+    pub fn withCapacity(self: *Stack, size: usize) Allocator.Error!void {
+        try self.is_array.withCapacity(size);
+        try self.indexes.withCapacity(size);
     }
 };
 
@@ -105,10 +113,11 @@ pub fn deinit(self: *Self) void {
     self.stack.deinit();
 }
 
-pub fn build(self: *Self) !void {
+pub fn build(self: *Self) ParseError!void {
     var t = &self.tokens;
     try self.chars.withCapacity(self.tokens.indexer.reader.document.len);
     try self.parsed.withCapacity(self.tokens.indexer.indexes.list.items.len);
+    try self.stack.withCapacity(MAX_DEPTH);
 
     if (t.empty()) {
         return ParseError.Empty;
@@ -149,7 +158,7 @@ fn analyze_object_begin(self: *Self, comptime phase: TokenPhase) ParseError!void
     assert(phase != .bounded);
     var t = &self.tokens;
     log.info("OBJ BEGIN", .{});
-    try self.stack.is_array.push(0);
+    self.stack.is_array.push(0);
     if (t.advance(phase)) {
         switch (t.peek(1)) {
             '"' => {
@@ -195,7 +204,7 @@ fn analyze_object_field(self: *Self, comptime phase: TokenPhase) ParseError!void
         if (t.peek(1) == ':') {
             if (t.advance(phase)) {
                 switch (t.peek(1)) {
-                    '{' => self.dispatch(phase, .object_begin),
+                    '{' => return self.dispatch(phase, .object_begin),
                     '[' => return self.dispatch(phase, .array_begin),
                     else => {
                         try self.visit_primitive(phase);
@@ -333,7 +342,7 @@ fn resume_object_continue_key(self: *Self, comptime phase: TokenPhase) ParseErro
 fn analyze_array_begin(self: *Self, comptime phase: TokenPhase) ParseError!void {
     assert(phase != .bounded);
     log.info("ARR BEGIN", .{});
-    try self.stack.is_array.push(1);
+    self.stack.is_array.push(1);
     return self.dispatch(phase, .array_value);
 }
 
@@ -417,7 +426,7 @@ fn resume_array_continue(self: *Self, comptime phase: TokenPhase) ParseError!voi
 
 fn analyze_scope_end(self: *Self, comptime phase: TokenPhase) ParseError!void {
     assert(phase != .bounded);
-    _ = self.stack.indexes.popOrNull();
+    // _ = self.stack.indexes.pop();
     _ = self.stack.is_array.pop();
     if (self.stack.is_array.bit_len == 0) {
         return;
@@ -445,9 +454,9 @@ inline fn visit_primitive(self: *Self, comptime phase: TokenPhase) ParseError!vo
 inline fn visit_string(self: *Self, comptime phase: TokenPhase) ParseError!void {
     var t = &self.tokens;
     _ = t.next(1, phase);
-    const next_str = self.chars.next;
+    const next_str = self.chars.len;
     try validator.string(t, &self.chars, phase);
-    const next_len = self.chars.next - 1;
+    const next_len = self.chars.len - 1;
     self.parsed.append(.{ .string_value = next_str });
     log.info("STR {s}", .{self.chars.list.items[next_str..next_len]});
 }

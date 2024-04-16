@@ -1,7 +1,6 @@
 const std = @import("std");
 const shared = @import("../shared.zig");
 const types = @import("../types.zig");
-const BoundedArrayList = @import("../bounded_array_list.zig").BoundedArrayList;
 const TokenIterator = @import("../TokenIterator.zig");
 const TokenPhase = TokenIterator.Phase;
 const unicode = std.unicode;
@@ -12,7 +11,9 @@ const Pred = types.Predicate;
 const ArrayList = std.ArrayList;
 const ParseError = shared.ParseError;
 
-pub fn string(src: *TokenIterator, dst: *BoundedArrayList(u8), comptime phase: TokenPhase) !void {
+pub fn string(src: *TokenIterator, dst: *ArrayList(u8), comptime phase: TokenPhase) !void {
+    const len_slot: *align(1) u32 = @ptrCast(dst.addManyAsArrayAssumeCapacity(4));
+    const old_len = dst.items.len;
     while (true) {
         const chunk = src.peek(Vector.LEN_BYTES);
         const slash = Pred(.bytes).from(Vector.SLASH == chunk.*).pack();
@@ -21,19 +22,25 @@ pub fn string(src: *TokenIterator, dst: *BoundedArrayList(u8), comptime phase: T
         const quote_index = @ctz(quote);
         // none of the characters are present in the buffer
         if (quote_index == slash_index) {
-            dst.appendSlice(chunk, Vector.LEN_BYTES);
+            dst.appendSliceAssumeCapacity(chunk);
             _ = src.next(Vector.LEN_BYTES, phase);
             continue;
         }
         // end of string
         if (quote_index < slash_index) {
-            dst.appendSlice(chunk, quote_index);
-            dst.append(0);
+            const new_len = dst.items.len + quote_index;
+            dst.appendSliceAssumeCapacity(chunk);
+            dst.items.len = new_len;
+            const str_len = new_len - old_len;
+            len_slot.* = @truncate(str_len);
+            dst.appendAssumeCapacity(0);
             _ = src.nextSlice(quote_index, phase);
             return;
         }
         // escape sequence
-        dst.appendSlice(chunk, slash_index);
+        const new_len = dst.items.len + slash_index;
+        dst.appendSliceAssumeCapacity(chunk);
+        dst.items.len = new_len;
         _ = src.nextSlice(slash_index + 1, phase);
         const escape_char = src.next(1, phase);
         if (escape_char == 'u') {
@@ -56,11 +63,11 @@ pub fn string(src: *TokenIterator, dst: *BoundedArrayList(u8), comptime phase: T
                 break :res first_codepoint;
             };
             const codepoint_len = try utf8CodepointSequenceLength(codepoint);
-            const encoded_buffer = dst.addManyAsSlice(codepoint_len);
+            const encoded_buffer = dst.addManyAsSliceAssumeCapacity(codepoint_len);
             try utf8Encode(codepoint, codepoint_len, encoded_buffer);
         } else {
             const escaped_char = shared.Tables.escape_map[escape_char] orelse return ParseError.InvalidEscape;
-            dst.append(escaped_char);
+            dst.appendAssumeCapacity(escaped_char);
         }
     }
     return ParseError.NonTerminatedString;

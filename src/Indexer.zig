@@ -3,7 +3,7 @@ const builtin = @import("builtin");
 const types = @import("types.zig");
 const intr = @import("intrinsics.zig");
 const Reader = @import("Reader.zig");
-const BoundedArrayList = @import("bounded_array_list.zig").BoundedArrayList;
+const ArrayList = std.ArrayList;
 const cpu = builtin.cpu;
 const simd = std.simd;
 const vector = types.vector;
@@ -28,12 +28,12 @@ var prev_inside_string: umask = 0;
 var next_is_escaped: umask = 0;
 
 reader: Reader,
-indexes: BoundedArrayList(u32),
+indexes: ArrayList(u32),
 
-pub fn init(allocator: Allocator, document: []const u8) Self {
+pub fn init(allocator: Allocator) Self {
     return Self{
-        .reader = Reader.init(document),
-        .indexes = BoundedArrayList(u32).init(allocator),
+        .reader = Reader.init(),
+        .indexes = ArrayList(u32).init(allocator),
     };
 }
 
@@ -41,8 +41,10 @@ pub fn deinit(self: *Self) void {
     self.indexes.deinit();
 }
 
-pub fn index(self: *Self) !void {
-    try self.indexes.withCapacity(self.reader.document.len);
+pub fn index(self: *Self, document: []const u8) !void {
+    self.reader.read(document);
+    try self.indexes.ensureTotalCapacity(self.reader.document.len);
+    self.indexes.shrinkRetainingCapacity(0);
 
     var i = self.reader.index;
     while (self.reader.next()) |block| : (i = self.reader.index) {
@@ -82,7 +84,6 @@ pub fn index(self: *Self) !void {
     if (prev_inside_string != 0) {
         return error.NonTerminatedString;
     }
-    self.indexes.clear();
 }
 
 fn identify(block: *const [Mask.LEN_BITS]u8) umask {
@@ -145,15 +146,15 @@ fn escapedChars(backs: umask) umask {
 }
 
 fn extract(self: *Self, tokens: umask, i: usize) void {
-    const last_size = self.indexes.len;
     const pop_count = @popCount(tokens);
+    const new_len = self.indexes.items.len + pop_count;
     var s = tokens;
     while (s != 0) {
         inline for (0..8) |_| {
             const tz = @ctz(s);
-            self.indexes.append(@as(u32, @truncate(i)) + tz);
+            self.indexes.appendAssumeCapacity(@as(u32, @truncate(i)) + tz);
             s &= s -% 1;
         }
     }
-    self.indexes.len = last_size + pop_count;
+    self.indexes.items.len = new_len;
 }

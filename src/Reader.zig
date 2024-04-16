@@ -12,20 +12,23 @@ const BLOCK_SIZE = Mask.LEN_BITS * MASKS_PER_ITER;
 pub const block = [BLOCK_SIZE]u8;
 const blank_buffer = [_]u8{' '} ** BLOCK_SIZE;
 
-index: usize = 0,
-last_partial_index: usize,
-document: []const u8,
-buffer: block = blank_buffer,
+index: usize = undefined,
+last_partial_index: usize = undefined,
+document: []const u8 = undefined,
+buffer: block = undefined,
 
-pub fn init(doc: []const u8) Self {
+pub fn init() Self {
+    return Self{};
+}
+
+pub fn read(self: *Self, doc: []const u8) void {
     const remaining = doc.len % BLOCK_SIZE;
     const last_partial_index = doc.len -| remaining;
-    var self = Self{
-        .document = doc,
-        .last_partial_index = last_partial_index,
-    };
+    self.index = 0;
+    self.document = doc;
+    self.last_partial_index = last_partial_index;
+    @memcpy(&self.buffer, &blank_buffer);
     @memcpy(self.buffer[0..remaining], self.document[self.last_partial_index..]);
-    return self;
 }
 
 pub fn next(self: *Self) ?*const block {

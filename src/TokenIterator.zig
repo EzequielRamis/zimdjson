@@ -16,36 +16,38 @@ pub const Phase = enum {
 const Self = @This();
 const blank_buffer = [_]u8{' '} ** (Vector.LEN_BYTES * 2);
 
-indexer: Indexer,
-remaining: [Vector.LEN_BYTES * 2]u8 = blank_buffer,
-index: usize = 0,
-bounded_index: usize,
-remaining_ptr: [*]const u8,
-curr_slice: [*]const u8,
+indexer: Indexer = undefined,
+remaining: [Vector.LEN_BYTES * 2]u8 = undefined,
+index: usize = undefined,
+bounded_index: usize = undefined,
+remaining_ptr: [*]const u8 = undefined,
+curr_slice: [*]const u8 = undefined,
 
-pub fn init(indexer: Indexer) Self {
+pub fn init() Self {
+    return Self{};
+}
+
+pub fn analyze(self: *Self, indexer: Indexer) void {
     const doc = indexer.reader.document;
-    const indexes = indexer.indexes.list.items;
+    const indexes = indexer.indexes.items;
     const red_zone_bound = doc.len -| Vector.LEN_BYTES;
-    var bounded_prefix: usize = indexer.indexes.list.items.len - 1;
+    var bounded_prefix: usize = indexer.indexes.items.len - 1;
     var rev = std.mem.reverseIterator(indexes);
     while (rev.next()) |prefix| : (bounded_prefix -= 1) {
         if (prefix <= red_zone_bound) break;
     }
-
     const remaining_ptr = doc[red_zone_bound..].ptr;
-    var self = Self{
-        .indexer = indexer,
-        .curr_slice = doc.ptr,
-        .bounded_index = bounded_prefix,
-        .remaining_ptr = remaining_ptr,
-    };
+    self.indexer = indexer;
+    self.index = 0;
+    self.bounded_index = bounded_prefix;
+    self.remaining_ptr = remaining_ptr;
+    self.curr_slice = doc.ptr;
+    @memcpy(&self.remaining, &blank_buffer);
     @memcpy(self.remaining[0 .. doc.len - red_zone_bound], doc[red_zone_bound..doc.len]);
-    return self;
 }
 
 pub fn advance(self: *Self, comptime phase: Phase) bool {
-    const indexes = self.indexer.indexes.list.items;
+    const indexes = self.indexer.indexes.items;
     const document = self.indexer.reader.document;
     switch (phase) {
         .unbounded => {
@@ -75,7 +77,7 @@ pub fn advance(self: *Self, comptime phase: Phase) bool {
 }
 
 pub fn empty(self: Self) bool {
-    return self.indexer.indexes.list.items.len == 0;
+    return self.indexer.indexes.items.len == 0;
 }
 
 pub fn next(self: *Self, comptime n: comptime_int, comptime phase: Phase) if (n == 1) u8 else *const [n]u8 {

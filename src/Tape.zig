@@ -1,8 +1,8 @@
 const std = @import("std");
 const shared = @import("shared.zig");
 const validator = @import("validator.zig");
-const BoundedArrayList = @import("bounded_array_list.zig").BoundedArrayList;
-const BoundedBitStack = @import("BoundedBitStack.zig");
+const ArrayList = std.ArrayList;
+const BitStack = std.BitStack;
 const Indexer = @import("Indexer.zig");
 const TokenIterator = @import("TokenIterator.zig");
 const TokenPhase = TokenIterator.Phase;
@@ -29,107 +29,79 @@ const State = enum {
     resume_object_field_value,
     resume_object_continue_comma,
     resume_object_continue_key,
+    resume_array_begin,
     resume_array_value,
     resume_array_continue,
 };
 
-const NodeTag = enum {
-    root,
-    true_atom,
-    false_atom,
-    null_atom,
-    unsigned,
-    signed,
-    float,
-    big_int,
-    string_key,
-    string_key_raw,
-    string_value,
-    string_value_raw,
-    object_begin,
-    object_end,
-    array_begin,
-    array_end,
+const Tag = enum(u8) {
+    root = 'r',
+    true = 't',
+    false = 'f',
+    null = 'n',
+    unsigned = 'u',
+    signed = 'i',
+    float = 'd',
+    string = '"',
+    object_begin = '{',
+    object_end = '}',
+    array_begin = '[',
+    array_end = ']',
+    _,
 };
 
-const Node = union(NodeTag) {
-    root: usize,
-    true_atom: void,
-    false_atom: void,
-    null_atom: void,
-    unsigned: u64,
-    signed: i64,
-    float: f64,
-    big_int: [:0]const u8,
-    string_key: usize,
-    string_key_raw: usize,
-    string_value: usize,
-    string_value_raw: usize,
-    object_begin: usize,
-    object_end: usize,
-    array_begin: usize,
-    array_end: usize,
+pub const Element = packed struct(u64) {
+    tag: Tag,
+    data: u56 = 0,
 };
 
-const Stack = struct {
-    is_array: BoundedBitStack,
-    indexes: BoundedArrayList(u56),
-
-    pub fn init(allocator: Allocator) Stack {
-        return Stack{
-            .is_array = BoundedBitStack.init(allocator),
-            .indexes = BoundedArrayList(u56).init(allocator),
-        };
-    }
-
-    pub fn deinit(self: *Stack) void {
-        self.is_array.deinit();
-        self.indexes.deinit();
-    }
-
-    pub fn withCapacity(self: *Stack, size: usize) Allocator.Error!void {
-        try self.is_array.withCapacity(size);
-        try self.indexes.withCapacity(size);
-    }
+pub const Container = packed struct(u56) {
+    index: u32,
+    count: u24,
 };
 
 tokens: TokenIterator,
-parsed: BoundedArrayList(Node),
-chars: BoundedArrayList(u8),
-stack: Stack,
+parsed: ArrayList(u64),
+stack: ArrayList(u64),
+chars: ArrayList(u8),
 
-pub fn init(allocator: Allocator, indexer: Indexer) Self {
+pub fn init(allocator: Allocator) Self {
     return Self{
-        .tokens = TokenIterator.init(indexer),
-        .parsed = BoundedArrayList(Node).init(allocator),
-        .chars = BoundedArrayList(u8).init(allocator),
-        .stack = Stack.init(allocator),
+        .tokens = TokenIterator.init(),
+        .parsed = ArrayList(u64).init(allocator),
+        .stack = ArrayList(u64).init(allocator),
+        .chars = ArrayList(u8).init(allocator),
     };
 }
 
 pub fn deinit(self: *Self) void {
     self.parsed.deinit();
-    self.chars.deinit();
     self.stack.deinit();
+    self.chars.deinit();
 }
 
-pub fn build(self: *Self) ParseError!void {
+pub fn build(self: *Self, indexer: Indexer) ParseError!void {
     var t = &self.tokens;
-    try self.chars.withCapacity(self.tokens.indexer.reader.document.len);
-    try self.parsed.withCapacity(self.tokens.indexer.indexes.list.items.len);
-    try self.stack.withCapacity(MAX_DEPTH);
+    t.analyze(indexer);
+    try self.chars.ensureTotalCapacity(self.tokens.indexer.reader.document.len);
+    try self.stack.ensureTotalCapacity(MAX_DEPTH);
+    try self.parsed.ensureTotalCapacity(self.tokens.indexer.indexes.items.len);
+    self.chars.shrinkRetainingCapacity(0);
+    self.stack.shrinkRetainingCapacity(0);
+    self.parsed.shrinkRetainingCapacity(0);
 
     if (t.empty()) {
         return ParseError.Empty;
     }
+
+    self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = Tag.root }));
+    self.stack.appendAssumeCapacity(@bitCast(Element{ .tag = Tag.root }));
+
     switch (t.peek(1)) {
         '{' => try self.analyze_object_begin(.unbounded),
         '[' => try self.analyze_array_begin(.unbounded),
         else => try self.visit_primitive(.bounded),
     }
-
-    log.info("Node size: {}", .{@bitSizeOf(Node) / 8});
-    log.info("Tape size: {}", .{self.parsed.list.items.len * (@bitSizeOf(Node) / 8)});
 }
 
 inline fn dispatch(self: *Self, comptime phase: TokenPhase, next_state: State) ParseError!void {
@@ -146,6 +118,7 @@ inline fn dispatch(self: *Self, comptime phase: TokenPhase, next_state: State) P
         .resume_object_field_value => resume_object_field_value,
         .resume_object_continue_comma => resume_object_continue_comma,
         .resume_object_continue_key => resume_object_continue_key,
+        .resume_array_begin => resume_array_begin,
         .resume_array_value => resume_array_value,
         .resume_array_continue => resume_array_continue,
         else => unreachable,
@@ -158,10 +131,23 @@ fn analyze_object_begin(self: *Self, comptime phase: TokenPhase) ParseError!void
     assert(phase != .bounded);
     var t = &self.tokens;
     log.info("OBJ BEGIN", .{});
-    self.stack.is_array.push(0);
+
+    if (self.stack.items.len >= MAX_DEPTH)
+        return error.MaxDepth;
+    const elem = Element{
+        .tag = Tag.object_begin,
+        .data = @bitCast(Container{
+            .index = @truncate(self.parsed.items.len),
+            .count = 0,
+        }),
+    };
+    self.parsed.appendAssumeCapacity(@bitCast(elem));
+    self.stack.appendAssumeCapacity(@bitCast(elem));
+
     if (t.advance(phase)) {
         switch (t.peek(1)) {
             '"' => {
+                self.increment_container_count();
                 try self.visit_string(phase);
                 return self.dispatch(phase, .object_field);
             },
@@ -186,6 +172,7 @@ fn resume_object_begin(self: *Self, comptime phase: TokenPhase) ParseError!void 
     _ = t.advance(phase);
     switch (t.peek(1)) {
         '"' => {
+            self.increment_container_count();
             try self.visit_string(.padded);
             return self.dispatch(.padded, .object_field);
         },
@@ -274,6 +261,7 @@ fn analyze_object_continue(self: *Self, comptime phase: TokenPhase) ParseError!v
             ',' => {
                 if (t.advance(phase)) {
                     if (t.peek(1) == '"') {
+                        self.increment_container_count();
                         try self.visit_string(phase);
                         return self.dispatch(phase, .object_field);
                     } else {
@@ -310,6 +298,7 @@ fn resume_object_continue_comma(self: *Self, comptime phase: TokenPhase) ParseEr
         ',' => {
             if (t.advance(.padded)) {
                 if (t.peek(1) == '"') {
+                    self.increment_container_count();
                     try self.visit_string(.padded);
                     return self.dispatch(.padded, .object_field);
                 } else {
@@ -332,6 +321,7 @@ fn resume_object_continue_key(self: *Self, comptime phase: TokenPhase) ParseErro
     var t = &self.tokens;
     _ = t.advance(phase);
     if (t.peek(1) == '"') {
+        self.increment_container_count();
         try self.visit_string(.padded);
         return self.dispatch(.padded, .object_field);
     } else {
@@ -341,19 +331,73 @@ fn resume_object_continue_key(self: *Self, comptime phase: TokenPhase) ParseErro
 
 fn analyze_array_begin(self: *Self, comptime phase: TokenPhase) ParseError!void {
     assert(phase != .bounded);
+    var t = &self.tokens;
     log.info("ARR BEGIN", .{});
-    self.stack.is_array.push(1);
-    return self.dispatch(phase, .array_value);
+
+    if (self.stack.items.len >= MAX_DEPTH)
+        return error.MaxDepth;
+    const elem = Element{
+        .tag = Tag.array_begin,
+        .data = @bitCast(Container{
+            .index = @truncate(self.parsed.items.len),
+            .count = 0,
+        }),
+    };
+    self.parsed.appendAssumeCapacity(@bitCast(elem));
+    self.stack.appendAssumeCapacity(@bitCast(elem));
+
+    if (t.advance(phase)) {
+        const maybe_value = t.peek(1);
+        if (maybe_value == ']') {
+            log.info("ARR END", .{});
+            return self.dispatch(phase, .scope_end);
+        }
+        self.increment_container_count();
+        switch (maybe_value) {
+            '{' => return self.dispatch(phase, .object_begin),
+            '[' => return self.dispatch(phase, .array_begin),
+            else => {
+                try self.visit_primitive(phase);
+                return self.dispatch(phase, .array_continue);
+            },
+        }
+    } else {
+        if (phase == .unbounded) {
+            return self.dispatch(.bounded, .resume_array_begin);
+        } else {
+            return ParseError.MissingValue;
+        }
+    }
+}
+
+fn resume_array_begin(self: *Self, comptime phase: TokenPhase) ParseError!void {
+    assert(phase == .bounded);
+    var t = &self.tokens;
+    _ = t.advance(phase);
+    const maybe_value = t.peek(1);
+    if (maybe_value == ']') {
+        log.info("ARR END", .{});
+        return self.dispatch(.padded, .scope_end);
+    }
+    self.increment_container_count();
+    switch (t.peek(1)) {
+        '{' => return self.dispatch(.padded, .object_begin),
+        '[' => return self.dispatch(.padded, .array_begin),
+        else => {
+            try self.visit_primitive(.padded);
+            return self.dispatch(.padded, .array_continue);
+        },
+    }
 }
 
 fn analyze_array_value(self: *Self, comptime phase: TokenPhase) ParseError!void {
     assert(phase != .bounded);
     var t = &self.tokens;
     if (t.advance(phase)) {
+        self.increment_container_count();
         switch (t.peek(1)) {
             '{' => return self.dispatch(phase, .object_begin),
             '[' => return self.dispatch(phase, .array_begin),
-            ']' => return self.dispatch(phase, .scope_end),
             else => {
                 try self.visit_primitive(phase);
                 return self.dispatch(phase, .array_continue);
@@ -372,10 +416,10 @@ fn resume_array_value(self: *Self, comptime phase: TokenPhase) ParseError!void {
     assert(phase == .bounded);
     var t = &self.tokens;
     _ = t.advance(phase);
+    self.increment_container_count();
     switch (t.peek(1)) {
         '{' => return self.dispatch(.padded, .object_begin),
         '[' => return self.dispatch(.padded, .array_begin),
-        ']' => return self.dispatch(.padded, .scope_end),
         else => {
             try self.visit_primitive(.padded);
             return self.dispatch(.padded, .array_continue);
@@ -389,7 +433,7 @@ fn analyze_array_continue(self: *Self, comptime phase: TokenPhase) ParseError!vo
     if (t.advance(phase)) {
         switch (t.peek(1)) {
             ',' => {
-                // increment count
+                self.increment_container_count();
                 return self.dispatch(phase, .array_value);
             },
             ']' => {
@@ -413,7 +457,6 @@ fn resume_array_continue(self: *Self, comptime phase: TokenPhase) ParseError!voi
     _ = t.advance(phase);
     switch (t.peek(1)) {
         ',' => {
-            // increment count
             return self.dispatch(.padded, .array_value);
         },
         ']' => {
@@ -426,17 +469,38 @@ fn resume_array_continue(self: *Self, comptime phase: TokenPhase) ParseError!voi
 
 fn analyze_scope_end(self: *Self, comptime phase: TokenPhase) ParseError!void {
     assert(phase != .bounded);
-    // _ = self.stack.indexes.pop();
-    _ = self.stack.is_array.pop();
-    if (self.stack.is_array.bit_len == 0) {
-        return;
+    const scope: Element = @bitCast(self.stack.pop());
+    const scope_info: Container = @bitCast(scope.data);
+    const scope_begin: *Element = @ptrCast(&self.parsed.items[scope_info.index]);
+    switch (scope.tag) {
+        .array_begin => {
+            self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = Tag.array_end, .data = scope_begin.data }));
+            scope_begin.data = @truncate(self.parsed.items.len);
+        },
+        .object_begin => {
+            self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = Tag.object_end, .data = scope_begin.data }));
+            scope_begin.data = @truncate(self.parsed.items.len);
+        },
+        else => unreachable,
     }
-    const last = self.stack.is_array.peek();
-    if (last == 1) {
-        return self.dispatch(phase, .array_continue);
-    } else {
-        return self.dispatch(phase, .object_continue);
+    const parent: Element = @bitCast(self.stack.getLast());
+    switch (parent.tag) {
+        .array_begin => return self.dispatch(phase, .array_continue),
+        .object_begin => return self.dispatch(phase, .object_continue),
+        .root => {
+            const root: *Element = @ptrCast(&self.parsed.items[parent.data]);
+            self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = Tag.root, .data = root.data }));
+            root.data = @truncate(self.parsed.items.len - 1);
+        },
+        else => unreachable,
     }
+}
+
+fn increment_container_count(self: *Self) void {
+    const scope: *Element = @ptrCast(&self.stack.items[self.stack.items.len - 1]);
+    var container: Container = @bitCast(scope.data);
+    container.count +|= 1;
+    scope.data = @bitCast(container);
 }
 
 inline fn visit_primitive(self: *Self, comptime phase: TokenPhase) ParseError!void {
@@ -454,11 +518,11 @@ inline fn visit_primitive(self: *Self, comptime phase: TokenPhase) ParseError!vo
 inline fn visit_string(self: *Self, comptime phase: TokenPhase) ParseError!void {
     var t = &self.tokens;
     _ = t.next(1, phase);
-    const next_str = self.chars.len;
+    const next_str = self.chars.items.len;
     try validator.string(t, &self.chars, phase);
-    const next_len = self.chars.len - 1;
-    self.parsed.append(.{ .string_value = next_str });
-    log.info("STR {s}", .{self.chars.list.items[next_str..next_len]});
+    const next_len = self.chars.items.len - 1;
+    self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = .string, .data = @truncate(next_str) }));
+    log.info("STR {s}", .{self.chars.items[next_str + 4 .. next_len]});
 }
 
 inline fn visit_number(_: *Self, comptime _: TokenPhase) ParseError!void {
@@ -471,20 +535,20 @@ inline fn visit_number(_: *Self, comptime _: TokenPhase) ParseError!void {
 inline fn visit_true(self: *Self, comptime phase: TokenPhase) ParseError!void {
     const t = &self.tokens;
     try validator.true_atom(t, phase);
-    self.parsed.append(.{ .true_atom = {} });
+    self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = .true }));
     log.info("TRU", .{});
 }
 
 inline fn visit_false(self: *Self, comptime phase: TokenPhase) ParseError!void {
     const t = &self.tokens;
     try validator.false_atom(t, phase);
-    self.parsed.append(.{ .false_atom = {} });
+    self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = .false }));
     log.info("FAL", .{});
 }
 
 inline fn visit_null(self: *Self, comptime phase: TokenPhase) ParseError!void {
     const t = &self.tokens;
     try validator.null_atom(t, phase);
-    self.parsed.append(.{ .null_atom = {} });
+    self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = .null }));
     log.info("NUL", .{});
 }

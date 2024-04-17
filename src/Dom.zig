@@ -4,8 +4,9 @@ const types = @import("types.zig");
 const Indexer = @import("Indexer.zig");
 const Tape = @import("Tape.zig");
 const Allocator = std.mem.Allocator;
-const ParseError = shared.ParseError;
-const ConsumeError = shared.ConsumeError;
+const ParseError = types.ParseError;
+const ConsumeError = types.ConsumeError;
+const assert = std.debug.assert;
 
 pub const Parser = struct {
     indexer: Indexer,
@@ -45,7 +46,8 @@ pub const Parser = struct {
         const len = (try file.metadata()).size();
 
         if (self.loaded_buffer) |*buffer| {
-            buffer.* = try self.allocator.realloc(buffer.*, len);
+            if (buffer.len < len)
+                buffer.* = try self.allocator.realloc(buffer.*, len);
         } else {
             self.loaded_buffer = try self.allocator.alignedAlloc(u8, types.Vector.LEN_BYTES, len);
         }
@@ -59,6 +61,11 @@ pub const Parser = struct {
             .tape = &self.tape,
             .el = @ptrCast(&self.tape.parsed.items[1]),
         };
+    }
+
+    pub fn shrinkToFitLoad(self: *Parser) ParseError!void {
+        assert(self.loaded_buffer != null);
+        self.loaded_buffer.? = try self.allocator.realloc(self.loaded_buffer.?, self.loaded_document_len);
     }
 };
 
@@ -207,6 +214,22 @@ const Element = struct {
             },
             else => @compileError("can not deserialize to type '" ++ @typeName(ty) ++ "'"),
         }
+    }
+
+    pub fn atKey(self: Element, key: []const u8) ConsumeError!Object.Field {
+        const obj = try self.getObject();
+        return obj.at(key);
+    }
+
+    pub fn atIndex(self: Element, index: usize) ConsumeError!Element {
+        const arr = try self.getArray();
+        return arr.at(index);
+    }
+
+    pub fn size(self: Element) ConsumeError!u24 {
+        if (self.getObjectOrNull()) |obj| return obj.size();
+        if (self.getArrayOrNull()) |arr| return arr.size();
+        return error.IncorrectType;
     }
 };
 

@@ -14,7 +14,7 @@ const imask = types.imask;
 const Mask = types.Mask;
 const Pred = types.Predicate;
 
-const ParseError = shared.ParseError;
+const ParseError = types.ParseError;
 const Allocator = std.mem.Allocator;
 const Self = @This();
 

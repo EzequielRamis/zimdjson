@@ -18,6 +18,31 @@ pub const Element = enum {
     null,
 };
 
+pub const ParseError = error{
+    Depth,
+    Capacity,
+    Empty,
+    TrueAtom,
+    FalseAtom,
+    NullAtom,
+    String,
+    Number,
+    NonValue,
+    UnclosedString,
+    InvalidEscape,
+    InvalidNumber,
+    IncompleteObject,
+    IncompleteArray,
+} || IOError;
+
+pub const IOError = std.mem.Allocator.Error || std.fs.File.OpenError || std.fs.File.MetadataError || std.fs.File.ReadError;
+
+pub const ConsumeError = error{
+    IncorrectType,
+    OutOfBounds,
+    NoSuchField,
+};
+
 pub const Vector = struct {
     const Self = @This();
 

@@ -9,10 +9,10 @@ const array = types.array;
 const Vector = types.Vector;
 const Pred = types.Predicate;
 const ArrayList = std.ArrayList;
-const ParseError = shared.ParseError;
+const ParseError = types.ParseError;
 
 pub fn string(src: *TokenIterator, dst: *ArrayList(u8), comptime phase: TokenPhase) ParseError!void {
-    const len_slot: *align(1) u32 = @ptrCast(dst.addManyAsArrayAssumeCapacity(4));
+    const len_slot = shared.intFromSlice(u32, dst.addManyAsArrayAssumeCapacity(4));
     const old_len = dst.items.len;
     while (true) {
         const chunk = src.peek(Vector.LEN_BYTES);
@@ -48,7 +48,7 @@ pub fn string(src: *TokenIterator, dst: *ArrayList(u8), comptime phase: TokenPha
             const first_codepoint = try parse_dword_literal(first_literal);
             const codepoint = res: {
                 if (utf16IsHighSurrogate(first_codepoint)) {
-                    if (shared.intFromSlice(u16, src.peek(2)) == shared.intFromSlice(u16, "\\u")) {
+                    if (shared.intFromSlice(u16, src.peek(2)).* == shared.intFromSlice(u16, "\\u").*) {
                         _ = src.next(2, phase);
                         const high_surrogate = first_codepoint;
                         const second_literal = src.next(4, phase);

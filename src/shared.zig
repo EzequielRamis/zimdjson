@@ -3,31 +3,6 @@ const builtin = @import("builtin");
 const simd = std.simd;
 const testing = std.testing;
 
-pub const ParseError = error{
-    Depth,
-    Capacity,
-    Empty,
-    TrueAtom,
-    FalseAtom,
-    NullAtom,
-    String,
-    Number,
-    NonValue,
-    UnclosedString,
-    InvalidEscape,
-    InvalidNumber,
-    IncompleteObject,
-    IncompleteArray,
-} || IOError;
-
-pub const IOError = std.mem.Allocator.Error || std.fs.File.OpenError || std.fs.File.MetadataError || std.fs.File.ReadError;
-
-pub const ConsumeError = error{
-    IncorrectType,
-    OutOfBounds,
-    NoSuchField,
-};
-
 pub const Tables = struct {
     pub const is_structural_or_whitespace: [256]bool = init: {
         var res: [256]bool = undefined;
@@ -135,6 +110,6 @@ pub const Tables = struct {
     };
 };
 
-pub fn intFromSlice(comptime T: type, str: []const u8) T {
-    return @as(*align(1) T, @ptrCast(@constCast(str))).*;
+pub fn intFromSlice(comptime T: type, str: []const u8) *align(1) T {
+    return @as(*align(1) T, @ptrCast(@constCast(str)));
 }

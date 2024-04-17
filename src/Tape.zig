@@ -1,5 +1,6 @@
 const std = @import("std");
 const shared = @import("shared.zig");
+const types = @import("types.zig");
 const validator = @import("validator.zig");
 const ArrayList = std.ArrayList;
 const BitStack = std.BitStack;
@@ -10,7 +11,7 @@ const log = std.log;
 const assert = std.debug.assert;
 
 const Allocator = std.mem.Allocator;
-const ParseError = shared.ParseError;
+const ParseError = types.ParseError;
 
 const MAX_DEPTH = 1024;
 const Self = @This();

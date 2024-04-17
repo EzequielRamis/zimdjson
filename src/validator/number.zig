@@ -1,10 +1,11 @@
 const std = @import("std");
 const shared = @import("../shared.zig");
+const types = @import("../types.zig");
 const math = std.math;
 const vector = shared.vector;
 const vector_size = shared.vector_size;
 const mask = shared.mask;
-const ParseError = shared.ParseError;
+const ParseError = types.ParseError;
 // const parseFloat = @import("./number/parse_float.zig").parseFloat;
 
 const Result = union(enum) {

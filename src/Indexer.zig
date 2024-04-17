@@ -1,5 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
+const shared = @import("shared.zig");
 const types = @import("types.zig");
 const intr = @import("intrinsics.zig");
 const Reader = @import("Reader.zig");
@@ -13,6 +14,7 @@ const imask = types.imask;
 const Mask = types.Mask;
 const Pred = types.Predicate;
 
+const ParseError = shared.ParseError;
 const Allocator = std.mem.Allocator;
 const Self = @This();
 
@@ -41,7 +43,7 @@ pub fn deinit(self: *Self) void {
     self.indexes.deinit();
 }
 
-pub fn index(self: *Self, document: []const u8) !void {
+pub fn index(self: *Self, document: []const u8) ParseError!void {
     self.reader.read(document);
     try self.indexes.ensureTotalCapacity(self.reader.document.len);
     self.indexes.shrinkRetainingCapacity(0);
@@ -82,7 +84,7 @@ pub fn index(self: *Self, document: []const u8) !void {
         }
     }
     if (prev_inside_string != 0) {
-        return error.NonTerminatedString;
+        return error.UnclosedString;
     }
 }
 

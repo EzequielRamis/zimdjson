@@ -91,7 +91,7 @@ pub fn build(self: *Self, indexer: Indexer) ParseError!void {
     self.parsed.shrinkRetainingCapacity(0);
 
     if (t.empty()) {
-        return ParseError.Empty;
+        return error.Empty;
     }
 
     self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = Tag.root }));
@@ -133,7 +133,7 @@ fn analyze_object_begin(self: *Self, comptime phase: TokenPhase) ParseError!void
     log.info("OBJ BEGIN", .{});
 
     if (self.stack.items.len >= MAX_DEPTH)
-        return error.MaxDepth;
+        return error.Depth;
     const elem = Element{
         .tag = Tag.object_begin,
         .data = @bitCast(Container{
@@ -155,13 +155,13 @@ fn analyze_object_begin(self: *Self, comptime phase: TokenPhase) ParseError!void
                 log.info("OBJ END", .{});
                 return self.dispatch(phase, .scope_end);
             },
-            else => return ParseError.ObjectBegin,
+            else => return error.IncompleteObject,
         }
     } else {
         if (phase == .unbounded) {
             return self.dispatch(.bounded, .resume_object_begin);
         } else {
-            return ParseError.ObjectBegin;
+            return error.IncompleteObject;
         }
     }
 }
@@ -180,7 +180,7 @@ fn resume_object_begin(self: *Self, comptime phase: TokenPhase) ParseError!void 
             log.info("OBJ END", .{});
             return self.dispatch(.padded, .scope_end);
         },
-        else => return ParseError.ObjectBegin,
+        else => return error.IncompleteObject,
     }
 }
 
@@ -202,17 +202,17 @@ fn analyze_object_field(self: *Self, comptime phase: TokenPhase) ParseError!void
                 if (phase == .unbounded) {
                     return self.dispatch(.bounded, .resume_object_field_value);
                 } else {
-                    return ParseError.MissingValue;
+                    return error.IncompleteObject;
                 }
             }
         } else {
-            return ParseError.Colon;
+            return error.IncompleteObject;
         }
     } else {
         if (phase == .unbounded) {
             return self.dispatch(.bounded, .resume_object_field_colon);
         } else {
-            return ParseError.Colon;
+            return error.IncompleteObject;
         }
     }
 }
@@ -232,10 +232,10 @@ fn resume_object_field_colon(self: *Self, comptime phase: TokenPhase) ParseError
                 },
             }
         } else {
-            return ParseError.MissingValue;
+            return error.IncompleteObject;
         }
     } else {
-        return ParseError.Colon;
+        return error.IncompleteObject;
     }
 }
 
@@ -265,13 +265,13 @@ fn analyze_object_continue(self: *Self, comptime phase: TokenPhase) ParseError!v
                         try self.visit_string(phase);
                         return self.dispatch(phase, .object_field);
                     } else {
-                        return ParseError.MissingKey;
+                        return error.IncompleteObject;
                     }
                 } else {
                     if (phase == .unbounded) {
                         return self.dispatch(.bounded, .resume_object_continue_key);
                     } else {
-                        return ParseError.MissingKey;
+                        return error.IncompleteObject;
                     }
                 }
             },
@@ -279,13 +279,13 @@ fn analyze_object_continue(self: *Self, comptime phase: TokenPhase) ParseError!v
                 log.info("OBJ END", .{});
                 return self.dispatch(phase, .scope_end);
             },
-            else => return ParseError.MissingComma,
+            else => return error.IncompleteObject,
         }
     } else {
         if (phase == .unbounded) {
             return self.dispatch(.bounded, .resume_object_continue_comma);
         } else {
-            return ParseError.MissingComma;
+            return error.IncompleteObject;
         }
     }
 }
@@ -302,17 +302,17 @@ fn resume_object_continue_comma(self: *Self, comptime phase: TokenPhase) ParseEr
                     try self.visit_string(.padded);
                     return self.dispatch(.padded, .object_field);
                 } else {
-                    return ParseError.MissingKey;
+                    return error.IncompleteObject;
                 }
             } else {
-                return ParseError.MissingKey;
+                return error.IncompleteObject;
             }
         },
         '}' => {
             log.info("OBJ END", .{});
             return self.dispatch(.padded, .scope_end);
         },
-        else => return ParseError.MissingComma,
+        else => return error.IncompleteObject,
     }
 }
 
@@ -325,7 +325,7 @@ fn resume_object_continue_key(self: *Self, comptime phase: TokenPhase) ParseErro
         try self.visit_string(.padded);
         return self.dispatch(.padded, .object_field);
     } else {
-        return ParseError.MissingKey;
+        return error.IncompleteObject;
     }
 }
 
@@ -335,7 +335,7 @@ fn analyze_array_begin(self: *Self, comptime phase: TokenPhase) ParseError!void 
     log.info("ARR BEGIN", .{});
 
     if (self.stack.items.len >= MAX_DEPTH)
-        return error.MaxDepth;
+        return error.Depth;
     const elem = Element{
         .tag = Tag.array_begin,
         .data = @bitCast(Container{
@@ -365,7 +365,7 @@ fn analyze_array_begin(self: *Self, comptime phase: TokenPhase) ParseError!void 
         if (phase == .unbounded) {
             return self.dispatch(.bounded, .resume_array_begin);
         } else {
-            return ParseError.MissingValue;
+            return error.IncompleteArray;
         }
     }
 }
@@ -407,7 +407,7 @@ fn analyze_array_value(self: *Self, comptime phase: TokenPhase) ParseError!void 
         if (phase == .unbounded) {
             return self.dispatch(.bounded, .resume_array_value);
         } else {
-            return ParseError.MissingValue;
+            return error.IncompleteArray;
         }
     }
 }
@@ -440,13 +440,13 @@ fn analyze_array_continue(self: *Self, comptime phase: TokenPhase) ParseError!vo
                 log.info("ARR END", .{});
                 return self.dispatch(phase, .scope_end);
             },
-            else => return ParseError.MissingComma,
+            else => return error.IncompleteArray,
         }
     } else {
         if (phase == .unbounded) {
             return self.dispatch(.bounded, .resume_array_continue);
         } else {
-            return ParseError.MissingComma;
+            return error.IncompleteArray;
         }
     }
 }
@@ -463,7 +463,7 @@ fn resume_array_continue(self: *Self, comptime phase: TokenPhase) ParseError!voi
             log.info("ARR END", .{});
             return self.dispatch(.padded, .scope_end);
         },
-        else => return ParseError.MissingComma,
+        else => return error.IncompleteArray,
     }
 }
 
@@ -511,7 +511,7 @@ inline fn visit_primitive(self: *Self, comptime phase: TokenPhase) ParseError!vo
         'f' => try self.visit_false(phase),
         'n' => try self.visit_null(phase),
         '-', '0'...'9' => try self.visit_number(phase),
-        else => return ParseError.NonValue,
+        else => return error.NonValue,
     }
 }
 

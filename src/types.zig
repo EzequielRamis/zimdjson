@@ -9,6 +9,15 @@ const UNSIGNED = std.builtin.Signedness.unsigned;
 pub const vector = @Vector(Vector.LEN_BYTES, u8);
 pub const array = [Vector.LEN_BYTES]u8;
 
+pub const Element = enum {
+    object,
+    array,
+    number,
+    string,
+    boolean,
+    null,
+};
+
 pub const Vector = struct {
     const Self = @This();
 

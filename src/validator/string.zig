@@ -11,7 +11,7 @@ const Pred = types.Predicate;
 const ArrayList = std.ArrayList;
 const ParseError = shared.ParseError;
 
-pub fn string(src: *TokenIterator, dst: *ArrayList(u8), comptime phase: TokenPhase) !void {
+pub fn string(src: *TokenIterator, dst: *ArrayList(u8), comptime phase: TokenPhase) ParseError!void {
     const len_slot: *align(1) u32 = @ptrCast(dst.addManyAsArrayAssumeCapacity(4));
     const old_len = dst.items.len;
     while (true) {
@@ -66,11 +66,11 @@ pub fn string(src: *TokenIterator, dst: *ArrayList(u8), comptime phase: TokenPha
             const encoded_buffer = dst.addManyAsSliceAssumeCapacity(codepoint_len);
             try utf8Encode(codepoint, codepoint_len, encoded_buffer);
         } else {
-            const escaped_char = shared.Tables.escape_map[escape_char] orelse return ParseError.InvalidEscape;
+            const escaped_char = shared.Tables.escape_map[escape_char] orelse return error.InvalidEscape;
             dst.appendAssumeCapacity(escaped_char);
         }
     }
-    return ParseError.NonTerminatedString;
+    return error.UnclosedString;
 }
 
 fn parse_dword_literal(src: *const [4]u8) ParseError!u16 {
@@ -80,7 +80,7 @@ fn parse_dword_literal(src: *const [4]u8) ParseError!u16 {
     res |= @as(u16, shared.Tables.hex_digit_map[src[2]]) << 4;
     res |= @as(u16, shared.Tables.hex_digit_map[src[3]]);
     if (res == 0xFFFF) {
-        return ParseError.InvalidEscape;
+        return error.InvalidEscape;
     }
     return res;
 }
@@ -90,7 +90,7 @@ fn utf8CodepointSequenceLength(c: u21) ParseError!u3 {
     if (c < 0x800) return @as(u3, 2);
     if (c < 0x10000) return @as(u3, 3);
     if (c < 0x110000) return @as(u3, 4);
-    return ParseError.InvalidEscape;
+    return error.InvalidEscape;
 }
 
 fn utf16IsHighSurrogate(c: u16) bool {
@@ -104,7 +104,7 @@ fn utf16IsLowSurrogate(c: u16) bool {
 inline fn utf16DecodeSurrogatePair(h: u16, l: u16) ParseError!u21 {
     const high_half: u21 = h;
     const low_half = l;
-    if (!utf16IsLowSurrogate(low_half)) return ParseError.InvalidEscape;
+    if (!utf16IsLowSurrogate(low_half)) return error.InvalidEscape;
     return 0x10000 + ((high_half & 0x03ff) << 10) | (low_half & 0x03ff);
 }
 
@@ -121,7 +121,7 @@ inline fn utf8Encode(c: u21, c_len: u3, out: []u8) ParseError!void {
         },
         3 => {
             if (isSurrogateCodepoint(c)) {
-                return ParseError.InvalidEscape;
+                return error.InvalidEscape;
             }
             out[0] = @as(u8, @intCast(0b11100000 | (c >> 12)));
             out[1] = @as(u8, @intCast(0b10000000 | ((c >> 6) & 0b111111)));

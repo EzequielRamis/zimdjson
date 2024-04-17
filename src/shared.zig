@@ -4,24 +4,29 @@ const simd = std.simd;
 const testing = std.testing;
 
 pub const ParseError = error{
+    Depth,
+    Capacity,
+    Empty,
     TrueAtom,
     FalseAtom,
     NullAtom,
     String,
     Number,
     NonValue,
-    Empty,
-    Colon,
-    NonTerminatedString,
-    ObjectBegin,
-    ArrayBegin,
-    MissingValue,
-    MissingKey,
-    MissingComma,
+    UnclosedString,
     InvalidEscape,
     InvalidNumber,
-    MaxDepth,
-} || std.mem.Allocator.Error;
+    IncompleteObject,
+    IncompleteArray,
+} || IOError;
+
+pub const IOError = std.mem.Allocator.Error || std.fs.File.OpenError || std.fs.File.MetadataError || std.fs.File.ReadError;
+
+pub const ConsumeError = error{
+    IncorrectType,
+    OutOfBounds,
+    NoSuchField,
+};
 
 pub const Tables = struct {
     pub const is_structural_or_whitespace: [256]bool = init: {
@@ -128,48 +133,6 @@ pub const Tables = struct {
         }
         break :init res;
     };
-};
-
-pub const ElementTag = enum {
-    true_atom,
-    false_atom,
-    null_atom,
-
-    signed,
-    unsigned,
-    float,
-
-    string_key,
-    string_value,
-
-    object_begin,
-    object_end,
-
-    array_begin,
-    array_end,
-
-    root,
-};
-
-pub const Element = union(ElementTag) {
-    true_atom: void,
-    false_atom: void,
-    null_atom: void,
-
-    signed: i64,
-    unsigned: u64,
-    float: f64,
-
-    string_key: [:0]const u8,
-    string_value: [:0]const u8,
-
-    object_begin: usize,
-    object_end: usize,
-
-    array_begin: usize,
-    array_end: usize,
-
-    root: usize,
 };
 
 pub fn intFromSlice(comptime T: type, str: []const u8) T {

@@ -31,8 +31,7 @@ pub const ParseError = error{
     UnclosedString,
     InvalidEscape,
     InvalidNumber,
-    IncompleteObject,
-    IncompleteArray,
+    InvalidStructure,
 } || IOError;
 
 pub const IOError = std.mem.Allocator.Error || std.fs.File.OpenError || std.fs.File.MetadataError || std.fs.File.ReadError;

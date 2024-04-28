@@ -1,8 +1,10 @@
 const std = @import("std");
 const shared = @import("../shared.zig");
 const types = @import("../types.zig");
-const TokenIterator = @import("../TokenIterator.zig");
-const TokenPhase = TokenIterator.Phase;
+const tokens = @import("../tokens.zig");
+const TokenIterator = tokens.Iterator;
+const TokenPhase = tokens.Phase;
+const TokenOptions = tokens.Options;
 const unicode = std.unicode;
 const vector = types.vector;
 const array = types.array;
@@ -11,11 +13,44 @@ const Pred = types.Predicate;
 const ArrayList = std.ArrayList;
 const ParseError = types.ParseError;
 
-pub fn string(src: *TokenIterator, dst: *ArrayList(u8), comptime phase: TokenPhase) ParseError!void {
-    const len_slot = shared.intFromSlice(u32, dst.addManyAsArrayAssumeCapacity(4));
-    const old_len = dst.items.len;
+pub fn rawString(comptime opt: TokenOptions, src: *TokenIterator(opt), comptime phase: ?TokenPhase) ParseError![]const u8 {
+    const doc = src.indexer.reader.document;
+    const indexes = src.indexer.indexes.items;
+    const ptr = indexes[src.index];
+    var len: usize = 0;
     while (true) {
-        const chunk = src.peek(Vector.LEN_BYTES);
+        const chunk = src.peekSlice(Vector.LEN_BYTES);
+        const slash = Pred(.bytes).from(Vector.SLASH == chunk.*).pack();
+        const quote = Pred(.bytes).from(Vector.QUOTE == chunk.*).pack();
+        const slash_index = @ctz(slash);
+        const quote_index = @ctz(quote);
+        // none of the characters are present in the buffer
+        if (quote_index == slash_index) {
+            _ = src.consume(Vector.LEN_BYTES, phase);
+            len += Vector.LEN_BYTES;
+            continue;
+        }
+        // end of string
+        if (quote_index < slash_index) {
+            _ = src.consume(quote_index, phase);
+            len += quote_index;
+            return doc[ptr..][0..len];
+        }
+        // escape sequence
+        _ = src.consume(slash_index + 1, phase);
+        len += slash_index + 1;
+        const escape_char = src.consume(1, phase)[0];
+        if (escape_char == '\\') {
+            _ = src.consume(1, phase);
+            len += 1;
+        }
+    }
+    return error.UnclosedString;
+}
+
+pub fn string(comptime opt: TokenOptions, src: *TokenIterator(opt), dst: *ArrayList(u8), comptime phase: ?TokenPhase) ParseError!void {
+    while (true) {
+        const chunk = src.peekSlice(Vector.LEN_BYTES);
         const slash = Pred(.bytes).from(Vector.SLASH == chunk.*).pack();
         const quote = Pred(.bytes).from(Vector.QUOTE == chunk.*).pack();
         const slash_index = @ctz(slash);
@@ -23,7 +58,7 @@ pub fn string(src: *TokenIterator, dst: *ArrayList(u8), comptime phase: TokenPha
         // none of the characters are present in the buffer
         if (quote_index == slash_index) {
             dst.appendSliceAssumeCapacity(chunk);
-            _ = src.next(Vector.LEN_BYTES, phase);
+            _ = src.consume(Vector.LEN_BYTES, phase);
             continue;
         }
         // end of string
@@ -31,27 +66,25 @@ pub fn string(src: *TokenIterator, dst: *ArrayList(u8), comptime phase: TokenPha
             const new_len = dst.items.len + quote_index;
             dst.appendSliceAssumeCapacity(chunk);
             dst.items.len = new_len;
-            const str_len = new_len - old_len;
-            len_slot.* = @truncate(str_len);
             dst.appendAssumeCapacity(0);
-            _ = src.nextSlice(quote_index, phase);
+            _ = src.consume(quote_index, phase);
             return;
         }
         // escape sequence
         const new_len = dst.items.len + slash_index;
         dst.appendSliceAssumeCapacity(chunk);
         dst.items.len = new_len;
-        _ = src.nextSlice(slash_index + 1, phase);
-        const escape_char = src.next(1, phase);
+        _ = src.consume(slash_index + 1, phase);
+        const escape_char = src.consume(1, phase)[0];
         if (escape_char == 'u') {
-            const first_literal = src.next(4, phase);
+            const first_literal = src.consume(4, phase)[0..4];
             const first_codepoint = try parse_dword_literal(first_literal);
             const codepoint = res: {
                 if (utf16IsHighSurrogate(first_codepoint)) {
-                    if (shared.intFromSlice(u16, src.peek(2)).* == shared.intFromSlice(u16, "\\u").*) {
-                        _ = src.next(2, phase);
+                    if (shared.intFromSlice(u16, src.peekSlice(2)).* == shared.intFromSlice(u16, "\\u").*) {
+                        _ = src.consume(2, phase);
                         const high_surrogate = first_codepoint;
-                        const second_literal = src.next(4, phase);
+                        const second_literal = src.consume(4, phase)[0..4];
                         const low_surrogate = try parse_dword_literal(second_literal);
                         break :res try utf16DecodeSurrogatePair(high_surrogate, low_surrogate);
                     } else {

@@ -85,6 +85,10 @@ const Element = struct {
         return self.getString() catch null;
     }
 
+    pub fn getNumberOrNull(self: Element) ?Number {
+        return self.getNumber() catch null;
+    }
+
     pub fn getUnsignedOrNull(self: Element) ?u64 {
         return self.getUnsigned() catch null;
     }
@@ -115,6 +119,15 @@ const Element = struct {
         if (!self.isString()) return error.IncorrectType;
         const str_len: *u32 = @ptrCast(self.el.data);
         return self.tape.chars.items[self.el.data + 4 ..][0..str_len.*];
+    }
+
+    pub fn getNumber(self: Element) ConsumeError!Number {
+        return switch (self.getType()) {
+            .unsigned => Number{ .unsigned = try self.getUnsigned() },
+            .signed => Number{ .signed = try self.getSigned() },
+            .float => Number{ .float = try self.getFloat() },
+            else => error.IncorrectType,
+        };
     }
 
     pub fn getUnsigned(self: Element) ConsumeError!u64 {
@@ -233,27 +246,34 @@ const Element = struct {
     }
 };
 
+pub const Number = union(enum) {
+    unsigned: u64,
+    signed: i64,
+    float: f64,
+};
+
 pub const Array = struct {
-    tape: *const Tape,
-    root: *const Tape.Element,
+    root: *const Element,
 
     pub const Iterator = struct {
-        tape: *const Tape,
+        arr: *const Array,
         curr: *const Tape.Element,
-        root: *const Tape.Element,
 
         pub fn next(self: *Iterator) ?Element {
             const val = self.curr;
             const val_info: Tape.Container = @bitCast(val.data);
-            const root_info: Tape.Container = @bitCast(self.root.data);
+
+            const root = self.arr.root.el;
+            const tape = self.arr.root.tape;
+            const root_info: Tape.Container = @bitCast(root.data);
             if (val.tag == .array_end and val.data == root_info.index) return null;
-            defer self.curr = if (val.tag == .array_begin or val.tag == .object_begin) &self.tape[val_info.index] else val + 1;
-            return Element{ .tape = self.tape, .el = val };
+            defer self.curr = if (val.tag == .array_begin or val.tag == .object_begin) &tape[val_info.index] else val + 1;
+            return Element{ .tape = tape, .el = val };
         }
     };
 
-    pub fn iter(self: Object) Iterator {
-        return Iterator{ .tape = self.tape, .root = self.root, .curr = self.root + 1 };
+    pub fn iter(self: Array) Iterator {
+        return Iterator{ .arr = &self, .curr = self.root.el + 1 };
     }
 
     pub fn at(self: Array, index: usize) ConsumeError!Element {
@@ -263,15 +283,18 @@ pub const Array = struct {
         return error.OutOfBounds;
     }
 
+    pub fn isEmpty(self: Array) bool {
+        return self.size() == 0;
+    }
+
     pub fn size(self: Array) u24 {
-        const info: Tape.Container = @bitCast(self.root.data);
+        const info: Tape.Container = @bitCast(self.root.el.data);
         return info.count;
     }
 };
 
 pub const Object = struct {
-    tape: *const Tape,
-    root: *const Tape.Element,
+    root: *const Element,
 
     pub const Field = struct {
         key: []const u8,
@@ -279,35 +302,40 @@ pub const Object = struct {
     };
 
     pub const Iterator = struct {
-        tape: *const Tape,
+        obj: *const Object,
         curr: *const Tape.Element,
-        root: *const Tape.Element,
 
         pub fn next(self: *Iterator) ?Field {
             const key = self.curr;
-            if (key.tag == .object_end and key.data == self.root) return null;
+            if (key.tag == .object_end and key.data == self.obj.root.el) return null;
             const val: Tape.Element = self.curr + 1;
             const val_info: Tape.Container = @bitCast(val.data);
-            defer self.curr = if (val.tag == .array_begin or val.tag == .object_begin) &self.tape[val_info.index] else key + 2;
+
+            const tape = self.obj.root.tape;
+            defer self.curr = if (val.tag == .array_begin or val.tag == .object_begin) &tape[val_info.index] else key + 2;
             return Field{
-                .key = (Element{ .tape = self.tape, .el = key }).getStringOrNull().?,
-                .value = Element{ .tape = self.tape, .el = val },
+                .key = (Element{ .tape = tape, .el = key }).getStringOrNull().?,
+                .value = Element{ .tape = tape, .el = val },
             };
         }
     };
 
     pub fn iter(self: Object) Iterator {
-        return Iterator{ .tape = self.tape, .root = self.root, .curr = self.root + 1 };
+        return Iterator{ .root = &self, .curr = self.root.el + 1 };
     }
 
     pub fn at(self: Object, key: []const u8) ConsumeError!Element {
         var it = self.iter();
-        while (it.next()) |field| if (field.key == key) return field.value;
+        while (it.next()) |field| if (std.mem.eql(u8, field.key, key)) return field.value;
         return error.NoSuchField;
     }
 
+    pub fn isEmpty(self: Object) bool {
+        return self.size() == 0;
+    }
+
     pub fn size(self: Object) u24 {
-        const container: Tape.Container = @bitCast(self.root.data);
+        const container: Tape.Container = @bitCast(self.root.el.data);
         return container.count;
     }
 };

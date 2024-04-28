@@ -10,7 +10,6 @@ pub const MASKS_PER_ITER = if (arch.isX86()) 2 else 1;
 const BLOCK_SIZE = Mask.LEN_BITS * MASKS_PER_ITER;
 
 pub const block = [BLOCK_SIZE]u8;
-const blank_buffer = [_]u8{' '} ** BLOCK_SIZE;
 
 index: usize = undefined,
 last_partial_index: usize = undefined,
@@ -27,7 +26,7 @@ pub fn read(self: *Self, doc: []const u8) void {
     self.index = 0;
     self.document = doc;
     self.last_partial_index = last_partial_index;
-    @memcpy(&self.buffer, &blank_buffer);
+    @memset(self.buffer, ' ');
     @memcpy(self.buffer[0..remaining], self.document[self.last_partial_index..]);
 }
 

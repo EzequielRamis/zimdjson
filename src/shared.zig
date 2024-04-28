@@ -3,6 +3,9 @@ const builtin = @import("builtin");
 const simd = std.simd;
 const testing = std.testing;
 
+pub const DEFAULT_MAX_DEPTH = 1024;
+pub const DEFAULT_MAX_CAPACITY = 2 ** 32;
+
 pub const Tables = struct {
     pub const is_structural_or_whitespace: [256]bool = init: {
         var res: [256]bool = undefined;

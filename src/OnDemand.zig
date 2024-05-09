@@ -107,51 +107,55 @@ const Document = struct {
     }
 };
 
-pub const Element = struct {
+const Element = struct {
     document: *const Document,
     depth: u32,
     index: u32,
 
-    pub fn getArray(self: Element) OnDemandError!Array {
-        const p = self.document.tokens.peek();
-        if (p == '[') {
-            self.document.depth += 1;
-            return Array{ .root = &self };
-        }
-        return error.IncorrectType;
-    }
-
     pub fn getObject(self: Element) OnDemandError!Object {
-        const p = self.document.tokens.peek();
-        if (p == '{') {
+        if (self.isObject()) {
             self.document.depth += 1;
             return Object{ .root = &self };
         }
         return error.IncorrectType;
     }
 
+    pub fn getArray(self: Element) OnDemandError!Array {
+        if (self.isArray()) {
+            self.document.depth += 1;
+            return Array{ .root = &self };
+        }
+        return error.IncorrectType;
+    }
+
     pub fn getRawString(self: Element) OnDemandError![]const u8 {
-        if (try self.getType() != .string) return error.IncorrectType;
-        const doc = self.document;
-        _ = doc.tokens.consume(1, null);
-        return try validator.rawString(&doc.tokens, null);
+        if (self.isString()) {
+            const doc = self.document;
+            _ = doc.tokens.consume(1, null);
+            return try validator.rawString(&doc.tokens, null);
+        }
+        return error.IncorrectType;
     }
 
     pub fn getString(self: Element) OnDemandError![]const u8 {
-        if (try self.getType() != .string) return error.IncorrectType;
-        const doc = self.document;
-        _ = doc.tokens.consume(1, null);
-        const next_str = doc.chars.items.len;
-        try validator.string(&doc.tokens, &doc.chars, null);
-        const next_len = self.chars.items.len - 1 - next_str;
-        return doc.chars.items[next_str..][0..next_len];
+        if (self.isString()) {
+            const doc = self.document;
+            _ = doc.tokens.consume(1, null);
+            const next_str = doc.chars.items.len;
+            try validator.string(&doc.tokens, &doc.chars, null);
+            const next_len = self.chars.items.len - 1 - next_str;
+            return doc.chars.items[next_str..][0..next_len];
+        }
+        return error.IncorrectType;
     }
 
     pub fn getBool(self: Element) OnDemandError!bool {
-        if (try self.getType() != .boolean) return error.IncorrectType;
-        const p = self.document.tokens.peek();
-        if (p == 't') return validator.true_atom(&self.document.tokens, null);
-        return validator.false_atom(&self.document.tokens, null);
+        if (self.isBool()) {
+            const p = self.document.tokens.peek();
+            if (p == 't') return validator.atomTrue(TOKEN_OPTIONS, &self.document.tokens, null);
+            return validator.atomFalse(TOKEN_OPTIONS, &self.document.tokens, null);
+        }
+        return error.IncorrectType;
     }
 
     pub fn getType(self: Element) ParseError!types.Element {
@@ -165,6 +169,32 @@ pub const Element = struct {
             '-', '0'...'9' => .number,
             else => error.NonValue,
         };
+    }
+
+    fn isObject(self: Element) bool {
+        return self.document.tokens.peek() == '{';
+    }
+
+    fn isArray(self: Element) bool {
+        return self.document.tokens.peek() == '[';
+    }
+
+    fn isString(self: Element) bool {
+        return self.document.tokens.peek() == '"';
+    }
+
+    fn isBool(self: Element) bool {
+        return switch (self.document.tokens.peek()) {
+            't', 'f' => true,
+            else => false,
+        };
+    }
+
+    pub fn isNull(self: Element) ParseError!void {
+        if (self.document.tokens.peek() == 'n') {
+            return validator.atomNull(TOKEN_OPTIONS, &self.document.tokens, null);
+        }
+        return error.IncorrectType;
     }
 
     pub fn consume(self: Element) ParseError!void {
@@ -234,9 +264,27 @@ pub const Element = struct {
 
         if (actual_depth != wanted_depth) return error.InvalidStructure;
     }
+
+    pub fn get(self: Element, comptime ty: type) OnDemandError!ty {
+        const info = @typeInfo(ty);
+        switch (info) {
+            .Bool => return self.getBool(),
+            .Int => |_| {},
+            .Float => {},
+            .Optional => |c| return if (self.isNull()) null else self.get(c.child),
+            .Struct, .Enum, .Union => |s| {
+                for (s.decls) |decl| {
+                    if (std.mem.eql(u8, decl.name, "deserialize"))
+                        return ty.deserialize(self);
+                }
+                @compileError("type '" ++ @typeName(ty) ++ "' has no method 'deserialize'");
+            },
+            else => @compileError("can not deserialize to type '" ++ @typeName(ty) ++ "'"),
+        }
+    }
 };
 
-pub const Array = struct {
+const Array = struct {
     root: *const Element,
 
     pub fn next(self: Array) ParseError!?Element {
@@ -294,7 +342,7 @@ pub const Array = struct {
     }
 };
 
-pub const Object = struct {
+const Object = struct {
     root: *const Element,
 
     pub const Field = struct {

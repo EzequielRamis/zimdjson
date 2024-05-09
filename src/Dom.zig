@@ -8,6 +8,12 @@ const ParseError = types.ParseError;
 const ConsumeError = types.ConsumeError;
 const assert = std.debug.assert;
 
+pub const Number = union(enum) {
+    unsigned: u64,
+    signed: i64,
+    float: f64,
+};
+
 pub const Parser = struct {
     indexer: Indexer,
     tape: Tape,
@@ -72,38 +78,6 @@ pub const Parser = struct {
 const Element = struct {
     tape: *Tape,
     el: *const Tape.Element,
-
-    pub fn getObjectOrNull(self: Element) ?Object {
-        return self.getObject() catch null;
-    }
-
-    pub fn getArrayOrNull(self: Element) ?Array {
-        return self.getArray() catch null;
-    }
-
-    pub fn getStringOrNull(self: Element) ?[]const u8 {
-        return self.getString() catch null;
-    }
-
-    pub fn getNumberOrNull(self: Element) ?Number {
-        return self.getNumber() catch null;
-    }
-
-    pub fn getUnsignedOrNull(self: Element) ?u64 {
-        return self.getUnsigned() catch null;
-    }
-
-    pub fn getSignedOrNull(self: Element) ?i64 {
-        return self.getSigned() catch null;
-    }
-
-    pub fn getFloatOrNull(self: Element) ?f64 {
-        return self.getFloat() catch null;
-    }
-
-    pub fn getBoolOrNull(self: Element) ?bool {
-        return self.getBool() catch null;
-    }
 
     pub fn getObject(self: Element) ConsumeError!Object {
         if (!self.isObject()) return error.IncorrectType;
@@ -201,10 +175,6 @@ const Element = struct {
         return self.el.tag == .null;
     }
 
-    pub fn getOrNull(self: Element, comptime ty: type) ?ty {
-        return self.get(ty) catch null;
-    }
-
     pub fn get(self: Element, comptime ty: type) !ty {
         const info = @typeInfo(ty);
         switch (info) {
@@ -240,19 +210,13 @@ const Element = struct {
     }
 
     pub fn size(self: Element) ConsumeError!u24 {
-        if (self.getObjectOrNull()) |obj| return obj.size();
-        if (self.getArrayOrNull()) |arr| return arr.size();
+        if (self.getObject()) |obj| return obj.size();
+        if (self.getArray()) |arr| return arr.size();
         return error.IncorrectType;
     }
 };
 
-pub const Number = union(enum) {
-    unsigned: u64,
-    signed: i64,
-    float: f64,
-};
-
-pub const Array = struct {
+const Array = struct {
     root: *const Element,
 
     pub const Iterator = struct {
@@ -293,7 +257,7 @@ pub const Array = struct {
     }
 };
 
-pub const Object = struct {
+const Object = struct {
     root: *const Element,
 
     pub const Field = struct {
@@ -314,7 +278,7 @@ pub const Object = struct {
             const tape = self.obj.root.tape;
             defer self.curr = if (val.tag == .array_begin or val.tag == .object_begin) &tape[val_info.index] else key + 2;
             return Field{
-                .key = (Element{ .tape = tape, .el = key }).getStringOrNull().?,
+                .key = (Element{ .tape = tape, .el = key }).getString() catch unreachable,
                 .value = Element{ .tape = tape, .el = val },
             };
         }

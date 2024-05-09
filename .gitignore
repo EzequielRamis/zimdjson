@@ -6,3 +6,4 @@ zig-out
 exe
 .gdb_history
 .ccls-cache
+tests/jsonchecker.zig

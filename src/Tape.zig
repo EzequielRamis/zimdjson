@@ -517,21 +517,21 @@ inline fn visit_number(_: *Self, comptime _: TokenPhase) ParseError!void {
 
 inline fn visit_true(self: *Self, comptime phase: TokenPhase) ParseError!void {
     const t = &self.tokens;
-    try validator.true_atom(t, phase);
+    try validator.atomTrue(t, phase);
     self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = .true }));
     log.info("TRU", .{});
 }
 
 inline fn visit_false(self: *Self, comptime phase: TokenPhase) ParseError!void {
     const t = &self.tokens;
-    try validator.false_atom(t, phase);
+    try validator.atomFalse(t, phase);
     self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = .false }));
     log.info("FAL", .{});
 }
 
 inline fn visit_null(self: *Self, comptime phase: TokenPhase) ParseError!void {
     const t = &self.tokens;
-    try validator.null_atom(t, phase);
+    try validator.atomNull(t, phase);
     self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = .null }));
     log.info("NUL", .{});
 }

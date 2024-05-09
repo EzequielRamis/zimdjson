@@ -1,54 +1,88 @@
 const std = @import("std");
 
-// Although this function looks imperative, note that its job is to
-// declaratively construct a build graph that will be executed by an external
-// runner.
-pub fn build(b: *std.Build) void {
-    // Standard target options allows the person running `zig build` to choose
-    // what target to build for. Here we do not override the defaults, which
-    // means any target is allowed, and the default is native. Other options
-    // for restricting supported target set are available.
-    const target = b.standardTargetOptions(.{});
+pub fn build(b: *std.Build) !void {
+    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+    const alloc = gpa.allocator();
 
-    // Standard optimization options allow the person running `zig build` to select
-    // between Debug, ReleaseSafe, ReleaseFast, and ReleaseSmall. Here we do not
-    // set a preferred release mode, allowing the user to decide how to optimize.
+    const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const exe = b.addExecutable(.{
-        .name = "zimdjson",
-        .root_source_file = .{ .path = "src/main.zig" },
-        .target = target,
-        .optimize = optimize,
-    });
+    const zimdjson = b.addModule("zimdjson", .{ .root_source_file = b.path("src/main.zig") });
 
-    exe.linkLibC();
+    // -- Testing
+    const test_step = b.step("test", "Run all unit tests");
 
-    // This declares intent for the executable to be installed into the
-    // standard location when the user invokes the "install" step (the default
-    // step when running `zig build`).
-    b.installArtifact(exe);
-
-    // This *creates* a Run step in the build graph, to be executed when another
-    // step is evaluated that depends on it. The next line below will establish
-    // such a dependency.
-    const run_cmd = b.addRunArtifact(exe);
-
-    // By making the run step depend on the install step, it will be run from the
-    // installation directory rather than directly from within the cache directory.
-    // This is not necessary, however, if the application depends on other installed
-    // files, this ensures they will be present and in the expected location.
-    run_cmd.step.dependOn(b.getInstallStep());
-
-    // This allows the user to pass arguments to the application in the build
-    // command itself, like this: `zig build run -- arg1 arg2 etc`
-    if (b.args) |args| {
-        run_cmd.addArgs(args);
+    var lazy_data: ?*std.Build.Dependency = null;
+    var args = try std.process.argsWithAllocator(alloc);
+    defer args.deinit();
+    while (args.next()) |a| {
+        if (std.mem.eql(u8, a[0..4], "test")) lazy_data = b.lazyDependency("simdjson-data", .{});
     }
 
-    // This creates a build step. It will be visible in the `zig build --help` menu,
-    // and can be selected like this: `zig build run`
-    // This will evaluate the `run` step rather than the default, which is "install".
-    const run_step = b.step("run", "Run the app");
-    run_step.dependOn(&run_cmd.step);
+    const jsonchecker_gen = b.addExecutable(.{
+        .name = "generate_jsonchecker",
+        .root_source_file = b.path("tests/jsonchecker_gen.zig"),
+        .target = b.host,
+    });
+    if (lazy_data) |dep| addSimdjsonDataPath(b, &jsonchecker_gen.root_module, dep);
+    const run_jsonchecker_gen = b.addRunArtifact(jsonchecker_gen);
+    _ = run_jsonchecker_gen.addArg(b.path("tests/jsonchecker.zig").getPath(b));
+
+    inline for ([_]struct { step: []const u8, name: []const u8, path: []const u8 }{
+        // .{ .step = "test-dom", .name = "DOM", .path = "tests/dom.zig" },
+        // .{ .step = "test-ondemand", .name = "On Demand", .path = "tests/ondemand.zig" },
+        .{ .step = "test-jsonchecker", .name = "Json Checker", .path = "tests/jsonchecker.zig" },
+    }) |t| {
+        const unit_test = b.addTest(.{
+            .root_source_file = b.path(t.path),
+            .target = target,
+            .optimize = optimize,
+        });
+        unit_test.root_module.addImport("zimdjson", zimdjson);
+        if (lazy_data) |dep| addSimdjsonDataPath(b, &unit_test.root_module, dep);
+        const run_test = b.addRunArtifact(unit_test);
+        const run_test_step = b.step(t.step, "Run " ++ t.name ++ " unit tests");
+        run_test_step.dependOn(&run_test.step);
+        test_step.dependOn(&run_test.step);
+        if (std.mem.eql(u8, t.step, "test-jsonchecker")) {
+            run_test.step.dependOn(&unit_test.step);
+        }
+    }
+    // --
+
+    // -- Benchmarking
+    // const simdjson_dep = b.dependency("simdjson", .{});
+    // const simdjson_cpp =
+    //     simdjson_dep.path("singleheader/simdjson.cpp");
+    // const simdjson_h = simdjson_dep.path("singleheader/simdjson.h");
+    // const simdjson = b.addStaticLibrary(.{
+    //     .name = "simdjson",
+    //     .target = target,
+    //     .optimize = .ReleaseFast,
+    // });
+    // simdjson.linkLibCpp();
+    // simdjson.addCSourceFile(.{ .file = simdjson_cpp });
+    // simdjson.installHeader(simdjson_h, "simdjson.h");
+    // const bench_step = b.step("bench", "Benchmark against simdjson");
+    // bench_step.dependOn(&simdjson.step);
+    // --
+
+    // -- C API
+    // const lib = b.addStaticLibrary(.{
+    //     .name = "zimdjson",
+    //     .root_source_file = b.path("src/c.zig"),
+    //     .target = target,
+    //     .optimize = optimize,
+    // });
+    // b.installArtifact(lib);
+    // --
+}
+
+fn addSimdjsonDataPath(b: *std.Build, module: *std.Build.Module, dep: *std.Build.Dependency) void {
+    module.addAnonymousImport("simdjson-data", .{
+        .root_source_file = b.addWriteFiles().add(
+            "simdjson-data.txt",
+            dep.path(".").getPath(b),
+        ),
+    });
 }

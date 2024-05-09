@@ -1,0 +1,17 @@
+.{
+    .name = "zimdjson",
+    .version = "0.0.0",
+    .dependencies = .{
+        .simdjson = .{
+            .url = "git+https://github.com/simdjson/simdjson.git#v3.8.0",
+            .hash = "1220e7a37d6c11ba4bf0e96702e302c314c6a389c3579496592bf8e8805e4427d1ed",
+            .lazy = true,
+        },
+        .@"simdjson-data" = .{
+            .url = "git+https://github.com/simdjson/simdjson-data.git#a5b13babe65c1bba7186b41b43d4cbdc20a5c470",
+            .hash = "1220b889265da3e0bc471a53803786ad6a4f4ee23fbdf9af683af467e995136bd1f4",
+            .lazy = true,
+        },
+    },
+    .paths = .{""},
+}

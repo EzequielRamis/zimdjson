@@ -29,7 +29,7 @@ pub fn Iterator(comptime options: Options) type {
         remaining: if (copy_bounded) ArrayList(u8) else [Vector.LEN_BYTES * 2]u8 = undefined,
         remaining_ptr: if (copy_bounded) void else [*]const u8 = undefined,
         bounded_index: usize = undefined,
-        index: usize = undefined,
+        index: usize = 0,
         curr_slice: [*]const u8 = undefined,
 
         pub fn init() Self {
@@ -42,23 +42,22 @@ pub fn Iterator(comptime options: Options) type {
             const red_zone_bound = doc.len -| Vector.LEN_BYTES;
             var bounded_prefix: usize = indexer.indexes.items.len - 1;
             var rev = std.mem.reverseIterator(indexes);
-            while (rev.next()) |prefix| : (bounded_prefix -= 1) {
+            while (rev.next()) |prefix| : (bounded_prefix -|= 1) {
                 if (prefix <= red_zone_bound) break;
             }
             const remaining_ptr = doc[red_zone_bound..].ptr;
             self.indexer = indexer;
-            self.index = std.math.maxInt(usize);
             self.bounded_index = bounded_prefix;
             self.curr_slice = doc.ptr;
             if (copy_bounded) {
                 const bounded_index = indexes[bounded_prefix];
                 const remaining_len = doc.len - doc[bounded_index];
                 self.remaining.ensureTotalCapacity(remaining_len + Vector.LEN_BYTES);
-                @memset(self.remaining, ' ');
+                @memset(&self.remaining, ' ');
                 @memcpy(self.remaining[0..remaining_len], doc[bounded_index..]);
             } else {
                 self.remaining_ptr = remaining_ptr;
-                @memset(self.remaining, ' ');
+                @memset(&self.remaining, ' ');
                 @memcpy(self.remaining[0 .. doc.len - red_zone_bound], doc[red_zone_bound..doc.len]);
             }
         }
@@ -69,10 +68,10 @@ pub fn Iterator(comptime options: Options) type {
             }
             const indexes = self.indexer.indexes.items;
             const document = self.indexer.reader.document;
-            self.index +%= 1;
-            switch (phase) {
+            switch (phase.?) {
                 .unbounded => {
                     if (self.index < self.bounded_index) {
+                        defer self.index +%= 1;
                         const i = indexes[self.index];
                         self.curr_slice = document[i..].ptr;
                         return document[i];
@@ -81,6 +80,7 @@ pub fn Iterator(comptime options: Options) type {
                 },
                 .bounded => {
                     if (self.index == self.bounded_index) {
+                        defer self.index +%= 1;
                         const i = indexes[self.index];
                         self.curr_slice = if (copy_bounded) self.remaining.items else document[i..].ptr;
                         return document[i];
@@ -89,6 +89,7 @@ pub fn Iterator(comptime options: Options) type {
                 },
                 .padded => {
                     if (self.index < indexes.len) {
+                        defer self.index +%= 1;
                         const i = indexes[self.index];
                         const b = indexes[self.bounded_index];
 
@@ -99,14 +100,9 @@ pub fn Iterator(comptime options: Options) type {
 
                         return document[i];
                     }
-                    self.index = indexes.len;
                     return null;
                 },
             }
-        }
-
-        pub fn empty(self: Self) bool {
-            return self.indexer.indexes.items.len == 0;
         }
 
         pub fn consume(self: *Self, n: usize, comptime phase: ?Phase) []const u8 {
@@ -114,13 +110,7 @@ pub fn Iterator(comptime options: Options) type {
                 self.shouldSwapSource();
             }
             defer self.curr_slice = self.curr_slice[n..];
-            return self.peekSlice(n);
-        }
-
-        pub fn peek(self: Self) u8 {
-            const doc = self.indexer.reader.document;
-            const indexes = self.indexer.indexes.items;
-            return doc[indexes[indexes.len - 1]];
+            return self.curr_slice[0..n];
         }
 
         pub fn peekNext(self: Self) ?u8 {
@@ -129,10 +119,6 @@ pub fn Iterator(comptime options: Options) type {
             const p = self.index + 1;
             if (p < indexes.len) return doc[indexes[p]];
             return null;
-        }
-
-        pub fn peekSlice(self: Self, n: usize) []const u8 {
-            return self.curr_slice[0..n];
         }
 
         pub fn backTo(self: *Self, index: usize) void {

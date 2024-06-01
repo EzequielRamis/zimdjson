@@ -32,8 +32,8 @@ pub const Parser = struct {
     pub fn deinit(self: *Parser) void {
         self.indexer.deinit();
         self.tape.deinit();
-        if (self.loaded_buffer) {
-            self.allocator.free(self.loaded_buffer);
+        if (self.loaded_buffer) |buf| {
+            self.allocator.free(buf);
             self.loaded_buffer = null;
         }
     }

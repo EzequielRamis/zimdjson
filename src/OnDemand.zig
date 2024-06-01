@@ -96,8 +96,9 @@ const Document = struct {
     }
 
     pub fn build(self: *Document, indexer: Indexer) ParseError!Element {
+        if (indexer.indexes.items.len == 0) return error.Empty;
         var t = &self.tokens;
-        t.analyze(indexer);
+        try t.analyze(indexer);
         try self.chars.ensureTotalCapacity(self.tokens.indexer.reader.document.len);
         self.chars.shrinkRetainingCapacity(0);
 
@@ -124,15 +125,6 @@ const Element = struct {
         if (self.isArray()) {
             self.document.depth += 1;
             return Array{ .root = &self };
-        }
-        return error.IncorrectType;
-    }
-
-    pub fn getRawString(self: Element) OnDemandError![]const u8 {
-        if (self.isString()) {
-            const doc = self.document;
-            _ = doc.tokens.consume(1, null);
-            return try validator.rawString(&doc.tokens, null);
         }
         return error.IncorrectType;
     }
@@ -357,12 +349,6 @@ const Object = struct {
             return doc.chars.items[next_str..][0..next_len];
         }
 
-        pub fn rawKey(self: Field) OnDemandError![]const u8 {
-            const doc = self.root.document;
-            _ = doc.tokens.consume(1, null);
-            return try validator.rawString(&doc.tokens, null);
-        }
-
         pub fn value(self: Field) OnDemandError!Element {
             const doc = self.root.document;
             const colon = doc.tokens.next(null) orelse return error.InvalidStructure;
@@ -427,11 +413,6 @@ const Object = struct {
 
     pub fn at(self: Object, key: []const u8) OnDemandError!Element {
         while (try self.next()) |field| if (std.mem.eql(u8, try field.key(), key)) return field.value() else field.consume();
-        return error.NoSuchField;
-    }
-
-    pub fn atRaw(self: Object, raw_key: []const u8) OnDemandError!Element {
-        while (try self.next()) |field| if (std.mem.eql(u8, try field.rawKey(), raw_key)) return field.value() else field.consume();
         return error.NoSuchField;
     }
 

@@ -45,7 +45,7 @@ pub fn build(b: *std.Build) !void {
         run_test_step.dependOn(&run_test.step);
         test_step.dependOn(&run_test.step);
         if (std.mem.eql(u8, t.step, "test-jsonchecker")) {
-            run_test.step.dependOn(&unit_test.step);
+            run_test.step.dependOn(&run_jsonchecker_gen.step);
         }
     }
     // --

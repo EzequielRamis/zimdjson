@@ -12,45 +12,16 @@ const Vector = types.Vector;
 const Pred = types.Predicate;
 const ArrayList = std.ArrayList;
 const ParseError = types.ParseError;
+const intFromSlice = shared.intFromSlice;
 
-pub fn rawString(comptime opt: TokenOptions, src: *TokenIterator(opt), comptime phase: ?TokenPhase) ParseError![]const u8 {
-    const doc = src.indexer.reader.document;
-    const indexes = src.indexer.indexes.items;
-    const ptr = indexes[src.index];
-    var len: usize = 0;
+pub fn string(
+    comptime opt: TokenOptions,
+    src: *TokenIterator(opt),
+    dst: *ArrayList(u8),
+    comptime phase: ?TokenPhase,
+) ParseError!void {
     while (true) {
-        const chunk = src.peekSlice(Vector.LEN_BYTES);
-        const slash = Pred(.bytes).from(Vector.SLASH == chunk.*).pack();
-        const quote = Pred(.bytes).from(Vector.QUOTE == chunk.*).pack();
-        const slash_index = @ctz(slash);
-        const quote_index = @ctz(quote);
-        // none of the characters are present in the buffer
-        if (quote_index == slash_index) {
-            _ = src.consume(Vector.LEN_BYTES, phase);
-            len += Vector.LEN_BYTES;
-            continue;
-        }
-        // end of string
-        if (quote_index < slash_index) {
-            _ = src.consume(quote_index, phase);
-            len += quote_index;
-            return doc[ptr..][0..len];
-        }
-        // escape sequence
-        _ = src.consume(slash_index + 1, phase);
-        len += slash_index + 1;
-        const escape_char = src.consume(1, phase)[0];
-        if (escape_char == '\\') {
-            _ = src.consume(1, phase);
-            len += 1;
-        }
-    }
-    return error.UnclosedString;
-}
-
-pub fn string(comptime opt: TokenOptions, src: *TokenIterator(opt), dst: *ArrayList(u8), comptime phase: ?TokenPhase) ParseError!void {
-    while (true) {
-        const chunk = src.peekSlice(Vector.LEN_BYTES);
+        const chunk = src.curr_slice[0..Vector.LEN_BYTES];
         const slash = Pred(.bytes).from(Vector.SLASH == chunk.*).pack();
         const quote = Pred(.bytes).from(Vector.QUOTE == chunk.*).pack();
         const slash_index = @ctz(slash);
@@ -77,102 +48,140 @@ pub fn string(comptime opt: TokenOptions, src: *TokenIterator(opt), dst: *ArrayL
         _ = src.consume(slash_index + 1, phase);
         const escape_char = src.consume(1, phase)[0];
         if (escape_char == 'u') {
-            const first_literal = src.consume(4, phase)[0..4];
-            const first_codepoint = try parse_dword_literal(first_literal);
-            const codepoint = res: {
-                if (utf16IsHighSurrogate(first_codepoint)) {
-                    if (shared.intFromSlice(u16, src.peekSlice(2)).* == shared.intFromSlice(u16, "\\u").*) {
-                        _ = src.consume(2, phase);
-                        const high_surrogate = first_codepoint;
-                        const second_literal = src.consume(4, phase)[0..4];
-                        const low_surrogate = try parse_dword_literal(second_literal);
-                        break :res try utf16DecodeSurrogatePair(high_surrogate, low_surrogate);
-                    } else {
-                        break :res unicode.replacement_character;
-                    }
-                } else if (utf16IsLowSurrogate(first_codepoint)) {
-                    break :res unicode.replacement_character;
-                }
-                break :res first_codepoint;
-            };
-            const codepoint_len = try utf8CodepointSequenceLength(codepoint);
-            const encoded_buffer = dst.addManyAsSliceAssumeCapacity(codepoint_len);
-            try utf8Encode(codepoint, codepoint_len, encoded_buffer);
+            const codepoint = try handleUnicodeCodepoint(opt, src, phase);
+            try utf8Encode(codepoint, dst);
         } else {
-            const escaped_char = shared.Tables.escape_map[escape_char] orelse return error.InvalidEscape;
-            dst.appendAssumeCapacity(escaped_char);
+            const escaped = escape_map[escape_char];
+            if (escaped == 0) return error.InvalidEscape;
+            dst.appendAssumeCapacity(escaped);
         }
     }
     return error.UnclosedString;
 }
 
-fn parse_dword_literal(src: *const [4]u8) ParseError!u16 {
-    var res: u16 = 0;
-    res |= @as(u16, shared.Tables.hex_digit_map[src[0]]) << 12;
-    res |= @as(u16, shared.Tables.hex_digit_map[src[1]]) << 8;
-    res |= @as(u16, shared.Tables.hex_digit_map[src[2]]) << 4;
-    res |= @as(u16, shared.Tables.hex_digit_map[src[3]]);
-    if (res == 0xFFFF) {
+fn handleUnicodeCodepoint(
+    comptime opt: TokenOptions,
+    src: *TokenIterator(opt),
+    comptime phase: ?TokenPhase,
+) ParseError!u32 {
+    const first_literal = src.consume(4, phase)[0..4];
+    const first_codepoint = parseHexDword(first_literal);
+    if (utf16IsHighSurrogate(first_codepoint)) {
+        if (intFromSlice(u16, src.curr_slice[0..2]).* == intFromSlice(u16, "\\u").*) {
+            _ = src.consume(2, phase);
+            const high_surrogate = first_codepoint;
+            const second_literal = src.consume(4, phase)[0..4];
+            const low_surrogate = parseHexDword(second_literal);
+            if (!utf16IsLowSurrogate(low_surrogate)) return error.InvalidEscape;
+            const h = high_surrogate;
+            const l = low_surrogate;
+            return 0x10000 + ((h & 0x03ff) << 10) | (l & 0x03ff);
+        } else {
+            return error.InvalidEscape;
+        }
+    } else if (utf16IsLowSurrogate(first_codepoint)) {
         return error.InvalidEscape;
     }
-    return res;
+    return first_codepoint;
 }
 
-fn utf8CodepointSequenceLength(c: u21) ParseError!u3 {
-    if (c < 0x80) return @as(u3, 1);
-    if (c < 0x800) return @as(u3, 2);
-    if (c < 0x10000) return @as(u3, 3);
-    if (c < 0x110000) return @as(u3, 4);
+fn utf8Encode(c: u32, dst: *ArrayList(u8)) ParseError!void {
+    if (c < 0x80) {
+        dst.appendAssumeCapacity(@as(u8, @intCast(c)));
+        return;
+    }
+    if (c < 0x800) {
+        const buf = dst.addManyAsArrayAssumeCapacity(2);
+        buf[0] = @as(u8, @intCast(0b11000000 | (c >> 6)));
+        buf[1] = @as(u8, @intCast(0b10000000 | (c & 0b111111)));
+        return;
+    }
+    if (c < 0x10000) {
+        const buf = dst.addManyAsArrayAssumeCapacity(3);
+        buf[0] = @as(u8, @intCast(0b11100000 | (c >> 12)));
+        buf[1] = @as(u8, @intCast(0b10000000 | ((c >> 6) & 0b111111)));
+        buf[2] = @as(u8, @intCast(0b10000000 | (c & 0b111111)));
+        return;
+    }
+    if (c < 0x110000) {
+        const buf = dst.addManyAsArrayAssumeCapacity(4);
+        buf[0] = @as(u8, @intCast(0b11110000 | (c >> 18)));
+        buf[1] = @as(u8, @intCast(0b10000000 | ((c >> 12) & 0b111111)));
+        buf[2] = @as(u8, @intCast(0b10000000 | ((c >> 6) & 0b111111)));
+        buf[3] = @as(u8, @intCast(0b10000000 | (c & 0b111111)));
+        return;
+    }
     return error.InvalidEscape;
 }
 
-fn utf16IsHighSurrogate(c: u16) bool {
-    return c & ~@as(u16, 0x03ff) == 0xd800;
+fn utf16IsHighSurrogate(c: u32) bool {
+    return c & ~@as(u32, 0x03ff) == 0xd800;
 }
 
-fn utf16IsLowSurrogate(c: u16) bool {
-    return c & ~@as(u16, 0x03ff) == 0xdc00;
+fn utf16IsLowSurrogate(c: u32) bool {
+    return c & ~@as(u32, 0x03ff) == 0xdc00;
 }
 
-inline fn utf16DecodeSurrogatePair(h: u16, l: u16) ParseError!u21 {
-    const high_half: u21 = h;
-    const low_half = l;
-    if (!utf16IsLowSurrogate(low_half)) return error.InvalidEscape;
-    return 0x10000 + ((high_half & 0x03ff) << 10) | (low_half & 0x03ff);
+fn parseHexDword(src: *const [4]u8) u32 {
+    const v1 = hex_digit_map[@as(usize, src[0]) + 624];
+    const v2 = hex_digit_map[@as(usize, src[1]) + 416];
+    const v3 = hex_digit_map[@as(usize, src[2]) + 208];
+    const v4 = hex_digit_map[@as(usize, src[3])];
+    return v1 | v2 | v3 | v4;
 }
 
-inline fn utf8Encode(c: u21, c_len: u3, out: []u8) ParseError!void {
-    switch (c_len) {
-        // The pattern for each is the same
-        // - Increasing the initial shift by 6 each time
-        // - Each time after the first shorten the shifted
-        //   value to a max of 0b111111 (63)
-        1 => out[0] = @as(u8, @intCast(c)), // Can just do 0 + codepoint for initial range
-        2 => {
-            out[0] = @as(u8, @intCast(0b11000000 | (c >> 6)));
-            out[1] = @as(u8, @intCast(0b10000000 | (c & 0b111111)));
-        },
-        3 => {
-            if (isSurrogateCodepoint(c)) {
-                return error.InvalidEscape;
-            }
-            out[0] = @as(u8, @intCast(0b11100000 | (c >> 12)));
-            out[1] = @as(u8, @intCast(0b10000000 | ((c >> 6) & 0b111111)));
-            out[2] = @as(u8, @intCast(0b10000000 | (c & 0b111111)));
-        },
-        4 => {
-            out[0] = @as(u8, @intCast(0b11110000 | (c >> 18)));
-            out[1] = @as(u8, @intCast(0b10000000 | ((c >> 12) & 0b111111)));
-            out[2] = @as(u8, @intCast(0b10000000 | ((c >> 6) & 0b111111)));
-            out[3] = @as(u8, @intCast(0b10000000 | (c & 0b111111)));
-        },
-        else => unreachable,
+const hex_err_code: u32 = 0xFFFFFFFF;
+const hex_digit_map: [0xD0 * 3 + 256]u32 = init: {
+    @setEvalBranchQuota(5000);
+    const prefix = [_]u32{hex_err_code} ** 0x30;
+    var chunk1: [256 - 0x30]u32 = undefined;
+    var chunk2: [256 - 0x30]u32 = undefined;
+    var chunk3: [256 - 0x30]u32 = undefined;
+    var chunk4: [256 - 0x30]u32 = undefined;
+    for (&chunk1, 0x30..) |*c, i| {
+        c.* = if (charToDigit(i)) |d| d else hex_err_code;
     }
-}
+    for (&chunk2, 0x30..) |*c, i| {
+        c.* = if (charToDigit(i)) |d| d << 4 else hex_err_code;
+    }
+    for (&chunk3, 0x30..) |*c, i| {
+        c.* = if (charToDigit(i)) |d| d << 8 else hex_err_code;
+    }
+    for (&chunk4, 0x30..) |*c, i| {
+        c.* = if (charToDigit(i)) |d| d << 12 else hex_err_code;
+    }
+    break :init prefix ++ chunk1 ++ chunk2 ++ chunk3 ++ chunk4;
+};
 
-fn isSurrogateCodepoint(c: u21) bool {
+fn charToDigit(c: u8) ?u32 {
     return switch (c) {
-        0xD800...0xDFFF => true,
-        else => false,
+        '0'...'9' => c - 0x30,
+        else => switch (c | 0x20) {
+            'a' => 10,
+            'b' => 11,
+            'c' => 12,
+            'd' => 13,
+            'e' => 14,
+            'f' => 15,
+            else => null,
+        },
     };
 }
+
+const escape_map: [256]u8 = init: {
+    var res: [256]u8 = undefined;
+    for (0..res.len) |i| {
+        res[i] = switch (i) {
+            '"' => 0x22,
+            '\\' => 0x5c,
+            '/' => 0x2f,
+            'b' => 0x08,
+            'f' => 0x0c,
+            'n' => 0x0a,
+            'r' => 0x0d,
+            't' => 0x09,
+            else => 0,
+        };
+    }
+    break :init res;
+};

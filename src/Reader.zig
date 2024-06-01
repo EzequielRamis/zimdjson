@@ -26,7 +26,7 @@ pub fn read(self: *Self, doc: []const u8) void {
     self.index = 0;
     self.document = doc;
     self.last_partial_index = last_partial_index;
-    @memset(self.buffer, ' ');
+    @memset(&self.buffer, ' ');
     @memcpy(self.buffer[0..remaining], self.document[self.last_partial_index..]);
 }
 

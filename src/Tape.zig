@@ -88,13 +88,13 @@ pub fn deinit(self: *Self) void {
 }
 
 pub fn build(self: *Self, indexer: Indexer) ParseError!void {
+    if (indexer.indexes.items.len == 0) return error.Empty;
     var t = &self.tokens;
     t.analyze(indexer);
-    if (t.empty()) return error.Empty;
 
-    try self.chars.ensureTotalCapacity(self.tokens.indexer.reader.document.len);
-    try self.stack.ensureTotalCapacity(self.max_depth);
-    try self.parsed.ensureTotalCapacity(self.tokens.indexer.indexes.items.len);
+    try self.chars.ensureTotalCapacity(self.tokens.indexer.reader.document.len * 2 + types.Vector.LEN_BYTES);
+    try self.stack.ensureTotalCapacity(self.max_depth * 2 + types.Vector.LEN_BYTES);
+    try self.parsed.ensureTotalCapacity(self.tokens.indexer.indexes.items.len * 2 + types.Vector.LEN_BYTES);
     self.chars.shrinkRetainingCapacity(0);
     self.stack.shrinkRetainingCapacity(0);
     self.parsed.shrinkRetainingCapacity(0);
@@ -102,11 +102,25 @@ pub fn build(self: *Self, indexer: Indexer) ParseError!void {
     self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = Tag.root }));
     self.stack.appendAssumeCapacity(@bitCast(Element{ .tag = Tag.root }));
 
-    switch (t.next(.unbounded).?) {
-        '{' => try self.analyze_object_begin(.unbounded),
-        '[' => try self.analyze_array_begin(.unbounded),
-        else => |token| try self.visit_primitive(.bounded, token),
+    if (t.next(.unbounded)) |r| {
+        return switch (r) {
+            '{' => self.analyze_object_begin(.unbounded),
+            '[' => self.analyze_array_begin(.unbounded),
+            else => self.visit_root_primitive(.bounded, r),
+        };
+    } else if (t.next(.bounded)) |r| {
+        return switch (r) {
+            '{' => self.analyze_object_begin(.padded),
+            '[' => self.analyze_array_begin(.padded),
+            else => self.visit_root_primitive(.bounded, r),
+        };
     }
+    const r = t.next(.padded).?;
+    return switch (r) {
+        '{' => self.analyze_object_begin(.padded),
+        '[' => self.analyze_array_begin(.padded),
+        else => self.visit_root_primitive(.padded, r),
+    };
 }
 
 inline fn dispatch(self: *Self, comptime phase: TokenPhase, next_state: State) ParseError!void {
@@ -195,7 +209,7 @@ fn analyze_object_field(self: *Self, comptime phase: TokenPhase) ParseError!void
                     '{' => return self.dispatch(phase, .object_begin),
                     '[' => return self.dispatch(phase, .array_begin),
                     else => {
-                        try self.visit_primitive(phase);
+                        try self.visit_primitive(phase, r);
                         return self.dispatch(phase, .object_continue);
                     },
                 }
@@ -226,7 +240,7 @@ fn resume_object_field_colon(self: *Self, comptime phase: TokenPhase) ParseError
                 '{' => return self.dispatch(.padded, .object_begin),
                 '[' => return self.dispatch(.padded, .array_begin),
                 else => {
-                    try self.visit_primitive(.padded);
+                    try self.visit_primitive(.padded, t);
                     return self.dispatch(.padded, .object_continue);
                 },
             }
@@ -243,8 +257,8 @@ fn resume_object_field_value(self: *Self, comptime phase: TokenPhase) ParseError
     switch (self.tokens.next(phase).?) {
         '{' => return self.dispatch(.padded, .object_begin),
         '[' => return self.dispatch(.padded, .array_begin),
-        else => {
-            try self.visit_primitive(.padded);
+        else => |t| {
+            try self.visit_primitive(.padded, t);
             return self.dispatch(.padded, .object_continue);
         },
     }
@@ -347,7 +361,7 @@ fn analyze_array_begin(self: *Self, comptime phase: TokenPhase) ParseError!void 
             '{' => return self.dispatch(phase, .object_begin),
             '[' => return self.dispatch(phase, .array_begin),
             else => {
-                try self.visit_primitive(phase);
+                try self.visit_primitive(phase, t);
                 return self.dispatch(phase, .array_continue);
             },
         }
@@ -372,7 +386,7 @@ fn resume_array_begin(self: *Self, comptime phase: TokenPhase) ParseError!void {
         '{' => return self.dispatch(.padded, .object_begin),
         '[' => return self.dispatch(.padded, .array_begin),
         else => {
-            try self.visit_primitive(.padded);
+            try self.visit_primitive(.padded, t);
             return self.dispatch(.padded, .array_continue);
         },
     }
@@ -386,7 +400,7 @@ fn analyze_array_value(self: *Self, comptime phase: TokenPhase) ParseError!void 
             '{' => return self.dispatch(phase, .object_begin),
             '[' => return self.dispatch(phase, .array_begin),
             else => {
-                try self.visit_primitive(phase);
+                try self.visit_primitive(phase, t);
                 return self.dispatch(phase, .array_continue);
             },
         }
@@ -405,8 +419,8 @@ fn resume_array_value(self: *Self, comptime phase: TokenPhase) ParseError!void {
     switch (self.tokens.next(phase).?) {
         '{' => return self.dispatch(.padded, .object_begin),
         '[' => return self.dispatch(.padded, .array_begin),
-        else => {
-            try self.visit_primitive(.padded);
+        else => |t| {
+            try self.visit_primitive(.padded, t);
             return self.dispatch(.padded, .array_continue);
         },
     }
@@ -470,6 +484,7 @@ fn analyze_scope_end(self: *Self, comptime phase: TokenPhase) ParseError!void {
         .array_begin => return self.dispatch(phase, .array_continue),
         .object_begin => return self.dispatch(phase, .object_continue),
         .root => {
+            if (self.tokens.next(phase)) |_| return error.InvalidStructure;
             const root: *Element = @ptrCast(&self.parsed.items[parent.data]);
             self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = Tag.root, .data = root.data }));
             root.data = @truncate(self.parsed.items.len - 1);
@@ -483,6 +498,16 @@ fn increment_container_count(self: *Self) void {
     var container: Container = @bitCast(scope.data);
     container.count +|= 1;
     scope.data = @bitCast(container);
+}
+
+fn visit_root_primitive(self: *Self, comptime phase: TokenPhase, token: u8) ParseError!void {
+    assert(phase != .unbounded);
+    if (self.tokens.indexer.indexes.items.len > 1) return error.InvalidStructure;
+    try self.visit_primitive(phase, token);
+    const parent: Element = @bitCast(self.stack.getLast());
+    const root: *Element = @ptrCast(&self.parsed.items[parent.data]);
+    self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = Tag.root, .data = root.data }));
+    root.data = @truncate(self.parsed.items.len - 1);
 }
 
 inline fn visit_primitive(self: *Self, comptime phase: TokenPhase, token: u8) ParseError!void {
@@ -501,37 +526,39 @@ inline fn visit_string(self: *Self, comptime phase: TokenPhase) ParseError!void 
     _ = t.consume(1, phase);
     const len_slot = shared.intFromSlice(u32, self.chars.addManyAsArrayAssumeCapacity(4));
     const next_str = self.chars.items.len;
-    try validator.string(t, &self.chars, phase);
+    try validator.string(TOKEN_OPTIONS, t, &self.chars, phase);
     const next_len = self.chars.items.len - 1 - next_str;
     len_slot.* = @truncate(self.chars.items.len - 1 - next_str);
     self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = .string, .data = @truncate(next_str) }));
     log.info("STR {s}", .{self.chars.items[next_str..][0..next_len]});
 }
 
-inline fn visit_number(_: *Self, comptime _: TokenPhase) ParseError!void {
+inline fn visit_number(self: *Self, comptime _: TokenPhase) ParseError!void {
     // var t = &self.tokens;
     // const number = try validator.number(tokens);
     // try self.parsed.append(.{ .float = number });
+    self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = .unsigned }));
+    self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = .unsigned }));
     log.info("NUM", .{});
 }
 
 inline fn visit_true(self: *Self, comptime phase: TokenPhase) ParseError!void {
     const t = &self.tokens;
-    try validator.atomTrue(t, phase);
+    try validator.atomTrue(TOKEN_OPTIONS, t, phase);
     self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = .true }));
     log.info("TRU", .{});
 }
 
 inline fn visit_false(self: *Self, comptime phase: TokenPhase) ParseError!void {
     const t = &self.tokens;
-    try validator.atomFalse(t, phase);
+    try validator.atomFalse(TOKEN_OPTIONS, t, phase);
     self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = .false }));
     log.info("FAL", .{});
 }
 
 inline fn visit_null(self: *Self, comptime phase: TokenPhase) ParseError!void {
     const t = &self.tokens;
-    try validator.atomNull(t, phase);
+    try validator.atomNull(TOKEN_OPTIONS, t, phase);
     self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = .null }));
     log.info("NUL", .{});
 }

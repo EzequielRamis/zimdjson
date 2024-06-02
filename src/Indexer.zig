@@ -1,12 +1,11 @@
 const std = @import("std");
-const builtin = @import("builtin");
 const shared = @import("shared.zig");
 const types = @import("types.zig");
 const intr = @import("intrinsics.zig");
 const debug = @import("debug.zig");
+const unicode = @import("unicode.zig");
 const Reader = @import("Reader.zig");
 const ArrayList = std.ArrayList;
-const cpu = builtin.cpu;
 const simd = std.simd;
 const vector = types.vector;
 const Vector = types.Vector;
@@ -32,13 +31,16 @@ debug: if (debug.is_set) Debug else void = if (debug.is_set) .{} else {},
 prev_scalar: umask = 0,
 prev_inside_string: umask = 0,
 next_is_escaped: umask = 0,
+unescaped_error: umask = 0,
 reader: Reader,
 indexes: ArrayList(u32),
+utf8_checker: unicode.Checker,
 
 pub fn init(allocator: Allocator) Self {
     return Self{
         .reader = Reader.init(),
         .indexes = ArrayList(u32).init(allocator),
+        .utf8_checker = unicode.Checker.init(),
     };
 }
 
@@ -86,16 +88,18 @@ pub fn index(self: *Self, document: []const u8) ParseError!void {
             else => unreachable,
         }
     }
-    if (self.prev_inside_string != 0) {
-        return error.UnclosedString;
-    }
+    if (self.unescaped_error != 0) return error.String;
+    if (!self.utf8_checker.succeeded()) return error.InvalidEncoding;
+    if (self.prev_inside_string != 0) return error.UnclosedString;
 }
 
 fn identify(self: *Self, block: *const [Mask.LEN_BITS]u8) umask {
+    self.utf8_checker.check(block);
     var structural: umask = 0;
     var whitespace: umask = 0;
     var quotes: umask = 0;
     var backslash: umask = 0;
+    var unescaped: umask = 0;
     for (0..Mask.COMPUTED_VECTORS) |i| {
         const offset = i * Vector.LEN_BYTES;
         const vec = Vector.fromPtr(block[offset..][0..Vector.LEN_BYTES]).to(.bytes);
@@ -108,10 +112,12 @@ fn identify(self: *Self, block: *const [Mask.LEN_BITS]u8) umask {
         const s = ~Pred(.bytes).from(desired_values & structural_table == Vector.ZER).pack();
         const q = Pred(.bytes).from(vec == Vector.QUOTE).pack();
         const b = Pred(.bytes).from(vec == Vector.SLASH).pack();
+        const u = Pred(.bytes).from(vec < @as(vector, @splat(0x20))).pack();
         whitespace |= @as(umask, w) << @truncate(offset);
         structural |= @as(umask, s) << @truncate(offset);
         quotes |= @as(umask, q) << @truncate(offset);
         backslash |= @as(umask, b) << @truncate(offset);
+        unescaped |= @as(umask, u) << @truncate(offset);
     }
     const unescaped_quotes = quotes & ~self.escapedChars(backslash);
     const clmul_ranges = intr.clmul(unescaped_quotes);
@@ -131,6 +137,7 @@ fn identify(self: *Self, block: *const [Mask.LEN_BITS]u8) umask {
 
     self.prev_inside_string = @bitCast(@as(imask, @bitCast(quoted_ranges)) >> Mask.LAST_BIT);
     self.prev_scalar = scalar >> Mask.LAST_BIT;
+    self.unescaped_error |= unescaped & quoted_ranges;
 
     defer self.debug.expectIdentified(block, structural_start);
     return structural_start;

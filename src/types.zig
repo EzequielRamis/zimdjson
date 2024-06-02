@@ -29,6 +29,7 @@ pub const ParseError = error{
     Number,
     NonValue,
     UnclosedString,
+    InvalidEncoding,
     InvalidEscape,
     InvalidNumber,
     InvalidStructure,

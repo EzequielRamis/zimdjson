@@ -23,14 +23,16 @@ pub fn main() !void {
     try checker_zig_content.appendSlice(
         \\//! This file is auto-generated with `zig build test-jsonchecker`
         \\const std = @import("std");
-        \\const Dom = @import("zimdjson").Dom;
+        \\const DOM = @import("zimdjson").DOM;
         \\const SIMDJSON_DATA = @embedFile("simdjson-data");
         \\
         \\
     );
 
     const checker_path = SIMDJSON_DATA ++ "/jsonchecker";
-    const checker_dir = try std.fs.openDirAbsolute(checker_path, .{ .iterate = true });
+    var checker_dir = try std.fs.openDirAbsolute(checker_path, .{ .iterate = true });
+    defer checker_dir.close();
+
     var checker_it = checker_dir.iterate();
     while (try checker_it.next()) |file| {
         if (file.kind == .file) {
@@ -58,7 +60,7 @@ pub fn main() !void {
         try checker_zig_content.appendSlice(
             \\  var gpa = std.heap.GeneralPurposeAllocator(.{}){};
             \\  const allocator = gpa.allocator();
-            \\  var parser = Dom.Parser.init(allocator);
+            \\  var parser = DOM.Parser.init(allocator);
             \\  defer parser.deinit();
             \\
         );

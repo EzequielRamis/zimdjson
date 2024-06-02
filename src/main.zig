@@ -1,2 +1,2 @@
-pub const Dom = @import("Dom.zig");
+pub const DOM = @import("DOM.zig");
 pub const OnDemand = @import("OnDemand.zig");

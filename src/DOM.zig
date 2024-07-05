@@ -1,5 +1,5 @@
 const std = @import("std");
-const shared = @import("shared.zig");
+const common = @import("common.zig");
 const types = @import("types.zig");
 const Indexer = @import("Indexer.zig");
 const Tape = @import("Tape.zig");

@@ -1,5 +1,5 @@
 const std = @import("std");
-const shared = @import("../shared.zig");
+const common = @import("../common.zig");
 const types = @import("../types.zig");
 const tokens = @import("../tokens.zig");
 const TokenIterator = tokens.Iterator;
@@ -12,16 +12,16 @@ const Vector = types.Vector;
 const Pred = types.Predicate;
 const ArrayList = std.ArrayList;
 const ParseError = types.ParseError;
-const intFromSlice = shared.intFromSlice;
+const intFromSlice = common.intFromSlice;
 
 pub fn string(
     comptime opt: TokenOptions,
     src: *TokenIterator(opt),
     dst: *ArrayList(u8),
-    comptime phase: ?TokenPhase,
+    comptime phase: TokenPhase,
 ) ParseError!void {
     while (true) {
-        const chunk = src.curr_slice[0..Vector.LEN_BYTES];
+        const chunk = src.ptr[0..Vector.LEN_BYTES];
         const slash = Pred(.bytes).from(Vector.SLASH == chunk.*).pack();
         const quote = Pred(.bytes).from(Vector.QUOTE == chunk.*).pack();
         const slash_index = @ctz(slash);
@@ -62,12 +62,12 @@ pub fn string(
 fn handleUnicodeCodepoint(
     comptime opt: TokenOptions,
     src: *TokenIterator(opt),
-    comptime phase: ?TokenPhase,
+    comptime phase: TokenPhase,
 ) ParseError!u32 {
     const first_literal = src.consume(4, phase)[0..4];
     const first_codepoint = parseHexDword(first_literal);
     if (utf16IsHighSurrogate(first_codepoint)) {
-        if (intFromSlice(u16, src.curr_slice[0..2]).* == intFromSlice(u16, "\\u").*) {
+        if (intFromSlice(u16, src.ptr[0..2]).* == intFromSlice(u16, "\\u").*) {
             _ = src.consume(2, phase);
             const high_surrogate = first_codepoint;
             const second_literal = src.consume(4, phase)[0..4];

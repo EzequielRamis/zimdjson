@@ -1,5 +1,5 @@
 const std = @import("std");
-const shared = @import("shared.zig");
+const common = @import("common.zig");
 const types = @import("types.zig");
 const intr = @import("intrinsics.zig");
 const debug = @import("debug.zig");
@@ -105,8 +105,8 @@ fn identify(self: *Self, block: *const [Mask.LEN_BITS]u8) umask {
         const vec = Vector.fromPtr(block[offset..][0..Vector.LEN_BYTES]).to(.bytes);
         const low_nibbles = vec & @as(vector, @splat(0xF));
         const high_nibbles = vec >> @as(vector, @splat(4));
-        const low_lookup_values = intr.lut(ln_table, low_nibbles);
-        const high_lookup_values = intr.lut(hn_table, high_nibbles);
+        const low_lookup_values = intr.lookupTable(ln_table, low_nibbles);
+        const high_lookup_values = intr.lookupTable(hn_table, high_nibbles);
         const desired_values = low_lookup_values & high_lookup_values;
         const w = ~Pred(.bytes).from(desired_values & whitespace_table == Vector.ZER).pack();
         const s = ~Pred(.bytes).from(desired_values & structural_table == Vector.ZER).pack();
@@ -185,7 +185,7 @@ const Debug = struct {
             // Structural chars
             var expected_structural: umask = 0;
             for (block, 0..) |c, i| {
-                if (shared.Tables.is_structural[c]) {
+                if (common.Tables.is_structural[c]) {
                     expected_structural |= @as(umask, 1) << @truncate(i);
                 }
             }
@@ -193,18 +193,18 @@ const Debug = struct {
             // Scalars
             for (block, 0..) |c, i| {
                 if (i == 0) {
-                    if (!self.prev_scalar and shared.Tables.is_structural_or_whitespace_negated[c]) {
+                    if (!self.prev_scalar and common.Tables.is_structural_or_whitespace_negated[c]) {
                         expected_structural |= @as(umask, 1) << @truncate(i);
                     }
                     continue;
                 }
                 const prev = block[i - 1];
-                if ((prev == '"' or shared.Tables.is_structural_or_whitespace[prev]) and !shared.Tables.is_whitespace[c]) {
+                if ((prev == '"' or common.Tables.is_structural_or_whitespace[prev]) and !common.Tables.is_whitespace[c]) {
                     expected_structural |= @as(umask, 1) << @truncate(i);
                     continue;
                 }
             }
-            self.prev_scalar = shared.Tables.is_structural_or_whitespace_negated[block[block.len - 1]];
+            self.prev_scalar = common.Tables.is_structural_or_whitespace_negated[block[block.len - 1]];
 
             // Escaped chars
             var expected_escaped: umask = 0;
@@ -234,7 +234,7 @@ const Debug = struct {
             var printable_block: [Mask.LEN_BITS]u8 = undefined;
             @memcpy(&printable_block, block);
             for (&printable_block) |*c| {
-                if (shared.Tables.is_whitespace[c.*] and c.* != ' ') {
+                if (common.Tables.is_whitespace[c.*] and c.* != ' ') {
                     c.* = '~';
                 }
             }

@@ -1,5 +1,5 @@
 const std = @import("std");
-const shared = @import("shared.zig");
+const common = @import("common.zig");
 const types = @import("types.zig");
 const intr = @import("intrinsics.zig");
 const Reader = @import("Reader.zig");
@@ -142,7 +142,7 @@ pub const Checker = struct {
                                            // 11111___ 1000____
         const OVERLONG_4     :u8 = 1 << 6; // 11110000 1000____
 
-        const byte_1_high = intr.lut(simd.repeat(Vector.LEN_BYTES, [_]u8{
+        const byte_1_high = intr.lookupTable(simd.repeat(Vector.LEN_BYTES, [_]u8{
             // 0_______ ________ <ASCII in byte 1>
             TOO_LONG, TOO_LONG, TOO_LONG, TOO_LONG,
             TOO_LONG, TOO_LONG, TOO_LONG, TOO_LONG,
@@ -160,7 +160,7 @@ pub const Checker = struct {
 
         const CARRY = TOO_SHORT | TOO_LONG | TWO_CONTS; // These all have ____ in byte 1 .
 
-        const byte_1_low = intr.lut(simd.repeat(Vector.LEN_BYTES, [_]u8{
+        const byte_1_low = intr.lookupTable(simd.repeat(Vector.LEN_BYTES, [_]u8{
             // ____0000 ________
             CARRY | OVERLONG_3 | OVERLONG_2 | OVERLONG_4,
             // ____0001 ________
@@ -189,7 +189,7 @@ pub const Checker = struct {
             CARRY | TOO_LARGE | TOO_LARGE_1000,
         }), prev1 & @as(vector, @splat(0x0F)));
 
-        const byte_2_high = intr.lut(simd.repeat(Vector.LEN_BYTES, [_]u8{
+        const byte_2_high = intr.lookupTable(simd.repeat(Vector.LEN_BYTES, [_]u8{
             // ________ 0_______ <ASCII in byte 2>
             TOO_SHORT, TOO_SHORT, TOO_SHORT, TOO_SHORT,
             TOO_SHORT, TOO_SHORT, TOO_SHORT, TOO_SHORT,

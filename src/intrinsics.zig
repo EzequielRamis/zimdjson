@@ -22,14 +22,7 @@ pub fn clmul(quotes_mask: umask) umask {
     }
 }
 
-pub fn lut(table: vector, nibbles: vector) vector {
-    // TODO:
-    // [] arm
-    // [] aarch64
-    // [] ppc
-    // [] mips
-    // [] riscv
-    // [] wasm
+pub fn lookupTable(table: vector, nibbles: vector) vector {
     switch (cpu.arch) {
         .x86_64 => {
             return asm (
@@ -39,16 +32,48 @@ pub fn lut(table: vector, nibbles: vector) vector {
                   [nibbles] "v" (nibbles),
             );
         },
-        else => {
-            @compileLog("Table lookup instruction not supported on this target.");
-            var fallback: vector = @splat(0);
-            for (0..Vector.LEN_BYTES) |i| {
-                const n = nibbles[i];
-                if (n < Vector.LEN_BYTES) {
-                    fallback[i] = table[n];
-                }
-            }
-            return fallback;
+        else => unreachable,
+    }
+}
+
+pub fn pack(vec1: @Vector(4, u32), vec2: @Vector(4, u32)) @Vector(8, u16) {
+    switch (cpu.arch) {
+        .x86_64 => {
+            return asm (
+                \\vpackuswb %[vec1], %[vec2], %[ret]
+                : [ret] "=v" (-> @Vector(8, u16)),
+                : [vec1] "v" (vec1),
+                  [vec2] "v" (vec2),
+            );
         },
+        else => unreachable,
+    }
+}
+
+pub fn mulSaturatingAdd(vec1: @Vector(16, u8), vec2: @Vector(16, u8)) @Vector(8, u16) {
+    switch (builtin.cpu.arch) {
+        .x86_64 => {
+            return asm (
+                \\vpmaddubsw %[vec1], %[vec2], %[ret]
+                : [ret] "=v" (-> @Vector(8, u16)),
+                : [vec1] "v" (vec1),
+                  [vec2] "v" (vec2),
+            );
+        },
+        else => unreachable,
+    }
+}
+
+pub fn mulWrappingAdd(vec1: @Vector(8, u16), vec2: @Vector(8, u16)) @Vector(4, u32) {
+    switch (builtin.cpu.arch) {
+        .x86_64 => {
+            return asm (
+                \\vpmaddubsw %[vec1], %[vec2], %[ret]
+                : [ret] "=v" (-> @Vector(4, u32)),
+                : [vec1] "v" (vec1),
+                  [vec2] "v" (vec2),
+            );
+        },
+        else => unreachable,
     }
 }

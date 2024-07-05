@@ -1,378 +1,475 @@
 const std = @import("std");
-const shared = @import("../shared.zig");
+const builtin = @import("builtin");
+const common = @import("../common.zig");
 const types = @import("../types.zig");
-const math = std.math;
-const vector = shared.vector;
-const vector_size = shared.vector_size;
-const mask = shared.mask;
+const intr = @import("../intrinsics.zig");
+const tokens = @import("../tokens.zig");
+const debug = @import("../debug.zig");
+const BigInt = @import("../BigInt.zig");
+const TokenOptions = tokens.Options;
+const TokenIterator = tokens.Iterator;
+const TokenPhase = tokens.Phase;
+const ArrayList = std.ArrayList;
 const ParseError = types.ParseError;
-// const parseFloat = @import("./number/parse_float.zig").parseFloat;
+const cpu = builtin.cpu;
+const intFromSlice = common.intFromSlice;
+const assert = std.debug.assert;
 
-const Result = union(enum) {
-    signed: i64,
+const Number = union(enum) {
     unsigned: u64,
+    signed: i64,
     float: f64,
 };
 
-// pub fn number(src: []const u8) !Result {
-
-//     //
-//     // Check for minus sign
-//     //
-//     const negative: u1 = @intFromBool(src[0] == '-');
-//     var p = src[negative..];
-
-//     //
-//     // Parse the integer part.
-//     //
-//     // PERF NOTE: we don't use is_made_of_eight_digits_fast because large integers like 123456789 are rare
-//     const start_digits = p;
-//     var i: usize = 0;
-//     while (parse_digit(p[0], &i)) {
-//         p = p[1..];
-//     }
-
-//     // If there were no digits, or if the integer starts with 0 and has more than one digit, it's an error.
-//     // Optimization note: size_t is expected to be unsigned.
-//     const digit_count: u64 = p.ptr - start_digits.ptr;
-//     if (digit_count == 0 or ('0' == *start_digits and digit_count > 1)) {
-//         return ParseError.InvalidNumber;
-//     }
-
-//     //
-//     // Handle floats if there is a . or e (or both)
-//     //
-//     var exponent: i64 = 0;
-//     var is_float: bool = false;
-//     if ('.' == *p) {
-//         is_float = true;
-//         p = p[1..];
-//         parse_decimal_after_separator(src, p, i, exponent);
-//         digit_count = p.len - start_digits; // used later to guard against overflows
-//     }
-//     if (('e' == *p) || ('E' == *p)) {
-//         is_float = true;
-//         p = p[1..];
-//         parse_exponent(src, p, exponent);
-//     }
-//     if (is_float) {
-//         const dirty_end: bool = shared.Tables.is_structural_or_whitespace_negated[p[0]];
-//         write_float(src, negative, i, start_digits, digit_count, exponent, writer);
-//         if (dirty_end) {
-//             return ParseError.InvalidNumber;
-//         }
-//         return;
-//     }
-
-//     // The longest negative 64-bit number is 19 digits.
-//     // The longest positive 64-bit number is 20 digits.
-//     // We do it this way so we don't trigger this branch unless we must.
-//     const longest_digit_count: usize = if (negative) 19 else 20;
-//     if (digit_count > longest_digit_count) {
-//         return ParseError.InvalidNumber;
-//     }
-//     if (digit_count == longest_digit_count) {
-//         if (negative) {
-//             // Anything negative above INT64_MAX+1 is invalid
-//             if (i > uint64_t(INT64_MAX) + 1) {
-//                 return ParseError.InvalidNumber;
-//             }
-//             WRITE_INTEGER(~i + 1, src, writer);
-//             if (is_not_structural_or_whitespace(*p)) {
-//                 return ParseError.InvalidNumber;
-//             }
-//             return;
-//             // Positive overflow check:
-//             // - A 20 digit number starting with 2-9 is overflow, because 18,446,744,073,709,551,615 is the
-//             //   biggest uint64_t.
-//             // - A 20 digit number starting with 1 is overflow if it is less than INT64_MAX.
-//             //   If we got here, it's a 20 digit number starting with the digit "1".
-//             // - If a 20 digit number starting with 1 overflowed (i*10+digit), the result will be smaller
-//             //   than 1,553,255,926,290,448,384.
-//             // - That is smaller than the smallest possible 20-digit number the user could write:
-//             //   10,000,000,000,000,000,000.
-//             // - Therefore, if the number is positive and lower than that, it's overflow.
-//             // - The value we are looking at is less than or equal to INT64_MAX.
-//             //
-//         } else if (src[0] != uint8_t('1') or i <= uint64_t(INT64_MAX)) {
-//             return ParseError.InvalidNumber;
-//         }
-//     }
-
-//     // Write unsigned if it doesn't fit in a signed integer.
-//     if (i > uint64_t(INT64_MAX)) {
-//         WRITE_UNSIGNED(i, src, writer);
-//     } else {
-//         WRITE_INTEGER(if (negative) (~i + 1) else i, src, writer);
-//     }
-//     if (is_not_structural_or_whitespace(*p)) {
-//         return ParseError.InvalidNumber;
-//     }
-//     return;
-// }
-
-// pub fn number(src: []const u8) !f64 {
-// const is_negative = @intFromBool(src[0] == '-');
-// if (src.len < is_negative) {
-//     return ParseError.InvalidNumber;
-// }
-// var i: usize = is_negative;
-// while (src.len > i and src[i] -% '0' <= 9) {
-//     i += 1;
-// }
-// if (src.len > i and src[i] == '.') {
-//     i += 1;
-// }
-// while (src.len > i and src[i] -% '0' <= 9) {
-//     i += 1;
-// }
-// if (src.len > i and src[i] | 0x20 == 'e') {
-//     i += 1;
-// }
-// while (src.len > i and src[i] -% '0' <= 9) {
-//     i += 1;
-// }
-// if (src.len > i and shared.Tables.is_structural_or_whitespace_negated[src[i]]) {
-//     return ParseError.InvalidNumber;
-// }
-// const number_slice = src[0..i];
-// const literal = parseNumberLiteral(src);
-// switch (literal) {
-//     .int => {
-//         if (is_negative == 1) {
-//             return Result{ .signed = try std.fmt.parseInt(i64, number_slice, 10) };
-//         } else {
-//             return Result{ .unsigned = try std.fmt.parseUnsigned(u64, number_slice, 10) };
-//         }
-//     },
-//     .float => return Result{ .float = try std.fmt.parseFloat(f64, number_slice) },
-//     .big_int => return Result{ .float = try std.fmt.parseFloat(f64, number_slice) },
-//     .failure => return ParseError.InvalidNumber,
-// }
-// return parseFloat(src);
-// }
-
-// pub fn number(src: []const u8) !NumberResult {
-//     const is_negative = @intFromBool(src[0] == '-');
-//     if (src.len < is_negative) {
-//         return ParseError.InvalidNumber;
-//     }
-//     var p: u64 = 0;
-//     var i: usize = 0;
-//     const int_iter = src[is_negative..];
-//     const first_digit = int_iter[i];
-//     while (shared.Tables.digit_map[int_iter[i]]) |d| : (i += 1) {
-//         p = p *| 10 +| d;
-//     }
-//     const digit_count = i;
-//     if (digit_count == 0 or first_digit == '0') {
-//         return ParseError.InvalidNumber;
-//     }
-//     return NumberResult{ .unsigned = i };
-// }
-
-// fn is_made_of_digits(chars: [vector_size]u8) bool {
-//     return @as(mask, @bitCast(@as(vector, chars) -% @as(vector, @splat('0')) <= @as(vector, @splat(9)))) != 0;
-// }
-
-// fn parse_vector_digits(chars: [vector_size]u8) u64 {
-//     const digits = @as(vector, chars) -% @as(vector, @splat('0'));
-//     const tricks = @log2(vector_size);
-//     inline for (1..tricks + 1) |i| {
-//         const multipliers = std.simd.repeat(vector_size, [_]std.meta.Int(std.builtin.Signedness.unsigned, 8 * i){ 1, 10 * i });
-//     }
-// }
-
-// fn nearest_float(w: u64, q: i64) f64 {
-//     if (w == 0 or q < -342) {
-//         return 0.0;
-//     }
-//     if (q > 308) {
-//         return math.inf(f64);
-//     }
-//     const i = @clz(w);
-//     const w2 = 2 ** i * w;
-//     const z = undefined;
-//     _ = w2;
-//     var m = z & 0x003f_ffff_ffff_ffff;
-//     const u = @divFloor(z, 2 ** 127);
-//     const p = @divFloor(217706 * q, 2 ** 16) + 63 - i + u;
-//     if (p <= -1022 - 64) {
-//         return 0.0;
-//     }
-//     if (p <= -1022) {
-//         const s = -1022 - p + 1;
-//         m = @divFloor(m, 2 ** s);
-//         m += m & 1;
-//         m = @divFloor(m, 2);
-//         return m * 2 ** p * 2 ** -52;
-//     }
-//     if (z % 2 ** 64 <= 1 and m & 1 == 1 and @divFloor(m, 2) & 1 == 0 and -4 <= q and q <= 23 and @divFloor(z, 2 ** 64)) {}
-// }
-
-const powers_of_5: [342 + 308]u128 = res: {
-    var p: [342 + 308]u128 = undefined;
-    var i: usize = 0;
-
-    for (-342..-27) |q| {
-        const power_5 = 5 ** -q;
-        var z = 0;
-        while (1 << z < power_5) {
-            z += 1;
-        }
-        const b = 2 * z + 2 * 64;
-        const c = @divFloor(2 ** b, power_5 + 1);
-        while (c >= 1 << 128) {
-            c = @divFloor(c, 2);
-        }
-
-        p[i] = c;
-        i += 1;
-    }
-
-    for (-27..0) |q| {
-        const power_5 = 5 ** -q;
-        var z = 0;
-        while (1 << z < power_5) {
-            z += 1;
-        }
-        const b = z + 127;
-        const c = @divFloor(2 ** b, power_5 + 1);
-
-        p[i] = c;
-        i += 1;
-    }
-
-    for (0..308 + 1) |q| {
-        var power_5 = 5 ** q;
-        while (power_5 < 1 << 127) {
-            power_5 *= 2;
-        }
-        while (power_5 >= 1 << 128) {
-            power_5 = @divFloor(power_5, 2);
-        }
-
-        p[i] = power_5;
-        i += 1;
-    }
-
-    break :res p;
+const NumberParsingOptions = struct {
+    can_be_float: bool = true,
+    can_be_signed: bool = true,
 };
 
-fn parse_digit(c: u8, i: *usize) bool {
-    const digit = c - '0';
-    if (digit > 9) {
-        return false;
-    }
-    // PERF NOTE: multiplication by 10 is cheaper than arbitrary integer multiplication
-    i = 10 *% i +% digit; // might overflow, we will handle the overflow later
-    return true;
-}
+pub fn Parser(comptime opt: TokenOptions) type {
+    return struct {
+        pub fn parse(comptime phase: TokenPhase, src: *TokenIterator(opt)) ParseError!Number {
+            const parsed_number = try ParsedNumberString(.{}).parse(opt, phase, src);
+            if (parsed_number.is_float) return .{
+                .float = computeFloat(parsed_number),
+            };
 
-fn parse_decimal_after_separator(_: []const u8, p: *[]const u8, i: *u64, exponent: *i64) !void {
-    // we continue with the fiction that we have an integer. If the
-    // floating point number is representable as x * 10^z for some integer
-    // z that fits in 53 bits, then we will be able to convert back the
-    // the integer into a float in a lossless manner.
-    const first_after_period = p[0];
-
-    // this helps if we have lots of decimals!
-    // this turns out to be frequent enough.
-    if (is_made_of_eight_digits_fast(p)) {
-        i = i * 100000000 + parse_eight_digits_unrolled(p);
-        p += 8;
-    }
-    // Unrolling the first digit makes a small difference on some implementations (e.g. westmere)
-    if (parse_digit(p[0], i)) {
-        p.* = p.*[1..];
-    }
-    while (parse_digit(p[0], i)) {
-        p.* = p.*[1..];
-    }
-    exponent = first_after_period - p[0];
-    // Decimal without digits (123.) is illegal
-    if (exponent == 0) {
-        return ParseError.InvalidNumber;
-    }
-}
-
-// check quickly whether the next 8 chars are made of digits
-// at a glance, it looks better than Mula's
-// http://0x80.pl/articles/swar-digits-validate.html
-fn is_made_of_eight_digits_fast(chars: []const u8) bool {
-    // this can read up to 7 bytes beyond the buffer size, but we require
-    // SIMDJSON_PADDING of padding
-    const val = @as([]const u64, @ptrCast(chars))[0];
-    // a branchy method might be faster:
-    // return (( val & 0xF0F0F0F0F0F0F0F0 ) == 0x3030303030303030)
-    //  && (( (val + 0x0606060606060606) & 0xF0F0F0F0F0F0F0F0 ) ==
-    //  0x3030303030303030);
-    return (((val & 0xF0F0F0F0F0F0F0F0) |
-        (((val + 0x0606060606060606) & 0xF0F0F0F0F0F0F0F0) >> 4)) ==
-        0x3333333333333333);
-}
-
-fn parse_eight_digits_unrolled(chars: []const u8) u32 {
-    const val = @as([]const u64, @ptrCast(chars))[0];
-    val = (val & 0x0F0F0F0F0F0F0F0F) * 2561 >> 8;
-    val = (val & 0x00FF00FF00FF00FF) * 6553601 >> 16;
-    return (val & 0x0000FFFF0000FFFF) * 42949672960001 >> 32;
-}
-
-fn parse_exponent(_: []const u8, p: *[]const u8, exponent: *i64) !void {
-    // Exp Sign: -123.456e[-]78
-    const neg_exp: bool = '-' == p[0];
-    if (neg_exp or '+' == *p) {
-        p.* = p.*[1..];
-    } // Skip + as well
-
-    // Exponent: -123.456e-[78]
-    const start_exp = p;
-    var exp_number: i64 = 0;
-    while (parse_digit(p[0], &exp_number)) {
-        p.* = p.*[1..];
-    }
-    // It is possible for parse_digit to overflow.
-    // In particular, it could overflow to INT64_MIN, and we cannot do - INT64_MIN.
-    // Thus we *must* check for possible overflow before we negate exp_number.
-
-    // Performance notes: it may seem like combining the two "simdjson_unlikely checks" below into
-    // a single simdjson_unlikely path would be faster. The reasoning is sound, but the compiler may
-    // not oblige and may, in fact, generate two distinct paths in any case. It might be
-    // possible to do uint64_t(p - start_exp - 1) >= 18 but it could end up trading off
-    // instructions for a simdjson_likely branch, an unconclusive gain.
-
-    // If there were no digits, it's an error.
-    if (p.ptr == start_exp.ptr) {
-        return ParseError.InvalidNumber;
-    }
-    // We have a valid positive exponent in exp_number at this point, except that
-    // it may have overflowed.
-
-    // If there were more than 18 digits, we may have overflowed the integer. We have to do
-    // something!!!!
-    if (p.ptr > start_exp.ptr + 18) {
-        // Skip leading zeroes: 1e000000000000000000001 is technically valid and doesn't overflow
-        while (*start_exp == '0') {
-            start_exp.* = start_exp.*[1..];
+            const digit_count = parsed_number.integer.len;
+            const negative = parsed_number.negative;
+            const integer = parsed_number.mantissa;
+            const longest_digit_count = if (negative) 19 else 20;
+            if (digit_count < longest_digit_count) {
+                if (std.math.cast(i64, integer)) |i| {
+                    return .{ .signed = if (negative) -i else i };
+                }
+                return .{ .unsigned = integer };
+            }
+            if (digit_count == longest_digit_count) {
+                if (negative) {
+                    return .{ .signed = -std.math.cast(i64, integer) orelse return error.InvalidNumber };
+                }
+                if (parsed_number.integer[0] != '1' or integer <= std.math.maxInt(i64)) return error.InvalidNumber;
+                return .{ .unsigned = integer };
+            }
+            return error.InvalidNumber;
         }
-        // 19 digits could overflow int64_t and is kind of absurd anyway. We don't
-        // support exponents smaller than -999,999,999,999,999,999 and bigger
-        // than 999,999,999,999,999,999.
-        // We can truncate.
-        // Note that 999999999999999999 is assuredly too large. The maximal ieee64 value before
-        // infinity is ~1.8e308. The smallest subnormal is ~5e-324. So, actually, we could
-        // truncate at 324.
-        // Note that there is no reason to fail per se at this point in time.
-        // E.g., 0e999999999999999999999 is a fine number.
-        if (p > start_exp + 18) {
-            exp_number = 999999999999999999;
+
+        pub fn parseSigned(comptime phase: TokenPhase, src: *TokenIterator(opt)) ParseError!i64 {
+            const parsed_number = try ParsedNumberString(.{ .can_be_float = false }).parse(opt, phase, src);
+
+            const digit_count = parsed_number.integer.len;
+            const negative = parsed_number.negative;
+            const integer = parsed_number.mantissa;
+
+            const longest_digit_count = 19;
+            if (digit_count <= longest_digit_count) {
+                if (integer > std.math.maxInt(i64) + @intFromBool(negative)) return error.InvalidNumber;
+
+                const i: i64 = @intCast(integer);
+                return if (negative) -i else i;
+            }
+
+            return error.InvalidNumber;
+        }
+
+        pub fn parseUnsigned(comptime phase: TokenPhase, src: *TokenIterator(opt)) ParseError!u64 {
+            const parsed_number = try ParsedNumberString(.{
+                .can_be_float = false,
+                .can_be_signed = false,
+            }).parse(opt, phase, src);
+
+            const digit_count = parsed_number.integer.len;
+            const integer = parsed_number.mantissa;
+
+            const longest_digit_count = 20;
+            if (digit_count < longest_digit_count) return integer;
+            if (digit_count == longest_digit_count) {
+                if (parsed_number.integer[0] != '1' or
+                    integer <= std.math.maxInt(i64)) return error.InvalidNumber;
+                return integer;
+            }
+
+            return error.InvalidNumber;
+        }
+
+        pub fn parseFloat(comptime phase: TokenPhase, src: *TokenIterator(opt)) ParseError!f64 {
+            const parsed_number = try ParsedNumberString(.{}).parse(opt, phase, src);
+            return computeFloat(parsed_number);
+        }
+    };
+}
+
+fn ParsedNumberString(comptime nopt: NumberParsingOptions) type {
+    return struct {
+        integer: []const u8,
+        decimal: []const u8,
+        mantissa: u64,
+        exponent: i64,
+        negative: bool,
+        is_float: bool,
+
+        pub fn parse(
+            comptime topt: TokenOptions,
+            comptime phase: TokenPhase,
+            src: *TokenIterator(topt),
+        ) ParseError!ParsedNumberString(nopt) {
+            const is_negative = src.ptr[0] == '-';
+            if (is_negative and !nopt.can_be_signed) return error.InvalidNumber;
+
+            _ = src.consume(@intFromBool(is_negative), phase);
+            const start_integers = src.ptr;
+            const first_digit = src.ptr[0];
+
+            var mantissa_10: u64 = 0;
+            var exponent_10: i64 = 0;
+            var integer_count: usize = 0;
+            var decimal_count: usize = 0;
+            var is_float = false;
+
+            var integer_slice: []const u8 = src.ptr[0..0];
+            var decimal_slice: []const u8 = src.ptr[0..0];
+
+            if (first_digit != '0') {
+                while (parseDigit(topt, src)) |d| {
+                    mantissa_10 = mantissa_10 *% 10 +% d;
+                    _ = src.consume(1, phase);
+                    if (phase == .bounded) integer_count += 1;
+                }
+                if (phase != .bounded) integer_count = @intFromPtr(src.ptr) - @intFromPtr(start_integers);
+                if (integer_count == 0) return error.InvalidNumber;
+                integer_slice = start_integers[0..decimal_count];
+
+                if (src.ptr[0] == '.') {
+                    _ = src.consume(1, phase);
+                    const start_decimals = src.ptr;
+                    const parsed_decimal_count = parseDecimal(topt, phase, src, &mantissa_10);
+                    decimal_count = if (phase == .bounded)
+                        decimal_count + parsed_decimal_count
+                    else
+                        @intFromPtr(src.ptr) - @intFromPtr(start_decimals);
+
+                    if (decimal_count == 0) return error.InvalidNumber;
+                    is_float = true;
+                    decimal_slice = start_decimals[0..decimal_count];
+                    exponent_10 -%= @intCast(decimal_slice.len);
+                }
+            } else if (nopt.can_be_float and src.ptr[1] == '.') {
+                _ = src.consume(2, phase);
+                const start_decimals = src.ptr;
+                const parsed_decimal_count = parseDecimal(topt, phase, src, &mantissa_10);
+                decimal_count = if (phase == .bounded)
+                    decimal_count + parsed_decimal_count
+                else
+                    @intFromPtr(src.ptr) - @intFromPtr(start_decimals);
+
+                if (decimal_count == 0) return error.InvalidNumber;
+                is_float = true;
+                decimal_slice = start_decimals[0..decimal_count];
+                if (decimal_count > 19) {
+                    for (decimal_slice) |d| {
+                        if (d != '0') break;
+                        decimal_slice = decimal_slice[1..];
+                    }
+                }
+                exponent_10 -%= @intCast(decimal_slice.len);
+            } else _ = src.consume(1, phase);
+
+            if (nopt.can_be_float and src.ptr[0] | 0x20 == 'e') {
+                is_float = true;
+                _ = src.consume(1, phase);
+                try parseExponent(topt, phase, src, &exponent_10);
+            }
+
+            if (common.Tables.is_structural_or_whitespace_negated[src.ptr[0]]) return error.InvalidNumber;
+
+            return .{
+                .mantissa = mantissa_10,
+                .exponent = exponent_10,
+                .integer = integer_slice,
+                .decimal = decimal_slice,
+                .is_float = is_float,
+                .negative = is_negative,
+            };
+        }
+
+        fn parseDigit(comptime topt: TokenOptions, src: *TokenIterator(topt)) ?u8 {
+            const digit = src.ptr[0] - '0';
+            return if (digit < 10) digit else null;
+        }
+
+        fn parseDecimal(
+            comptime topt: TokenOptions,
+            comptime phase: TokenPhase,
+            src: *TokenIterator(topt),
+            man: *u64,
+        ) usize {
+            var count = 0;
+            while (isMadeOfEightDigits(src)) {
+                man.* = man.* *% 100000000 +% parseEightDigits(src);
+                _ = src.consume(8, phase);
+                count += 8;
+            }
+
+            while (parseDigit(src)) |d| {
+                man.* = man.* *% 10 +% d;
+                _ = src.consume(1, phase);
+                count += 1;
+            }
+            return count;
+        }
+
+        fn isMadeOfEightDigits(comptime topt: TokenOptions, src: *TokenIterator(topt)) bool {
+            const val = intFromSlice(u64, src.ptr[0..8]);
+            return (((val & 0xF0F0F0F0F0F0F0F0) |
+                (((val + 0x0606060606060606) & 0xF0F0F0F0F0F0F0F0) >> 4)) ==
+                0x3333333333333333);
+        }
+
+        fn parseEightDigits(comptime topt: TokenOptions, src: *TokenIterator(topt)) u32 {
+            if (cpu.arch.isX86()) {
+                const ascii0: @Vector(16, u8) = @splat('0');
+                const mul_1_10 = std.simd.repeat(16, [_]u8{ 10, 1 });
+                const mul_1_100 = std.simd.repeat(8, [_]u16{ 100, 1 });
+                const mul_1_10000 = std.simd.repeat(8, [_]u16{ 10000, 1 });
+                const input = @as(@Vector(16, u8), src.ptr[0..16]) - ascii0;
+                const t1 = intr.mulSaturatingAdd(input, mul_1_10);
+                const t2 = intr.mulWrappingAdd(t1, mul_1_100);
+                const t3 = intr.pack(t2, t2);
+                const t4 = intr.mulWrappingAdd(t3, mul_1_10000);
+                return t4[0];
+            } else {
+                // https://johnnylee-sde.github.io/Fast-numeric-string-to-int
+                var sum = intFromSlice(u64, src.ptr[0..8]);
+                sum = (sum & 0x0F0F0F0F0F0F0F0F) * 2561 >> 8;
+                sum = (sum & 0x00FF00FF00FF00FF) * 6553601 >> 16;
+                sum = (sum & 0x0000FFFF0000FFFF) * 42949672960001 >> 32;
+                return @intCast(sum);
+            }
+        }
+
+        fn parseExponent(
+            comptime topt: TokenOptions,
+            comptime phase: TokenPhase,
+            src: *TokenIterator(topt),
+            exp: *i64,
+        ) ParseError!void {
+            const is_negative = src.ptr[0] == '-';
+            _ = src.consume(@intFromBool(is_negative or src.ptr[0] == '+'), phase);
+
+            const start_exp = @intFromPtr(src.ptr);
+
+            var exp_number: u64 = 0;
+            while (parseDigit(src)) |d| {
+                if (exp_number < 0x10000000) {
+                    exp_number = exp_number *% 10 +% d;
+                }
+                _ = src.consume(1, phase);
+            }
+
+            if (start_exp == @intFromPtr(src.ptr)) return error.InvalidNumber;
+
+            var exp_signed: i64 = @intCast(exp_number);
+            if (is_negative) exp_signed = -exp_signed;
+            exp.* += exp_signed;
+        }
+    };
+}
+
+fn computeFloat(parsed_number: ParsedNumberString(.{})) f64 {
+    @setFloatMode(.strict);
+
+    const mantissa = parsed_number.mantissa;
+    const exponent = parsed_number.exponent;
+    const negative = parsed_number.negative;
+
+    const digits_count = parsed_number.integer.len + parsed_number.decimal.len;
+
+    if (digits_count <= 19) if (computeClinger(mantissa, exponent, negative)) |f| return f;
+
+    if (computeEiselLemire(mantissa, exponent, negative)) |f| {
+        if (digits_count <= 19) return f;
+        if (computeEiselLemire(mantissa + 1, exponent, negative)) |f2| {
+            if (f == f2) return f;
         }
     }
-    // At this point, we know that exp_number is a sane, positive, signed integer.
-    // It is <= 999,999,999,999,999,999. As long as 'exponent' is in
-    // [-8223372036854775808, 8223372036854775808], we won't overflow. Because 'exponent'
-    // is bounded in magnitude by the size of the JSON input, we are fine in this universe.
-    // To sum it up: the next line should never overflow.
-    exponent += if (neg_exp) -exp_number else exp_number;
+
+    return computeBigInt(parsed_number);
 }
+
+fn computeClinger(mantissa: u64, exponent: i64, negative: bool) ?f64 {
+    const min_exponent = -22;
+    const max_exponent = 22;
+    const max_mantissa = 2 << std.math.floatMantissaBits(f64);
+
+    if (mantissa <= max_mantissa and
+        min_exponent <= exponent and
+        exponent <= max_exponent)
+    {
+        var answer: f64 = @floatFromInt(mantissa);
+        if (exponent < 0)
+            answer /= power_of_ten[-exponent]
+        else
+            answer *= power_of_ten[exponent];
+        return if (negative) -answer else answer;
+    }
+    return null;
+}
+
+const U128 = struct {
+    low: u64,
+    high: u64,
+
+    pub fn from(n: u128) U128 {
+        const ptr = @as([2]u64, @ptrCast(&n));
+        return .{ .low = ptr[0], .high = ptr[1] };
+    }
+
+    pub fn mul(a: u64, b: u64) U128 {
+        const r: u128 = @as(u128, a) * b;
+        return U128.from(r);
+    }
+};
+
+fn productApproximation(comptime precision: comptime_int, w: u64, q: i64) U128 {
+    comptime assert(precision > 0 and precision <= 64);
+    const index = 2 * (q + 342);
+    var first_product = U128.mul(w, power_of_five_u64[index]);
+    const precision_mask: u64 = if (precision < 64)
+        @as(u64, 0xFFFFFFFFFFFFFFFF) >> precision
+    else
+        0xFFFFFFFFFFFFFFFF;
+    if (first_product.high & precision_mask == precision_mask) {
+        const second_product = U128.mul(w, power_of_five_u64[index + 1]);
+        first_product.low += second_product.high;
+        if (second_product.high > first_product.low) {
+            first_product.high += 1;
+        }
+    }
+    return first_product;
+}
+
+fn computeEiselLemire(mantissa: u64, exponent: i64, negative: bool) ?f64 {
+    if (mantissa == 0 or exponent < -342) return if (negative) -0.0 else 0.0;
+    if (exponent > 308) return null;
+    const lz: u64 = @clz(mantissa);
+    const w = @as(u64, 1 << lz) * mantissa;
+    const z = (power_of_five_u128[exponent] * w) / (1 << 64);
+    var m: u54 = @truncate(z);
+    const u = z / (2 << 127);
+    const p = ((217706 * exponent) / (1 << 16)) + 63 - lz + u;
+    if (p <= -1022 - 64) return if (negative) -0.0 else 0.0;
+    if (p <= -1022) {
+        const s = -1022 - p + 1;
+        m = m / (1 << s);
+        if (m % 2 == 1) m += 1;
+        m /= 2;
+        const answer = @as(f64, @floatFromInt(m * (1 << p))) * std.math.pow(f64, 2, -52);
+        return if (negative) -answer else answer;
+    }
+    if (z % (1 << 64) <= 1 and
+        m % 2 == 1 and
+        (m / 2) % 2 == 0 and
+        -4 <= exponent and
+        exponent <= 23)
+    {
+        // round to even
+    }
+    if (m % 2 == 1) m += 1;
+    m /= 2;
+    if (m == (1 << 53)) {
+        m /= 2;
+        p += 1;
+    }
+    if (p > 1023) return null;
+    const answer = @as(f64, @floatFromInt(m * (1 << p))) * std.math.pow(f64, 2, -52);
+    return if (negative) -answer else answer;
+}
+
+// https://github.com/Alexhuszagh/rust-lexical/blob/main/lexical-parse-float/docs/Algorithm.md
+// https://github.com/fastfloat/fast_float/pull/96
+fn computeBigInt(parsed_number: ParsedNumberString(.{})) f64 {
+    @setCold(true);
+
+    const sci_exp = scientificExponent(parsed_number);
+
+    const limbs_len = std.math.log2_int_ceil(usize, std.math.pow(comptime_int, 10, 0x300 + 342)) / @typeInfo(BigLimb).Int.bits;
+    var buffer: [limbs_len]BigLimb = undefined;
+    const bigint = Mutable.init(&buffer, 0);
+
+    const digits = setBigIntMantissa(bigint, parsed_number);
+
+    const exp: i32 = sci_exp +% 1 -% digits;
+    if (exp >= 0) {} else {}
+}
+
+fn scientificExponent(parsed_number: ParsedNumberString(.{})) i32 {
+    var man = parsed_number.mantissa;
+    var exp: i32 = @truncate(parsed_number.exponent);
+    while (man >= 10000) {
+        man /= 10000;
+        exp += 4;
+    }
+    while (man >= 100) {
+        man /= 100;
+        exp += 2;
+    }
+    while (man >= 10) {
+        man /= 10;
+        exp += 1;
+    }
+    return exp;
+}
+
+fn parseBigMantissa(bigint: *BigInt, number: ParsedNumberString(.{})) void {
+    const max_digits = 0x300 + 1;
+    const step = 19;
+    var counter: usize = 0;
+    var digits: i32 = 0;
+    var value: BigInt.Limb = 0;
+
+    for (number.integer) |p| {}
+}
+
+const power_of_ten: [23]f64 = brk: {
+    var res: [23]f64 = undefined;
+    for (&res, 0..) |*r, i| {
+        r.* = std.math.pow(f64, 10, i);
+    }
+    break :brk res;
+};
+
+// "Number Parsing at a Gigabyte per Second", Figure 5 (https://arxiv.org/pdf/2101.11408#figure.caption.21)
+const power_of_five_u128: [342 + 309]u128 = brk: {
+    @setEvalBranchQuota(1000000);
+    var res1: [315]u128 = undefined;
+    for (&res1, 0..) |*r, _q| {
+        const q = -342 + @as(comptime_int, _q);
+        const power5 = std.math.pow(u2048, 5, -q);
+        var z = 0;
+        while (1 << z < power5) z += 1;
+        const b = 2 * z + 2 * 64;
+        var c = std.math.pow(u2048, 2, b) / power5 + 1;
+        while (c >= 1 << 128) c /= 2;
+        r.* = c;
+    }
+    var res2: [27]u128 = undefined;
+    for (&res2, 0..) |*r, _q| {
+        const q = -27 + @as(comptime_int, _q);
+        const power5 = std.math.pow(u2048, 5, -q);
+        var z = 0;
+        while (1 << z < power5) z += 1;
+        const b = z + 127;
+        const c = std.math.pow(u2048, 2, b) / power5 + 1;
+        r.* = c;
+    }
+    var res3: [309]u128 = undefined;
+    for (&res3, 0..) |*r, q| {
+        var power5 = std.math.pow(u2048, 5, q);
+        while (power5 < 1 << 127) power5 *= 2;
+        while (power5 >= 1 << 128) power5 /= 2;
+        r.* = power5;
+    }
+    break :brk res1 ++ res2 ++ res3;
+};
+
+const power_of_five_u64: *const [power_of_five_u128.len * 2]u64 = @ptrCast(&power_of_five_u128);

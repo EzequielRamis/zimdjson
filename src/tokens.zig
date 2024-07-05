@@ -1,5 +1,5 @@
 const std = @import("std");
-const shared = @import("shared.zig");
+const common = @import("common.zig");
 const types = @import("types.zig");
 const Indexer = @import("Indexer.zig");
 const ArrayList = std.ArrayList;
@@ -10,6 +10,7 @@ const umask = types.umask;
 const assert = std.debug.assert;
 
 pub const Phase = enum {
+    none,
     unbounded,
     bounded,
     padded,
@@ -26,127 +27,133 @@ pub fn Iterator(comptime options: Options) type {
         const Self = @This();
 
         indexer: Indexer = undefined,
-        remaining: if (copy_bounded) ArrayList(u8) else [Vector.LEN_BYTES * 2]u8 = undefined,
-        remaining_ptr: if (copy_bounded) void else [*]const u8 = undefined,
-        bounded_index: usize = undefined,
-        index: usize = 0,
-        curr_slice: [*]const u8 = undefined,
+        padding: if (copy_bounded) ArrayList(u8) else [Vector.LEN_BYTES * 2]u8 = undefined,
+        padding_ptr: if (copy_bounded) void else [*]const u8 = undefined,
+        ptr: [*]const u8 = undefined,
+        bounded_token: usize = undefined,
+        token: usize = 0,
 
         pub fn init() Self {
             return Self{};
         }
 
+        pub fn document(self: Self) []const u8 {
+            return self.indexer.reader.document;
+        }
+
+        pub fn indexes(self: Self) []const u32 {
+            return self.indexer.indexes.items;
+        }
+
         pub fn analyze(self: *Self, indexer: Indexer) if (copy_bounded) (!void) else void {
-            const doc = indexer.reader.document;
-            const indexes = indexer.indexes.items;
-            const red_zone_bound = doc.len -| Vector.LEN_BYTES;
-            var bounded_prefix: usize = indexer.indexes.items.len - 1;
-            var rev = std.mem.reverseIterator(indexes);
-            while (rev.next()) |prefix| : (bounded_prefix -|= 1) {
-                if (prefix <= red_zone_bound) break;
+            const doc = self.document();
+            const ixs = self.indexes();
+            const padding_bound = doc.len -| Vector.LEN_BYTES;
+            var bounded_token: usize = ixs.len - 1;
+            var rev = std.mem.reverseIterator(ixs);
+            while (rev.next()) |t| : (bounded_token -|= 1) {
+                if (t <= padding_bound) break;
             }
-            const remaining_ptr = doc[red_zone_bound..].ptr;
+            const padding_ptr = doc[padding_bound..].ptr;
             self.indexer = indexer;
-            self.bounded_index = bounded_prefix;
-            self.curr_slice = doc.ptr;
+            self.bounded_token = bounded_token;
+            self.ptr = doc.ptr;
             if (copy_bounded) {
-                const bounded_index = indexes[bounded_prefix];
-                const remaining_len = doc.len - doc[bounded_index];
-                self.remaining.ensureTotalCapacity(remaining_len + Vector.LEN_BYTES);
-                @memset(&self.remaining, ' ');
-                @memcpy(self.remaining[0..remaining_len], doc[bounded_index..]);
+                const bounded_index = ixs[bounded_token];
+                const padding_len = doc.len - doc[bounded_index];
+                self.padding.ensureTotalCapacity(padding_len + Vector.LEN_BYTES);
+                @memset(&self.padding, ' ');
+                @memcpy(self.padding[0..padding_len], doc[bounded_index..]);
             } else {
-                self.remaining_ptr = remaining_ptr;
-                @memset(&self.remaining, ' ');
-                @memcpy(self.remaining[0 .. doc.len - red_zone_bound], doc[red_zone_bound..doc.len]);
+                self.padding_ptr = padding_ptr;
+                @memset(&self.padding, ' ');
+                @memcpy(self.padding[0 .. doc.len - padding_bound], doc[padding_bound..doc.len]);
             }
         }
 
-        pub fn next(self: *Self, comptime phase: ?Phase) ?u8 {
-            if (phase == null) {
-                return self.next(.unbounded) orelse self.next(.bounded) orelse self.next(.padded);
-            }
-            const indexes = self.indexer.indexes.items;
-            const document = self.indexer.reader.document;
-            switch (phase.?) {
+        pub fn next(self: *Self, comptime phase: Phase) ?u8 {
+            const doc = self.document();
+            const ixs = self.indexes();
+            switch (phase) {
+                .none => return self.next(.unbounded) orelse self.next(.bounded) orelse self.next(.padded),
                 .unbounded => {
-                    if (self.index < self.bounded_index) {
-                        defer self.index +%= 1;
-                        const i = indexes[self.index];
-                        self.curr_slice = document[i..].ptr;
-                        return document[i];
+                    if (self.token < self.bounded_token) {
+                        defer self.token +%= 1;
+                        const i = ixs[self.token];
+                        self.ptr = doc[i..].ptr;
+                        return doc[i];
                     }
                     return null;
                 },
                 .bounded => {
-                    if (self.index == self.bounded_index) {
-                        defer self.index +%= 1;
-                        const i = indexes[self.index];
-                        self.curr_slice = if (copy_bounded) self.remaining.items else document[i..].ptr;
-                        return document[i];
+                    if (self.token == self.bounded_token) {
+                        defer self.token +%= 1;
+                        const i = ixs[self.token];
+                        self.ptr = if (copy_bounded) self.padding.items else doc[i..].ptr;
+                        return doc[i];
                     }
                     return null;
                 },
                 .padded => {
-                    if (self.index < indexes.len) {
-                        defer self.index +%= 1;
-                        const i = indexes[self.index];
-                        const b = indexes[self.bounded_index];
+                    if (self.token < ixs.len) {
+                        defer self.token +%= 1;
+                        const i = ixs[self.token];
+                        const b = ixs[self.bounded_token];
 
-                        const index_ptr = @intFromPtr(document[i..].ptr);
-                        const remaining_ptr = @intFromPtr(if (copy_bounded) document[b..].ptr else self.remaining_ptr);
-                        const offset_ptr = index_ptr - remaining_ptr;
-                        self.curr_slice = self.remaining[offset_ptr..].ptr;
+                        const index_ptr = @intFromPtr(doc[i..].ptr);
+                        const padding_ptr = @intFromPtr(if (copy_bounded) doc[b..].ptr else self.padding_ptr);
+                        const offset_ptr = index_ptr - padding_ptr;
+                        self.ptr = self.padding[offset_ptr..].ptr;
 
-                        return document[i];
+                        return doc[i];
                     }
                     return null;
                 },
             }
         }
 
-        pub fn consume(self: *Self, n: usize, comptime phase: ?Phase) []const u8 {
+        pub fn consume(self: *Self, n: usize, comptime phase: Phase) []const u8 {
             if (!copy_bounded and phase == .bounded) {
                 self.shouldSwapSource();
             }
-            defer self.curr_slice = self.curr_slice[n..];
-            return self.curr_slice[0..n];
+            defer self.ptr += n;
+            return self.ptr[0..n];
         }
 
         pub fn peekNext(self: Self) ?u8 {
-            const doc = self.indexer.reader.document;
-            const indexes = self.indexer.indexes.items;
-            const p = self.index + 1;
-            if (p < indexes.len) return doc[indexes[p]];
+            const doc = self.document();
+            const ixs = self.indexes();
+            const p = self.token + 1;
+            if (p < ixs.len) return doc[ixs[p]];
             return null;
         }
 
         pub fn backTo(self: *Self, index: usize) void {
             comptime assert(copy_bounded);
-            assert(index < self.index);
+            assert(index < self.token);
 
-            const doc = self.indexer.reader.document;
-            const indexes = self.indexer.indexes;
+            const doc = self.document();
+            const ixs = self.indexes();
 
-            if (index < self.bounded_index) {
-                self.curr_slice = doc[indexes[index]..].ptr;
+            if (index < self.bounded_token) {
+                self.ptr = doc[ixs[index]..].ptr;
             } else {
-                const index_ptr = @intFromPtr(doc[indexes[index]..].ptr);
-                const remaining_ptr = self.remaining_ptr;
-                const offset_ptr = index_ptr - remaining_ptr;
-                self.curr_slice = self.remaining[offset_ptr..].ptr;
+                const index_ptr = @intFromPtr(doc[ixs[index]..].ptr);
+                const padding_ptr = self.padding_ptr;
+                const offset_ptr = index_ptr - padding_ptr;
+                self.ptr = self.padding[offset_ptr..].ptr;
             }
         }
 
         fn shouldSwapSource(self: *Self) void {
             comptime assert(!copy_bounded);
 
-            const index_ptr = @intFromPtr(self.curr_slice);
-            const remaining_ptr = @intFromPtr(self.remaining_ptr);
-            if (index_ptr >= remaining_ptr) {
-                const offset_ptr = index_ptr - remaining_ptr;
-                self.curr_slice = self.remaining[offset_ptr..].ptr;
-                self.remaining_ptr = @ptrFromInt(std.math.maxInt(usize));
+            const index_ptr = @intFromPtr(self.ptr);
+            const padding_ptr = @intFromPtr(self.padding_ptr);
+            if (index_ptr >= padding_ptr) {
+                const offset_ptr = index_ptr - padding_ptr;
+                self.ptr = self.padding[offset_ptr..].ptr;
+                self.padding_ptr = @ptrFromInt(std.math.maxInt(usize));
             }
         }
     };

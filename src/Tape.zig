@@ -1,5 +1,5 @@
 const std = @import("std");
-const shared = @import("shared.zig");
+const common = @import("common.zig");
 const types = @import("types.zig");
 const validator = @import("validator.zig");
 const tokens = @import("tokens.zig");
@@ -66,7 +66,7 @@ pub const Container = packed struct(u56) {
     count: u24,
 };
 
-max_depth: usize = shared.DEFAULT_MAX_DEPTH,
+max_depth: usize = common.DEFAULT_MAX_DEPTH,
 tokens: TokenIterator(TOKEN_OPTIONS),
 parsed: ArrayList(u64),
 stack: ArrayList(u64),
@@ -524,7 +524,7 @@ inline fn visit_primitive(self: *Self, comptime phase: TokenPhase, token: u8) Pa
 inline fn visit_string(self: *Self, comptime phase: TokenPhase) ParseError!void {
     var t = &self.tokens;
     _ = t.consume(1, phase);
-    const len_slot = shared.intFromSlice(u32, self.chars.addManyAsArrayAssumeCapacity(4));
+    const len_slot = common.intFromSlice(u32, self.chars.addManyAsArrayAssumeCapacity(4));
     const next_str = self.chars.items.len;
     try validator.string(TOKEN_OPTIONS, t, &self.chars, phase);
     const next_len = self.chars.items.len - 1 - next_str;

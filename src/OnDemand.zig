@@ -1,5 +1,5 @@
 const std = @import("std");
-const shared = @import("shared.zig");
+const common = @import("common.zig");
 const types = @import("types.zig");
 const intr = @import("intrinsics.zig");
 const validator = @import("validator.zig");
@@ -25,7 +25,7 @@ const TOKEN_OPTIONS = TokenOptions{
 };
 
 pub const Parser = struct {
-    max_depth: usize = shared.DEFAULT_MAX_DEPTH,
+    max_depth: usize = common.DEFAULT_MAX_DEPTH,
     indexer: Indexer,
     allocator: Allocator,
     loaded_buffer: ?[]align(types.Vector.LEN_BYTES) u8 = null,
@@ -132,9 +132,9 @@ const Element = struct {
     pub fn getString(self: Element) OnDemandError![]const u8 {
         if (self.isString()) {
             const doc = self.document;
-            _ = doc.tokens.consume(1, null);
+            _ = doc.tokens.consume(1, .none);
             const next_str = doc.chars.items.len;
-            try validator.string(&doc.tokens, &doc.chars, null);
+            try validator.string(&doc.tokens, &doc.chars, .none);
             const next_len = self.chars.items.len - 1 - next_str;
             return doc.chars.items[next_str..][0..next_len];
         }
@@ -144,8 +144,8 @@ const Element = struct {
     pub fn getBool(self: Element) OnDemandError!bool {
         if (self.isBool()) {
             const p = self.document.tokens.peek();
-            if (p == 't') return validator.atomTrue(TOKEN_OPTIONS, &self.document.tokens, null);
-            return validator.atomFalse(TOKEN_OPTIONS, &self.document.tokens, null);
+            if (p == 't') return validator.atomTrue(TOKEN_OPTIONS, &self.document.tokens, .none);
+            return validator.atomFalse(TOKEN_OPTIONS, &self.document.tokens, .none);
         }
         return error.IncorrectType;
     }
@@ -184,7 +184,7 @@ const Element = struct {
 
     pub fn isNull(self: Element) ParseError!void {
         if (self.document.tokens.peek() == 'n') {
-            return validator.atomNull(TOKEN_OPTIONS, &self.document.tokens, null);
+            return validator.atomNull(TOKEN_OPTIONS, &self.document.tokens, .none);
         }
         return error.IncorrectType;
     }
@@ -212,8 +212,8 @@ const Element = struct {
 
             const low_nibbles = tkns & @as(vector, @splat(0xF));
             const high_nibbles = tkns >> @as(vector, @splat(4));
-            const low_lookup_values = intr.lut(ln_table, low_nibbles);
-            const high_lookup_values = intr.lut(hn_table, high_nibbles);
+            const low_lookup_values = intr.lookupTable(ln_table, low_nibbles);
+            const high_lookup_values = intr.lookupTable(hn_table, high_nibbles);
             const desired_values = low_lookup_values & high_lookup_values;
 
             const opening = desired_values & opening_table;
@@ -238,8 +238,8 @@ const Element = struct {
 
         const low_nibbles = tkns & @as(vector, @splat(0xF));
         const high_nibbles = tkns >> @as(vector, @splat(4));
-        const low_lookup_values = intr.lut(ln_table, low_nibbles);
-        const high_lookup_values = intr.lut(hn_table, high_nibbles);
+        const low_lookup_values = intr.lookupTable(ln_table, low_nibbles);
+        const high_lookup_values = intr.lookupTable(hn_table, high_nibbles);
         const desired_values = low_lookup_values & high_lookup_values;
 
         const opening = desired_values & opening_table;
@@ -342,9 +342,9 @@ const Object = struct {
 
         pub fn key(self: Field) OnDemandError![]const u8 {
             const doc = self.root.document;
-            _ = doc.tokens.consume(1, null);
+            _ = doc.tokens.consume(1, .none);
             const next_str = doc.chars.items.len;
-            try validator.string(&doc.tokens, &doc.chars, null);
+            try validator.string(&doc.tokens, &doc.chars, .none);
             const next_len = self.chars.items.len - 1 - next_str;
             return doc.chars.items[next_str..][0..next_len];
         }

@@ -10,10 +10,10 @@ pub const Tables = struct {
     pub const is_structural: [256]bool = init: {
         var res: [256]bool = undefined;
         for (0..res.len) |i| {
-            switch (i) {
-                0x7b, 0x7d, 0x3a, 0x5b, 0x5d, 0x2c => res[i] = true,
-                else => res[i] = false,
-            }
+            res[i] = switch (i) {
+                '{', '}', ':', '[', ']', ',' => true,
+                else => false,
+            };
         }
         break :init res;
     };
@@ -21,10 +21,10 @@ pub const Tables = struct {
     pub const is_whitespace: [256]bool = init: {
         var res: [256]bool = undefined;
         for (0..res.len) |i| {
-            switch (i) {
-                0x20, 0x0a, 0x09, 0x0d => res[i] = true,
-                else => res[i] = false,
-            }
+            res[i] = switch (i) {
+                0x20, 0x0a, 0x09, 0x0d => true,
+                else => false,
+            };
         }
         break :init res;
     };
@@ -32,13 +32,7 @@ pub const Tables = struct {
     pub const is_structural_or_whitespace: [256]bool = init: {
         var res: [256]bool = undefined;
         for (0..res.len) |i| {
-            switch (i) {
-                // structural characters
-                0x7b, 0x7d, 0x3a, 0x5b, 0x5d, 0x2c => res[i] = true,
-                // whitespace characters
-                0x20, 0x0a, 0x09, 0x0d => res[i] = true,
-                else => res[i] = false,
-            }
+            res[i] = is_structural[i] or is_whitespace[i];
         }
         break :init res;
     };

@@ -14,7 +14,7 @@ pub const block = [BLOCK_SIZE]u8;
 index: usize = undefined,
 last_partial_index: usize = undefined,
 document: []const u8 = undefined,
-buffer: block = undefined,
+padding: block = undefined,
 
 pub fn init() Self {
     return Self{};
@@ -26,8 +26,8 @@ pub fn read(self: *Self, doc: []const u8) void {
     self.index = 0;
     self.document = doc;
     self.last_partial_index = last_partial_index;
-    @memset(&self.buffer, ' ');
-    @memcpy(self.buffer[0..remaining], self.document[self.last_partial_index..]);
+    @memset(&self.padding, ' ');
+    @memcpy(self.padding[0..remaining], self.document[self.last_partial_index..]);
 }
 
 pub fn next(self: *Self) ?*const block {
@@ -41,7 +41,7 @@ pub fn next(self: *Self) ?*const block {
 pub fn last(self: *Self) ?*const block {
     if (self.index == self.last_partial_index) {
         defer self.index += BLOCK_SIZE;
-        return &self.buffer;
+        return &self.padding;
     }
     return null;
 }

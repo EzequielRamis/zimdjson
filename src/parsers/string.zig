@@ -14,7 +14,7 @@ const ArrayList = std.ArrayList;
 const ParseError = types.ParseError;
 const intFromSlice = common.intFromSlice;
 
-pub fn string(
+pub fn writeString(
     comptime opt: TokenOptions,
     src: *TokenIterator(opt),
     dst: *ArrayList(u8),

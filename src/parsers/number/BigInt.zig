@@ -2,11 +2,11 @@ const std = @import("std");
 const debug = @import("debug.zig");
 const assert = std.debug.assert;
 
-const Self = @This();
 pub const Limb = usize;
-const len = std.math.log2_int_ceil(usize, std.math.pow(comptime_int, 10, 0x300 + 342)) / 64;
+pub const limb_bits = @sizeOf(Limb) * 8;
+const Self = @This();
+const len = 58; // ceil(log2(10**(0x300 + 342))/64)
 const Limbs = std.BoundedArray(Limb, len);
-const limb_bits = @sizeOf(Limb) * 8;
 
 limbs: Limbs,
 
@@ -53,7 +53,7 @@ pub fn mulScalar(self: *Self, n: Limb) !void {
         const wide = std.math.mulWide(Limb, limb, n) + carry;
         const res: Limb = @truncate(wide);
         limb = res;
-        carry = @truncate(wide >> 64);
+        carry = @truncate(wide >> limb_bits);
     }
 
     if (carry != 0) return self.limbs.append(carry);
@@ -63,8 +63,8 @@ pub fn pow2(self: *Self, n: u32) !void {
     @setRuntimeSafety(debug.is_set);
     assert(n != 0);
 
-    const rem = n % 64;
-    const div = n / 64;
+    const rem = n % limb_bits;
+    const div = n / limb_bits;
     if (rem != 0) {
         assert(n < limb_bits);
 

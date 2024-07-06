@@ -8,7 +8,7 @@ const TokenPhase = tokens.Phase;
 const ParseError = types.ParseError;
 const intFromSlice = common.intFromSlice;
 
-pub fn atomTrue(comptime opt: TokenOptions, token: *TokenIterator(opt), comptime phase: TokenPhase) ParseError!void {
+pub fn checkTrue(comptime opt: TokenOptions, token: *TokenIterator(opt), comptime phase: TokenPhase) ParseError!void {
     const chunk = token.consume(5, phase);
     const dword_true = intFromSlice(u32, "true").*;
     const dword_atom = intFromSlice(u32, chunk[0..4]).*;
@@ -18,7 +18,7 @@ pub fn atomTrue(comptime opt: TokenOptions, token: *TokenIterator(opt), comptime
     }
 }
 
-pub fn atomFalse(comptime opt: TokenOptions, token: *TokenIterator(opt), comptime phase: TokenPhase) ParseError!void {
+pub fn checkFalse(comptime opt: TokenOptions, token: *TokenIterator(opt), comptime phase: TokenPhase) ParseError!void {
     const chunk = token.consume(6, phase);
     const dword_alse = intFromSlice(u32, "alse").*;
     const dword_atom = intFromSlice(u32, chunk[1..][0..4]).*;
@@ -28,7 +28,7 @@ pub fn atomFalse(comptime opt: TokenOptions, token: *TokenIterator(opt), comptim
     }
 }
 
-pub fn atomNull(comptime opt: TokenOptions, token: *TokenIterator(opt), comptime phase: TokenPhase) ParseError!void {
+pub fn checkNull(comptime opt: TokenOptions, token: *TokenIterator(opt), comptime phase: TokenPhase) ParseError!void {
     const chunk = token.consume(5, phase);
     const dword_null = intFromSlice(u32, "null").*;
     const dword_atom = intFromSlice(u32, chunk[0..4]).*;

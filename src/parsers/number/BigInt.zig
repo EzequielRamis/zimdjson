@@ -5,13 +5,20 @@ const assert = std.debug.assert;
 pub const Limb = usize;
 pub const limb_bits = @sizeOf(Limb) * 8;
 const Self = @This();
-const len = 58; // ceil(log2(10**(0x300 + 342))/64)
+const len = 58; // ceil(log2(10 ** (max_big_digits + -min_pow10)) / 64)
 const Limbs = std.BoundedArray(Limb, len);
 
 limbs: Limbs,
 
 pub fn init() Self {
     return .{ .buffer = Limbs.init(0) orelse unreachable };
+}
+
+pub fn from(value: u64) Self {
+    var self = Self.init();
+    self.limbs.appendAssumeCapacity(value);
+    self.normalize();
+    return self;
 }
 
 pub fn add(self: *Self, n: []Limb) !void {
@@ -81,12 +88,13 @@ pub fn pow2(self: *Self, n: u32) !void {
     if (div != 0) {
         if (n + self.limbs.len > self.limbs.capacity()) return error.Overflow;
         if (self.limbs.len != 0) {
+            const slice = self.limbs.slice();
             std.mem.copyBackwards(
                 Limb,
-                self.limbs.slice()[n..][0..self.limbs.len],
-                self.limbs.slice()[0..self.limbs.len],
+                self.limbs.buffer[n..][0..slice.len],
+                slice,
             );
-            @memset(self.limbs.slice()[0..n], 0);
+            @memset(slice[0..n], 0);
             self.limbs.len += n;
         }
     }
@@ -113,6 +121,68 @@ pub fn pow5(self: *Self, n: u32) !void {
 pub fn pow10(self: *Self, n: u32) !void {
     try self.pow5(n);
     try self.pow2(n);
+}
+
+pub fn high64(self: Self) struct { bits: u64, truncated: bool } {
+    if (self.limbs.len == 0) return .{
+        .bits = 0,
+        .truncated = false,
+    };
+    if (self.limbs.len == 1) {
+        const r0 = self.limbs.get(0);
+        return .{
+            .bits = r0 << @clz(r0),
+            .truncated = false,
+        };
+    }
+    const r0 = self.limbs.get(self.limbs.len - 1);
+    const r1 = self.limbs.get(self.limbs.len - 2);
+    const shl = @clz(r0);
+    var truncated: bool = undefined;
+    var bits: Limb = undefined;
+    if (shl == 0) {
+        truncated = r1 != 0;
+        bits = r0;
+    } else {
+        const shr = limb_bits - shl;
+        truncated = (r1 << shl) != 0;
+        bits = (r0 << shl) | (r1 >> shr);
+    }
+    var nonzero = false;
+    var i: usize = 2;
+    while (i < self.limbs.len) : (i += 1) {
+        if (self.limbs.get(self.limbs.len - 1 - i) != 0) {
+            nonzero = true;
+            break;
+        }
+    }
+    truncated = truncated or nonzero;
+    return .{
+        .bits = bits,
+        .truncated = truncated,
+    };
+}
+
+pub fn clz(self: Self) usize {
+    if (self.limbs.len == 0) return 0;
+    return @clz(self.limbs.get(self.limbs.len - 1));
+}
+
+pub fn bitsLen(self: Self) usize {
+    return limb_bits * self.limbs.len - self.clz();
+}
+
+pub fn order(self: Self, other: Self) std.math.Order {
+    if (self.limbs.len > other.limbs.len) return .gt;
+    if (self.limbs.len < other.limbs.len) return .lt;
+    var i = self.limbs.len;
+    while (i > 0) : (i -= 1) {
+        const x = self.limbs.get(i - 1);
+        const y = other.limbs.get(i - 1);
+        if (x > y) return .gt;
+        if (x < y) return .lt;
+    }
+    return .eq;
 }
 
 fn addScalarFrom(self: *Self, n: Limb, _i: usize) !void {

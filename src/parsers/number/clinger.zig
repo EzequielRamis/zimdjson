@@ -1,13 +1,14 @@
 const std = @import("std");
+const common = @import("common.zig");
 
 pub fn compute(mantissa: u64, exponent: i64, negative: bool) ?f64 {
-    const min_exponent = -22;
-    const max_exponent = 22;
-    const max_mantissa = 2 << std.math.floatMantissaBits(f64);
+    const min_exp = -22;
+    const max_exp = 22;
+    const max_man = 2 << std.math.floatMantissaBits(f64);
 
-    if (mantissa <= max_mantissa and
-        min_exponent <= exponent and
-        exponent <= max_exponent)
+    if (mantissa <= max_man and
+        min_exp <= exponent and
+        exponent <= max_exp)
     {
         var answer: f64 = @floatFromInt(mantissa);
         if (exponent < 0)

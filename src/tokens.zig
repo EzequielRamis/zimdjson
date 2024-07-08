@@ -78,7 +78,7 @@ pub fn Iterator(comptime options: Options) type {
                 .none => return self.next(.unbounded) orelse self.next(.bounded) orelse self.next(.padded),
                 .unbounded => {
                     if (self.token < self.bounded_token) {
-                        defer self.token +%= 1;
+                        defer self.token += 1;
                         const i = ixs[self.token];
                         self.ptr = doc[i..].ptr;
                         return doc[i];
@@ -87,7 +87,7 @@ pub fn Iterator(comptime options: Options) type {
                 },
                 .bounded => {
                     if (self.token == self.bounded_token) {
-                        defer self.token +%= 1;
+                        defer self.token += 1;
                         const i = ixs[self.token];
                         self.ptr = if (copy_bounded) self.padding.items else doc[i..].ptr;
                         return doc[i];
@@ -96,7 +96,7 @@ pub fn Iterator(comptime options: Options) type {
                 },
                 .padded => {
                     if (self.token < ixs.len) {
-                        defer self.token +%= 1;
+                        defer self.token += 1;
                         const i = ixs[self.token];
                         const b = ixs[self.bounded_token];
 

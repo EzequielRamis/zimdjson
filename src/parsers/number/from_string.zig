@@ -1,15 +1,13 @@
 const std = @import("std");
-const builtin = @import("builtin");
 const common = @import("../common.zig");
+const number = @import("common.zig");
 const types = @import("../../types.zig");
-const intr = @import("../intrinsics.zig");
 const tokens = @import("../../tokens.zig");
 const TokenOptions = tokens.Options;
 const TokenIterator = tokens.Iterator;
 const TokenPhase = tokens.Phase;
 const ParseError = types.ParseError;
-const cpu = builtin.cpu;
-const intFromSlice = common.intFromSlice;
+const max_digits = number.max_digits;
 
 const FromStringOptions = struct {
     can_be_float: bool = true,
@@ -48,7 +46,7 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
 
             if (first_digit != '0') {
                 while (parseDigit(topt, src)) |d| {
-                    mantissa_10 = mantissa_10 *% 10 +% d;
+                    mantissa_10 = mantissa_10 * 10 + d;
                     _ = src.consume(1, phase);
                     if (phase == .bounded) integer_count += 1;
                 }
@@ -68,7 +66,7 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
                     if (decimal_count == 0) return error.InvalidNumber;
                     is_float = true;
                     decimal_slice = start_decimals[0..decimal_count];
-                    exponent_10 -%= @intCast(decimal_slice.len);
+                    exponent_10 -= @intCast(decimal_slice.len);
                 }
             } else if (sopt.can_be_float and src.ptr[1] == '.') {
                 _ = src.consume(2, phase);
@@ -82,13 +80,13 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
                 if (decimal_count == 0) return error.InvalidNumber;
                 is_float = true;
                 decimal_slice = start_decimals[0..decimal_count];
-                if (decimal_count > 19) {
+                if (decimal_count >= max_digits) {
                     for (decimal_slice) |d| {
                         if (d != '0') break;
                         decimal_slice = decimal_slice[1..];
                     }
                 }
-                exponent_10 -%= @intCast(decimal_slice.len);
+                exponent_10 -= @intCast(decimal_slice.len);
             } else _ = src.consume(1, phase);
 
             if (sopt.can_be_float and src.ptr[0] | 0x20 == 'e') {
@@ -121,47 +119,18 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
             man: *u64,
         ) usize {
             var count = 0;
-            while (isMadeOfEightDigits(src)) {
-                man.* = man.* *% 100000000 +% parseEightDigits(src);
+            while (number.isEightDigits(src.ptr[0..8])) {
+                man.* = man.* * 100000000 + number.parseEightDigits(src.ptr[0..8]);
                 _ = src.consume(8, phase);
                 count += 8;
             }
 
             while (parseDigit(src)) |d| {
-                man.* = man.* *% 10 +% d;
+                man.* = man.* * 10 + d;
                 _ = src.consume(1, phase);
                 count += 1;
             }
             return count;
-        }
-
-        fn isMadeOfEightDigits(comptime topt: TokenOptions, src: *TokenIterator(topt)) bool {
-            const val = intFromSlice(u64, src.ptr[0..8]);
-            return (((val & 0xF0F0F0F0F0F0F0F0) |
-                (((val + 0x0606060606060606) & 0xF0F0F0F0F0F0F0F0) >> 4)) ==
-                0x3333333333333333);
-        }
-
-        fn parseEightDigits(comptime topt: TokenOptions, src: *TokenIterator(topt)) u32 {
-            if (cpu.arch.isX86()) {
-                const ascii0: @Vector(16, u8) = @splat('0');
-                const mul_1_10 = std.simd.repeat(16, [_]u8{ 10, 1 });
-                const mul_1_100 = std.simd.repeat(8, [_]u16{ 100, 1 });
-                const mul_1_10000 = std.simd.repeat(8, [_]u16{ 10000, 1 });
-                const input = @as(@Vector(16, u8), src.ptr[0..16]) - ascii0;
-                const t1 = intr.mulSaturatingAdd(input, mul_1_10);
-                const t2 = intr.mulWrappingAdd(t1, mul_1_100);
-                const t3 = intr.pack(t2, t2);
-                const t4 = intr.mulWrappingAdd(t3, mul_1_10000);
-                return t4[0];
-            } else {
-                // https://johnnylee-sde.github.io/Fast-numeric-string-to-int
-                var sum = intFromSlice(u64, src.ptr[0..8]);
-                sum = (sum & 0x0F0F0F0F0F0F0F0F) * 2561 >> 8;
-                sum = (sum & 0x00FF00FF00FF00FF) * 6553601 >> 16;
-                sum = (sum & 0x0000FFFF0000FFFF) * 42949672960001 >> 32;
-                return @intCast(sum);
-            }
         }
 
         fn parseExponent(
@@ -178,7 +147,7 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
             var exp_number: u64 = 0;
             while (parseDigit(src)) |d| {
                 if (exp_number < 0x10000000) {
-                    exp_number = exp_number *% 10 +% d;
+                    exp_number = exp_number * 10 + d;
                 }
                 _ = src.consume(1, phase);
             }

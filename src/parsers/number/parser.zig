@@ -1,6 +1,7 @@
 const std = @import("std");
 const types = @import("../../types.zig");
 const tokens = @import("../../tokens.zig");
+const common = @import("common.zig");
 const clinger = @import("clinger.zig");
 const eisel_lemire = @import("eisel_lemire.zig");
 const digit_comp = @import("digit_comp.zig");
@@ -9,6 +10,7 @@ const TokenOptions = tokens.Options;
 const TokenIterator = tokens.Iterator;
 const TokenPhase = tokens.Phase;
 const ParseError = types.ParseError;
+const max_digits = common.max_digits;
 
 const Number = union(enum) {
     unsigned: u64,
@@ -21,13 +23,13 @@ pub fn Parser(comptime opt: TokenOptions) type {
         pub fn parse(comptime phase: TokenPhase, src: *TokenIterator(opt)) ParseError!Number {
             const parsed_number = try FromString(.{}).parse(opt, phase, src);
             if (parsed_number.is_float) return .{
-                .float = computeFloat(parsed_number),
+                .float = try computeFloat(parsed_number),
             };
 
             const digit_count = parsed_number.integer.len;
             const negative = parsed_number.negative;
             const integer = parsed_number.mantissa;
-            const longest_digit_count = if (negative) 19 else 20;
+            const longest_digit_count = if (negative) max_digits - 1 else max_digits;
             if (digit_count < longest_digit_count) {
                 if (std.math.cast(i64, integer)) |i| {
                     return .{ .signed = if (negative) -i else i };
@@ -51,7 +53,7 @@ pub fn Parser(comptime opt: TokenOptions) type {
             const negative = parsed_number.negative;
             const integer = parsed_number.mantissa;
 
-            const longest_digit_count = 19;
+            const longest_digit_count = max_digits - 1;
             if (digit_count <= longest_digit_count) {
                 if (integer > std.math.maxInt(i64) + @intFromBool(negative)) return error.InvalidNumber;
 
@@ -71,7 +73,7 @@ pub fn Parser(comptime opt: TokenOptions) type {
             const digit_count = parsed_number.integer.len;
             const integer = parsed_number.mantissa;
 
-            const longest_digit_count = 20;
+            const longest_digit_count = max_digits;
             if (digit_count < longest_digit_count) return integer;
             if (digit_count == longest_digit_count) {
                 if (parsed_number.integer[0] != '1' or
@@ -89,7 +91,7 @@ pub fn Parser(comptime opt: TokenOptions) type {
     };
 }
 
-fn computeFloat(parsed_number: FromString(.{})) f64 {
+fn computeFloat(parsed_number: FromString(.{})) ParseError!f64 {
     @setFloatMode(.strict);
 
     const mantissa = parsed_number.mantissa;
@@ -98,14 +100,19 @@ fn computeFloat(parsed_number: FromString(.{})) f64 {
 
     const digits_count = parsed_number.integer.len + parsed_number.decimal.len;
 
-    if (digits_count <= 19) if (clinger.compute(mantissa, exponent, negative)) |f| return f;
+    if (digits_count < max_digits)
+        if (clinger.compute(mantissa, exponent, negative)) |f| return f;
 
-    if (eisel_lemire.compute(mantissa, exponent, negative)) |f| {
-        if (digits_count <= 19) return f;
-        if (eisel_lemire.compute(mantissa + 1, exponent, negative)) |f2| {
-            if (f == f2) return f;
+    var bf = eisel_lemire.compute(mantissa, exponent);
+    if (bf.e >= 0) {
+        if (!bf.eql(eisel_lemire.compute(mantissa + 1, exponent))) {
+            bf = eisel_lemire.computeError(mantissa, exponent);
         }
     }
+    if (bf.e < 0) bf = digit_comp.compute(parsed_number, bf);
 
-    return digit_comp.compute(parsed_number);
+    if ((parsed_number.mantissa != 0 and
+        bf.m == 0 and bf.e == 0) or bf.e == common.inf_exp) return error.InvalidNumber;
+
+    return bf.toFloat(negative);
 }

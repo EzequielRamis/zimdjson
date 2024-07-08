@@ -152,7 +152,7 @@ fn escapedChars(self: *Self, backs: umask) umask {
     const potential_escape = backs & ~self.next_is_escaped;
     const maybe_escaped = potential_escape << 1;
     const maybe_escaped_and_odd_bits = maybe_escaped | odd_mask;
-    const even_series_codes_and_odd_bits = maybe_escaped_and_odd_bits -% potential_escape;
+    const even_series_codes_and_odd_bits = maybe_escaped_and_odd_bits - potential_escape;
     const escape_and_terminal_code = even_series_codes_and_odd_bits ^ odd_mask;
     const escaped = escape_and_terminal_code ^ (backs | self.next_is_escaped);
     const escape = escape_and_terminal_code & backs;
@@ -168,7 +168,7 @@ fn extract(self: *Self, tokens: umask, i: usize) void {
         inline for (0..8) |_| {
             const tz = @ctz(s);
             self.indexes.appendAssumeCapacity(@as(u32, @truncate(i)) + tz);
-            s &= s -% 1;
+            s &= s - 1;
         }
     }
     self.indexes.items.len = new_len;

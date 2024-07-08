@@ -20,6 +20,8 @@ const Number = union(enum) {
 
 pub fn Parser(comptime opt: TokenOptions) type {
     return struct {
+        pub const Result = Number;
+
         pub fn parse(comptime phase: TokenPhase, src: *TokenIterator(opt)) ParseError!Number {
             const parsed_number = try FromString(.{}).parse(opt, phase, src);
             if (parsed_number.is_float) return .{

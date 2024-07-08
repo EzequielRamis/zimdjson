@@ -2,7 +2,7 @@ const std = @import("std");
 const common = @import("common.zig");
 const types = @import("types.zig");
 const intr = @import("intrinsics.zig");
-const validator = @import("validator.zig");
+const parsers = @import("parsers.zig");
 const ArrayList = std.ArrayList;
 const Indexer = @import("Indexer.zig");
 const Vector = types.Vector;
@@ -23,6 +23,8 @@ const OnDemandError = ParseError || ConsumeError;
 const TOKEN_OPTIONS = TokenOptions{
     .copy_bounded = true,
 };
+
+const NumberParser = parsers.Number(TOKEN_OPTIONS);
 
 pub const Parser = struct {
     max_depth: usize = common.DEFAULT_MAX_DEPTH,
@@ -129,12 +131,40 @@ const Element = struct {
         return error.IncorrectType;
     }
 
+    pub fn getNumber(self: Element) OnDemandError!NumberParser.Result {
+        if (self.isSigned()) {
+            return NumberParser.parse(.null, &self.document.tokens);
+        }
+        return error.IncorrectType;
+    }
+
+    pub fn getUnsigned(self: Element) OnDemandError!u64 {
+        if (self.isUnsigned()) {
+            return NumberParser.parseUnsigned(.null, &self.document.tokens);
+        }
+        return error.IncorrectType;
+    }
+
+    pub fn getSigned(self: Element) OnDemandError!i64 {
+        if (self.isSigned()) {
+            return NumberParser.parseSigned(.null, &self.document.tokens);
+        }
+        return error.IncorrectType;
+    }
+
+    pub fn getFloat(self: Element) OnDemandError!f64 {
+        if (self.isSigned()) {
+            return NumberParser.parseFloat(.null, &self.document.tokens);
+        }
+        return error.IncorrectType;
+    }
+
     pub fn getString(self: Element) OnDemandError![]const u8 {
         if (self.isString()) {
             const doc = self.document;
             _ = doc.tokens.consume(1, .none);
             const next_str = doc.chars.items.len;
-            try validator.string(&doc.tokens, &doc.chars, .none);
+            try parsers.writeString(&doc.tokens, &doc.chars, .none);
             const next_len = self.chars.items.len - 1 - next_str;
             return doc.chars.items[next_str..][0..next_len];
         }
@@ -144,8 +174,8 @@ const Element = struct {
     pub fn getBool(self: Element) OnDemandError!bool {
         if (self.isBool()) {
             const p = self.document.tokens.peek();
-            if (p == 't') return validator.atomTrue(TOKEN_OPTIONS, &self.document.tokens, .none);
-            return validator.atomFalse(TOKEN_OPTIONS, &self.document.tokens, .none);
+            if (p == 't') return parsers.checkTrue(self.document.tokens.ptr);
+            return parsers.checkFalse(self.document.tokens.ptr);
         }
         return error.IncorrectType;
     }
@@ -171,6 +201,17 @@ const Element = struct {
         return self.document.tokens.peek() == '[';
     }
 
+    fn isSigned(self: Element) bool {
+        return self.isUnsigned() or self.document.tokens.peek() == '-';
+    }
+
+    fn isUnsigned(self: Element) bool {
+        return switch (self.document.tokens.peek()) {
+            '0'...'9' => true,
+            else => false,
+        };
+    }
+
     fn isString(self: Element) bool {
         return self.document.tokens.peek() == '"';
     }
@@ -184,7 +225,7 @@ const Element = struct {
 
     pub fn isNull(self: Element) ParseError!void {
         if (self.document.tokens.peek() == 'n') {
-            return validator.atomNull(TOKEN_OPTIONS, &self.document.tokens, .none);
+            return parsers.checkNull(self.document.tokens.ptr);
         }
         return error.IncorrectType;
     }
@@ -256,24 +297,6 @@ const Element = struct {
 
         if (actual_depth != wanted_depth) return error.InvalidStructure;
     }
-
-    pub fn get(self: Element, comptime ty: type) OnDemandError!ty {
-        const info = @typeInfo(ty);
-        switch (info) {
-            .Bool => return self.getBool(),
-            .Int => |_| {},
-            .Float => {},
-            .Optional => |c| return if (self.isNull()) null else self.get(c.child),
-            .Struct, .Enum, .Union => |s| {
-                for (s.decls) |decl| {
-                    if (std.mem.eql(u8, decl.name, "deserialize"))
-                        return ty.deserialize(self);
-                }
-                @compileError("type '" ++ @typeName(ty) ++ "' has no method 'deserialize'");
-            },
-            else => @compileError("can not deserialize to type '" ++ @typeName(ty) ++ "'"),
-        }
-    }
 };
 
 const Array = struct {
@@ -344,7 +367,7 @@ const Object = struct {
             const doc = self.root.document;
             _ = doc.tokens.consume(1, .none);
             const next_str = doc.chars.items.len;
-            try validator.string(&doc.tokens, &doc.chars, .none);
+            try parsers.writeString(&doc.tokens, &doc.chars, .none);
             const next_len = self.chars.items.len - 1 - next_str;
             return doc.chars.items[next_str..][0..next_len];
         }

@@ -8,8 +8,8 @@ const TokenPhase = tokens.Phase;
 const ParseError = types.ParseError;
 const intFromSlice = common.intFromSlice;
 
-pub fn checkTrue(comptime opt: TokenOptions, token: *TokenIterator(opt), comptime phase: TokenPhase) ParseError!void {
-    const chunk = token.consume(5, phase);
+pub fn checkTrue(src: [*]const u8) ParseError!void {
+    const chunk = src[0..5];
     const dword_true = intFromSlice(u32, "true").*;
     const dword_atom = intFromSlice(u32, chunk[0..4]).*;
     const not_struct_white = common.Tables.is_structural_or_whitespace_negated;
@@ -18,8 +18,8 @@ pub fn checkTrue(comptime opt: TokenOptions, token: *TokenIterator(opt), comptim
     }
 }
 
-pub fn checkFalse(comptime opt: TokenOptions, token: *TokenIterator(opt), comptime phase: TokenPhase) ParseError!void {
-    const chunk = token.consume(6, phase);
+pub fn checkFalse(src: [*]const u8) ParseError!void {
+    const chunk = src[0..6];
     const dword_alse = intFromSlice(u32, "alse").*;
     const dword_atom = intFromSlice(u32, chunk[1..][0..4]).*;
     const not_struct_white = common.Tables.is_structural_or_whitespace_negated;
@@ -28,8 +28,8 @@ pub fn checkFalse(comptime opt: TokenOptions, token: *TokenIterator(opt), compti
     }
 }
 
-pub fn checkNull(comptime opt: TokenOptions, token: *TokenIterator(opt), comptime phase: TokenPhase) ParseError!void {
-    const chunk = token.consume(5, phase);
+pub fn checkNull(src: [*]const u8) ParseError!void {
+    const chunk = src[0..5];
     const dword_null = intFromSlice(u32, "null").*;
     const dword_atom = intFromSlice(u32, chunk[0..4]).*;
     const not_struct_white = common.Tables.is_structural_or_whitespace_negated;

@@ -1,7 +1,7 @@
 const std = @import("std");
 const common = @import("common.zig");
 const types = @import("types.zig");
-const validator = @import("validator.zig");
+const parsers = @import("parsers.zig");
 const tokens = @import("tokens.zig");
 const ArrayList = std.ArrayList;
 const BitStack = std.BitStack;
@@ -512,10 +512,10 @@ fn visit_root_primitive(self: *Self, comptime phase: TokenPhase, token: u8) Pars
 
 inline fn visit_primitive(self: *Self, comptime phase: TokenPhase, token: u8) ParseError!void {
     switch (token) {
+        't' => try self.visit_true(),
+        'f' => try self.visit_false(),
+        'n' => try self.visit_null(),
         '"' => try self.visit_string(phase),
-        't' => try self.visit_true(phase),
-        'f' => try self.visit_false(phase),
-        'n' => try self.visit_null(phase),
         '-', '0'...'9' => try self.visit_number(phase),
         else => return error.NonValue,
     }
@@ -526,7 +526,7 @@ inline fn visit_string(self: *Self, comptime phase: TokenPhase) ParseError!void 
     _ = t.consume(1, phase);
     const len_slot = common.intFromSlice(u32, self.chars.addManyAsArrayAssumeCapacity(4));
     const next_str = self.chars.items.len;
-    try validator.string(TOKEN_OPTIONS, t, &self.chars, phase);
+    try parsers.writeString(TOKEN_OPTIONS, t, &self.chars, phase);
     const next_len = self.chars.items.len - 1 - next_str;
     len_slot.* = @truncate(self.chars.items.len - 1 - next_str);
     self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = .string, .data = @truncate(next_str) }));
@@ -542,23 +542,23 @@ inline fn visit_number(self: *Self, comptime _: TokenPhase) ParseError!void {
     log.info("NUM", .{});
 }
 
-inline fn visit_true(self: *Self, comptime phase: TokenPhase) ParseError!void {
+inline fn visit_true(self: *Self) ParseError!void {
     const t = &self.tokens;
-    try validator.atomTrue(TOKEN_OPTIONS, t, phase);
+    try parsers.checkTrue(t.ptr);
     self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = .true }));
     log.info("TRU", .{});
 }
 
-inline fn visit_false(self: *Self, comptime phase: TokenPhase) ParseError!void {
+inline fn visit_false(self: *Self) ParseError!void {
     const t = &self.tokens;
-    try validator.atomFalse(TOKEN_OPTIONS, t, phase);
+    try parsers.checkFalse(t.ptr);
     self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = .false }));
     log.info("FAL", .{});
 }
 
-inline fn visit_null(self: *Self, comptime phase: TokenPhase) ParseError!void {
+inline fn visit_null(self: *Self) ParseError!void {
     const t = &self.tokens;
-    try validator.atomNull(TOKEN_OPTIONS, t, phase);
+    try parsers.checkNull(t.ptr);
     self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = .null }));
     log.info("NUL", .{});
 }

@@ -175,30 +175,6 @@ const Element = struct {
         return self.el.tag == .null;
     }
 
-    pub fn get(self: Element, comptime ty: type) !ty {
-        const info = @typeInfo(ty);
-        switch (info) {
-            .Bool => return self.getBool(),
-            .Int => |n| {
-                if (n.signedness == .signed) {
-                    return std.math.cast(ty, try self.getSigned()) orelse error.InvalidNumber;
-                } else {
-                    return std.math.cast(ty, try self.getUnsigned()) orelse error.InvalidNumber;
-                }
-            },
-            .Float => return @floatCast(try self.getFloat()),
-            .Optional => |c| return if (self.isNull()) null else self.get(c.child),
-            .Struct, .Enum, .Union => |s| {
-                for (s.decls) |decl| {
-                    if (std.mem.eql(u8, decl.name, "deserialize"))
-                        return ty.deserialize(self);
-                }
-                @compileError("type '" ++ @typeName(ty) ++ "' has no method 'deserialize'");
-            },
-            else => @compileError("can not deserialize to type '" ++ @typeName(ty) ++ "'"),
-        }
-    }
-
     pub fn atKey(self: Element, key: []const u8) ConsumeError!Object.Field {
         const obj = try self.getObject();
         return obj.at(key);

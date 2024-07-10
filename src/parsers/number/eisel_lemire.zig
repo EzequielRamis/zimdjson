@@ -11,8 +11,8 @@ const inf_exp = common.inf_exp;
 const man_bits = common.man_bits;
 
 pub fn computeError(mantissa: u64, exponent: i64) BiasedFp {
-    const lz = @clz(mantissa);
-    const w = mantissa << lz;
+    const lz: u6 = @intCast(@clz(mantissa));
+    const w = mantissa << @intCast(lz);
     const q = exponent;
     const product = productApproximation(man_bits, w, q);
     return computeErrorScaled(product.high, q, lz);
@@ -30,12 +30,12 @@ pub fn compute(mantissa: u64, exponent: i64) BiasedFp {
         answer.m = 0;
         return answer;
     }
-    const lz: u64 = @clz(mantissa);
+    const lz: u6 = @intCast(@clz(mantissa));
     const w = mantissa << lz;
     const q = exponent;
     const product = productApproximation(man_bits, w, q);
-    const upperbit = product.high >> 63;
-    answer.m = product.high >> (upperbit + 64 - man_bits - 3);
+    const upperbit: u1 = @intCast(product.high >> 63);
+    answer.m = product.high >> (64 - man_bits - 3 + @as(u6, upperbit));
     answer.e = power(@intCast(q)) + upperbit - lz - min_exp;
     if (answer.e <= 0) {
         if (-answer.e + 1 >= 64) {
@@ -43,7 +43,7 @@ pub fn compute(mantissa: u64, exponent: i64) BiasedFp {
             answer.m = 0;
             return answer;
         }
-        answer.m >>= -answer.e + 1;
+        answer.m >>= @intCast(-answer.e + 1);
         answer.m += (answer.m & 1); // round up
         answer.m >>= 1;
         answer.e = if (answer.m < 1 << man_bits) 0 else 1;
@@ -52,7 +52,7 @@ pub fn compute(mantissa: u64, exponent: i64) BiasedFp {
     if ((product.low <= 1) and (q >= min_even_exp) and (q <= max_even_exp) and
         ((answer.m & 3) == 1))
     {
-        if ((answer.m << (upperbit + 64 - man_bits - 3)) == product.high) {
+        if ((answer.m << (64 - man_bits - 3 + @as(u6, upperbit))) == product.high) {
             answer.m &= ~@as(u64, 1);
         }
     }
@@ -64,7 +64,7 @@ pub fn compute(mantissa: u64, exponent: i64) BiasedFp {
         answer.e += 1;
     }
 
-    answer.m &= ~(1 << man_bits);
+    answer.m &= ~(@as(u64, 1) << man_bits);
     if (answer.e >= inf_exp) {
         answer.e = inf_exp;
         answer.m = 0;
@@ -76,7 +76,7 @@ fn power(q: i32) i32 {
     return (((152170 + 65536) * q) >> 16) + 63;
 }
 
-const U128 = struct {
+const U128 = packed struct {
     low: u64,
     high: u64,
 
@@ -91,7 +91,7 @@ const U128 = struct {
 
 fn productApproximation(comptime precision: comptime_int, w: u64, q: i64) U128 {
     comptime assert(precision > 0 and precision <= 64);
-    const index = 2 * (q - min_pow10);
+    const index: usize = 2 * @as(usize, @intCast(q - min_pow10));
     var first_product = U128.mul(w, power_of_five_u64[index]);
     const precision_mask: u64 = if (precision < 64)
         @as(u64, 0xFFFFFFFFFFFFFFFF) >> precision
@@ -108,10 +108,10 @@ fn productApproximation(comptime precision: comptime_int, w: u64, q: i64) U128 {
 }
 
 fn computeErrorScaled(w: u64, q: i64, lz: u8) BiasedFp {
-    const hilz = ~@as(u1, @bitCast(w >> 63));
+    const hilz = ~@as(u1, @intCast(w >> 63));
     return .{
         .m = w << hilz,
-        .e = power(q) + BiasedFp.bias - hilz - lz - 62 + BiasedFp.invalid_bias,
+        .e = power(@intCast(q)) + BiasedFp.bias - hilz - lz - 62 + BiasedFp.invalid_bias,
     };
 }
 

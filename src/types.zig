@@ -26,13 +26,13 @@ pub const ParseError = error{
     FalseAtom,
     NullAtom,
     String,
-    Number,
     NonValue,
     UnclosedString,
     InvalidEncoding,
     InvalidEscape,
     InvalidNumber,
     InvalidStructure,
+    NumberOutOfRange,
 } || IOError;
 
 pub const IOError = std.mem.Allocator.Error || std.fs.File.OpenError || std.fs.File.MetadataError || std.fs.File.ReadError;

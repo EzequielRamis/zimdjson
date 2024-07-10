@@ -12,6 +12,11 @@
             .hash = "1220b889265da3e0bc471a53803786ad6a4f4ee23fbdf9af683af467e995136bd1f4",
             .lazy = true,
         },
+        .parse_number_fxx = .{
+            .url = "git+https://github.com/nigeltao/parse-number-fxx-test-data.git#55d79b184b7d8fac2e143e89dc19b766ec4e54b8",
+            .hash = "12201656f7fb84a9cc63c8a9067de435a21efba72d41d75c853542fb37ab0504e9a0",
+            .lazy = true,
+        },
     },
     .paths = .{""},
 }

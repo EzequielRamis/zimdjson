@@ -2,7 +2,6 @@ const std = @import("std");
 const types = @import("../../types.zig");
 const tokens = @import("../../tokens.zig");
 const common = @import("common.zig");
-const clinger = @import("clinger.zig");
 const eisel_lemire = @import("eisel_lemire.zig");
 const digit_comp = @import("digit_comp.zig");
 const FromString = @import("from_string.zig").FromString;
@@ -102,19 +101,40 @@ fn computeFloat(parsed_number: FromString(.{})) ParseError!f64 {
 
     const digits_count = parsed_number.integer.len + parsed_number.decimal.len;
 
-    if (digits_count < max_digits)
-        if (clinger.compute(mantissa, exponent, negative)) |f| return f;
+    const fast_min_exp = -22;
+    const fast_max_exp = 22;
+    const fast_max_man = 2 << std.math.floatMantissaBits(f64);
+
+    if (digits_count < max_digits and
+        fast_min_exp <= exponent and
+        exponent <= fast_max_exp and
+        mantissa <= fast_max_man)
+    {
+        var answer: f64 = @floatFromInt(mantissa);
+        if (exponent < 0)
+            answer /= power_of_ten[@intCast(-exponent)]
+        else
+            answer *= power_of_ten[@intCast(exponent)];
+        return if (negative) -answer else answer;
+    }
 
     var bf = eisel_lemire.compute(mantissa, exponent);
-    if (bf.e >= 0) {
+    if (digits_count >= max_digits and bf.e >= 0) {
         if (!bf.eql(eisel_lemire.compute(mantissa + 1, exponent))) {
             bf = eisel_lemire.computeError(mantissa, exponent);
         }
     }
     if (bf.e < 0) bf = digit_comp.compute(parsed_number, bf);
 
-    if ((parsed_number.mantissa != 0 and
-        bf.m == 0 and bf.e == 0) or bf.e == common.inf_exp) return error.InvalidNumber;
+    if (bf.e == common.inf_exp) return error.NumberOutOfRange;
 
     return bf.toFloat(negative);
 }
+
+const power_of_ten: [23]f64 = brk: {
+    var res: [23]f64 = undefined;
+    for (&res, 0..) |*r, i| {
+        r.* = std.math.pow(f64, 10, i);
+    }
+    break :brk res;
+};

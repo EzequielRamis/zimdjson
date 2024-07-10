@@ -12,11 +12,14 @@ pub fn build(b: *std.Build) !void {
     // -- Testing
     const test_step = b.step("test", "Run all unit tests");
 
-    var lazy_data: ?*std.Build.Dependency = null;
+    var lazy_simdjson_data: ?*std.Build.Dependency = null;
+    var lazy_float_data: ?*std.Build.Dependency = null;
+
     var args = try std.process.argsWithAllocator(alloc);
     defer args.deinit();
     while (args.next()) |a| {
-        if (std.mem.eql(u8, a[0..4], "test")) lazy_data = b.lazyDependency("simdjson-data", .{});
+        if (std.mem.eql(u8, a[0..4], "test")) lazy_simdjson_data = b.lazyDependency("simdjson-data", .{});
+        if (std.mem.eql(u8, a, "test-float-parsing")) lazy_float_data = b.lazyDependency("parse_number_fxx", .{});
     }
 
     const jsonchecker_gen = b.addExecutable(.{
@@ -24,7 +27,7 @@ pub fn build(b: *std.Build) !void {
         .root_source_file = b.path("tests/jsonchecker_gen.zig"),
         .target = b.host,
     });
-    if (lazy_data) |dep| addSimdjsonDataPath(b, &jsonchecker_gen.root_module, dep);
+    if (lazy_simdjson_data) |dep| addSimdjsonDataPath(b, &jsonchecker_gen.root_module, dep);
     const run_jsonchecker_gen = b.addRunArtifact(jsonchecker_gen);
     _ = run_jsonchecker_gen.addArg(b.path("tests/jsonchecker.zig").getPath(b));
 
@@ -32,6 +35,7 @@ pub fn build(b: *std.Build) !void {
         // .{ .step = "test-dom", .name = "DOM", .path = "tests/dom.zig" },
         // .{ .step = "test-ondemand", .name = "On Demand", .path = "tests/ondemand.zig" },
         .{ .step = "test-jsonchecker", .name = "Json Checker", .path = "tests/jsonchecker.zig" },
+        .{ .step = "test-float-parsing", .name = "Float parsing", .path = "tests/parse_float.zig" },
     }) |t| {
         const unit_test = b.addTest(.{
             .root_source_file = b.path(t.path),
@@ -39,7 +43,18 @@ pub fn build(b: *std.Build) !void {
             .optimize = optimize,
         });
         unit_test.root_module.addImport("zimdjson", zimdjson);
-        if (lazy_data) |dep| addSimdjsonDataPath(b, &unit_test.root_module, dep);
+
+        if (lazy_simdjson_data) |dep| addSimdjsonDataPath(b, &unit_test.root_module, dep);
+
+        if (lazy_float_data) |dep| {
+            unit_test.root_module.addAnonymousImport("parse_number_fxx", .{
+                .root_source_file = b.addWriteFiles().add(
+                    "parse_number_fxx.txt",
+                    dep.path(".").getPath(b),
+                ),
+            });
+        }
+
         const run_test = b.addRunArtifact(unit_test);
         const run_test_step = b.step(t.step, "Run " ++ t.name ++ " unit tests");
         run_test_step.dependOn(&run_test.step);

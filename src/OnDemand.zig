@@ -42,20 +42,19 @@ pub const Parser = struct {
 
     pub fn deinit(self: *Parser) void {
         self.indexer.deinit();
-        if (self.loaded_buffer) {
-            self.allocator.free(self.loaded_buffer);
+        if (self.loaded_buffer) |b| {
+            self.allocator.free(b);
             self.loaded_buffer = null;
         }
     }
 
-    pub fn parse(self: *Parser, document: []const u8) ParseError!Document {
+    pub fn parse(self: *Parser, document: []const u8) ParseError!Element {
         try self.indexer.index(document);
         var doc = Document.init(self.allocator);
-        doc.build(self.indexer);
-        return doc;
+        return doc.build(self.indexer);
     }
 
-    pub fn load(self: *Parser, path: []const u8) ParseError!*Document {
+    pub fn load(self: *Parser, path: []const u8) ParseError!Element {
         const file = try std.fs.cwd().openFile(path, .{});
         const len = (try file.metadata()).size();
 
@@ -71,8 +70,7 @@ pub const Parser = struct {
 
         try self.indexer.index(self.loaded_buffer.?[0..self.loaded_document_len]);
         var doc = Document.init(self.allocator);
-        doc.build(self.indexer);
-        return &doc;
+        return doc.build(self.indexer);
     }
 
     pub fn shrinkToFitLoad(self: *Parser) ParseError!void {
@@ -88,7 +86,7 @@ const Document = struct {
 
     pub fn init(allocator: Allocator) Document {
         return Document{
-            .tokens = TokenIterator(TOKEN_OPTIONS).init(),
+            .tokens = TokenIterator(TOKEN_OPTIONS).init(allocator),
             .chars = ArrayList(u8).init(allocator),
         };
     }
@@ -104,14 +102,12 @@ const Document = struct {
         try self.chars.ensureTotalCapacity(self.tokens.indexer.reader.document.len);
         self.chars.shrinkRetainingCapacity(0);
 
-        if (t.empty()) return error.Empty;
-
-        return Element{ .document = self, .depth = self.depth, .index = t.index };
+        return Element{ .document = self, .depth = self.depth, .index = t.token };
     }
 };
 
 const Element = struct {
-    document: *const Document,
+    document: *Document,
     depth: u32,
     index: u32,
 
@@ -131,30 +127,30 @@ const Element = struct {
         return error.IncorrectType;
     }
 
-    pub fn getNumber(self: Element) OnDemandError!NumberParser.Result {
+    pub fn getNumber(self: *Element) OnDemandError!NumberParser.Result {
         if (self.isSigned()) {
-            return NumberParser.parse(.null, &self.document.tokens);
+            return NumberParser.parse(.none, &self.document.tokens);
         }
         return error.IncorrectType;
     }
 
-    pub fn getUnsigned(self: Element) OnDemandError!u64 {
+    pub fn getUnsigned(self: *Element) OnDemandError!u64 {
         if (self.isUnsigned()) {
-            return NumberParser.parseUnsigned(.null, &self.document.tokens);
+            return NumberParser.parseUnsigned(.none, &self.document.tokens);
         }
         return error.IncorrectType;
     }
 
-    pub fn getSigned(self: Element) OnDemandError!i64 {
+    pub fn getSigned(self: *Element) OnDemandError!i64 {
         if (self.isSigned()) {
-            return NumberParser.parseSigned(.null, &self.document.tokens);
+            return NumberParser.parseSigned(.none, &self.document.tokens);
         }
         return error.IncorrectType;
     }
 
-    pub fn getFloat(self: Element) OnDemandError!f64 {
+    pub fn getFloat(self: *Element) OnDemandError!f64 {
         if (self.isSigned()) {
-            return NumberParser.parseFloat(.null, &self.document.tokens);
+            return NumberParser.parseFloat(.none, &self.document.tokens);
         }
         return error.IncorrectType;
     }

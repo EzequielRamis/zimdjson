@@ -1,5 +1,4 @@
 const std = @import("std");
-const debug = @import("debug.zig");
 const assert = std.debug.assert;
 
 pub const Limb = usize;
@@ -11,7 +10,7 @@ const Limbs = std.BoundedArray(Limb, len);
 limbs: Limbs,
 
 pub fn init() Self {
-    return .{ .buffer = Limbs.init(0) orelse unreachable };
+    return .{ .limbs = Limbs.init(0) catch unreachable };
 }
 
 pub fn from(value: u64) Self {
@@ -21,7 +20,7 @@ pub fn from(value: u64) Self {
     return self;
 }
 
-pub fn add(self: *Self, n: []Limb) !void {
+pub fn add(self: *Self, n: []const Limb) !void {
     return self.addFrom(n, 0);
 }
 
@@ -29,9 +28,7 @@ pub fn addScalar(self: *Self, n: Limb) !void {
     return self.addScalarFrom(n, 0);
 }
 
-pub fn mul(self: *Self, n: []Limb) !void {
-    @setRuntimeSafety(debug.is_set);
-
+pub fn mul(self: *Self, n: []const Limb) !void {
     try self.mulScalar(n[0]);
     if (n.len == 1) return;
 
@@ -40,7 +37,7 @@ pub fn mul(self: *Self, n: []Limb) !void {
 
     var mi = Self.init();
 
-    for (n[1..], 1) |y, i| {
+    for (n[1..], 1..) |y, i| {
         if (y != 0) {
             mi.limbs.len = 0;
             mi.limbs.appendSliceAssumeCapacity(ms);
@@ -53,13 +50,11 @@ pub fn mul(self: *Self, n: []Limb) !void {
 }
 
 pub fn mulScalar(self: *Self, n: Limb) !void {
-    @setRuntimeSafety(debug.is_set);
-
     var carry: Limb = 0;
     for (self.limbs.slice()) |*limb| {
-        const wide = std.math.mulWide(Limb, limb, n) + carry;
+        const wide = std.math.mulWide(Limb, limb.*, n) + carry;
         const res: Limb = @truncate(wide);
-        limb = res;
+        limb.* = res;
         carry = @truncate(wide >> limb_bits);
     }
 
@@ -67,22 +62,20 @@ pub fn mulScalar(self: *Self, n: Limb) !void {
 }
 
 pub fn pow2(self: *Self, n: u32) !void {
-    @setRuntimeSafety(debug.is_set);
     assert(n != 0);
+    assert(n < limb_bits);
 
     const rem = n % limb_bits;
     const div = n / limb_bits;
     if (rem != 0) {
-        assert(n < limb_bits);
-
         const shl = n;
         const shr = limb_bits - shl;
         var prev: Limb = 0;
         for (self.limbs.slice()) |*m| {
-            m = (m << shl) | (prev >> shr);
-            prev = m;
+            m.* = (m.* << @intCast(shl)) | (prev >> @intCast(shr));
+            prev = m.*;
         }
-        const carry = prev >> shr;
+        const carry = prev >> @intCast(shr);
         if (carry != 0) try self.limbs.append(carry);
     }
     if (div != 0) {
@@ -95,14 +88,12 @@ pub fn pow2(self: *Self, n: u32) !void {
                 slice,
             );
             @memset(slice[0..n], 0);
-            self.limbs.len += n;
+            self.limbs.len += @intCast(n);
         }
     }
 }
 
 pub fn pow5(self: *Self, n: u32) !void {
-    @setRuntimeSafety(debug.is_set);
-
     var exp = n;
     const large_step = 135;
     while (exp >= large_step) {
@@ -131,7 +122,7 @@ pub fn high64(self: Self) struct { bits: u64, truncated: bool } {
     if (self.limbs.len == 1) {
         const r0 = self.limbs.get(0);
         return .{
-            .bits = r0 << @clz(r0),
+            .bits = r0 << @intCast(@clz(r0)),
             .truncated = false,
         };
     }
@@ -145,8 +136,8 @@ pub fn high64(self: Self) struct { bits: u64, truncated: bool } {
         bits = r0;
     } else {
         const shr = limb_bits - shl;
-        truncated = (r1 << shl) != 0;
-        bits = (r0 << shl) | (r1 >> shr);
+        truncated = (r1 << @intCast(shl)) != 0;
+        bits = (r0 << @intCast(shl)) | (r1 >> @intCast(shr));
     }
     var nonzero = false;
     var i: usize = 2;
@@ -163,13 +154,13 @@ pub fn high64(self: Self) struct { bits: u64, truncated: bool } {
     };
 }
 
-pub fn clz(self: Self) usize {
+pub fn clz(self: Self) u6 {
     if (self.limbs.len == 0) return 0;
-    return @clz(self.limbs.get(self.limbs.len - 1));
+    return @intCast(@clz(self.limbs.get(self.limbs.len - 1)));
 }
 
-pub fn bitsLen(self: Self) usize {
-    return limb_bits * self.limbs.len - self.clz();
+pub fn bitsLen(self: Self) u16 {
+    return std.math.mulWide(u8, limb_bits, self.limbs.len) - self.clz();
 }
 
 pub fn order(self: Self, other: Self) std.math.Order {
@@ -186,7 +177,6 @@ pub fn order(self: Self, other: Self) std.math.Order {
 }
 
 fn addScalarFrom(self: *Self, n: Limb, _i: usize) !void {
-    @setRuntimeSafety(debug.is_set);
     assert(_i < self.limbs.len);
 
     var i: usize = _i;
@@ -200,8 +190,7 @@ fn addScalarFrom(self: *Self, n: Limb, _i: usize) !void {
     if (carry != 0) return self.limbs.append(carry);
 }
 
-fn addFrom(self: *Self, n: []Limb, i: usize) !void {
-    @setRuntimeSafety(debug.is_set);
+fn addFrom(self: *Self, n: []const Limb, i: usize) !void {
     assert(i < self.limbs.len);
 
     var carry = false;
@@ -220,8 +209,6 @@ fn addFrom(self: *Self, n: []Limb, i: usize) !void {
 }
 
 fn normalize(self: *Self) void {
-    @setRuntimeSafety(debug.is_set);
-
     while (self.limbs.len > 0 and self.limbs.get(self.limbs.len - 1) == 0) {
         self.limbs.len -= 1;
     }

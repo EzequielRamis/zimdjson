@@ -2,6 +2,7 @@ const std = @import("std");
 const common = @import("common.zig");
 const types = @import("types.zig");
 const Indexer = @import("Indexer.zig");
+const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
 const Vector = types.Vector;
 const vector = types.vector;
@@ -31,10 +32,18 @@ pub fn Iterator(comptime options: Options) type {
         padding_ptr: if (copy_bounded) void else [*]const u8 = undefined,
         ptr: [*]const u8 = undefined,
         bounded_token: usize = undefined,
-        token: usize = 0,
+        token: u32 = 0,
 
-        pub fn init() Self {
+        pub fn init(allocator: if (copy_bounded) Allocator else void) Self {
+            if (copy_bounded) {
+                return Self{ .padding = ArrayList(u8).init(allocator) };
+            }
             return Self{};
+        }
+
+        pub fn deinit(self: *Self) void {
+            assert(copy_bounded);
+            self.padding.deinit();
         }
 
         pub fn document(self: Self) []const u8 {
@@ -45,7 +54,8 @@ pub fn Iterator(comptime options: Options) type {
             return self.indexer.indexes.items;
         }
 
-        pub fn analyze(self: *Self, indexer: Indexer) if (copy_bounded) (!void) else void {
+        pub fn analyze(self: *Self, indexer: Indexer) if (copy_bounded) (std.mem.Allocator.Error!void) else void {
+            self.indexer = indexer;
             const doc = self.document();
             const ixs = self.indexes();
             const padding_bound = doc.len -| Vector.LEN_BYTES;
@@ -55,15 +65,18 @@ pub fn Iterator(comptime options: Options) type {
                 if (t <= padding_bound) break;
             }
             const padding_ptr = doc[padding_bound..].ptr;
-            self.indexer = indexer;
             self.bounded_token = bounded_token;
             self.ptr = doc.ptr;
             if (copy_bounded) {
                 const bounded_index = ixs[bounded_token];
-                const padding_len = doc.len - doc[bounded_index];
-                self.padding.ensureTotalCapacity(padding_len + Vector.LEN_BYTES);
-                @memset(&self.padding, ' ');
-                @memcpy(self.padding[0..padding_len], doc[bounded_index..]);
+                const padding_len = doc.len - bounded_index;
+                try self.padding.ensureTotalCapacity(padding_len + Vector.LEN_BYTES);
+                self.padding.items.len = padding_len + Vector.LEN_BYTES;
+                @memset(self.padding.items, ' ');
+                @memcpy(self.padding.items[0..padding_len], doc[bounded_index..]);
+                if (bounded_token == 0) {
+                    self.ptr = self.padding.items.ptr;
+                }
             } else {
                 self.padding_ptr = padding_ptr;
                 @memset(&self.padding, ' ');
@@ -118,6 +131,10 @@ pub fn Iterator(comptime options: Options) type {
             }
             defer self.ptr += n;
             return self.ptr[0..n];
+        }
+
+        pub fn peek(self: Self) u8 {
+            return self.ptr[0];
         }
 
         pub fn peekNext(self: Self) ?u8 {

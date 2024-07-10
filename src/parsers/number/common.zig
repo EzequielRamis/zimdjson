@@ -1,7 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const intr = @import("../intrinsics.zig");
-const common = @import("../common.zig");
+const intr = @import("../../intrinsics.zig");
+const common = @import("../../common.zig");
 const intFromSlice = common.intFromSlice;
 const cpu = builtin.cpu;
 
@@ -42,35 +42,34 @@ pub const BiasedFp = struct {
     }
 
     pub fn toFloat(self: Self, negative: bool) f64 {
-        var word = self.m;
-        word |= @as(u64, @intCast(self.e)) << std.math.floatMantissaBits(f64);
-        var f: f64 = @bitCast(word);
+        var f = self.m;
+        f |= @as(u64, @intCast(self.e)) << std.math.floatMantissaBits(f64);
         f |= @as(u64, @intFromBool(negative)) << 63;
-        return f;
+        return @bitCast(f);
     }
 };
 
-pub fn isEightDigits(src: [8]u8) bool {
-    const val = intFromSlice(u64, src);
-    const a = val + 0x4646464646464646;
-    const b = val - 0x3030303030303030;
+pub fn isEightDigits(src: *const [8]u8) bool {
+    const val = intFromSlice(u64, src).*;
+    const a = val +% 0x4646464646464646;
+    const b = val -% 0x3030303030303030;
     return (((a | b) & 0x8080808080808080)) == 0;
 }
 
-pub fn parseEightDigits(src: [8]u8) u32 {
+pub fn parseEightDigits(src: *const [8]u8) u32 {
     if (cpu.arch.isX86()) {
         const ascii0: @Vector(16, u8) = @splat('0');
         const mul_1_10 = std.simd.repeat(16, [_]u8{ 10, 1 });
         const mul_1_100 = std.simd.repeat(8, [_]u16{ 100, 1 });
         const mul_1_10000 = std.simd.repeat(8, [_]u16{ 10000, 1 });
-        const input = std.simd.repeat(2, src) - ascii0;
+        const input = std.simd.repeat(16, src.*) - ascii0;
         const t1 = intr.mulSaturatingAdd(input, mul_1_10);
         const t2 = intr.mulWrappingAdd(t1, mul_1_100);
         const t3 = intr.pack(t2, t2);
         const t4 = intr.mulWrappingAdd(t3, mul_1_10000);
         return t4[0];
     } else {
-        var val = intFromSlice(u64, src);
+        var val = intFromSlice(u64, src).*;
         const mask = 0x000000FF000000FF;
         const mul1 = 0x000F424000000064; // 100 + (1000000ULL << 32)
         const mul2 = 0x0000271000000001; // 1 + (10000ULL << 32)

@@ -1,5 +1,5 @@
 const std = @import("std");
-const common = @import("../common.zig");
+const common = @import("../../common.zig");
 const number = @import("common.zig");
 const types = @import("../../types.zig");
 const tokens = @import("../../tokens.zig");
@@ -52,7 +52,8 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
                 }
                 if (phase != .bounded) integer_count = @intFromPtr(src.ptr) - @intFromPtr(start_integers);
                 if (integer_count == 0) return error.InvalidNumber;
-                integer_slice = start_integers[0..decimal_count];
+                integer_slice.ptr = start_integers;
+                integer_slice.len = integer_count;
 
                 if (src.ptr[0] == '.') {
                     _ = src.consume(1, phase);
@@ -65,7 +66,8 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
 
                     if (decimal_count == 0) return error.InvalidNumber;
                     is_float = true;
-                    decimal_slice = start_decimals[0..decimal_count];
+                    decimal_slice.ptr = start_decimals;
+                    decimal_slice.len = decimal_count;
                     exponent_10 -= @intCast(decimal_slice.len);
                 }
             } else if (sopt.can_be_float and src.ptr[1] == '.') {
@@ -79,7 +81,8 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
 
                 if (decimal_count == 0) return error.InvalidNumber;
                 is_float = true;
-                decimal_slice = start_decimals[0..decimal_count];
+                decimal_slice.ptr = start_decimals;
+                decimal_slice.len = decimal_count;
                 if (decimal_count >= max_digits) {
                     for (decimal_slice) |d| {
                         if (d != '0') break;
@@ -108,7 +111,7 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
         }
 
         fn parseDigit(comptime topt: TokenOptions, src: *TokenIterator(topt)) ?u8 {
-            const digit = src.ptr[0] - '0';
+            const digit = src.ptr[0] -% '0';
             return if (digit < 10) digit else null;
         }
 
@@ -118,14 +121,14 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
             src: *TokenIterator(topt),
             man: *u64,
         ) usize {
-            var count = 0;
+            var count: usize = 0;
             while (number.isEightDigits(src.ptr[0..8])) {
                 man.* = man.* * 100000000 + number.parseEightDigits(src.ptr[0..8]);
                 _ = src.consume(8, phase);
                 count += 8;
             }
 
-            while (parseDigit(src)) |d| {
+            while (parseDigit(topt, src)) |d| {
                 man.* = man.* * 10 + d;
                 _ = src.consume(1, phase);
                 count += 1;
@@ -145,7 +148,7 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
             const start_exp = @intFromPtr(src.ptr);
 
             var exp_number: u64 = 0;
-            while (parseDigit(src)) |d| {
+            while (parseDigit(topt, src)) |d| {
                 if (exp_number < 0x10000000) {
                     exp_number = exp_number * 10 + d;
                 }

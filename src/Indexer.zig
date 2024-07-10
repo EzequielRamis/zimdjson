@@ -168,7 +168,7 @@ fn extract(self: *Self, tokens: umask, i: usize) void {
         inline for (0..8) |_| {
             const tz = @ctz(s);
             self.indexes.appendAssumeCapacity(@as(u32, @truncate(i)) + tz);
-            s &= s - 1;
+            s &= s -% 1;
         }
     }
     self.indexes.items.len = new_len;

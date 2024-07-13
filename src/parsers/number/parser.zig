@@ -98,14 +98,13 @@ fn computeFloat(parsed_number: FromString(.{})) ParseError!f64 {
     const mantissa = parsed_number.mantissa;
     const exponent = parsed_number.exponent;
     const negative = parsed_number.negative;
-
-    const digits_count = parsed_number.integer.len + parsed_number.decimal.len;
+    const many_digits = parsed_number.many_digits;
 
     const fast_min_exp = -22;
     const fast_max_exp = 22;
     const fast_max_man = 2 << std.math.floatMantissaBits(f64);
 
-    if (digits_count < max_digits and
+    if (!many_digits and
         fast_min_exp <= exponent and
         exponent <= fast_max_exp and
         mantissa <= fast_max_man)
@@ -119,7 +118,7 @@ fn computeFloat(parsed_number: FromString(.{})) ParseError!f64 {
     }
 
     var bf = eisel_lemire.compute(mantissa, exponent);
-    if (digits_count >= max_digits and bf.e >= 0) {
+    if (many_digits and bf.e >= 0) {
         if (!bf.eql(eisel_lemire.compute(mantissa + 1, exponent))) {
             bf = eisel_lemire.computeError(mantissa, exponent);
         }

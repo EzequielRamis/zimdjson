@@ -62,12 +62,11 @@ pub fn mulScalar(self: *Self, n: Limb) !void {
 }
 
 pub fn pow2(self: *Self, n: u32) !void {
-    assert(n != 0);
-    assert(n < limb_bits);
-
     const rem = n % limb_bits;
     const div = n / limb_bits;
     if (rem != 0) {
+        assert(0 < n and n < limb_bits);
+
         const shl = n;
         const shr = limb_bits - shl;
         var prev: Limb = 0;
@@ -79,6 +78,8 @@ pub fn pow2(self: *Self, n: u32) !void {
         if (carry != 0) try self.limbs.append(carry);
     }
     if (div != 0) {
+        assert(n < 0);
+
         if (n + self.limbs.len > self.limbs.capacity()) return error.Overflow;
         if (self.limbs.len != 0) {
             const slice = self.limbs.slice();
@@ -177,8 +178,6 @@ pub fn order(self: Self, other: Self) std.math.Order {
 }
 
 fn addScalarFrom(self: *Self, n: Limb, _i: usize) !void {
-    assert(_i < self.limbs.len);
-
     var i: usize = _i;
     var carry: Limb = n;
     while (carry != 0 and i < self.limbs.len) : (i += 1) {
@@ -191,12 +190,10 @@ fn addScalarFrom(self: *Self, n: Limb, _i: usize) !void {
 }
 
 fn addFrom(self: *Self, n: []const Limb, i: usize) !void {
-    assert(i < self.limbs.len);
-
     var carry = false;
-    for (n, 0) |d, j| {
-        var c1 = false;
-        var c2 = false;
+    for (n, 0..) |d, j| {
+        var c1: u1 = 0;
+        var c2: u1 = 0;
         var res, c1 = @addWithOverflow(self.limbs.buffer[i + j], d);
         if (carry) {
             res, c2 = @addWithOverflow(res, 1);

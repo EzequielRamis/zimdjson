@@ -14,7 +14,7 @@ pub fn computeError(mantissa: u64, exponent: i64) BiasedFp {
     const lz: u6 = @intCast(@clz(mantissa));
     const w = mantissa << @intCast(lz);
     const q = exponent;
-    const product = productApproximation(man_bits, w, q);
+    const product = productApproximation(man_bits + 3, w, q);
     return computeErrorScaled(product.high, q, lz);
 }
 
@@ -33,7 +33,7 @@ pub fn compute(mantissa: u64, exponent: i64) BiasedFp {
     const lz: u6 = @intCast(@clz(mantissa));
     const w = mantissa << lz;
     const q = exponent;
-    const product = productApproximation(man_bits, w, q);
+    const product = productApproximation(man_bits + 3, w, q);
     const upperbit: u1 = @intCast(product.high >> 63);
     answer.m = product.high >> (64 - man_bits - 3 + @as(u6, upperbit));
     answer.e = power(@intCast(q)) + upperbit - lz - min_exp;
@@ -77,11 +77,14 @@ fn power(q: i32) i32 {
 }
 
 const U128 = packed struct {
-    low: u64,
     high: u64,
+    low: u64,
 
     pub fn from(n: u128) U128 {
-        return @bitCast(n);
+        return .{
+            .high = @truncate(n >> 64),
+            .low = @truncate(n),
+        };
     }
 
     pub fn mul(a: u64, b: u64) U128 {
@@ -90,7 +93,7 @@ const U128 = packed struct {
 };
 
 fn productApproximation(comptime precision: comptime_int, w: u64, q: i64) U128 {
-    comptime assert(precision > 0 and precision <= 64);
+    comptime assert(precision >= 0 and precision <= 64);
     const index: usize = 2 * @as(usize, @intCast(q - min_pow10));
     var first_product = U128.mul(w, power_of_five_u64[index]);
     const precision_mask: u64 = if (precision < 64)
@@ -99,7 +102,7 @@ fn productApproximation(comptime precision: comptime_int, w: u64, q: i64) U128 {
         0xFFFFFFFFFFFFFFFF;
     if (first_product.high & precision_mask == precision_mask) {
         const second_product = U128.mul(w, power_of_five_u64[index + 1]);
-        first_product.low += second_product.high;
+        first_product.low +%= second_product.high;
         if (second_product.high > first_product.low) {
             first_product.high += 1;
         }
@@ -116,9 +119,9 @@ fn computeErrorScaled(w: u64, q: i64, lz: u8) BiasedFp {
 }
 
 // "Number Parsing at a Gigabyte per Second", Figure 5 (https://arxiv.org/pdf/2101.11408#figure.caption.21)
-const power_of_five_u128: [-min_pow10 + max_pow10 + 1]u128 = brk: {
+const power_of_five_u128: [-min_pow10 + max_pow10 + 1]U128 = brk: {
     @setEvalBranchQuota(1000000);
-    var res1: [315]u128 = undefined;
+    var res1: [315]U128 = undefined;
     for (&res1, 0..) |*r, _q| {
         const q = min_pow10 + @as(comptime_int, _q);
         const power5 = std.math.pow(u2048, 5, -q);
@@ -127,9 +130,9 @@ const power_of_five_u128: [-min_pow10 + max_pow10 + 1]u128 = brk: {
         const b = 2 * z + 2 * 64;
         var c = std.math.pow(u2048, 2, b) / power5 + 1;
         while (c >= 1 << 128) c /= 2;
-        r.* = c;
+        r.* = U128.from(c);
     }
-    var res2: [27]u128 = undefined;
+    var res2: [27]U128 = undefined;
     for (&res2, 0..) |*r, _q| {
         const q = -27 + @as(comptime_int, _q);
         const power5 = std.math.pow(u2048, 5, -q);
@@ -137,14 +140,15 @@ const power_of_five_u128: [-min_pow10 + max_pow10 + 1]u128 = brk: {
         while (1 << z < power5) z += 1;
         const b = z + 127;
         const c = std.math.pow(u2048, 2, b) / power5 + 1;
-        r.* = c;
+        r.* = U128.from(c);
     }
-    var res3: [max_pow10 + 1]u128 = undefined;
-    for (&res3, 0..) |*r, q| {
+    var res3: [max_pow10 + 1]U128 = undefined;
+    for (&res3, 0..) |*r, _q| {
+        const q = _q;
         var power5 = std.math.pow(u2048, 5, q);
         while (power5 < 1 << 127) power5 *= 2;
         while (power5 >= 1 << 128) power5 /= 2;
-        r.* = power5;
+        r.* = U128.from(power5);
     }
     break :brk res1 ++ res2 ++ res3;
 };

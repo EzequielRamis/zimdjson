@@ -18,7 +18,7 @@ pub fn build(b: *std.Build) !void {
     var args = try std.process.argsWithAllocator(alloc);
     defer args.deinit();
     while (args.next()) |a| {
-        if (std.mem.eql(u8, a[0..4], "test")) lazy_simdjson_data = b.lazyDependency("simdjson-data", .{});
+        if (std.mem.startsWith(u8, a, "test")) lazy_simdjson_data = b.lazyDependency("simdjson-data", .{});
         if (std.mem.eql(u8, a, "test-float-parsing")) lazy_float_data = b.lazyDependency("parse_number_fxx", .{});
     }
 

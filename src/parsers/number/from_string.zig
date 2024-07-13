@@ -22,6 +22,7 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
         exponent: i64,
         negative: bool,
         is_float: bool,
+        many_digits: bool,
 
         pub fn parse(
             comptime topt: TokenOptions,
@@ -32,81 +33,89 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
             if (is_negative and !sopt.can_be_signed) return error.InvalidNumber;
 
             _ = src.consume(@intFromBool(is_negative), phase);
-            const start_integers = src.ptr;
             const first_digit = src.ptr[0];
 
             var mantissa_10: u64 = 0;
             var exponent_10: i64 = 0;
-            var integer_count: usize = 0;
-            var decimal_count: usize = 0;
             var is_float = false;
 
-            var integer_slice: []const u8 = src.ptr[0..0];
-            var decimal_slice: []const u8 = src.ptr[0..0];
+            var integer_ptr: [*]const u8 = src.ptr;
+            var decimal_ptr: [*]const u8 = src.ptr;
+            var integer_len: usize = 0;
+            var decimal_len: usize = 0;
 
-            if (first_digit != '0') {
-                while (parseDigit(topt, src)) |d| {
-                    mantissa_10 = mantissa_10 * 10 + d;
-                    _ = src.consume(1, phase);
-                    if (phase == .bounded) integer_count += 1;
-                }
-                if (phase != .bounded) integer_count = @intFromPtr(src.ptr) - @intFromPtr(start_integers);
-                if (integer_count == 0) return error.InvalidNumber;
-                integer_slice.ptr = start_integers;
-                integer_slice.len = integer_count;
+            while (parseDigit(topt, src)) |d| {
+                mantissa_10 = mantissa_10 *% 10 +% d;
+                _ = src.consume(1, phase);
+                if (phase == .bounded) integer_len += 1;
+            }
+            if (phase != .bounded) integer_len = @intFromPtr(src.ptr) - @intFromPtr(integer_ptr);
+            if ((first_digit == '0' and integer_len > 1) or integer_len == 0) return error.InvalidNumber;
 
+            if (sopt.can_be_float) {
                 if (src.ptr[0] == '.') {
                     _ = src.consume(1, phase);
-                    const start_decimals = src.ptr;
-                    const parsed_decimal_count = parseDecimal(topt, phase, src, &mantissa_10);
-                    decimal_count = if (phase == .bounded)
-                        decimal_count + parsed_decimal_count
+                    decimal_ptr = src.ptr;
+                    const parsed_decimal_len = parseDecimal(topt, phase, src, &mantissa_10);
+                    decimal_len = if (phase == .bounded)
+                        decimal_len + parsed_decimal_len
                     else
-                        @intFromPtr(src.ptr) - @intFromPtr(start_decimals);
+                        @intFromPtr(src.ptr) - @intFromPtr(decimal_ptr);
 
-                    if (decimal_count == 0) return error.InvalidNumber;
+                    if (decimal_len == 0) return error.InvalidNumber;
                     is_float = true;
-                    decimal_slice.ptr = start_decimals;
-                    decimal_slice.len = decimal_count;
-                    exponent_10 -= @intCast(decimal_slice.len);
+                    exponent_10 -= @intCast(decimal_len);
                 }
-            } else if (sopt.can_be_float and src.ptr[1] == '.') {
-                _ = src.consume(2, phase);
-                const start_decimals = src.ptr;
-                const parsed_decimal_count = parseDecimal(topt, phase, src, &mantissa_10);
-                decimal_count = if (phase == .bounded)
-                    decimal_count + parsed_decimal_count
-                else
-                    @intFromPtr(src.ptr) - @intFromPtr(start_decimals);
 
-                if (decimal_count == 0) return error.InvalidNumber;
-                is_float = true;
-                decimal_slice.ptr = start_decimals;
-                decimal_slice.len = decimal_count;
-                if (decimal_count >= max_digits) {
-                    for (decimal_slice) |d| {
-                        if (d != '0') break;
-                        decimal_slice = decimal_slice[1..];
-                    }
+                if (src.ptr[0] | 0x20 == 'e') {
+                    is_float = true;
+                    _ = src.consume(1, phase);
+                    try parseExponent(topt, phase, src, &exponent_10);
                 }
-                exponent_10 -= @intCast(decimal_slice.len);
-            } else _ = src.consume(1, phase);
-
-            if (sopt.can_be_float and src.ptr[0] | 0x20 == 'e') {
-                is_float = true;
-                _ = src.consume(1, phase);
-                try parseExponent(topt, phase, src, &exponent_10);
             }
 
             if (common.Tables.is_structural_or_whitespace_negated[src.ptr[0]]) return error.InvalidNumber;
 
+            var many_digits = false;
+            if (integer_len + decimal_len >= max_digits) {
+                if (first_digit == '0') {
+                    while (decimal_ptr[0] == '0') {
+                        decimal_ptr += 1;
+                        decimal_len -= 1;
+                    }
+                    if (decimal_len > max_digits) {
+                        many_digits = true;
+                        mantissa_10 = 0;
+                        const truncated_decimal_len = @min(decimal_len, max_digits - 1);
+                        for (decimal_ptr[0..truncated_decimal_len]) |d| {
+                            mantissa_10 = mantissa_10 * 10 + (d - '0');
+                        }
+                        exponent_10 += @intCast(decimal_len - truncated_decimal_len);
+                    }
+                } else {
+                    many_digits = true;
+                    mantissa_10 = 0;
+                    const truncated_integer_len = @min(integer_len, max_digits - 1);
+                    for (integer_ptr[0..truncated_integer_len]) |i| {
+                        mantissa_10 = mantissa_10 * 10 + (i - '0');
+                    }
+                    exponent_10 += @intCast(integer_len - truncated_integer_len);
+                    const truncated_decimal_len = @min(decimal_len, max_digits - 1 - truncated_integer_len);
+                    for (decimal_ptr[0..truncated_decimal_len]) |d| {
+                        mantissa_10 = mantissa_10 * 10 + (d - '0');
+                    }
+                    exponent_10 += @intCast(decimal_len - truncated_decimal_len);
+                }
+            }
+
             return .{
                 .mantissa = mantissa_10,
                 .exponent = exponent_10,
-                .integer = integer_slice,
-                .decimal = decimal_slice,
-                .is_float = is_float,
+                .integer = integer_ptr[0..integer_len],
+                .decimal = decimal_ptr[0..decimal_len],
                 .negative = is_negative,
+                .is_float = is_float,
+                .many_digits = many_digits,
             };
         }
 
@@ -121,19 +130,19 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
             src: *TokenIterator(topt),
             man: *u64,
         ) usize {
-            var count: usize = 0;
+            var len: usize = 0;
             while (number.isEightDigits(src.ptr[0..8])) {
-                man.* = man.* * 100000000 + number.parseEightDigits(src.ptr[0..8]);
+                man.* = man.* *% 100000000 +% number.parseEightDigits(src.ptr[0..8]);
                 _ = src.consume(8, phase);
-                count += 8;
+                len += 8;
             }
 
             while (parseDigit(topt, src)) |d| {
-                man.* = man.* * 10 + d;
+                man.* = man.* *% 10 +% d;
                 _ = src.consume(1, phase);
-                count += 1;
+                len += 1;
             }
-            return count;
+            return len;
         }
 
         fn parseExponent(

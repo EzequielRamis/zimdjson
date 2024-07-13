@@ -139,7 +139,7 @@ fn identify(self: *Self, block: *const [Mask.LEN_BITS]u8) umask {
     self.prev_scalar = scalar >> Mask.LAST_BIT;
     self.unescaped_error |= unescaped & quoted_ranges;
 
-    defer self.debug.expectIdentified(block, structural_start);
+    defer if (debug.is_set) self.debug.expectIdentified(block, structural_start);
     return structural_start;
 }
 

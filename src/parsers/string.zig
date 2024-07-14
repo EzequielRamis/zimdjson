@@ -12,7 +12,7 @@ const Vector = types.Vector;
 const Pred = types.Predicate;
 const ArrayList = std.ArrayList;
 const ParseError = types.ParseError;
-const intFromSlice = common.intFromSlice;
+const readInt = std.mem.readInt;
 
 pub fn writeString(
     comptime opt: TokenOptions,
@@ -67,7 +67,7 @@ fn handleUnicodeCodepoint(
     const first_literal = src.consume(4, phase)[0..4];
     const first_codepoint = parseHexDword(first_literal);
     if (utf16IsHighSurrogate(first_codepoint)) {
-        if (intFromSlice(u16, src.ptr[0..2]).* == intFromSlice(u16, "\\u").*) {
+        if (readInt(u16, src.ptr[0..2], .little) == readInt(u16, "\\u", .little)) {
             _ = src.consume(2, phase);
             const high_surrogate = first_codepoint;
             const second_literal = src.consume(4, phase)[0..4];

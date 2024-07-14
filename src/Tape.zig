@@ -74,7 +74,7 @@ chars: ArrayList(u8),
 
 pub fn init(allocator: Allocator) Self {
     return Self{
-        .tokens = TokenIterator(TOKEN_OPTIONS).init(),
+        .tokens = TokenIterator(TOKEN_OPTIONS).init({}),
         .parsed = ArrayList(u64).init(allocator),
         .stack = ArrayList(u64).init(allocator),
         .chars = ArrayList(u8).init(allocator),
@@ -512,9 +512,9 @@ fn visit_root_primitive(self: *Self, comptime phase: TokenPhase, token: u8) Pars
 
 inline fn visit_primitive(self: *Self, comptime phase: TokenPhase, token: u8) ParseError!void {
     switch (token) {
-        't' => try self.visit_true(),
-        'f' => try self.visit_false(),
-        'n' => try self.visit_null(),
+        't' => try self.visit_true(phase),
+        'f' => try self.visit_false(phase),
+        'n' => try self.visit_null(phase),
         '"' => try self.visit_string(phase),
         '-', '0'...'9' => try self.visit_number(phase),
         else => return error.NonValue,
@@ -524,7 +524,7 @@ inline fn visit_primitive(self: *Self, comptime phase: TokenPhase, token: u8) Pa
 inline fn visit_string(self: *Self, comptime phase: TokenPhase) ParseError!void {
     var t = &self.tokens;
     _ = t.consume(1, phase);
-    const len_slot = common.intFromSlice(u32, self.chars.addManyAsArrayAssumeCapacity(4));
+    const len_slot: *align(1) u32 = @ptrCast(self.chars.addManyAsArrayAssumeCapacity(4));
     const next_str = self.chars.items.len;
     try parsers.writeString(TOKEN_OPTIONS, t, &self.chars, phase);
     const next_len = self.chars.items.len - 1 - next_str;
@@ -533,32 +533,43 @@ inline fn visit_string(self: *Self, comptime phase: TokenPhase) ParseError!void 
     log.info("STR {s}", .{self.chars.items[next_str..][0..next_len]});
 }
 
-inline fn visit_number(self: *Self, comptime _: TokenPhase) ParseError!void {
-    // var t = &self.tokens;
-    // const number = try validator.number(tokens);
-    // try self.parsed.append(.{ .float = number });
-    self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = .unsigned }));
-    self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = .unsigned }));
+inline fn visit_number(self: *Self, comptime phase: TokenPhase) ParseError!void {
+    const t = &self.tokens;
+    const number = try parsers.Number(TOKEN_OPTIONS).parse(phase, t);
+    switch (number) {
+        .float => |n| {
+            self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = .float }));
+            self.parsed.appendAssumeCapacity(@bitCast(n));
+        },
+        .signed => |n| {
+            self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = .signed }));
+            self.parsed.appendAssumeCapacity(@bitCast(n));
+        },
+        .unsigned => |n| {
+            self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = .unsigned }));
+            self.parsed.appendAssumeCapacity(@bitCast(n));
+        },
+    }
     log.info("NUM", .{});
 }
 
-inline fn visit_true(self: *Self) ParseError!void {
+inline fn visit_true(self: *Self, comptime phase: TokenPhase) ParseError!void {
     const t = &self.tokens;
-    try parsers.checkTrue(t.ptr);
+    try parsers.checkTrue(TOKEN_OPTIONS, phase, t);
     self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = .true }));
     log.info("TRU", .{});
 }
 
-inline fn visit_false(self: *Self) ParseError!void {
+inline fn visit_false(self: *Self, comptime phase: TokenPhase) ParseError!void {
     const t = &self.tokens;
-    try parsers.checkFalse(t.ptr);
+    try parsers.checkFalse(TOKEN_OPTIONS, phase, t);
     self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = .false }));
     log.info("FAL", .{});
 }
 
-inline fn visit_null(self: *Self) ParseError!void {
+inline fn visit_null(self: *Self, comptime phase: TokenPhase) ParseError!void {
     const t = &self.tokens;
-    try parsers.checkNull(t.ptr);
+    try parsers.checkNull(TOKEN_OPTIONS, phase, t);
     self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = .null }));
     log.info("NUL", .{});
 }

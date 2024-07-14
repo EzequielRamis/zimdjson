@@ -2,8 +2,8 @@ const std = @import("std");
 const builtin = @import("builtin");
 const intr = @import("../../intrinsics.zig");
 const common = @import("../../common.zig");
-const intFromSlice = common.intFromSlice;
 const cpu = builtin.cpu;
+const readInt = std.mem.readInt;
 
 pub const min_pow10 = -342;
 pub const max_pow10 = 308;
@@ -50,7 +50,7 @@ pub const BiasedFp = struct {
 };
 
 pub fn isEightDigits(src: *const [8]u8) bool {
-    const val = intFromSlice(u64, src).*;
+    const val = readInt(u64, src, .little);
     const a = val +% 0x4646464646464646;
     const b = val -% 0x3030303030303030;
     return (((a | b) & 0x8080808080808080)) == 0;
@@ -69,7 +69,7 @@ pub fn parseEightDigits(src: *const [8]u8) u32 {
     //     const t4 = intr.mulWrappingAdd(t3, mul_1_10000);
     //     return t4[0];
     // } else {
-    var val = intFromSlice(u64, src).*;
+    var val = readInt(u64, src, .little);
     const mask = 0x000000FF000000FF;
     const mul1 = 0x000F424000000064; // 100 + (1000000ULL << 32)
     const mul2 = 0x0000271000000001; // 1 + (10000ULL << 32)

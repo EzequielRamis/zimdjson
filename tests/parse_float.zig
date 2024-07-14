@@ -3,7 +3,7 @@ const OnDemand = @import("zimdjson").OnDemand;
 const PARSE_NUMBER_FXX = @embedFile("parse_number_fxx");
 
 fn testFrom(comptime set: []const u8) !void {
-    std.debug.print("START:   {s}\n", .{set});
+    // std.debug.print("START:   {s}\n", .{set});
     const path = PARSE_NUMBER_FXX ++ "/data/" ++ set ++ ".txt";
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
     const allocator = gpa.allocator();
@@ -22,14 +22,14 @@ fn testFrom(comptime set: []const u8) !void {
         const float = on_demand.getFloat() catch |err| switch (err) {
             error.NumberOutOfRange => std.math.inf(f64),
             else => {
-                std.debug.print("ignoring invalid number {:0>4}: {s}\n", .{ i, str });
+                // std.debug.print("ignoring invalid number {:0>4}: {s}\n", .{ i, str });
                 continue;
             },
         };
         const actual = try std.fmt.bufPrint(&actual_buf, "{X:0>16}", .{@as(u64, @bitCast(float))});
         std.testing.expectEqualStrings(expected, actual) catch @breakpoint();
     }
-    std.debug.print("END:     {s}\n\n", .{set});
+    // std.debug.print("END:     {s}\n\n", .{set});
 }
 
 test "exhaustive-float16" {

@@ -35,12 +35,20 @@ pub fn main() !void {
 
     var checker_it = checker_dir.iterate();
     while (try checker_it.next()) |file| {
-        if (file.kind == .file) {
-            const ext = file.name[file.name.len - 5 ..];
-            if (std.mem.eql(u8, ext, ".json")) {
-                try strings.append(@truncate(file.name.len));
-                try strings.appendSlice(file.name);
-            }
+        if (file.kind == .file and std.mem.endsWith(u8, file.name, ".json")) {
+            try strings.append(@truncate(file.name.len));
+            try strings.appendSlice(file.name);
+        }
+    }
+    const minefield_path = SIMDJSON_DATA ++ "/jsonchecker/minefield";
+    var minefield_dir = try std.fs.openDirAbsolute(minefield_path, .{ .iterate = true });
+    defer minefield_dir.close();
+
+    var minefield_it = minefield_dir.iterate();
+    while (try minefield_it.next()) |file| {
+        if (file.kind == .file and std.mem.endsWith(u8, file.name, ".json")) {
+            try strings.append(@truncate(file.name.len));
+            try strings.appendSlice(file.name);
         }
     }
     var i: usize = 0;
@@ -52,33 +60,39 @@ pub fn main() !void {
     }
     std.sort.insertion([]const u8, files.items, {}, lessThanSlice);
     for (files.items) |file| {
-        const is_pass = std.mem.eql(u8, file[0..4], "pass");
+        const is_pass = std.mem.startsWith(u8, file, "pass") or std.mem.startsWith(u8, file, "y_");
+        const is_excluded = std.mem.endsWith(u8, file, "EXCLUDE.json") or std.mem.startsWith(u8, file, "i_");
+        const is_minefield = std.mem.startsWith(u8, file, "y_") or std.mem.startsWith(u8, file, "n_");
         const identifier = file[0 .. file.len - 5];
-        try checker_zig_content.appendSlice("test \"");
-        try checker_zig_content.appendSlice(identifier);
-        try checker_zig_content.appendSlice("\"{\n");
-        try checker_zig_content.appendSlice(
-            \\  var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-            \\  const allocator = gpa.allocator();
-            \\  var parser = DOM.Parser.init(allocator);
-            \\  defer parser.deinit();
-            \\
-        );
-        if (is_pass) {
-            try checker_zig_content.appendSlice("  _ = try parser.load(SIMDJSON_DATA ++ \"/jsonchecker/");
-            try checker_zig_content.appendSlice(file);
+        if (!is_excluded) {
+            try checker_zig_content.appendSlice("test \"");
+            try checker_zig_content.appendSlice(identifier);
+            try checker_zig_content.appendSlice("\"{\n");
             try checker_zig_content.appendSlice(
-                \\");
+                \\  var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+                \\  const allocator = gpa.allocator();
+                \\  var parser = DOM.Parser.init(allocator);
+                \\  defer parser.deinit();
+                \\
             );
-        } else {
-            try checker_zig_content.appendSlice("  _ = parser.load(SIMDJSON_DATA ++ \"/jsonchecker/");
-            try checker_zig_content.appendSlice(file);
-            try checker_zig_content.appendSlice(
-                \\") catch return;
-                \\  return error.MustHaveFailed;
-            );
+            if (is_pass) {
+                try checker_zig_content.appendSlice("  _ = try parser.load(SIMDJSON_DATA ++ \"/jsonchecker/");
+                if (is_minefield) try checker_zig_content.appendSlice("minefield/");
+                try checker_zig_content.appendSlice(file);
+                try checker_zig_content.appendSlice(
+                    \\");
+                );
+            } else {
+                try checker_zig_content.appendSlice("  _ = parser.load(SIMDJSON_DATA ++ \"/jsonchecker/");
+                if (is_minefield) try checker_zig_content.appendSlice("minefield/");
+                try checker_zig_content.appendSlice(file);
+                try checker_zig_content.appendSlice(
+                    \\") catch return;
+                    \\  return error.MustHaveFailed;
+                );
+            }
+            try checker_zig_content.appendSlice("\n}\n\n");
         }
-        try checker_zig_content.appendSlice("\n}\n\n");
     }
 
     try output_file.writeAll(checker_zig_content.items);

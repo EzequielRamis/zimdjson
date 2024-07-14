@@ -64,7 +64,3 @@ pub const Tables = struct {
         break :init res;
     };
 };
-
-pub fn intFromSlice(comptime T: type, str: []const u8) *align(1) T {
-    return @as(*align(1) T, @ptrCast(@constCast(str)));
-}

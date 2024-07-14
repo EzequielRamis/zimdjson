@@ -22,7 +22,6 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
         exponent: i64,
         negative: bool,
         is_float: bool,
-        many_digits: bool,
 
         pub fn parse(
             comptime topt: TokenOptions,
@@ -76,38 +75,6 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
 
             if (common.Tables.is_structural_or_whitespace_negated[src.ptr[0]]) return error.InvalidNumber;
 
-            var many_digits = false;
-            if (integer_len + decimal_len >= max_digits) {
-                if (first_digit == '0') {
-                    while (decimal_ptr[0] == '0') {
-                        decimal_ptr += 1;
-                        decimal_len -= 1;
-                    }
-                    if (decimal_len >= max_digits) {
-                        many_digits = true;
-                        mantissa_10 = 0;
-                        const truncated_decimal_len = @min(decimal_len, max_digits - 1);
-                        for (decimal_ptr[0..truncated_decimal_len]) |d| {
-                            mantissa_10 = mantissa_10 * 10 + (d - '0');
-                        }
-                        exponent_10 += @intCast(decimal_len - truncated_decimal_len);
-                    }
-                } else {
-                    many_digits = true;
-                    mantissa_10 = 0;
-                    const truncated_integer_len = @min(integer_len, max_digits - 1);
-                    for (integer_ptr[0..truncated_integer_len]) |i| {
-                        mantissa_10 = mantissa_10 * 10 + (i - '0');
-                    }
-                    exponent_10 += @intCast(integer_len - truncated_integer_len);
-                    const truncated_decimal_len = @min(decimal_len, max_digits - 1 - truncated_integer_len);
-                    for (decimal_ptr[0..truncated_decimal_len]) |d| {
-                        mantissa_10 = mantissa_10 * 10 + (d - '0');
-                    }
-                    exponent_10 += @intCast(decimal_len - truncated_decimal_len);
-                }
-            }
-
             return .{
                 .mantissa = mantissa_10,
                 .exponent = exponent_10,
@@ -115,7 +82,6 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
                 .decimal = decimal_ptr[0..decimal_len],
                 .negative = is_negative,
                 .is_float = is_float,
-                .many_digits = many_digits,
             };
         }
 

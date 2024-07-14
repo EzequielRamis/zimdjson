@@ -86,7 +86,7 @@ fn toExtended(value: f64) BiasedFp {
         bf.e = 1 - BiasedFp.bias;
         bf.m = bits & mask_man;
     } else {
-        bf.e = @bitCast(@as(u32, @intCast((bits & mask_exp) >> std.math.floatExponentBits(f64))));
+        bf.e = @intCast((bits & mask_exp) >> common.man_bits);
         bf.e -= BiasedFp.bias;
         bf.m = (bits & mask_man) | mask_hid;
     }
@@ -153,7 +153,9 @@ fn parseBigMantissa(bigint: *BigInt, number: FromString(.{})) i32 {
     var value: Limb = 0;
 
     var int_slice = number.integer;
-    while (int_slice.len > 0) {
+    if (int_slice[0] == '0') {
+        int_slice = int_slice[1..];
+    } else while (int_slice.len > 0) {
         while (int_slice.len >= 8 and
             step - counter >= 8 and
             max_digits - digits >= 8)
@@ -281,25 +283,26 @@ const RoundCallback = fn (*BiasedFp, u32, anytype) void;
 const NearestCallback = fn (bool, bool, bool, anytype) bool;
 
 fn round(bf: *BiasedFp, callback: RoundCallback, args: anytype) void {
-    const mantissa_bits = std.math.floatMantissaBits(f64);
-    const mantissa_shift = BigInt.limb_bits - mantissa_bits - 1;
-    if (-bf.e >= mantissa_shift) {
+    const man_bits = common.man_bits;
+    const man_shift = BigInt.limb_bits - man_bits - 1;
+    if (-bf.e >= man_shift) {
         const shift: u32 = @intCast(-bf.e + 1);
         callback(bf, @min(shift, 64), args);
-        bf.e = if (bf.m < 1 << mantissa_bits) 0 else 1;
+        bf.e = if (bf.m < 1 << man_bits) 0 else 1;
         return;
     }
 
-    callback(bf, mantissa_shift, args);
+    callback(bf, man_shift, args);
 
-    if (bf.m >= 2 << mantissa_bits) {
-        bf.m = 1 << mantissa_bits;
+    if (bf.m >= 2 << man_bits) {
+        bf.m = 1 << man_bits;
         bf.e += 1;
     }
 
-    bf.m &= ~(@as(u64, 1) << mantissa_bits);
-    if (bf.e >= common.inf_exp) {
-        bf.e = common.inf_exp;
+    const inf_exp = common.inf_exp;
+    bf.m &= ~(@as(u64, 1) << man_bits);
+    if (bf.e >= inf_exp) {
+        bf.e = inf_exp;
         bf.m = 0;
     }
 }

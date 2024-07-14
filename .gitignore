@@ -6,3 +6,5 @@ zig-out
 exe
 .gdb_history
 .ccls-cache
+.zig-cache
+.zig-out

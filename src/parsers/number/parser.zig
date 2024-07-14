@@ -102,7 +102,7 @@ fn computeFloat(parsed_number: FromString(.{})) ParseError!f64 {
 
     const fast_min_exp = -22;
     const fast_max_exp = 22;
-    const fast_max_man = 2 << std.math.floatMantissaBits(f64);
+    const fast_max_man = 2 << common.man_bits;
 
     if (!many_digits and
         fast_min_exp <= exponent and

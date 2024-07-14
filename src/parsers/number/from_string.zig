@@ -83,7 +83,7 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
                         decimal_ptr += 1;
                         decimal_len -= 1;
                     }
-                    if (decimal_len > max_digits) {
+                    if (decimal_len >= max_digits) {
                         many_digits = true;
                         mantissa_10 = 0;
                         const truncated_decimal_len = @min(decimal_len, max_digits - 1);

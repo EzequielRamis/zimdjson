@@ -108,11 +108,10 @@ pub const Checker = struct {
     }
 
     fn checkUTF8Bytes(self: *Checker, vec: vector) void {
-        const zeroes: vector = @splat(0);
         const shift1_mask = simd.iota(i32, Vector.LEN_BYTES) - @as(@Vector(Vector.LEN_BYTES, i32), @splat(1));
         const shift2_mask = simd.iota(i32, Vector.LEN_BYTES) - @as(@Vector(Vector.LEN_BYTES, i32), @splat(2));
         const shift3_mask = simd.iota(i32, Vector.LEN_BYTES) - @as(@Vector(Vector.LEN_BYTES, i32), @splat(3));
-        const prev1 = @shuffle(u8, self.prev_vec, zeroes, shift1_mask);
+        const prev1 = @shuffle(u8, vec, self.prev_vec, shift1_mask);
 
         // zig fmt: off
         // Bit 0 = Too Short (lead byte/ASCII followed by lead byte/ASCII)
@@ -209,8 +208,8 @@ pub const Checker = struct {
 
         const special_cases = byte_1_high & byte_1_low & byte_2_high;
 
-        const prev2 = @shuffle(u8, self.prev_vec, zeroes, shift2_mask);
-        const prev3 = @shuffle(u8, self.prev_vec, zeroes, shift3_mask);
+        const prev2 = @shuffle(u8, vec, self.prev_vec, shift2_mask);
+        const prev3 = @shuffle(u8, vec, self.prev_vec, shift3_mask);
 
         const is_third_byte = Pred(.bytes).from(prev2 >= @as(vector, @splat(0xE0))).unpack();
         const is_fourth_byte = Pred(.bytes).from(prev3 >= @as(vector, @splat(0xF0))).unpack();

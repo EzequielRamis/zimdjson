@@ -16,7 +16,6 @@ pub fn init() Self {
 pub fn from(value: u64) Self {
     var self = Self.init();
     self.limbs.appendAssumeCapacity(value);
-    self.normalize();
     return self;
 }
 
@@ -46,8 +45,6 @@ pub fn mul(self: *Self, n: []const Limb) !void {
             try self.addFrom(mi.limbs.slice(), i);
         }
     }
-
-    self.normalize();
 }
 
 pub fn mulScalar(self: *Self, n: Limb) !void {
@@ -220,12 +217,6 @@ fn resize(self: *Self, n: usize, v: Limb) !void {
     const old_len = self.len();
     try self.limbs.resize(n);
     @memset(self.limbs.buffer[old_len..][0..n -| old_len], v);
-}
-
-fn normalize(self: *Self) void {
-    while (self.len() > 0 and self.limbs.get(self.len() - 1) == 0) {
-        self.limbs.len -= 1;
-    }
 }
 
 const power_of_five_smalls: [28]u64 = brk: {

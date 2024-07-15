@@ -1,4 +1,5 @@
-//! This file is auto-generated with `zig build test-jsonchecker`
+//! This file is auto-generated with `zig build test-minefield`
+
 const std = @import("std");
 const DOM = @import("zimdjson").DOM;
 const SIMDJSON_DATA = @embedFile("simdjson-data");

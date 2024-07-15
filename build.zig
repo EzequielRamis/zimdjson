@@ -19,22 +19,23 @@ pub fn build(b: *std.Build) !void {
     defer args.deinit();
     while (args.next()) |a| {
         if (std.mem.startsWith(u8, a, "test")) lazy_simdjson_data = b.lazyDependency("simdjson-data", .{});
-        if (std.mem.eql(u8, a, "test-float-parsing")) lazy_float_data = b.lazyDependency("parse_number_fxx", .{});
+        if (std.mem.eql(u8, a, "test") or
+            std.mem.eql(u8, a, "test-float-parsing")) lazy_float_data = b.lazyDependency("parse_number_fxx", .{});
     }
 
-    const jsonchecker_gen = b.addExecutable(.{
-        .name = "generate_jsonchecker",
-        .root_source_file = b.path("tests/jsonchecker_gen.zig"),
+    const minefield_gen = b.addExecutable(.{
+        .name = "minefield_gen",
+        .root_source_file = b.path("tests/minefield_gen.zig"),
         .target = b.host,
     });
-    if (lazy_simdjson_data) |dep| addSimdjsonDataPath(b, &jsonchecker_gen.root_module, dep);
-    const run_jsonchecker_gen = b.addRunArtifact(jsonchecker_gen);
-    _ = run_jsonchecker_gen.addArg(b.path("tests/jsonchecker.zig").getPath(b));
+    if (lazy_simdjson_data) |dep| addSimdjsonDataPath(b, &minefield_gen.root_module, dep);
+    const run_minefield_gen = b.addRunArtifact(minefield_gen);
+    _ = run_minefield_gen.addArg(b.path("tests/minefield.zig").getPath(b));
 
     inline for ([_]struct { step: []const u8, name: []const u8, path: []const u8 }{
         // .{ .step = "test-dom", .name = "DOM", .path = "tests/dom.zig" },
         // .{ .step = "test-ondemand", .name = "On Demand", .path = "tests/ondemand.zig" },
-        .{ .step = "test-jsonchecker", .name = "Json Checker", .path = "tests/jsonchecker.zig" },
+        .{ .step = "test-minefield", .name = "Minefield", .path = "tests/minefield.zig" },
         .{ .step = "test-float-parsing", .name = "Float parsing", .path = "tests/parse_float.zig" },
     }) |t| {
         const unit_test = b.addTest(.{
@@ -59,8 +60,8 @@ pub fn build(b: *std.Build) !void {
         const run_test_step = b.step(t.step, "Run " ++ t.name ++ " unit tests");
         run_test_step.dependOn(&run_test.step);
         test_step.dependOn(&run_test.step);
-        if (std.mem.eql(u8, t.step, "test-jsonchecker")) {
-            run_test.step.dependOn(&run_jsonchecker_gen.step);
+        if (std.mem.eql(u8, t.step, "test-minefield")) {
+            run_test.step.dependOn(&run_minefield_gen.step);
         }
     }
     // --

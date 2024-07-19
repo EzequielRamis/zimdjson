@@ -68,7 +68,7 @@ fn Writer(comptime T: type, comptime opt: Options) type {
         const Self = @This();
         const VTable = PHTable(T, opt);
 
-        table: VTable = VTable.init(if (@hasDecl(T, "schema")) T.schema else .{}),
+        table: VTable = VTable{},
         written: VTable.Size = 0,
 
         pub fn write(self: *Self, to: *T, field: []const u8, el: Element) Error!void {
@@ -109,98 +109,129 @@ const Options = struct {
     hash_comparison: bool = false,
     handle_unknown_field: bool = true,
     handle_duplicate_field: enum { First, Error, Last } = .Error,
+    comptime_quota: u32 = 100000,
+    min_found_seed_probability: f32 = 0.01,
 };
 
+fn nCk(n: comptime_int, k: comptime_int) comptime_int {
+    var res = 1;
+    for (n - k + 1..n + 1) |i| res *= @as(comptime_int, i);
+    for (2..k + 1) |i| res /= @as(comptime_int, i);
+    return res;
+}
+
+fn factorial(n: comptime_int) comptime_int {
+    var res = 1;
+    for (1..n + 1) |i| res *= @as(comptime_int, i);
+    return res;
+}
+
+fn pow(n: comptime_int, k: comptime_int) comptime_int {
+    var res = 1;
+    for (0..k) |_| res *= n;
+    return res;
+}
+
 fn PHTable(comptime T: type, comptime opt: Options) type {
+    @setEvalBranchQuota(opt.comptime_quota);
     const info = @typeInfo(T);
     assert(info == .Struct);
+    const schema = if (@hasDecl(T, "schema")) T.schema else .{};
+    const schema_ty = @TypeOf(schema);
+
+    for (std.meta.fieldNames(schema_ty)) |field| {
+        assert(@hasField(T, field));
+    }
     const fields = @typeInfo(T).Struct.fields;
-    const hash_bits = std.math.log2_int_ceil(usize, fields.len);
+    var aliases_len: usize = 0;
+    for (fields) |field| {
+        aliases_len += 1;
+        if (@hasField(schema_ty, field.name)) {
+            const schema_field: Field(field.type) = @field(schema, field.name);
+            aliases_len += schema_field.aliases.len;
+        }
+    }
+
+    // Birthday paradox
+    const aliases_bits = std.math.log2_int_ceil(usize, aliases_len);
+    var extra_bits = 0;
+    var prob: comptime_float = 0;
+    while (prob < opt.min_found_seed_probability) : (extra_bits += 1) {
+        const n = aliases_len;
+        const d = 1 << (aliases_bits + extra_bits);
+        const dcn = nCk(d, n);
+        prob = @as(comptime_float, dcn * factorial(n) * 100) / @as(comptime_float, pow(d, n));
+    }
+
+    const hash_bits = aliases_bits + extra_bits - 1;
     const index = std.meta.Int(.unsigned, hash_bits);
     const table_len = 1 << hash_bits;
 
-    return struct {
-        pub const Size = std.meta.Int(.unsigned, hash_bits + 1);
+    comptime var seed: u64 = 0;
+    while (true) : (seed += 1) {
+        var any_collision = false;
+        var collided = [_]bool{false} ** table_len;
+        comptime var callers = [_]PHCaller{.{}} ** table_len;
+        comptime var hashes = [_]u64{0} ** table_len;
+        comptime var aliases = [_][]const u8{""} ** table_len;
 
-        seed: u64,
-        callers: [table_len]PHCaller,
-        visited: [table_len]bool,
-        hashes: if (opt.hash_comparison) [table_len]u64 else void,
-        aliases: if (!opt.hash_comparison) [table_len][]const u8 else void,
-
-        const Self = @This();
-
-        pub fn init(comptime schema: anytype) Self {
-            comptime {
-                const schema_ty = @TypeOf(schema);
-                for (std.meta.fieldNames(schema_ty)) |field| {
-                    assert(@hasField(T, field));
-                }
-
-                var seed: u64 = 0;
-                while (true) : (seed += 1) {
-                    var any_collision = false;
-                    var callers = [_]PHCaller{.{}} ** table_len;
-                    var hashes = [_]u64{0} ** table_len;
-                    var aliases = [_][]const u8{""} ** table_len;
-                    var collided = [_]bool{false} ** table_len;
-
-                    for (fields) |field| {
-                        var schema_field: Field(field.type) = .{ .rename = field.name };
-                        if (@hasField(schema_ty, field.name)) {
-                            schema_field = @field(schema, field.name);
-                        }
-                        const parse_with = schema_field.parse_with;
-                        const field_aliases = [_][]const u8{schema_field.rename.?} ++ schema_field.aliases;
-                        for (field_aliases) |alias| {
-                            const h = wyhash(seed, alias);
-                            const i: index = @truncate(h);
-                            if (collided[i]) {
-                                any_collision = true;
-                            } else {
-                                collided[i] = true;
-                                callers[i] = .{
-                                    .dispatch = struct {
-                                        pub fn dispatch(el: Element, ptr: *anyopaque) Error!void {
-                                            const value: *T = @ptrCast(@alignCast(ptr));
-                                            @field(value, field.name) = try parse_with(el);
-                                        }
-                                    }.dispatch,
-                                };
-                                assert(!std.mem.eql(u8, aliases[i], alias));
-                                hashes[i] = h;
-                                aliases[i] = alias;
+        for (fields) |field| {
+            comptime var schema_field: Field(field.type) = .{ .rename = field.name };
+            if (@hasField(schema_ty, field.name)) {
+                schema_field = @field(schema, field.name);
+            }
+            const field_aliases = [_][]const u8{schema_field.rename orelse field.name} ++ schema_field.aliases;
+            const parse_with = schema_field.parse_with;
+            for (field_aliases) |alias| {
+                const h = wyhash(seed, alias);
+                const i: index = @truncate(h);
+                if (collided[i]) {
+                    any_collision = true;
+                } else {
+                    collided[i] = true;
+                    callers[i] = .{
+                        .dispatch = struct {
+                            pub fn dispatch(el: Element, ptr: *anyopaque) Error!void {
+                                const value: *T = @ptrCast(@alignCast(ptr));
+                                @field(value, field.name) = try parse_with(el);
                             }
-                        }
-                    }
-                    if (!any_collision) {
-                        return .{
-                            .seed = seed,
-                            .callers = callers,
-                            .visited = [_]bool{false} ** table_len,
-                            .hashes = if (opt.hash_comparison) hashes else {},
-                            .aliases = if (!opt.hash_comparison) aliases else {},
-                        };
-                    }
+                        }.dispatch,
+                    };
+                    assert(!std.mem.eql(u8, aliases[i], alias));
+                    hashes[i] = h;
+                    aliases[i] = alias;
                 }
             }
-            unreachable;
         }
+        if (!any_collision) {
+            return struct {
+                const Self = @This();
+                pub const Size = std.meta.Int(.unsigned, hash_bits + 1);
 
-        pub fn hash(self: Self, key: []const u8) u64 {
-            return wyhash(self.seed, key);
-        }
+                comptime seed: u64 = seed,
+                comptime callers: [table_len]PHCaller = callers,
+                comptime hashes: if (opt.hash_comparison) [table_len]u64 else void = if (opt.hash_comparison) hashes else {},
+                comptime aliases: if (!opt.hash_comparison) [table_len][]const u8 else void = if (!opt.hash_comparison) aliases else {},
+                visited: [table_len]bool = [_]bool{false} ** table_len,
 
-        pub fn location(h: u64) index {
-            return @truncate(h);
+                pub fn hash(self: Self, key: []const u8) u64 {
+                    return wyhash(self.seed, key);
+                }
+
+                pub fn location(h: u64) index {
+                    return @truncate(h);
+                }
+            };
         }
-    };
+    }
+
+    unreachable;
 }
 
 fn Field(comptime T: type) type {
     return struct {
         rename: ?[]const u8 = null,
-        aliases: [][]const u8 = &[0][]const u8{},
+        aliases: []const []const u8 = &[_][]const u8{},
         parse_with: *const fn (Element) Error!T = Default(T).dispatch,
     };
 }

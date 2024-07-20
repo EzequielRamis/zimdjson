@@ -5,6 +5,7 @@ const Indexer = @import("Indexer.zig");
 const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
 const Vector = types.Vector;
+const ParseError = types.ParseError;
 const vector = types.vector;
 const array = types.array;
 const umask = types.umask;
@@ -27,36 +28,28 @@ pub fn Iterator(comptime options: Options) type {
     return struct {
         const Self = @This();
 
-        indexer: Indexer = undefined,
+        indexer: Indexer,
         padding: if (copy_bounded) ArrayList(u8) else [Vector.LEN_BYTES * 2]u8 = undefined,
         padding_ptr: if (copy_bounded) void else [*]const u8 = undefined,
         ptr: [*]const u8 = undefined,
         bounded_token: usize = undefined,
         token: u32 = 0,
 
-        pub fn init(allocator: if (copy_bounded) Allocator else void) Self {
-            if (copy_bounded) {
-                return Self{ .padding = ArrayList(u8).init(allocator) };
-            }
-            return Self{};
+        pub fn init(allocator: Allocator) Self {
+            return .{
+                .indexer = Indexer.init(allocator),
+                .padding = if (copy_bounded) ArrayList(u8).init(allocator) else undefined,
+            };
         }
 
         pub fn deinit(self: *Self) void {
-            assert(copy_bounded);
-            self.padding.deinit();
+            if (copy_bounded) self.padding.deinit();
+            self.indexer.deinit();
         }
 
-        pub fn document(self: Self) []const u8 {
-            return self.indexer.reader.document;
-        }
+        pub fn iter(self: *Self, doc: []const u8) ParseError!void {
+            try self.indexer.index(doc);
 
-        pub fn indexes(self: Self) []const u32 {
-            return self.indexer.indexes.items;
-        }
-
-        pub fn analyze(self: *Self, indexer: Indexer) if (copy_bounded) (std.mem.Allocator.Error!void) else void {
-            self.indexer = indexer;
-            const doc = self.document();
             const ixs = self.indexes();
             const padding_bound = doc.len -| Vector.LEN_BYTES;
             var bounded_token: usize = ixs.len - 1;
@@ -82,6 +75,14 @@ pub fn Iterator(comptime options: Options) type {
                 @memset(&self.padding, ' ');
                 @memcpy(self.padding[0 .. doc.len - padding_bound], doc[padding_bound..doc.len]);
             }
+        }
+
+        pub fn indexes(self: Self) []const u32 {
+            return self.indexer.indexes.items;
+        }
+
+        pub fn document(self: Self) []const u8 {
+            return self.indexer.reader.document;
         }
 
         pub fn next(self: *Self, comptime phase: Phase) ?u8 {
@@ -135,14 +136,6 @@ pub fn Iterator(comptime options: Options) type {
 
         pub fn peek(self: Self) u8 {
             return self.ptr[0];
-        }
-
-        pub fn peekNext(self: Self) ?u8 {
-            const doc = self.document();
-            const ixs = self.indexes();
-            const p = self.token + 1;
-            if (p < ixs.len) return doc[ixs[p]];
-            return null;
         }
 
         pub fn backTo(self: *Self, index: usize) void {

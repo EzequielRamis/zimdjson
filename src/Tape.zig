@@ -74,7 +74,7 @@ chars: ArrayList(u8),
 
 pub fn init(allocator: Allocator) Self {
     return Self{
-        .tokens = TokenIterator(TOKEN_OPTIONS).init({}),
+        .tokens = TokenIterator(TOKEN_OPTIONS).init(allocator),
         .parsed = ArrayList(u64).init(allocator),
         .stack = ArrayList(u64).init(allocator),
         .chars = ArrayList(u8).init(allocator),
@@ -82,15 +82,15 @@ pub fn init(allocator: Allocator) Self {
 }
 
 pub fn deinit(self: *Self) void {
+    self.tokens.deinit();
     self.parsed.deinit();
     self.stack.deinit();
     self.chars.deinit();
 }
 
-pub fn build(self: *Self, indexer: Indexer) ParseError!void {
-    if (indexer.indexes.items.len == 0) return error.Empty;
+pub fn build(self: *Self, doc: []const u8) ParseError!void {
     var t = &self.tokens;
-    t.analyze(indexer);
+    try t.iter(doc);
 
     try self.chars.ensureTotalCapacity(self.tokens.indexer.reader.document.len * 2 + types.Vector.LEN_BYTES);
     try self.stack.ensureTotalCapacity(self.max_depth * 2 + types.Vector.LEN_BYTES);
@@ -106,20 +106,19 @@ pub fn build(self: *Self, indexer: Indexer) ParseError!void {
         return switch (r) {
             '{' => self.analyze_object_begin(.unbounded),
             '[' => self.analyze_array_begin(.unbounded),
-            else => self.visit_root_primitive(.bounded, r),
-        };
-    } else if (t.next(.bounded)) |r| {
-        return switch (r) {
-            '{' => self.analyze_object_begin(.padded),
-            '[' => self.analyze_array_begin(.padded),
-            else => self.visit_root_primitive(.bounded, r),
+            else => unreachable,
         };
     }
-    const r = t.next(.padded).?;
+    const r = t.next(.bounded).?;
     return switch (r) {
         '{' => self.analyze_object_begin(.padded),
         '[' => self.analyze_array_begin(.padded),
-        else => self.visit_root_primitive(.padded, r),
+        't', 'f', 'n' => {
+            t.ptr = t.padding[0..].ptr;
+            t.padding_ptr = @ptrFromInt(std.math.maxInt(usize));
+            return self.visit_root_primitive(.padded, r);
+        },
+        else => self.visit_root_primitive(.bounded, r),
     };
 }
 
@@ -503,37 +502,53 @@ fn increment_container_count(self: *Self) void {
 fn visit_root_primitive(self: *Self, comptime phase: TokenPhase, token: u8) ParseError!void {
     assert(phase != .unbounded);
     if (self.tokens.indexer.indexes.items.len > 1) return error.InvalidStructure;
-    try self.visit_primitive(phase, token);
+    if (phase == .bounded) {
+        if (token -% '0' < 10 or token == '-') {
+            try self.visit_number(phase);
+        } else if (token == '"') {
+            try self.visit_string(phase);
+        } else return error.NonValue;
+    } else {
+        try switch (token) {
+            't' => self.visit_true(),
+            'f' => self.visit_false(),
+            'n' => self.visit_null(),
+            else => return error.NonValue,
+        };
+    }
     const parent: Element = @bitCast(self.stack.getLast());
     const root: *Element = @ptrCast(&self.parsed.items[parent.data]);
     self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = Tag.root, .data = root.data }));
     root.data = @truncate(self.parsed.items.len - 1);
 }
 
-inline fn visit_primitive(self: *Self, comptime phase: TokenPhase, token: u8) ParseError!void {
-    switch (token) {
-        't' => try self.visit_true(phase),
-        'f' => try self.visit_false(phase),
-        'n' => try self.visit_null(phase),
-        '"' => try self.visit_string(phase),
-        '-', '0'...'9' => try self.visit_number(phase),
-        else => return error.NonValue,
+fn visit_primitive(self: *Self, comptime phase: TokenPhase, token: u8) ParseError!void {
+    if (token == '"') {
+        return self.visit_string(phase);
+    } else if (token -% '0' < 10 or token == '-') {
+        return self.visit_number(phase);
     }
+    return switch (token) {
+        't' => self.visit_true(),
+        'f' => self.visit_false(),
+        'n' => self.visit_null(),
+        else => error.NonValue,
+    };
 }
 
-inline fn visit_string(self: *Self, comptime phase: TokenPhase) ParseError!void {
+fn visit_string(self: *Self, comptime phase: TokenPhase) ParseError!void {
     var t = &self.tokens;
     _ = t.consume(1, phase);
     const len_slot: *align(1) u32 = @ptrCast(self.chars.addManyAsArrayAssumeCapacity(4));
     const next_str = self.chars.items.len;
-    try parsers.writeString(TOKEN_OPTIONS, t, &self.chars, phase);
+    try parsers.writeString(TOKEN_OPTIONS, phase, t, &self.chars);
     const next_len = self.chars.items.len - 1 - next_str;
     len_slot.* = @truncate(self.chars.items.len - 1 - next_str);
     self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = .string, .data = @truncate(next_str) }));
     log.info("STR {s}", .{self.chars.items[next_str..][0..next_len]});
 }
 
-inline fn visit_number(self: *Self, comptime phase: TokenPhase) ParseError!void {
+fn visit_number(self: *Self, comptime phase: TokenPhase) ParseError!void {
     const t = &self.tokens;
     const number = try parsers.Number(TOKEN_OPTIONS).parse(phase, t);
     switch (number) {
@@ -553,23 +568,23 @@ inline fn visit_number(self: *Self, comptime phase: TokenPhase) ParseError!void 
     log.info("NUM", .{});
 }
 
-inline fn visit_true(self: *Self, comptime phase: TokenPhase) ParseError!void {
+fn visit_true(self: *Self) ParseError!void {
     const t = &self.tokens;
-    try parsers.checkTrue(TOKEN_OPTIONS, phase, t);
+    try parsers.checkTrue(TOKEN_OPTIONS, t);
     self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = .true }));
     log.info("TRU", .{});
 }
 
-inline fn visit_false(self: *Self, comptime phase: TokenPhase) ParseError!void {
+fn visit_false(self: *Self) ParseError!void {
     const t = &self.tokens;
-    try parsers.checkFalse(TOKEN_OPTIONS, phase, t);
+    try parsers.checkFalse(TOKEN_OPTIONS, t);
     self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = .false }));
     log.info("FAL", .{});
 }
 
-inline fn visit_null(self: *Self, comptime phase: TokenPhase) ParseError!void {
+fn visit_null(self: *Self) ParseError!void {
     const t = &self.tokens;
-    try parsers.checkNull(TOKEN_OPTIONS, phase, t);
+    try parsers.checkNull(TOKEN_OPTIONS, t);
     self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = .null }));
     log.info("NUL", .{});
 }

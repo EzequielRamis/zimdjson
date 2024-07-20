@@ -8,8 +8,8 @@ const TokenPhase = tokens.Phase;
 const ParseError = types.ParseError;
 const readInt = std.mem.readInt;
 
-pub fn checkTrue(comptime opt: TokenOptions, comptime phase: TokenPhase, src: *TokenIterator(opt)) ParseError!void {
-    const chunk = src.consume(5, phase);
+pub fn checkTrue(comptime opt: TokenOptions, src: *TokenIterator(opt)) ParseError!void {
+    const chunk = src.ptr[0..5];
     const dword_true = readInt(u32, "true", .little);
     const dword_atom = readInt(u32, chunk[0..4], .little);
     const not_struct_white = common.Tables.is_structural_or_whitespace_negated;
@@ -18,8 +18,8 @@ pub fn checkTrue(comptime opt: TokenOptions, comptime phase: TokenPhase, src: *T
     }
 }
 
-pub fn checkFalse(comptime opt: TokenOptions, comptime phase: TokenPhase, src: *TokenIterator(opt)) ParseError!void {
-    const chunk = src.consume(6, phase);
+pub fn checkFalse(comptime opt: TokenOptions, src: *TokenIterator(opt)) ParseError!void {
+    const chunk = src.ptr[0..6];
     const dword_alse = readInt(u32, "alse", .little);
     const dword_atom = readInt(u32, chunk[1..][0..4], .little);
     const not_struct_white = common.Tables.is_structural_or_whitespace_negated;
@@ -28,8 +28,8 @@ pub fn checkFalse(comptime opt: TokenOptions, comptime phase: TokenPhase, src: *
     }
 }
 
-pub fn checkNull(comptime opt: TokenOptions, comptime phase: TokenPhase, src: *TokenIterator(opt)) ParseError!void {
-    const chunk = src.consume(5, phase);
+pub fn checkNull(comptime opt: TokenOptions, src: *TokenIterator(opt)) ParseError!void {
+    const chunk = src.ptr[0..5];
     const dword_null = readInt(u32, "null", .little);
     const dword_atom = readInt(u32, chunk[0..4], .little);
     const not_struct_white = common.Tables.is_structural_or_whitespace_negated;

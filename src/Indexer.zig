@@ -91,6 +91,7 @@ pub fn index(self: *Self, document: []const u8) ParseError!void {
     if (self.unescaped_error != 0) return error.String;
     if (!self.utf8_checker.succeeded()) return error.InvalidEncoding;
     if (self.prev_inside_string != 0) return error.UnclosedString;
+    if (self.indexes.items.len == 0) return error.Empty;
 }
 
 fn identify(self: *Self, block: *const [Mask.LEN_BITS]u8) umask {

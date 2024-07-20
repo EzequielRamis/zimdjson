@@ -104,7 +104,7 @@ fn computeFloat(parsed_number: FromString(.{})) ParseError!f64 {
     var many_digits = false;
     if (integer.len + decimal.len >= max_digits) {
         if (integer[0] == '0') {
-            while (decimal[0] == '0') {
+            while (decimal.len > 0 and decimal[0] == '0') {
                 decimal = decimal[1..];
             }
             if (decimal.len >= max_digits) {

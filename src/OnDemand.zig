@@ -28,20 +28,19 @@ const NumberParser = parsers.Number(TOKEN_OPTIONS);
 
 pub const Parser = struct {
     max_depth: usize = common.DEFAULT_MAX_DEPTH,
-    indexer: Indexer,
+    document: Document,
     allocator: Allocator,
     loaded_buffer: ?[]align(types.Vector.LEN_BYTES) u8 = null,
     loaded_document_len: usize = 0,
 
     pub fn init(allocator: Allocator) Parser {
         return Parser{
-            .indexer = Indexer.init(allocator),
+            .document = Document.init(allocator),
             .allocator = allocator,
         };
     }
 
     pub fn deinit(self: *Parser) void {
-        self.indexer.deinit();
         if (self.loaded_buffer) |b| {
             self.allocator.free(b);
             self.loaded_buffer = null;
@@ -49,9 +48,7 @@ pub const Parser = struct {
     }
 
     pub fn parse(self: *Parser, document: []const u8) ParseError!Element {
-        try self.indexer.index(document);
-        var doc = Document.init(self.allocator);
-        return doc.build(self.indexer);
+        return self.document.build(document);
     }
 
     pub fn load(self: *Parser, path: []const u8) ParseError!Element {
@@ -68,14 +65,7 @@ pub const Parser = struct {
         _ = try file.read(self.loaded_buffer.?);
         self.loaded_document_len = len;
 
-        try self.indexer.index(self.loaded_buffer.?[0..self.loaded_document_len]);
-        var doc = Document.init(self.allocator);
-        return doc.build(self.indexer);
-    }
-
-    pub fn shrinkToFitLoad(self: *Parser) ParseError!void {
-        assert(self.loaded_buffer != null);
-        self.loaded_buffer.? = try self.allocator.realloc(self.loaded_buffer.?, self.loaded_document_len);
+        return self.document.build(self.loaded_buffer.?[0..self.loaded_document_len]);
     }
 };
 
@@ -85,7 +75,7 @@ const Document = struct {
     depth: u32 = 0,
 
     pub fn init(allocator: Allocator) Document {
-        return Document{
+        return .{
             .tokens = TokenIterator(TOKEN_OPTIONS).init(allocator),
             .chars = ArrayList(u8).init(allocator),
         };
@@ -95,14 +85,18 @@ const Document = struct {
         self.chars.deinit();
     }
 
-    pub fn build(self: *Document, indexer: Indexer) ParseError!Element {
-        if (indexer.indexes.items.len == 0) return error.Empty;
+    pub fn build(self: *Document, doc: []const u8) ParseError!Element {
         var t = &self.tokens;
-        try t.analyze(indexer);
+        try t.iter(doc);
+
         try self.chars.ensureTotalCapacity(self.tokens.indexer.reader.document.len);
         self.chars.shrinkRetainingCapacity(0);
 
-        return Element{ .document = self, .depth = self.depth, .index = t.token };
+        return Element{
+            .document = self,
+            .depth = self.depth,
+            .index = self.tokens.token,
+        };
     }
 };
 
@@ -112,66 +106,48 @@ const Element = struct {
     index: u32,
 
     pub fn getObject(self: Element) OnDemandError!Object {
-        if (self.isObject()) {
-            self.document.depth += 1;
-            return Object{ .root = &self };
-        }
-        return error.IncorrectType;
+        self.document.depth += 1;
+        return Object{ .root = &self };
     }
 
     pub fn getArray(self: Element) OnDemandError!Array {
-        if (self.isArray()) {
-            self.document.depth += 1;
-            return Array{ .root = &self };
-        }
-        return error.IncorrectType;
+        self.document.depth += 1;
+        return Array{ .root = &self };
     }
 
     pub fn getNumber(self: *Element) OnDemandError!NumberParser.Result {
-        if (self.isSigned()) {
-            return NumberParser.parse(.none, &self.document.tokens);
-        }
-        return error.IncorrectType;
+        return NumberParser.parse(.none, &self.document.tokens);
     }
 
     pub fn getUnsigned(self: *Element) OnDemandError!u64 {
-        if (self.isUnsigned()) {
-            return NumberParser.parseUnsigned(.none, &self.document.tokens);
-        }
-        return error.IncorrectType;
+        return NumberParser.parseUnsigned(.none, &self.document.tokens);
     }
 
     pub fn getSigned(self: *Element) OnDemandError!i64 {
-        if (self.isSigned()) {
-            return NumberParser.parseSigned(.none, &self.document.tokens);
-        }
-        return error.IncorrectType;
+        return NumberParser.parseSigned(.none, &self.document.tokens);
     }
 
     pub fn getFloat(self: *Element) OnDemandError!f64 {
-        if (self.isSigned()) {
-            return NumberParser.parseFloat(.none, &self.document.tokens);
-        }
-        return error.IncorrectType;
+        return NumberParser.parseFloat(.none, &self.document.tokens);
     }
 
     pub fn getString(self: Element) OnDemandError![]const u8 {
-        if (self.isString()) {
-            const doc = self.document;
-            _ = doc.tokens.consume(1, .none);
-            const next_str = doc.chars.items.len;
-            try parsers.writeString(&doc.tokens, &doc.chars, .none);
-            const next_len = self.chars.items.len - 1 - next_str;
-            return doc.chars.items[next_str..][0..next_len];
-        }
-        return error.IncorrectType;
+        const doc = self.document;
+        _ = doc.tokens.consume(1, .none);
+        const next_str = doc.chars.items.len;
+        try parsers.writeString(&doc.tokens, &doc.chars, .none);
+        const next_len = self.chars.items.len - 1 - next_str;
+        return doc.chars.items[next_str..][0..next_len];
     }
 
     pub fn getBool(self: Element) OnDemandError!bool {
-        if (self.isBool()) {
-            const p = self.document.tokens.peek();
-            if (p == 't') return parsers.checkTrue(self.document.tokens.ptr);
-            return parsers.checkFalse(self.document.tokens.ptr);
+        if (parsers.checkTrue(TOKEN_OPTIONS, &self.document.tokens)) {
+            _ = self.document.tokens.consume(4, .none);
+            return true;
+        }
+        if (parsers.checkFalse(TOKEN_OPTIONS, &self.document.tokens)) {
+            _ = self.document.tokens.consume(5, .none);
+            return false;
         }
         return error.IncorrectType;
     }
@@ -197,15 +173,8 @@ const Element = struct {
         return self.document.tokens.peek() == '[';
     }
 
-    fn isSigned(self: Element) bool {
-        return self.isUnsigned() or self.document.tokens.peek() == '-';
-    }
-
-    fn isUnsigned(self: Element) bool {
-        return switch (self.document.tokens.peek()) {
-            '0'...'9' => true,
-            else => false,
-        };
+    fn isNumber(self: Element) bool {
+        return self.document.tokens.peek() -% '0' < 10 or self.document.tokens.peek() == '-';
     }
 
     fn isString(self: Element) bool {
@@ -219,11 +188,9 @@ const Element = struct {
         };
     }
 
-    pub fn isNull(self: Element) ParseError!void {
-        if (self.document.tokens.peek() == 'n') {
-            return parsers.checkNull(self.document.tokens.ptr);
-        }
-        return error.IncorrectType;
+    pub fn isNull(self: *Element) ParseError!void {
+        try parsers.checkNull(TOKEN_OPTIONS, &self.document.tokens);
+        _ = self.document.tokens.consume(4, .none);
     }
 
     pub fn consume(self: Element) ParseError!void {

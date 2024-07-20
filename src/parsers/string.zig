@@ -16,9 +16,9 @@ const readInt = std.mem.readInt;
 
 pub fn writeString(
     comptime opt: TokenOptions,
+    comptime phase: TokenPhase,
     src: *TokenIterator(opt),
     dst: *ArrayList(u8),
-    comptime phase: TokenPhase,
 ) ParseError!void {
     while (true) {
         const chunk = src.ptr[0..Vector.LEN_BYTES];

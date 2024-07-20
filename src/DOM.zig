@@ -15,7 +15,6 @@ pub const Number = union(enum) {
 };
 
 pub const Parser = struct {
-    indexer: Indexer,
     tape: Tape,
     allocator: Allocator,
     loaded_buffer: ?[]align(types.Vector.LEN_BYTES) u8 = null,
@@ -23,14 +22,12 @@ pub const Parser = struct {
 
     pub fn init(allocator: Allocator) Parser {
         return .{
-            .indexer = Indexer.init(allocator),
             .tape = Tape.init(allocator),
             .allocator = allocator,
         };
     }
 
     pub fn deinit(self: *Parser) void {
-        self.indexer.deinit();
         self.tape.deinit();
         if (self.loaded_buffer) |buf| {
             self.allocator.free(buf);
@@ -39,8 +36,7 @@ pub const Parser = struct {
     }
 
     pub fn parse(self: *Parser, document: []const u8) ParseError!Element {
-        try self.indexer.index(document);
-        try self.tape.build(self.indexer);
+        try self.tape.build(document);
         return Element{
             .tape = &self.tape,
             .el = @ptrCast(&self.tape.parsed.items[1]),
@@ -61,8 +57,7 @@ pub const Parser = struct {
         _ = try file.read(self.loaded_buffer.?);
         self.loaded_document_len = len;
 
-        try self.indexer.index(self.loaded_buffer.?[0..self.loaded_document_len]);
-        try self.tape.build(self.indexer);
+        try self.tape.build(self.loaded_buffer.?[0..self.loaded_document_len]);
         return Element{
             .tape = &self.tape,
             .el = @ptrCast(&self.tape.parsed.items[1]),

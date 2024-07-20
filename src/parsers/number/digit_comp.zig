@@ -7,7 +7,7 @@ const Limb = BigInt.Limb;
 const BiasedFp = common.BiasedFp;
 const assert = std.debug.assert;
 
-pub fn compute(parsed_number: FromString(.{}), _bf: BiasedFp) BiasedFp {
+pub fn compute(parsed_number: FromString(.{}), bf: *BiasedFp) void {
     @setCold(true);
 
     const sci_exp = scientificExponent(parsed_number);
@@ -17,31 +17,28 @@ pub fn compute(parsed_number: FromString(.{}), _bf: BiasedFp) BiasedFp {
 
     const exp: i32 = sci_exp + 1 - digits;
     if (exp >= 0) {
-        return positiveDigitComp(&bigman, @intCast(exp));
+        return positiveDigitComp(&bigman, @intCast(exp), bf);
     } else {
-        var bf = _bf;
         bf.e -= BiasedFp.invalid_bias;
         return negativeDigitComp(&bigman, exp, bf);
     }
 }
 
-fn positiveDigitComp(bigman: *BigInt, exp: u32) BiasedFp {
+fn positiveDigitComp(bigman: *BigInt, exp: u32, bf: *BiasedFp) void {
     assert(if (bigman.pow10(exp)) true else |_| false);
 
     const high = bigman.high64();
 
-    var answer: BiasedFp = .{
+    bf.* = .{
         .m = high.bits,
         .e = bigman.bitsLen() - 64 + BiasedFp.bias,
     };
 
-    round(&answer, positiveRound1, .{ .truncated = high.truncated });
-
-    return answer;
+    round(bf, positiveRound1, .{ .truncated = high.truncated });
 }
 
-fn negativeDigitComp(real_digits: *BigInt, real_exp: i32, bf: BiasedFp) BiasedFp {
-    var bf2 = bf;
+fn negativeDigitComp(real_digits: *BigInt, real_exp: i32, bf: *BiasedFp) void {
+    var bf2 = bf.*;
     round(&bf2, negativeRound1, {});
     const b2 = bf2.toFloat(false);
     const theor = toExtendedHalfway(b2);
@@ -60,9 +57,7 @@ fn negativeDigitComp(real_digits: *BigInt, real_exp: i32, bf: BiasedFp) BiasedFp
     }
 
     const order = real_digits.order(theor_digits);
-    var answer = bf;
-    round(&answer, negativeRound2, .{ .order = order });
-    return answer;
+    round(bf, negativeRound2, .{ .order = order });
 }
 
 fn toExtendedHalfway(value: f64) BiasedFp {

@@ -22,9 +22,9 @@ pub fn Parser(comptime opt: TokenOptions) type {
         pub const Result = Number;
 
         pub fn parse(comptime phase: TokenPhase, src: *TokenIterator(opt)) ParseError!Number {
-            const parsed_number = try FromString(.{}).parse(opt, phase, src);
+            var parsed_number = try FromString(.{}).parse(opt, phase, src);
             if (parsed_number.is_float) return .{
-                .float = try computeFloat(parsed_number),
+                .float = try computeFloat(&parsed_number),
             };
 
             const digit_count = parsed_number.integer.len;
@@ -87,48 +87,43 @@ pub fn Parser(comptime opt: TokenOptions) type {
         }
 
         pub fn parseFloat(comptime phase: TokenPhase, src: *TokenIterator(opt)) ParseError!f64 {
-            const parsed_number = try FromString(.{}).parse(opt, phase, src);
-            return computeFloat(parsed_number);
+            var parsed_number = try FromString(.{}).parse(opt, phase, src);
+            return computeFloat(&parsed_number);
         }
     };
 }
 
-fn computeFloat(parsed_number: FromString(.{})) ParseError!f64 {
+fn computeFloat(number: *FromString(.{})) ParseError!f64 {
     @setFloatMode(.strict);
 
-    var mantissa = parsed_number.mantissa;
-    var exponent = parsed_number.exponent;
-    var integer = parsed_number.integer;
-    var decimal = parsed_number.decimal;
-
     var many_digits = false;
-    if (integer.len + decimal.len >= max_digits) {
-        if (integer[0] == '0') {
-            while (decimal.len > 0 and decimal[0] == '0') {
-                decimal = decimal[1..];
+    if (number.integer.len + number.decimal.len >= max_digits) {
+        if (number.integer[0] == '0') {
+            while (number.decimal.len > 0 and number.decimal[0] == '0') {
+                number.decimal = number.decimal[1..];
             }
-            if (decimal.len >= max_digits) {
+            if (number.decimal.len >= max_digits) {
                 many_digits = true;
-                mantissa = 0;
-                const truncated_decimal_len = @min(decimal.len, max_digits - 1);
-                for (decimal[0..truncated_decimal_len]) |d| {
-                    mantissa = mantissa * 10 + (d - '0');
+                number.mantissa = 0;
+                const truncated_decimal_len = @min(number.decimal.len, max_digits - 1);
+                for (number.decimal[0..truncated_decimal_len]) |d| {
+                    number.mantissa = number.mantissa * 10 + (d - '0');
                 }
-                exponent += @intCast(decimal.len - truncated_decimal_len);
+                number.exponent += @intCast(number.decimal.len - truncated_decimal_len);
             }
         } else {
             many_digits = true;
-            mantissa = 0;
-            const truncated_integer_len = @min(integer.len, max_digits - 1);
-            for (integer[0..truncated_integer_len]) |i| {
-                mantissa = mantissa * 10 + (i - '0');
+            number.mantissa = 0;
+            const truncated_integer_len = @min(number.integer.len, max_digits - 1);
+            for (number.integer[0..truncated_integer_len]) |i| {
+                number.mantissa = number.mantissa * 10 + (i - '0');
             }
-            exponent += @intCast(integer.len - truncated_integer_len);
-            const truncated_decimal_len = @min(decimal.len, max_digits - 1 - truncated_integer_len);
-            for (decimal[0..truncated_decimal_len]) |d| {
-                mantissa = mantissa * 10 + (d - '0');
+            number.exponent += @intCast(number.integer.len - truncated_integer_len);
+            const truncated_decimal_len = @min(number.decimal.len, max_digits - 1 - truncated_integer_len);
+            for (number.decimal[0..truncated_decimal_len]) |d| {
+                number.mantissa = number.mantissa * 10 + (d - '0');
             }
-            exponent += @intCast(decimal.len - truncated_decimal_len);
+            number.exponent += @intCast(number.decimal.len - truncated_decimal_len);
         }
     }
 
@@ -137,29 +132,29 @@ fn computeFloat(parsed_number: FromString(.{})) ParseError!f64 {
     const fast_max_man = 2 << common.man_bits;
 
     if (!many_digits and
-        fast_min_exp <= exponent and
-        exponent <= fast_max_exp and
-        mantissa <= fast_max_man)
+        fast_min_exp <= number.exponent and
+        number.exponent <= fast_max_exp and
+        number.mantissa <= fast_max_man)
     {
-        var answer: f64 = @floatFromInt(mantissa);
-        if (exponent < 0)
-            answer /= power_of_ten[@intCast(-exponent)]
+        var answer: f64 = @floatFromInt(number.mantissa);
+        if (number.exponent < 0)
+            answer /= power_of_ten[@intCast(-number.exponent)]
         else
-            answer *= power_of_ten[@intCast(exponent)];
-        return if (parsed_number.negative) -answer else answer;
+            answer *= power_of_ten[@intCast(number.exponent)];
+        return if (number.negative) -answer else answer;
     }
 
-    var bf = eisel_lemire.compute(mantissa, exponent);
+    var bf = eisel_lemire.compute(number.mantissa, number.exponent);
     if (many_digits and bf.e >= 0) {
-        if (!bf.eql(eisel_lemire.compute(mantissa + 1, exponent))) {
-            bf = eisel_lemire.computeError(mantissa, exponent);
+        if (!bf.eql(eisel_lemire.compute(number.mantissa + 1, number.exponent))) {
+            bf = eisel_lemire.computeError(number.mantissa, number.exponent);
         }
     }
-    if (bf.e < 0) bf = digit_comp.compute(parsed_number, bf);
+    if (bf.e < 0) digit_comp.compute(number.*, &bf);
 
     if (bf.e == common.inf_exp) return error.NumberOutOfRange;
 
-    return bf.toFloat(parsed_number.negative);
+    return bf.toFloat(number.negative);
 }
 
 const power_of_ten: [23]f64 = brk: {

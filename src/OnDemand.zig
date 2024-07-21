@@ -63,7 +63,7 @@ pub const Parser = struct {
             self.loaded_buffer = try self.allocator.alignedAlloc(u8, types.Vector.LEN_BYTES, len);
         }
 
-        _ = try file.read(self.loaded_buffer.?);
+        _ = try file.readAll(self.loaded_buffer.?);
         self.loaded_document_len = len;
 
         return self.document.build(self.loaded_buffer.?[0..self.loaded_document_len]);

@@ -534,15 +534,17 @@ fn visit_number(self: *Self, comptime phase: TokenPhase) ParseError!void {
     switch (number) {
         .float => |n| {
             self.parsed.appendAssumeCapacity(.{ .float = n });
+            log.info("FLT {d}", .{n});
         },
         .signed => |n| {
             self.parsed.appendAssumeCapacity(.{ .signed = n });
+            log.info("INT {d}", .{n});
         },
         .unsigned => |n| {
             self.parsed.appendAssumeCapacity(.{ .unsigned = n });
+            log.info("UNT {d}", .{n});
         },
     }
-    log.info("NUM", .{});
 }
 
 fn visit_true(self: *Self) ParseError!void {

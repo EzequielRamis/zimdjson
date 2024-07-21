@@ -82,11 +82,12 @@ pub const Checker = struct {
                 const offset = i * Vector.LEN_BYTES;
                 const vec = Vector.fromPtr(block[offset..][0..Vector.LEN_BYTES]).to(.bytes);
                 self.checkUTF8Bytes(vec);
+                self.prev_vec = vec;
+                if (i == Mask.COMPUTED_VECTORS - 1) {
+                    self.prev_incomplete = isIncomplete(vec);
+                }
             }
         }
-        const last_vec = Vector.fromPtr(block[(Mask.COMPUTED_VECTORS - 1) * Vector.LEN_BYTES ..][0..Vector.LEN_BYTES]).to(.bytes);
-        self.prev_incomplete = isIncomplete(last_vec);
-        self.prev_vec = last_vec;
     }
 
     fn isASCII(block: *const [Mask.LEN_BITS]u8) bool {
@@ -108,9 +109,13 @@ pub const Checker = struct {
     }
 
     fn checkUTF8Bytes(self: *Checker, vec: vector) void {
-        const shift1_mask = simd.iota(i32, Vector.LEN_BYTES) - @as(@Vector(Vector.LEN_BYTES, i32), @splat(1));
-        const shift2_mask = simd.iota(i32, Vector.LEN_BYTES) - @as(@Vector(Vector.LEN_BYTES, i32), @splat(2));
-        const shift3_mask = simd.iota(i32, Vector.LEN_BYTES) - @as(@Vector(Vector.LEN_BYTES, i32), @splat(3));
+        const len = Vector.LEN_BYTES;
+        const prev1_mask: @Vector(len, i32) = [_]i32{len} ++ ([_]i32{0} ** (len - 1));
+        const prev2_mask: @Vector(len, i32) = [_]i32{ len - 1, len } ++ ([_]i32{0} ** (len - 2));
+        const prev3_mask: @Vector(len, i32) = [_]i32{ len - 2, len - 1, len } ++ ([_]i32{0} ** (len - 3));
+        const shift1_mask = comptime simd.shiftElementsRight(simd.iota(i32, len), 1, 0) - prev1_mask;
+        const shift2_mask = comptime simd.shiftElementsRight(simd.iota(i32, len), 2, 0) - prev2_mask;
+        const shift3_mask = comptime simd.shiftElementsRight(simd.iota(i32, len), 3, 0) - prev3_mask;
         const prev1 = @shuffle(u8, vec, self.prev_vec, shift1_mask);
 
         // zig fmt: off

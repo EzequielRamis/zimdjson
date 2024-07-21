@@ -20,7 +20,7 @@ pub fn build(b: *std.Build) !void {
     while (args.next()) |a| {
         if (std.mem.startsWith(u8, a, "test")) lazy_simdjson_data = b.lazyDependency("simdjson-data", .{});
         if (std.mem.eql(u8, a, "test") or
-            std.mem.eql(u8, a, "test-float-parsing")) lazy_float_data = b.lazyDependency("parse_number_fxx", .{});
+            std.mem.eql(u8, a, "test/float-parsing")) lazy_float_data = b.lazyDependency("parse_number_fxx", .{});
     }
 
     const minefield_gen = b.addExecutable(.{
@@ -33,10 +33,8 @@ pub fn build(b: *std.Build) !void {
     _ = run_minefield_gen.addArg(b.path("tests/minefield.zig").getPath(b));
 
     inline for ([_]struct { step: []const u8, name: []const u8, path: []const u8 }{
-        // .{ .step = "test-dom", .name = "DOM", .path = "tests/dom.zig" },
-        // .{ .step = "test-ondemand", .name = "On Demand", .path = "tests/ondemand.zig" },
-        .{ .step = "test-minefield", .name = "Minefield", .path = "tests/minefield.zig" },
-        .{ .step = "test-float-parsing", .name = "Float parsing", .path = "tests/parse_float.zig" },
+        .{ .step = "test/minefield", .name = "Minefield", .path = "tests/minefield.zig" },
+        .{ .step = "test/float-parsing", .name = "Float parsing", .path = "tests/parse_float.zig" },
     }) |t| {
         const unit_test = b.addTest(.{
             .root_source_file = b.path(t.path),
@@ -60,7 +58,7 @@ pub fn build(b: *std.Build) !void {
         const run_test_step = b.step(t.step, "Run " ++ t.name ++ " unit tests");
         run_test_step.dependOn(&run_test.step);
         test_step.dependOn(&run_test.step);
-        if (std.mem.eql(u8, t.step, "test-minefield")) {
+        if (std.mem.eql(u8, t.step, "test/minefield")) {
             run_test.step.dependOn(&run_minefield_gen.step);
         }
     }

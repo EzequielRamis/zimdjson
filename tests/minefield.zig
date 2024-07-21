@@ -1,4 +1,4 @@
-//! This file is auto-generated with `zig build test-minefield`
+//! This file is auto-generated with `zig build test/minefield`
 
 const std = @import("std");
 const DOM = @import("zimdjson").DOM;

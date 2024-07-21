@@ -37,7 +37,6 @@ pub fn writeString(
             const new_len = dst.items.len + quote_index;
             dst.appendSliceAssumeCapacity(chunk);
             dst.items.len = new_len;
-            dst.appendAssumeCapacity(0);
             _ = src.consume(quote_index, phase);
             return;
         }

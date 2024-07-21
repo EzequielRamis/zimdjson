@@ -8,7 +8,7 @@ const TokenPhase = tokens.Phase;
 const ParseError = types.ParseError;
 const readInt = std.mem.readInt;
 
-pub fn checkTrue(comptime opt: TokenOptions, src: *TokenIterator(opt)) ParseError!void {
+pub fn checkTrue(comptime opt: TokenOptions, src: TokenIterator(opt)) ParseError!void {
     const chunk = src.ptr[0..5];
     const dword_true = readInt(u32, "true", .little);
     const dword_atom = readInt(u32, chunk[0..4], .little);
@@ -18,7 +18,7 @@ pub fn checkTrue(comptime opt: TokenOptions, src: *TokenIterator(opt)) ParseErro
     }
 }
 
-pub fn checkFalse(comptime opt: TokenOptions, src: *TokenIterator(opt)) ParseError!void {
+pub fn checkFalse(comptime opt: TokenOptions, src: TokenIterator(opt)) ParseError!void {
     const chunk = src.ptr[0..6];
     const dword_alse = readInt(u32, "alse", .little);
     const dword_atom = readInt(u32, chunk[1..][0..4], .little);
@@ -28,7 +28,7 @@ pub fn checkFalse(comptime opt: TokenOptions, src: *TokenIterator(opt)) ParseErr
     }
 }
 
-pub fn checkNull(comptime opt: TokenOptions, src: *TokenIterator(opt)) ParseError!void {
+pub fn checkNull(comptime opt: TokenOptions, src: TokenIterator(opt)) ParseError!void {
     const chunk = src.ptr[0..5];
     const dword_null = readInt(u32, "null", .little);
     const dword_atom = readInt(u32, chunk[0..4], .little);

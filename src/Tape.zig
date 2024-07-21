@@ -4,6 +4,7 @@ const types = @import("types.zig");
 const parsers = @import("parsers.zig");
 const tokens = @import("tokens.zig");
 const ArrayList = std.ArrayList;
+const MultiArrayList = std.MultiArrayList;
 const BitStack = std.BitStack;
 const Indexer = @import("Indexer.zig");
 const TokenIterator = tokens.Iterator;
@@ -40,51 +41,47 @@ const State = enum {
     resume_array_continue,
 };
 
-const Tag = enum(u8) {
-    root = 'r',
-    true = 't',
-    false = 'f',
-    null = 'n',
-    unsigned = 'u',
-    signed = 'i',
-    float = 'd',
-    string = '"',
-    object_begin = '{',
-    object_end = '}',
-    array_begin = '[',
-    array_end = ']',
-    _,
+const FitPtr = packed struct {
+    ptr: u32,
+    len: u32,
 };
 
-pub const Element = packed struct(u64) {
-    tag: Tag,
-    data: u56 = 0,
-};
-
-pub const Container = packed struct(u56) {
-    index: u32,
-    count: u24,
+pub const Word = union(enum) {
+    true,
+    false,
+    null,
+    unsigned: u64,
+    signed: i64,
+    float: f64,
+    string: FitPtr,
+    object_opening: FitPtr,
+    object_closing: FitPtr,
+    array_opening: FitPtr,
+    array_closing: FitPtr,
+    root: FitPtr,
 };
 
 max_depth: usize = common.DEFAULT_MAX_DEPTH,
 tokens: TokenIterator(TOKEN_OPTIONS),
-parsed: ArrayList(u64),
-stack: ArrayList(u64),
+parsed: MultiArrayList(Word),
+stack: MultiArrayList(Word),
 chars: ArrayList(u8),
+allocator: Allocator,
 
 pub fn init(allocator: Allocator) Self {
     return Self{
         .tokens = TokenIterator(TOKEN_OPTIONS).init(allocator),
-        .parsed = ArrayList(u64).init(allocator),
-        .stack = ArrayList(u64).init(allocator),
+        .parsed = MultiArrayList(Word){},
+        .stack = MultiArrayList(Word){},
         .chars = ArrayList(u8).init(allocator),
+        .allocator = allocator,
     };
 }
 
 pub fn deinit(self: *Self) void {
     self.tokens.deinit();
-    self.parsed.deinit();
-    self.stack.deinit();
+    self.parsed.deinit(self.allocator);
+    self.stack.deinit(self.allocator);
     self.chars.deinit();
 }
 
@@ -92,16 +89,15 @@ pub fn build(self: *Self, doc: []const u8) ParseError!void {
     var t = &self.tokens;
     try t.iter(doc);
 
-    try self.chars.ensureTotalCapacity(self.tokens.indexer.reader.document.len * 2 + types.Vector.LEN_BYTES);
-    try self.stack.ensureTotalCapacity(self.max_depth * 2 + types.Vector.LEN_BYTES);
-    try self.parsed.ensureTotalCapacity(self.tokens.indexer.indexes.items.len * 2 + types.Vector.LEN_BYTES);
+    try self.chars.ensureTotalCapacity(t.indexer.reader.document.len + types.Vector.LEN_BYTES);
+    try self.stack.ensureTotalCapacity(self.allocator, self.max_depth);
+    try self.parsed.ensureTotalCapacity(self.allocator, t.indexer.indexes.items.len + 2);
     self.chars.shrinkRetainingCapacity(0);
     self.stack.shrinkRetainingCapacity(0);
     self.parsed.shrinkRetainingCapacity(0);
 
-    self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = Tag.root }));
-    self.stack.appendAssumeCapacity(@bitCast(Element{ .tag = Tag.root }));
-
+    self.stack.appendAssumeCapacity(.{ .root = .{ .ptr = 0, .len = 0 } });
+    self.parsed.appendAssumeCapacity(.{ .root = .{ .ptr = 0, .len = 0 } });
     if (t.next(.unbounded)) |r| {
         return switch (r) {
             '{' => self.analyze_object_begin(.unbounded),
@@ -149,17 +145,11 @@ fn analyze_object_begin(self: *Self, comptime phase: TokenPhase) ParseError!void
     assert(phase != .bounded);
     log.info("OBJ BEGIN", .{});
 
-    if (self.stack.items.len >= self.max_depth)
+    if (self.stack.len >= self.max_depth)
         return error.Depth;
-    const elem = Element{
-        .tag = Tag.object_begin,
-        .data = @bitCast(Container{
-            .index = @truncate(self.parsed.items.len),
-            .count = 0,
-        }),
-    };
-    self.parsed.appendAssumeCapacity(@bitCast(elem));
-    self.stack.appendAssumeCapacity(@bitCast(elem));
+    const word = Word{ .object_opening = .{ .ptr = @truncate(self.parsed.len), .len = 0 } };
+    self.parsed.appendAssumeCapacity(word);
+    self.stack.appendAssumeCapacity(word);
 
     if (self.tokens.next(phase)) |t| {
         switch (t) {
@@ -338,17 +328,11 @@ fn analyze_array_begin(self: *Self, comptime phase: TokenPhase) ParseError!void 
     assert(phase != .bounded);
     log.info("ARR BEGIN", .{});
 
-    if (self.stack.items.len >= self.max_depth)
+    if (self.stack.len >= self.max_depth)
         return error.Depth;
-    const elem = Element{
-        .tag = Tag.array_begin,
-        .data = @bitCast(Container{
-            .index = @truncate(self.parsed.items.len),
-            .count = 0,
-        }),
-    };
-    self.parsed.appendAssumeCapacity(@bitCast(elem));
-    self.stack.appendAssumeCapacity(@bitCast(elem));
+    const word = Word{ .array_opening = .{ .ptr = @truncate(self.parsed.len), .len = 0 } };
+    self.parsed.appendAssumeCapacity(word);
+    self.stack.appendAssumeCapacity(word);
 
     if (self.tokens.next(phase)) |t| {
         if (t == ']') {
@@ -464,39 +448,37 @@ fn resume_array_continue(self: *Self, comptime phase: TokenPhase) ParseError!voi
 
 fn analyze_scope_end(self: *Self, comptime phase: TokenPhase) ParseError!void {
     assert(phase != .bounded);
-    const scope: Element = @bitCast(self.stack.pop());
-    const scope_info: Container = @bitCast(scope.data);
-    const scope_begin: *Element = @ptrCast(&self.parsed.items[scope_info.index]);
-    switch (scope.tag) {
-        .array_begin => {
-            self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = Tag.array_end, .data = scope_begin.data }));
-            scope_begin.data = @truncate(self.parsed.items.len);
-        },
-        .object_begin => {
-            self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = Tag.object_end, .data = scope_begin.data }));
-            scope_begin.data = @truncate(self.parsed.items.len);
-        },
+    const scope = self.stack.pop();
+    const scope_fit = switch (scope) {
+        .array_opening, .object_opening => |s| s,
+        else => unreachable,
+    };
+    const scope_root: *FitPtr = @ptrCast(&self.parsed.items(.data)[scope_fit.ptr]);
+    switch (scope) {
+        .array_opening => |s| self.parsed.appendAssumeCapacity(.{ .array_closing = s }),
+        .object_opening => |s| self.parsed.appendAssumeCapacity(.{ .object_closing = s }),
         else => unreachable,
     }
-    const parent: Element = @bitCast(self.stack.getLast());
-    switch (parent.tag) {
-        .array_begin => return self.dispatch(phase, .array_continue),
-        .object_begin => return self.dispatch(phase, .object_continue),
+    scope_root.len = scope_fit.len;
+    scope_root.ptr = @truncate(self.parsed.len);
+    const parent = self.stack.items(.tags)[self.stack.len - 1];
+    switch (parent) {
+        .array_opening => return self.dispatch(phase, .array_continue),
+        .object_opening => return self.dispatch(phase, .object_continue),
         .root => {
             if (self.tokens.next(phase)) |_| return error.InvalidStructure;
-            const root: *Element = @ptrCast(&self.parsed.items[parent.data]);
-            self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = Tag.root, .data = root.data }));
-            root.data = @truncate(self.parsed.items.len - 1);
+            _ = self.stack.pop();
+            const root: *FitPtr = @ptrCast(&self.parsed.items(.data)[0]);
+            root.ptr = @truncate(self.parsed.len);
+            self.parsed.appendAssumeCapacity(.{ .root = .{ .ptr = 0, .len = 0 } });
         },
         else => unreachable,
     }
 }
 
 fn increment_container_count(self: *Self) void {
-    const scope: *Element = @ptrCast(&self.stack.items[self.stack.items.len - 1]);
-    var container: Container = @bitCast(scope.data);
-    container.count +|= 1;
-    scope.data = @bitCast(container);
+    const scope: *FitPtr = @ptrCast(&self.stack.items(.data)[self.stack.len - 1]);
+    scope.len += 1;
 }
 
 fn visit_root_primitive(self: *Self, comptime phase: TokenPhase, token: u8) ParseError!void {
@@ -516,10 +498,10 @@ fn visit_root_primitive(self: *Self, comptime phase: TokenPhase, token: u8) Pars
             else => return error.NonValue,
         };
     }
-    const parent: Element = @bitCast(self.stack.getLast());
-    const root: *Element = @ptrCast(&self.parsed.items[parent.data]);
-    self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = Tag.root, .data = root.data }));
-    root.data = @truncate(self.parsed.items.len - 1);
+    const s = self.stack.pop();
+    const root: *FitPtr = @ptrCast(&self.parsed.items(.data)[0]);
+    root.ptr = @truncate(self.parsed.len);
+    self.parsed.appendAssumeCapacity(s);
 }
 
 fn visit_primitive(self: *Self, comptime phase: TokenPhase, token: u8) ParseError!void {
@@ -539,12 +521,10 @@ fn visit_primitive(self: *Self, comptime phase: TokenPhase, token: u8) ParseErro
 fn visit_string(self: *Self, comptime phase: TokenPhase) ParseError!void {
     var t = &self.tokens;
     _ = t.consume(1, phase);
-    const len_slot: *align(1) u32 = @ptrCast(self.chars.addManyAsArrayAssumeCapacity(4));
     const next_str = self.chars.items.len;
     try parsers.writeString(TOKEN_OPTIONS, phase, t, &self.chars);
-    const next_len = self.chars.items.len - 1 - next_str;
-    len_slot.* = @truncate(self.chars.items.len - 1 - next_str);
-    self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = .string, .data = @truncate(next_str) }));
+    const next_len = self.chars.items.len - next_str;
+    self.parsed.appendAssumeCapacity(.{ .string = .{ .ptr = @truncate(next_str), .len = @truncate(next_len) } });
     log.info("STR {s}", .{self.chars.items[next_str..][0..next_len]});
 }
 
@@ -553,38 +533,35 @@ fn visit_number(self: *Self, comptime phase: TokenPhase) ParseError!void {
     const number = try parsers.Number(TOKEN_OPTIONS).parse(phase, t);
     switch (number) {
         .float => |n| {
-            self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = .float }));
-            self.parsed.appendAssumeCapacity(@bitCast(n));
+            self.parsed.appendAssumeCapacity(.{ .float = n });
         },
         .signed => |n| {
-            self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = .signed }));
-            self.parsed.appendAssumeCapacity(@bitCast(n));
+            self.parsed.appendAssumeCapacity(.{ .signed = n });
         },
         .unsigned => |n| {
-            self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = .unsigned }));
-            self.parsed.appendAssumeCapacity(@bitCast(n));
+            self.parsed.appendAssumeCapacity(.{ .unsigned = n });
         },
     }
     log.info("NUM", .{});
 }
 
 fn visit_true(self: *Self) ParseError!void {
-    const t = &self.tokens;
+    const t = self.tokens;
     try parsers.checkTrue(TOKEN_OPTIONS, t);
-    self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = .true }));
+    self.parsed.appendAssumeCapacity(.true);
     log.info("TRU", .{});
 }
 
 fn visit_false(self: *Self) ParseError!void {
-    const t = &self.tokens;
+    const t = self.tokens;
     try parsers.checkFalse(TOKEN_OPTIONS, t);
-    self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = .false }));
+    self.parsed.appendAssumeCapacity(.false);
     log.info("FAL", .{});
 }
 
 fn visit_null(self: *Self) ParseError!void {
-    const t = &self.tokens;
+    const t = self.tokens;
     try parsers.checkNull(TOKEN_OPTIONS, t);
-    self.parsed.appendAssumeCapacity(@bitCast(Element{ .tag = .null }));
+    self.parsed.appendAssumeCapacity(.null);
     log.info("NUL", .{});
 }

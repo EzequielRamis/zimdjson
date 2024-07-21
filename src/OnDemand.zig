@@ -45,6 +45,7 @@ pub const Parser = struct {
             self.allocator.free(b);
             self.loaded_buffer = null;
         }
+        self.document.deinit();
     }
 
     pub fn parse(self: *Parser, document: []const u8) ParseError!Element {
@@ -83,13 +84,14 @@ const Document = struct {
 
     pub fn deinit(self: *Document) void {
         self.chars.deinit();
+        self.tokens.deinit();
     }
 
     pub fn build(self: *Document, doc: []const u8) ParseError!Element {
         var t = &self.tokens;
         try t.iter(doc);
 
-        try self.chars.ensureTotalCapacity(self.tokens.indexer.reader.document.len);
+        try self.chars.ensureTotalCapacity(t.indexer.reader.document.len + Vector.LEN_BYTES);
         self.chars.shrinkRetainingCapacity(0);
 
         return Element{
@@ -105,33 +107,40 @@ const Element = struct {
     depth: u32,
     index: u32,
 
-    pub fn getObject(self: Element) OnDemandError!Object {
+    pub fn getObject(self: Element) Object {
+        assert(self.isObject());
         self.document.depth += 1;
         return Object{ .root = &self };
     }
 
-    pub fn getArray(self: Element) OnDemandError!Array {
+    pub fn getArray(self: Element) Array {
+        assert(self.isArray());
         self.document.depth += 1;
         return Array{ .root = &self };
     }
 
     pub fn getNumber(self: *Element) OnDemandError!NumberParser.Result {
+        assert(self.isNumber());
         return NumberParser.parse(.none, &self.document.tokens);
     }
 
     pub fn getUnsigned(self: *Element) OnDemandError!u64 {
+        assert(self.isUnsigned());
         return NumberParser.parseUnsigned(.none, &self.document.tokens);
     }
 
     pub fn getSigned(self: *Element) OnDemandError!i64 {
+        assert(self.isNumber());
         return NumberParser.parseSigned(.none, &self.document.tokens);
     }
 
     pub fn getFloat(self: *Element) OnDemandError!f64 {
+        assert(self.isNumber());
         return NumberParser.parseFloat(.none, &self.document.tokens);
     }
 
     pub fn getString(self: Element) OnDemandError![]const u8 {
+        assert(self.isString());
         const doc = self.document;
         _ = doc.tokens.consume(1, .none);
         const next_str = doc.chars.items.len;
@@ -141,15 +150,21 @@ const Element = struct {
     }
 
     pub fn getBool(self: Element) OnDemandError!bool {
-        if (parsers.checkTrue(TOKEN_OPTIONS, &self.document.tokens)) {
-            _ = self.document.tokens.consume(4, .none);
-            return true;
+        assert(self.isBool());
+        const t = self.document.tokens;
+        switch (t.peek()) {
+            't' => {
+                try parsers.checkTrue(TOKEN_OPTIONS, t);
+                _ = self.document.tokens.consume(4, .none);
+                return true;
+            },
+            'f' => {
+                try parsers.checkFalse(TOKEN_OPTIONS, t);
+                _ = self.document.tokens.consume(5, .none);
+                return false;
+            },
+            else => unreachable,
         }
-        if (parsers.checkFalse(TOKEN_OPTIONS, &self.document.tokens)) {
-            _ = self.document.tokens.consume(5, .none);
-            return false;
-        }
-        return error.IncorrectType;
     }
 
     pub fn getType(self: Element) ParseError!types.Element {
@@ -165,27 +180,33 @@ const Element = struct {
         };
     }
 
-    fn isObject(self: Element) bool {
+    pub fn isObject(self: Element) bool {
         return self.document.tokens.peek() == '{';
     }
 
-    fn isArray(self: Element) bool {
+    pub fn isArray(self: Element) bool {
         return self.document.tokens.peek() == '[';
     }
 
-    fn isNumber(self: Element) bool {
-        return self.document.tokens.peek() -% '0' < 10 or self.document.tokens.peek() == '-';
+    pub fn isNumber(self: Element) bool {
+        return self.isUnsigned() or self.isSigned();
     }
 
-    fn isString(self: Element) bool {
+    pub fn isSigned(self: Element) bool {
+        return self.document.tokens.peek() == '-';
+    }
+
+    pub fn isUnsigned(self: Element) bool {
+        return self.document.tokens.peek() -% '0' < 10;
+    }
+
+    pub fn isString(self: Element) bool {
         return self.document.tokens.peek() == '"';
     }
 
-    fn isBool(self: Element) bool {
-        return switch (self.document.tokens.peek()) {
-            't', 'f' => true,
-            else => false,
-        };
+    pub fn isBool(self: Element) bool {
+        const p = self.document.tokens.peek();
+        return p == 't' or p == 'f';
     }
 
     pub fn isNull(self: *Element) ParseError!void {

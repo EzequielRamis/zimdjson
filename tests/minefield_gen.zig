@@ -70,8 +70,7 @@ pub fn main() !void {
             try checker_zig_content.appendSlice(identifier);
             try checker_zig_content.appendSlice("\"{\n");
             try checker_zig_content.appendSlice(
-                \\  var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-                \\  const allocator = gpa.allocator();
+                \\  const allocator = std.testing.allocator;
                 \\  var parser = DOM.Parser.init(allocator);
                 \\  defer parser.deinit();
                 \\

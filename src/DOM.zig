@@ -60,38 +60,33 @@ pub const Parser = struct {
         try self.tape.build(self.loaded_buffer.?[0..self.loaded_document_len]);
         return Element{
             .tape = &self.tape,
-            .el = @ptrCast(&self.tape.parsed.items[1]),
+            .word = self.tape.parsed.get(1),
         };
-    }
-
-    pub fn shrinkToFitLoad(self: *Parser) ParseError!void {
-        assert(self.loaded_buffer != null);
-        self.loaded_buffer.? = try self.allocator.realloc(self.loaded_buffer.?, self.loaded_document_len);
     }
 };
 
 const Element = struct {
     tape: *Tape,
-    el: *const Tape.Element,
+    word: Tape.Word,
 
     pub fn getObject(self: Element) ConsumeError!Object {
         if (!self.isObject()) return error.IncorrectType;
-        return Object{ .tape = self.tape, .root = self.el };
+        return Object{ .tape = self.tape, .root = self.word };
     }
 
     pub fn getArray(self: Element) ConsumeError!Array {
         if (!self.isArray()) return error.IncorrectType;
-        return Array{ .tape = self.tape, .root = self.el };
+        return Array{ .tape = self.tape, .root = self.word };
     }
 
     pub fn getString(self: Element) ConsumeError![]const u8 {
         if (!self.isString()) return error.IncorrectType;
-        const str_len: *u32 = @ptrCast(self.el.data);
-        return self.tape.chars.items[self.el.data + 4 ..][0..str_len.*];
+        const ptr, const len = self.word.string;
+        return self.tape.chars.items[ptr..][0..len];
     }
 
     pub fn getNumber(self: Element) ConsumeError!Number {
-        return switch (self.getType()) {
+        return switch (self.word) {
             .unsigned => Number{ .unsigned = try self.getUnsigned() },
             .signed => Number{ .signed = try self.getSigned() },
             .float => Number{ .float = try self.getFloat() },
@@ -101,28 +96,28 @@ const Element = struct {
 
     pub fn getUnsigned(self: Element) ConsumeError!u64 {
         if (!self.isUnsigned()) return error.IncorrectType;
-        return @bitCast((self.el + 1).*);
+        return self.word.unsigned;
     }
 
     pub fn getSigned(self: Element) ConsumeError!i64 {
         if (!self.isSigned()) return error.IncorrectType;
-        return @bitCast((self.el + 1).*);
+        return self.word.signed;
     }
 
     pub fn getFloat(self: Element) ConsumeError!f64 {
         if (!self.isFloat()) return error.IncorrectType;
-        return @bitCast((self.el + 1).*);
+        return self.word.float;
     }
 
     pub fn getBool(self: Element) ConsumeError!bool {
         if (!self.isBool()) return error.IncorrectType;
-        return self.el.tag == .true;
+        return self.word == .true;
     }
 
     pub fn getType(self: Element) types.Element {
-        return switch (self.el.tag) {
-            .object_begin => .object,
-            .array_begin => .array,
+        return switch (self.word) {
+            .object_opening => .object,
+            .array_opening => .array,
             .true, .false => .boolean,
             .unsigned, .signed, .float => .number,
             .null => .null,
@@ -131,23 +126,23 @@ const Element = struct {
     }
 
     pub fn isObject(self: Element) bool {
-        return self.el.tag == .object_begin;
+        return self.word == .object_opening;
     }
 
     pub fn isArray(self: Element) bool {
-        return self.el.tag == .array_begin;
+        return self.word == .array_opening;
     }
 
     pub fn isString(self: Element) bool {
-        return self.el.tag == .string;
+        return self.word == .string;
     }
 
     pub fn isUnsigned(self: Element) bool {
-        return self.el.tag == .unsigned;
+        return self.word == .unsigned;
     }
 
     pub fn isSigned(self: Element) bool {
-        return self.el.tag == .signed;
+        return self.word == .signed;
     }
 
     pub fn isInteger(self: Element) bool {
@@ -155,7 +150,7 @@ const Element = struct {
     }
 
     pub fn isFloat(self: Element) bool {
-        return self.el.tag == .float;
+        return self.word == .float;
     }
 
     pub fn isNumber(self: Element) bool {
@@ -163,11 +158,11 @@ const Element = struct {
     }
 
     pub fn isBool(self: Element) bool {
-        return self.el.tag == .true or self.el.tag == .false;
+        return self.word == .true or self.word == .false;
     }
 
     pub fn isNull(self: Element) bool {
-        return self.el.tag == .null;
+        return self.word == .null;
     }
 
     pub fn atKey(self: Element, key: []const u8) ConsumeError!Object.Field {
@@ -192,13 +187,13 @@ const Array = struct {
 
     pub const Iterator = struct {
         arr: *const Array,
-        curr: *const Tape.Element,
+        curr: *const Tape.Word,
 
         pub fn next(self: *Iterator) ?Element {
             const val = self.curr;
             const val_info: Tape.Container = @bitCast(val.data);
 
-            const root = self.arr.root.el;
+            const root = self.arr.root.word;
             const tape = self.arr.root.tape;
             const root_info: Tape.Container = @bitCast(root.data);
             if (val.tag == .array_end and val.data == root_info.index) return null;
@@ -208,7 +203,7 @@ const Array = struct {
     };
 
     pub fn iter(self: Array) Iterator {
-        return Iterator{ .arr = &self, .curr = self.root.el + 1 };
+        return Iterator{ .arr = &self, .curr = self.root.word + 1 };
     }
 
     pub fn at(self: Array, index: usize) ConsumeError!Element {

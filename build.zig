@@ -7,7 +7,7 @@ pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    const zimdjson = b.addModule("zimdjson", .{ .root_source_file = b.path("src/main.zig") });
+    const zimdjson = b.addModule("zimdjson", .{ .root_source_file = b.path("src/root.zig") });
 
     // -- Testing
     const test_step = b.step("test", "Run all unit tests");
@@ -33,8 +33,8 @@ pub fn build(b: *std.Build) !void {
     _ = run_minefield_gen.addArg(b.path("tests/minefield.zig").getPath(b));
 
     inline for ([_]struct { step: []const u8, name: []const u8, path: []const u8 }{
-        .{ .step = "test/minefield", .name = "Minefield", .path = "tests/minefield.zig" },
-        .{ .step = "test/float-parsing", .name = "Float parsing", .path = "tests/parse_float.zig" },
+        .{ .step = "test/minefield", .name = "minefield", .path = "tests/minefield.zig" },
+        .{ .step = "test/float-parsing", .name = "float parsing", .path = "tests/float_parsing.zig" },
     }) |t| {
         const unit_test = b.addTest(.{
             .root_source_file = b.path(t.path),

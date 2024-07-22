@@ -36,11 +36,11 @@ pub fn lookupTable(table: vector, nibbles: vector) vector {
     }
 }
 
-pub fn pack(vec1: @Vector(4, u32), vec2: @Vector(4, u32)) @Vector(8, u16) {
+pub fn pack(vec1: @Vector(4, i32), vec2: @Vector(4, i32)) @Vector(8, u16) {
     switch (cpu.arch) {
         .x86_64 => {
             return asm (
-                \\vpackuswb %[vec1], %[vec2], %[ret]
+                \\vpackusdw %[vec1], %[vec2], %[ret]
                 : [ret] "=v" (-> @Vector(8, u16)),
                 : [vec1] "v" (vec1),
                   [vec2] "v" (vec2),
@@ -64,12 +64,12 @@ pub fn mulSaturatingAdd(vec1: @Vector(16, u8), vec2: @Vector(16, u8)) @Vector(8,
     }
 }
 
-pub fn mulWrappingAdd(vec1: @Vector(8, u16), vec2: @Vector(8, u16)) @Vector(4, u32) {
+pub fn mulWrappingAdd(vec1: @Vector(8, i16), vec2: @Vector(8, i16)) @Vector(4, i32) {
     switch (builtin.cpu.arch) {
         .x86_64 => {
             return asm (
-                \\vpmaddubsw %[vec1], %[vec2], %[ret]
-                : [ret] "=v" (-> @Vector(4, u32)),
+                \\vpmaddwd %[vec1], %[vec2], %[ret]
+                : [ret] "=v" (-> @Vector(4, i32)),
                 : [vec1] "v" (vec1),
                   [vec2] "v" (vec2),
             );

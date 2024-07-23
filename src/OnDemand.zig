@@ -3,25 +3,24 @@ const common = @import("common.zig");
 const types = @import("types.zig");
 const intr = @import("intrinsics.zig");
 const parsers = @import("parsers.zig");
+const tokens = @import("tokens.zig");
 const ArrayList = std.ArrayList;
 const Indexer = @import("Indexer.zig");
 const Vector = types.Vector;
-const vector = types.vector;
 const Pred = types.Predicate;
-const tokens = @import("tokens.zig");
 const TokenIterator = tokens.Iterator;
 const TokenOptions = tokens.Options;
-const log = std.log;
-const assert = std.debug.assert;
-
 const Allocator = std.mem.Allocator;
 const Error = types.Error;
+const Number = types.Number;
+const NumberParser = parsers.Number(TOKEN_OPTIONS);
+const vector = types.vector;
+const log = std.log;
+const assert = std.debug.assert;
 
 const TOKEN_OPTIONS = TokenOptions{
     .copy_bounded = true,
 };
-
-const NumberParser = parsers.Number(TOKEN_OPTIONS);
 
 pub const Parser = struct {
     const Buffer = std.ArrayListAligned(u8, types.Vector.LEN_BYTES);
@@ -29,7 +28,6 @@ pub const Parser = struct {
     buffer: Buffer,
     tokens: TokenIterator(TOKEN_OPTIONS),
     chars: ArrayList(u8),
-    depth: u32 = 0,
 
     pub fn init(allocator: Allocator) Parser {
         return Parser{
@@ -54,8 +52,7 @@ pub const Parser = struct {
 
         return Visitor{
             .document = self,
-            .depth = self.depth,
-            .index = self.tokens.token,
+            .depth = 0,
         };
     }
 
@@ -75,44 +72,58 @@ pub const Parser = struct {
 pub const Visitor = struct {
     document: *Parser,
     depth: u32,
-    index: u32,
 
-    pub fn getObject(self: *Visitor) Object {
-        assert(self.isObject());
-        self.document.depth += 1;
-        return Object{ .root = &self };
+    pub fn getObject(self: *Visitor) Error!Object {
+        if (self.isObject()) {
+            self.document.depth += 1;
+            return Object{ .root = &self };
+        }
+        return error.IncorrectType;
     }
 
-    pub fn getArray(self: *Visitor) Array {
-        assert(self.isArray());
-        self.document.depth += 1;
-        return Array{ .root = &self };
+    pub fn getArray(self: *Visitor) Error!Array {
+        if (self.isArray()) {
+            self.document.depth += 1;
+            return Array{ .root = &self };
+        }
+        return error.IncorrectType;
     }
 
-    pub fn getNumber(self: *Visitor) Error!NumberParser.Result {
-        assert(self.isNumber());
+    pub fn getNumber(self: *Visitor) Error!Number {
+        const t = self.document.tokens;
+        errdefer t.backTo(t.token);
+
         return NumberParser.parse(.none, &self.document.tokens);
     }
 
     pub fn getUnsigned(self: *Visitor) Error!u64 {
-        assert(self.isUnsigned());
+        const t = self.document.tokens;
+        errdefer t.backTo(t.token);
+
         return NumberParser.parseUnsigned(.none, &self.document.tokens);
     }
 
     pub fn getSigned(self: *Visitor) Error!i64 {
-        assert(self.isNumber());
+        const t = self.document.tokens;
+        errdefer t.backTo(t.token);
+
         return NumberParser.parseSigned(.none, &self.document.tokens);
     }
 
     pub fn getFloat(self: *Visitor) Error!f64 {
-        assert(self.isNumber());
+        const t = self.document.tokens;
+        errdefer t.backTo(t.token);
+
         return NumberParser.parseFloat(.none, &self.document.tokens);
     }
 
     pub fn getString(self: *Visitor) Error![]const u8 {
-        assert(self.isString());
+        if (!self.isString()) return error.IncorrectType;
+        const t = self.document.tokens;
+        errdefer t.backTo(t.token);
+
+        _ = t.consume(1, .none);
         const doc = self.document;
-        _ = doc.tokens.consume(1, .none);
         const next_str = doc.chars.items.len;
         try parsers.writeString(&doc.tokens, &doc.chars, .none);
         const next_len = self.chars.items.len - 1 - next_str;
@@ -120,55 +131,32 @@ pub const Visitor = struct {
     }
 
     pub fn getBool(self: *Visitor) Error!bool {
-        assert(self.isBool());
         const t = self.document.tokens;
-        switch (t.peek()) {
-            't' => {
-                try parsers.checkTrue(TOKEN_OPTIONS, t);
-                _ = self.document.tokens.consume(4, .none);
-                return true;
-            },
-            'f' => {
-                try parsers.checkFalse(TOKEN_OPTIONS, t);
-                _ = self.document.tokens.consume(5, .none);
-                return false;
-            },
-            else => unreachable,
-        }
+        errdefer t.backTo(t.token);
+
+        const is_true = try parsers.checkBool(TOKEN_OPTIONS, t);
+        _ = t.consume(if (is_true) 4 else 5, .none);
+        return is_true;
     }
 
-    pub fn isObject(self: Visitor) bool {
+    fn isObject(self: Visitor) bool {
         return self.document.tokens.peek() == '{';
     }
 
-    pub fn isArray(self: Visitor) bool {
+    fn isArray(self: Visitor) bool {
         return self.document.tokens.peek() == '[';
     }
 
-    pub fn isNumber(self: Visitor) bool {
-        return self.isUnsigned() or self.isSigned();
-    }
-
-    pub fn isSigned(self: Visitor) bool {
-        return self.document.tokens.peek() == '-';
-    }
-
-    pub fn isUnsigned(self: Visitor) bool {
-        return self.document.tokens.peek() -% '0' < 10;
-    }
-
-    pub fn isString(self: Visitor) bool {
+    fn isString(self: Visitor) bool {
         return self.document.tokens.peek() == '"';
     }
 
-    pub fn isBool(self: Visitor) bool {
-        const p = self.document.tokens.peek();
-        return p == 't' or p == 'f';
-    }
-
     pub fn isNull(self: *Visitor) Error!void {
-        try parsers.checkNull(TOKEN_OPTIONS, &self.document.tokens);
-        _ = self.document.tokens.consume(4, .none);
+        const t = self.document.tokens;
+        errdefer t.backTo(t.token);
+
+        try parsers.checkNull(TOKEN_OPTIONS, t);
+        _ = t.consume(4, .none);
     }
 
     pub fn consume(self: *Visitor) Error!void {

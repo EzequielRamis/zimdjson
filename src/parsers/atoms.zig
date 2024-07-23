@@ -8,6 +8,12 @@ const TokenPhase = tokens.Phase;
 const Error = types.Error;
 const readInt = std.mem.readInt;
 
+pub fn checkBool(comptime opt: TokenOptions, src: TokenIterator(opt)) Error!bool {
+    const is_true = if (checkTrue(opt, src)) true else |_| false;
+    const is_false = if (checkFalse(opt, src)) true else |_| false;
+    return if (is_true or is_false) is_true else error.NonValue;
+}
+
 pub fn checkTrue(comptime opt: TokenOptions, src: TokenIterator(opt)) Error!void {
     const chunk = src.ptr[0..5];
     const dword_true = readInt(u32, "true", .little);

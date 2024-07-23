@@ -1,5 +1,6 @@
 const atoms = @import("parsers/atoms.zig");
 
+pub const checkBool = atoms.checkBool;
 pub const checkTrue = atoms.checkTrue;
 pub const checkFalse = atoms.checkFalse;
 pub const checkNull = atoms.checkNull;

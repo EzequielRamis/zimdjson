@@ -4,6 +4,8 @@ const types = @import("types.zig");
 const Indexer = @import("Indexer.zig");
 const Tape = @import("Tape.zig");
 const Allocator = std.mem.Allocator;
+const Error = types.Error;
+const Number = types.Number;
 const assert = std.debug.assert;
 
 pub const Parser = struct {
@@ -73,7 +75,7 @@ const Visitor = struct {
         };
     }
 
-    pub fn getNumber(self: Visitor) ?types.Number {
+    pub fn getNumber(self: Visitor) ?Number {
         const w = self.tape.parsed.get(self.index);
         return switch (w) {
             .unsigned => .{ .unsigned = self.getUnsigned().? },
@@ -116,20 +118,20 @@ const Visitor = struct {
         };
     }
 
-    pub fn atKey(self: Visitor, key: []const u8) ?Object.Field {
-        const obj = self.getObject() orelse return null;
-        return obj.at(key);
+    pub fn atKey(self: Visitor, key: []const u8) Error!?Object.Field {
+        if (self.getObject()) |obj| return obj.at(key);
+        return error.IncorrectType;
     }
 
-    pub fn atIndex(self: Visitor, index: u32) ?Visitor {
-        const arr = self.getArray() orelse return null;
-        return arr.at(index);
+    pub fn atIndex(self: Visitor, index: u32) Error!?Visitor {
+        if (self.getArray()) |arr| return arr.at(index);
+        return error.IncorrectType;
     }
 
-    pub fn size(self: Visitor) ?u32 {
+    pub fn size(self: Visitor) Error!u32 {
         if (self.getObject()) |obj| return obj.size();
         if (self.getArray()) |arr| return arr.size();
-        return null;
+        return error.IncorrectType;
     }
 };
 

@@ -1,5 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
+const OnDemand = @import("OnDemand.zig");
+const Visitor = OnDemand.Visitor;
 const wyhash = std.hash.Wyhash.hash;
 const assert = std.debug.assert;
 
@@ -13,50 +15,33 @@ const Error = error{
     DuplicateField,
 };
 
-const Element = union(enum) {
-    null,
-    unsigned: u64,
-    signed: i64,
-    float: f64,
-    bool: bool,
-    string: []const u8,
-};
-
-fn Default(comptime T: type) type {
+fn Common(comptime T: type) type {
     return struct {
-        pub fn dispatch(el: Element) Error!T {
+        pub fn dispatch(v: *Visitor) Error!T {
             const info = @typeInfo(T);
             return switch (info) {
-                .Int => if (info.Int.signedness == .unsigned) unsigned(el) else signed(el),
-                .Float => float(el),
-                .Bool => boolean(el),
-                .Optional => if (el == .null) null else Default(info.Optional.child).dispatch(el),
+                .Int => if (info.Int.signedness == .unsigned) unsigned(v) else signed(v),
+                .Float => float(v),
+                .Bool => boolean(v),
+                .Optional => if (v.isNull()) null else |_| Common(info.Optional.child).dispatch(v),
                 else => unreachable,
             };
         }
 
-        fn unsigned(el: Element) Error!T {
-            if (el == .unsigned) {
-                return std.math.cast(T, el.unsigned) orelse error.InvalidValue;
-            }
-            return error.InvalidType;
+        fn unsigned(v: *Visitor) Error!T {
+            return std.math.cast(T, try v.getUnsigned()) orelse error.InvalidValue;
         }
 
-        fn signed(el: Element) Error!T {
-            if (el == .signed) {
-                return std.math.cast(T, el.signed) orelse error.InvalidValue;
-            }
-            return error.InvalidType;
+        fn signed(v: *Visitor) Error!T {
+            return std.math.cast(T, try v.getSigned()) orelse error.InvalidValue;
         }
 
-        fn float(el: Element) Error!T {
-            if (el == .float) return @floatCast(el.float);
-            return error.InvalidType;
+        fn float(v: *Visitor) Error!T {
+            return @floatCast(try v.getFloat());
         }
 
-        fn boolean(el: Element) Error!T {
-            if (el == .bool) return el.bool;
-            return error.InvalidType;
+        fn boolean(v: *Visitor) Error!T {
+            return v.getBool();
         }
     };
 }
@@ -71,7 +56,7 @@ fn Writer(comptime T: type, comptime opt: Options) type {
         table: VTable = VTable{},
         written: VTable.Size = 0,
 
-        pub fn write(self: *Self, to: *T, field: []const u8, el: Element) Error!void {
+        pub fn write(self: *Self, to: *T, field: []const u8, v: *Visitor) Error!void {
             const h = self.table.hash(field);
             const i = PHTable(T, opt).location(h);
 
@@ -91,7 +76,7 @@ fn Writer(comptime T: type, comptime opt: Options) type {
                 .Last => {},
             } else self.written += 1;
 
-            try value.dispatch.?(el, to);
+            try value.dispatch.?(v, to);
             self.table.visited[i] = true;
         }
 
@@ -102,7 +87,7 @@ fn Writer(comptime T: type, comptime opt: Options) type {
 }
 
 const PHCaller = struct {
-    dispatch: ?*const fn (el: Element, ptr: *anyopaque) Error!void = null,
+    dispatch: ?*const fn (v: *Visitor, ptr: *anyopaque) Error!void = null,
 };
 
 const Options = struct {
@@ -191,7 +176,7 @@ fn PHTable(comptime T: type, comptime opt: Options) type {
                     collided[i] = true;
                     callers[i] = .{
                         .dispatch = struct {
-                            pub fn dispatch(el: Element, ptr: *anyopaque) Error!void {
+                            pub fn dispatch(el: *Visitor, ptr: *anyopaque) Error!void {
                                 const value: *T = @ptrCast(@alignCast(ptr));
                                 @field(value, field.name) = try parse_with(el);
                             }
@@ -232,23 +217,12 @@ fn Field(comptime T: type) type {
     return struct {
         rename: ?[]const u8 = null,
         aliases: []const []const u8 = &[_][]const u8{},
-        parse_with: *const fn (Element) Error!T = Default(T).dispatch,
+        dispatch: *const fn (*Visitor) Error!T = Common(T).dispatch,
     };
-}
-
-pub fn plusOne(el: Element) Error!u16 {
-    if (el == .unsigned) {
-        return @intCast(el.unsigned + 1);
-    }
-    return error.InvalidType;
 }
 
 test "schema" {
     const S = packed struct {
-        pub const schema = .{
-            .foo = .{ .rename = "FOO", .parse_with = plusOne },
-        };
-
         bar: u8,
         foo: u16,
     };

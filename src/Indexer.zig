@@ -15,7 +15,7 @@ const assert = debug.assert;
 const Mask = types.Mask;
 const Pred = types.Predicate;
 
-const ParseError = types.ParseError;
+const Error = types.Error;
 const Allocator = std.mem.Allocator;
 const Self = @This();
 
@@ -48,7 +48,7 @@ pub fn deinit(self: *Self) void {
     self.indexes.deinit();
 }
 
-pub fn index(self: *Self, document: []const u8) ParseError!void {
+pub fn index(self: *Self, document: []const u8) !void {
     self.reader.read(document);
     try self.indexes.ensureTotalCapacity(self.reader.document.len);
     self.indexes.shrinkRetainingCapacity(0);
@@ -88,9 +88,9 @@ pub fn index(self: *Self, document: []const u8) ParseError!void {
             else => unreachable,
         }
     }
-    if (self.unescaped_error != 0) return error.String;
-    if (!self.utf8_checker.succeeded()) return error.InvalidEncoding;
-    if (self.prev_inside_string != 0) return error.UnclosedString;
+    if (self.unescaped_error != 0) return error.Encoding;
+    if (!self.utf8_checker.succeeded()) return error.Encoding;
+    if (self.prev_inside_string != 0) return error.StringUnclosed;
     if (self.indexes.items.len == 0) return error.Empty;
 }
 

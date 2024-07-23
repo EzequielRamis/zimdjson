@@ -11,7 +11,7 @@ const array = types.array;
 const Vector = types.Vector;
 const Pred = types.Predicate;
 const ArrayList = std.ArrayList;
-const ParseError = types.ParseError;
+const Error = types.Error;
 const readInt = std.mem.readInt;
 
 pub fn writeString(
@@ -19,7 +19,7 @@ pub fn writeString(
     comptime phase: TokenPhase,
     src: *TokenIterator(opt),
     dst: *ArrayList(u8),
-) ParseError!void {
+) Error!void {
     while (true) {
         const chunk = src.ptr[0..Vector.LEN_BYTES];
         const slash = Pred(.bytes).from(Vector.SLASH == chunk.*).pack();
@@ -51,18 +51,18 @@ pub fn writeString(
             try utf8Encode(codepoint, dst);
         } else {
             const escaped = escape_map[escape_char];
-            if (escaped == 0) return error.InvalidEscape;
+            if (escaped == 0) return error.StringEscaping;
             dst.appendAssumeCapacity(escaped);
         }
     }
-    return error.UnclosedString;
+    return error.StringUnclosed;
 }
 
 fn handleUnicodeCodepoint(
     comptime opt: TokenOptions,
     src: *TokenIterator(opt),
     comptime phase: TokenPhase,
-) ParseError!u32 {
+) Error!u32 {
     const first_literal = src.consume(4, phase)[0..4];
     const first_codepoint = parseHexDword(first_literal);
     if (utf16IsHighSurrogate(first_codepoint)) {
@@ -71,20 +71,20 @@ fn handleUnicodeCodepoint(
             const high_surrogate = first_codepoint;
             const second_literal = src.consume(4, phase)[0..4];
             const low_surrogate = parseHexDword(second_literal);
-            if (!utf16IsLowSurrogate(low_surrogate)) return error.InvalidEscape;
+            if (!utf16IsLowSurrogate(low_surrogate)) return error.StringEscaping;
             const h = high_surrogate;
             const l = low_surrogate;
             return 0x10000 + ((h & 0x03ff) << 10) | (l & 0x03ff);
         } else {
-            return error.InvalidEscape;
+            return error.StringEscaping;
         }
     } else if (utf16IsLowSurrogate(first_codepoint)) {
-        return error.InvalidEscape;
+        return error.StringEscaping;
     }
     return first_codepoint;
 }
 
-fn utf8Encode(c: u32, dst: *ArrayList(u8)) ParseError!void {
+fn utf8Encode(c: u32, dst: *ArrayList(u8)) Error!void {
     if (c < 0x80) {
         dst.appendAssumeCapacity(@as(u8, @intCast(c)));
         return;
@@ -110,7 +110,7 @@ fn utf8Encode(c: u32, dst: *ArrayList(u8)) ParseError!void {
         buf[3] = @as(u8, @intCast(0b10000000 | (c & 0b111111)));
         return;
     }
-    return error.InvalidEscape;
+    return error.StringEscaping;
 }
 
 fn utf16IsHighSurrogate(c: u32) bool {

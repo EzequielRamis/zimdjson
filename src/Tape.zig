@@ -14,7 +14,7 @@ const log = std.log;
 const assert = std.debug.assert;
 
 const Allocator = std.mem.Allocator;
-const ParseError = types.ParseError;
+const Error = types.Error;
 
 const TOKEN_OPTIONS = TokenOptions{
     .copy_bounded = false,
@@ -41,7 +41,7 @@ const State = enum {
     resume_array_continue,
 };
 
-const FitPtr = packed struct {
+pub const FitPtr = packed struct {
     ptr: u32,
     len: u32,
 };
@@ -61,36 +61,35 @@ pub const Word = union(enum) {
     root: FitPtr,
 };
 
-max_depth: usize = common.DEFAULT_MAX_DEPTH,
-tokens: TokenIterator(TOKEN_OPTIONS),
 parsed: MultiArrayList(Word),
 stack: MultiArrayList(Word),
+tokens: TokenIterator(TOKEN_OPTIONS),
 chars: ArrayList(u8),
 allocator: Allocator,
 
 pub fn init(allocator: Allocator) Self {
     return Self{
-        .tokens = TokenIterator(TOKEN_OPTIONS).init(allocator),
         .parsed = MultiArrayList(Word){},
         .stack = MultiArrayList(Word){},
+        .tokens = TokenIterator(TOKEN_OPTIONS).init(allocator),
         .chars = ArrayList(u8).init(allocator),
         .allocator = allocator,
     };
 }
 
 pub fn deinit(self: *Self) void {
-    self.tokens.deinit();
     self.parsed.deinit(self.allocator);
     self.stack.deinit(self.allocator);
+    self.tokens.deinit();
     self.chars.deinit();
 }
 
-pub fn build(self: *Self, doc: []const u8) ParseError!void {
+pub fn build(self: *Self, doc: []const u8) !void {
     var t = &self.tokens;
-    try t.iter(doc);
+    try t.build(doc);
 
     try self.chars.ensureTotalCapacity(t.indexer.reader.document.len + types.Vector.LEN_BYTES);
-    try self.stack.ensureTotalCapacity(self.allocator, self.max_depth);
+    try self.stack.ensureTotalCapacity(self.allocator, common.DEFAULT_MAX_DEPTH);
     try self.parsed.ensureTotalCapacity(self.allocator, t.indexer.indexes.items.len + 2);
     self.chars.shrinkRetainingCapacity(0);
     self.stack.shrinkRetainingCapacity(0);
@@ -118,7 +117,7 @@ pub fn build(self: *Self, doc: []const u8) ParseError!void {
     };
 }
 
-inline fn dispatch(self: *Self, comptime phase: TokenPhase, next_state: State) ParseError!void {
+inline fn dispatch(self: *Self, comptime phase: TokenPhase, next_state: State) Error!void {
     const next_op = switch (next_state) {
         .object_begin => analyze_object_begin,
         .object_field => analyze_object_field,
@@ -141,12 +140,12 @@ inline fn dispatch(self: *Self, comptime phase: TokenPhase, next_state: State) P
     return @call(.always_tail, next_op, .{ self, phase });
 }
 
-fn analyze_object_begin(self: *Self, comptime phase: TokenPhase) ParseError!void {
+fn analyze_object_begin(self: *Self, comptime phase: TokenPhase) Error!void {
     assert(phase != .bounded);
     log.info("OBJ BEGIN", .{});
 
-    if (self.stack.len >= self.max_depth)
-        return error.Depth;
+    if (self.stack.len >= common.DEFAULT_MAX_DEPTH)
+        return error.MaxDepth;
     const word = Word{ .object_opening = .{ .ptr = @truncate(self.parsed.len), .len = 0 } };
     self.parsed.appendAssumeCapacity(word);
     self.stack.appendAssumeCapacity(word);
@@ -162,18 +161,18 @@ fn analyze_object_begin(self: *Self, comptime phase: TokenPhase) ParseError!void
                 log.info("OBJ END", .{});
                 return self.dispatch(phase, .scope_end);
             },
-            else => return error.InvalidStructure,
+            else => return error.InvalidObject,
         }
     } else {
         if (phase == .unbounded) {
             return self.dispatch(.bounded, .resume_object_begin);
         } else {
-            return error.InvalidStructure;
+            return error.InvalidObject;
         }
     }
 }
 
-fn resume_object_begin(self: *Self, comptime phase: TokenPhase) ParseError!void {
+fn resume_object_begin(self: *Self, comptime phase: TokenPhase) Error!void {
     assert(phase == .bounded);
     switch (self.tokens.next(phase).?) {
         '"' => {
@@ -185,11 +184,11 @@ fn resume_object_begin(self: *Self, comptime phase: TokenPhase) ParseError!void 
             log.info("OBJ END", .{});
             return self.dispatch(.padded, .scope_end);
         },
-        else => return error.InvalidStructure,
+        else => return error.InvalidObject,
     }
 }
 
-fn analyze_object_field(self: *Self, comptime phase: TokenPhase) ParseError!void {
+fn analyze_object_field(self: *Self, comptime phase: TokenPhase) Error!void {
     assert(phase != .bounded);
     if (self.tokens.next(phase)) |t| {
         if (t == ':') {
@@ -206,22 +205,22 @@ fn analyze_object_field(self: *Self, comptime phase: TokenPhase) ParseError!void
                 if (phase == .unbounded) {
                     return self.dispatch(.bounded, .resume_object_field_value);
                 } else {
-                    return error.InvalidStructure;
+                    return error.InvalidObject;
                 }
             }
         } else {
-            return error.InvalidStructure;
+            return error.InvalidObject;
         }
     } else {
         if (phase == .unbounded) {
             return self.dispatch(.bounded, .resume_object_field_colon);
         } else {
-            return error.InvalidStructure;
+            return error.InvalidObject;
         }
     }
 }
 
-fn resume_object_field_colon(self: *Self, comptime phase: TokenPhase) ParseError!void {
+fn resume_object_field_colon(self: *Self, comptime phase: TokenPhase) Error!void {
     assert(phase == .bounded);
     if (self.tokens.next(phase).? == ':') {
         if (self.tokens.next(.padded)) |t| {
@@ -234,14 +233,14 @@ fn resume_object_field_colon(self: *Self, comptime phase: TokenPhase) ParseError
                 },
             }
         } else {
-            return error.InvalidStructure;
+            return error.InvalidObject;
         }
     } else {
-        return error.InvalidStructure;
+        return error.InvalidObject;
     }
 }
 
-fn resume_object_field_value(self: *Self, comptime phase: TokenPhase) ParseError!void {
+fn resume_object_field_value(self: *Self, comptime phase: TokenPhase) Error!void {
     assert(phase == .bounded);
     switch (self.tokens.next(phase).?) {
         '{' => return self.dispatch(.padded, .object_begin),
@@ -253,7 +252,7 @@ fn resume_object_field_value(self: *Self, comptime phase: TokenPhase) ParseError
     }
 }
 
-fn analyze_object_continue(self: *Self, comptime phase: TokenPhase) ParseError!void {
+fn analyze_object_continue(self: *Self, comptime phase: TokenPhase) Error!void {
     assert(phase != .bounded);
     if (self.tokens.next(phase)) |t| {
         switch (t) {
@@ -264,13 +263,13 @@ fn analyze_object_continue(self: *Self, comptime phase: TokenPhase) ParseError!v
                         try self.visit_string(phase);
                         return self.dispatch(phase, .object_field);
                     } else {
-                        return error.InvalidStructure;
+                        return error.InvalidObject;
                     }
                 } else {
                     if (phase == .unbounded) {
                         return self.dispatch(.bounded, .resume_object_continue_key);
                     } else {
-                        return error.InvalidStructure;
+                        return error.InvalidObject;
                     }
                 }
             },
@@ -278,18 +277,18 @@ fn analyze_object_continue(self: *Self, comptime phase: TokenPhase) ParseError!v
                 log.info("OBJ END", .{});
                 return self.dispatch(phase, .scope_end);
             },
-            else => return error.InvalidStructure,
+            else => return error.InvalidObject,
         }
     } else {
         if (phase == .unbounded) {
             return self.dispatch(.bounded, .resume_object_continue_comma);
         } else {
-            return error.InvalidStructure;
+            return error.InvalidObject;
         }
     }
 }
 
-fn resume_object_continue_comma(self: *Self, comptime phase: TokenPhase) ParseError!void {
+fn resume_object_continue_comma(self: *Self, comptime phase: TokenPhase) Error!void {
     assert(phase == .bounded);
     switch (self.tokens.next(phase).?) {
         ',' => {
@@ -299,37 +298,37 @@ fn resume_object_continue_comma(self: *Self, comptime phase: TokenPhase) ParseEr
                     try self.visit_string(.padded);
                     return self.dispatch(.padded, .object_field);
                 } else {
-                    return error.InvalidStructure;
+                    return error.InvalidObject;
                 }
             } else {
-                return error.InvalidStructure;
+                return error.InvalidObject;
             }
         },
         '}' => {
             log.info("OBJ END", .{});
             return self.dispatch(.padded, .scope_end);
         },
-        else => return error.InvalidStructure,
+        else => return error.InvalidObject,
     }
 }
 
-fn resume_object_continue_key(self: *Self, comptime phase: TokenPhase) ParseError!void {
+fn resume_object_continue_key(self: *Self, comptime phase: TokenPhase) Error!void {
     assert(phase == .bounded);
     if (self.tokens.next(phase).? == '"') {
         self.increment_container_count();
         try self.visit_string(.padded);
         return self.dispatch(.padded, .object_field);
     } else {
-        return error.InvalidStructure;
+        return error.InvalidObject;
     }
 }
 
-fn analyze_array_begin(self: *Self, comptime phase: TokenPhase) ParseError!void {
+fn analyze_array_begin(self: *Self, comptime phase: TokenPhase) Error!void {
     assert(phase != .bounded);
     log.info("ARR BEGIN", .{});
 
-    if (self.stack.len >= self.max_depth)
-        return error.Depth;
+    if (self.stack.len >= common.DEFAULT_MAX_DEPTH)
+        return error.MaxDepth;
     const word = Word{ .array_opening = .{ .ptr = @truncate(self.parsed.len), .len = 0 } };
     self.parsed.appendAssumeCapacity(word);
     self.stack.appendAssumeCapacity(word);
@@ -352,12 +351,12 @@ fn analyze_array_begin(self: *Self, comptime phase: TokenPhase) ParseError!void 
         if (phase == .unbounded) {
             return self.dispatch(.bounded, .resume_array_begin);
         } else {
-            return error.InvalidStructure;
+            return error.InvalidArray;
         }
     }
 }
 
-fn resume_array_begin(self: *Self, comptime phase: TokenPhase) ParseError!void {
+fn resume_array_begin(self: *Self, comptime phase: TokenPhase) Error!void {
     assert(phase == .bounded);
     const t = self.tokens.next(phase).?;
     if (t == ']') {
@@ -375,7 +374,7 @@ fn resume_array_begin(self: *Self, comptime phase: TokenPhase) ParseError!void {
     }
 }
 
-fn analyze_array_value(self: *Self, comptime phase: TokenPhase) ParseError!void {
+fn analyze_array_value(self: *Self, comptime phase: TokenPhase) Error!void {
     assert(phase != .bounded);
     if (self.tokens.next(phase)) |t| {
         self.increment_container_count();
@@ -391,12 +390,12 @@ fn analyze_array_value(self: *Self, comptime phase: TokenPhase) ParseError!void 
         if (phase == .unbounded) {
             return self.dispatch(.bounded, .resume_array_value);
         } else {
-            return error.InvalidStructure;
+            return error.InvalidArray;
         }
     }
 }
 
-fn resume_array_value(self: *Self, comptime phase: TokenPhase) ParseError!void {
+fn resume_array_value(self: *Self, comptime phase: TokenPhase) Error!void {
     assert(phase == .bounded);
     self.increment_container_count();
     switch (self.tokens.next(phase).?) {
@@ -409,7 +408,7 @@ fn resume_array_value(self: *Self, comptime phase: TokenPhase) ParseError!void {
     }
 }
 
-fn analyze_array_continue(self: *Self, comptime phase: TokenPhase) ParseError!void {
+fn analyze_array_continue(self: *Self, comptime phase: TokenPhase) Error!void {
     assert(phase != .bounded);
     if (self.tokens.next(phase)) |t| {
         switch (t) {
@@ -421,18 +420,18 @@ fn analyze_array_continue(self: *Self, comptime phase: TokenPhase) ParseError!vo
                 log.info("ARR END", .{});
                 return self.dispatch(phase, .scope_end);
             },
-            else => return error.InvalidStructure,
+            else => return error.InvalidArray,
         }
     } else {
         if (phase == .unbounded) {
             return self.dispatch(.bounded, .resume_array_continue);
         } else {
-            return error.InvalidStructure;
+            return error.InvalidArray;
         }
     }
 }
 
-fn resume_array_continue(self: *Self, comptime phase: TokenPhase) ParseError!void {
+fn resume_array_continue(self: *Self, comptime phase: TokenPhase) Error!void {
     assert(phase == .bounded);
     switch (self.tokens.next(phase).?) {
         ',' => {
@@ -442,11 +441,11 @@ fn resume_array_continue(self: *Self, comptime phase: TokenPhase) ParseError!voi
             log.info("ARR END", .{});
             return self.dispatch(.padded, .scope_end);
         },
-        else => return error.InvalidStructure,
+        else => return error.InvalidArray,
     }
 }
 
-fn analyze_scope_end(self: *Self, comptime phase: TokenPhase) ParseError!void {
+fn analyze_scope_end(self: *Self, comptime phase: TokenPhase) Error!void {
     assert(phase != .bounded);
     const scope = self.stack.pop();
     const scope_fit = switch (scope) {
@@ -466,7 +465,7 @@ fn analyze_scope_end(self: *Self, comptime phase: TokenPhase) ParseError!void {
         .array_opening => return self.dispatch(phase, .array_continue),
         .object_opening => return self.dispatch(phase, .object_continue),
         .root => {
-            if (self.tokens.next(phase)) |_| return error.InvalidStructure;
+            if (self.tokens.next(phase)) |_| return error.TrailingContent;
             _ = self.stack.pop();
             const root: *FitPtr = @ptrCast(&self.parsed.items(.data)[0]);
             root.ptr = @truncate(self.parsed.len);
@@ -481,9 +480,9 @@ fn increment_container_count(self: *Self) void {
     scope.len += 1;
 }
 
-fn visit_root_primitive(self: *Self, comptime phase: TokenPhase, token: u8) ParseError!void {
+fn visit_root_primitive(self: *Self, comptime phase: TokenPhase, token: u8) Error!void {
     assert(phase != .unbounded);
-    if (self.tokens.indexer.indexes.items.len > 1) return error.InvalidStructure;
+    if (self.tokens.indexer.indexes.items.len > 1) return error.TrailingContent;
     if (phase == .bounded) {
         if (token -% '0' < 10 or token == '-') {
             try self.visit_number(phase);
@@ -504,7 +503,7 @@ fn visit_root_primitive(self: *Self, comptime phase: TokenPhase, token: u8) Pars
     self.parsed.appendAssumeCapacity(s);
 }
 
-fn visit_primitive(self: *Self, comptime phase: TokenPhase, token: u8) ParseError!void {
+fn visit_primitive(self: *Self, comptime phase: TokenPhase, token: u8) Error!void {
     if (token == '"') {
         return self.visit_string(phase);
     } else if (token -% '0' < 10 or token == '-') {
@@ -518,7 +517,7 @@ fn visit_primitive(self: *Self, comptime phase: TokenPhase, token: u8) ParseErro
     };
 }
 
-fn visit_string(self: *Self, comptime phase: TokenPhase) ParseError!void {
+fn visit_string(self: *Self, comptime phase: TokenPhase) Error!void {
     var t = &self.tokens;
     _ = t.consume(1, phase);
     const next_str = self.chars.items.len;
@@ -528,7 +527,7 @@ fn visit_string(self: *Self, comptime phase: TokenPhase) ParseError!void {
     log.info("STR {s}", .{self.chars.items[next_str..][0..next_len]});
 }
 
-fn visit_number(self: *Self, comptime phase: TokenPhase) ParseError!void {
+fn visit_number(self: *Self, comptime phase: TokenPhase) Error!void {
     const t = &self.tokens;
     const number = try parsers.Number(TOKEN_OPTIONS).parse(phase, t);
     switch (number) {
@@ -547,21 +546,21 @@ fn visit_number(self: *Self, comptime phase: TokenPhase) ParseError!void {
     }
 }
 
-fn visit_true(self: *Self) ParseError!void {
+fn visit_true(self: *Self) Error!void {
     const t = self.tokens;
     try parsers.checkTrue(TOKEN_OPTIONS, t);
     self.parsed.appendAssumeCapacity(.true);
     log.info("TRU", .{});
 }
 
-fn visit_false(self: *Self) ParseError!void {
+fn visit_false(self: *Self) Error!void {
     const t = self.tokens;
     try parsers.checkFalse(TOKEN_OPTIONS, t);
     self.parsed.appendAssumeCapacity(.false);
     log.info("FAL", .{});
 }
 
-fn visit_null(self: *Self) ParseError!void {
+fn visit_null(self: *Self) Error!void {
     const t = self.tokens;
     try parsers.checkNull(TOKEN_OPTIONS, t);
     self.parsed.appendAssumeCapacity(.null);

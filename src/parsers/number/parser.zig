@@ -8,20 +8,13 @@ const FromString = @import("from_string.zig").FromString;
 const TokenOptions = tokens.Options;
 const TokenIterator = tokens.Iterator;
 const TokenPhase = tokens.Phase;
-const ParseError = types.ParseError;
+const Error = types.Error;
+const Number = types.Number;
 const max_digits = common.max_digits;
-
-const Number = union(enum) {
-    unsigned: u64,
-    signed: i64,
-    float: f64,
-};
 
 pub fn Parser(comptime opt: TokenOptions) type {
     return struct {
-        pub const Result = Number;
-
-        pub fn parse(comptime phase: TokenPhase, src: *TokenIterator(opt)) ParseError!Number {
+        pub fn parse(comptime phase: TokenPhase, src: *TokenIterator(opt)) Error!Number {
             var parsed_number = try FromString(.{}).parse(opt, phase, src);
             if (parsed_number.is_float) return .{
                 .float = try computeFloat(&parsed_number),
@@ -39,16 +32,16 @@ pub fn Parser(comptime opt: TokenOptions) type {
             }
             if (digit_count == longest_digit_count) {
                 if (negative) {
-                    return .{ .signed = -(std.math.cast(i64, integer) orelse return error.InvalidNumber) };
+                    return .{ .signed = -(std.math.cast(i64, integer) orelse return error.NumberOverflow) };
                 }
                 const max_int: u64 = std.math.maxInt(i64);
-                if (parsed_number.integer[0] != '1' or integer <= max_int) return error.InvalidNumber;
+                if (parsed_number.integer[0] != '1' or integer <= max_int) return error.NumberOverflow;
                 return .{ .unsigned = integer };
             }
-            return error.InvalidNumber;
+            return error.NumberOverflow;
         }
 
-        pub fn parseSigned(comptime phase: TokenPhase, src: *TokenIterator(opt)) ParseError!i64 {
+        pub fn parseSigned(comptime phase: TokenPhase, src: *TokenIterator(opt)) Error!i64 {
             const parsed_number = try FromString(.{ .can_be_float = false }).parse(opt, phase, src);
 
             const digit_count = parsed_number.integer.len;
@@ -57,16 +50,16 @@ pub fn Parser(comptime opt: TokenOptions) type {
 
             const longest_digit_count = max_digits - 1;
             if (digit_count <= longest_digit_count) {
-                if (integer > std.math.maxInt(i64) + @intFromBool(negative)) return error.InvalidNumber;
+                if (integer > std.math.maxInt(i64) + @intFromBool(negative)) return error.NumberOverflow;
 
                 const i: i64 = @intCast(integer);
                 return if (negative) -i else i;
             }
 
-            return error.InvalidNumber;
+            return error.NumberOverflow;
         }
 
-        pub fn parseUnsigned(comptime phase: TokenPhase, src: *TokenIterator(opt)) ParseError!u64 {
+        pub fn parseUnsigned(comptime phase: TokenPhase, src: *TokenIterator(opt)) Error!u64 {
             const parsed_number = try FromString(.{
                 .can_be_float = false,
                 .can_be_signed = false,
@@ -79,21 +72,21 @@ pub fn Parser(comptime opt: TokenOptions) type {
             if (digit_count < longest_digit_count) return integer;
             if (digit_count == longest_digit_count) {
                 if (parsed_number.integer[0] != '1' or
-                    integer <= std.math.maxInt(i64)) return error.InvalidNumber;
+                    integer <= std.math.maxInt(i64)) return error.NumberOverflow;
                 return integer;
             }
 
-            return error.InvalidNumber;
+            return error.NumberOverflow;
         }
 
-        pub fn parseFloat(comptime phase: TokenPhase, src: *TokenIterator(opt)) ParseError!f64 {
+        pub fn parseFloat(comptime phase: TokenPhase, src: *TokenIterator(opt)) Error!f64 {
             var parsed_number = try FromString(.{}).parse(opt, phase, src);
             return computeFloat(&parsed_number);
         }
     };
 }
 
-fn computeFloat(number: *FromString(.{})) ParseError!f64 {
+fn computeFloat(number: *FromString(.{})) Error!f64 {
     @setFloatMode(.strict);
 
     var many_digits = false;
@@ -152,7 +145,7 @@ fn computeFloat(number: *FromString(.{})) ParseError!f64 {
     }
     if (bf.e < 0) digit_comp.compute(number.*, &bf);
 
-    if (bf.e == common.inf_exp) return error.NumberOutOfRange;
+    if (bf.e == common.inf_exp) return error.NumberOverflow;
 
     return bf.toFloat(number.negative);
 }

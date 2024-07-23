@@ -5,7 +5,7 @@ const Indexer = @import("Indexer.zig");
 const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
 const Vector = types.Vector;
-const ParseError = types.ParseError;
+const Error = types.Error;
 const vector = types.vector;
 const array = types.array;
 const umask = types.umask;
@@ -47,7 +47,7 @@ pub fn Iterator(comptime options: Options) type {
             self.indexer.deinit();
         }
 
-        pub fn iter(self: *Self, doc: []const u8) ParseError!void {
+        pub fn build(self: *Self, doc: []const u8) !void {
             try self.indexer.index(doc);
 
             const ixs = self.indexes();

@@ -6,7 +6,7 @@ const tokens = @import("../../tokens.zig");
 const TokenOptions = tokens.Options;
 const TokenIterator = tokens.Iterator;
 const TokenPhase = tokens.Phase;
-const ParseError = types.ParseError;
+const Error = types.Error;
 const max_digits = number.max_digits;
 
 const FromStringOptions = struct {
@@ -27,9 +27,9 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
             comptime topt: TokenOptions,
             comptime phase: TokenPhase,
             src: *TokenIterator(topt),
-        ) ParseError!FromString(sopt) {
+        ) Error!FromString(sopt) {
             const is_negative = src.ptr[0] == '-';
-            if (is_negative and !sopt.can_be_signed) return error.InvalidNumber;
+            if (is_negative and !sopt.can_be_signed) return error.NumberLiteral;
 
             _ = src.consume(@intFromBool(is_negative), phase);
             const first_digit = src.ptr[0];
@@ -49,7 +49,7 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
                 if (phase == .bounded) integer_len += 1;
             }
             if (phase != .bounded) integer_len = @intFromPtr(src.ptr) - @intFromPtr(integer_ptr);
-            if ((first_digit == '0' and integer_len > 1) or integer_len == 0) return error.InvalidNumber;
+            if ((first_digit == '0' and integer_len > 1) or integer_len == 0) return error.NumberLiteral;
 
             if (sopt.can_be_float) {
                 if (src.ptr[0] == '.') {
@@ -61,7 +61,7 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
                     else
                         @intFromPtr(src.ptr) - @intFromPtr(decimal_ptr);
 
-                    if (decimal_len == 0) return error.InvalidNumber;
+                    if (decimal_len == 0) return error.NumberLiteral;
                     is_float = true;
                     exponent_10 -= @intCast(decimal_len);
                 }
@@ -73,7 +73,7 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
                 }
             }
 
-            if (common.Tables.is_structural_or_whitespace_negated[src.ptr[0]]) return error.InvalidNumber;
+            if (common.Tables.is_structural_or_whitespace_negated[src.ptr[0]]) return error.NumberLiteral;
 
             return .{
                 .mantissa = mantissa_10,
@@ -116,7 +116,7 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
             comptime phase: TokenPhase,
             src: *TokenIterator(topt),
             exp: *i64,
-        ) ParseError!void {
+        ) Error!void {
             const is_negative = src.ptr[0] == '-';
             _ = src.consume(@intFromBool(is_negative or src.ptr[0] == '+'), phase);
 
@@ -130,7 +130,7 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
                 _ = src.consume(1, phase);
             }
 
-            if (start_exp == @intFromPtr(src.ptr)) return error.InvalidNumber;
+            if (start_exp == @intFromPtr(src.ptr)) return error.NumberLiteral;
 
             var exp_signed: i64 = @intCast(exp_number);
             if (is_negative) exp_signed = -exp_signed;

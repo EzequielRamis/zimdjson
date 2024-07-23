@@ -15,10 +15,7 @@ const log = std.log;
 const assert = std.debug.assert;
 
 const Allocator = std.mem.Allocator;
-const ParseError = types.ParseError;
-const ConsumeError = types.ConsumeError;
-
-const OnDemandError = ParseError || ConsumeError;
+const Error = types.Error;
 
 const TOKEN_OPTIONS = TokenOptions{
     .copy_bounded = true,
@@ -27,119 +24,92 @@ const TOKEN_OPTIONS = TokenOptions{
 const NumberParser = parsers.Number(TOKEN_OPTIONS);
 
 pub const Parser = struct {
-    max_depth: usize = common.DEFAULT_MAX_DEPTH,
-    document: Document,
-    allocator: Allocator,
-    loaded_buffer: ?[]align(types.Vector.LEN_BYTES) u8 = null,
-    loaded_document_len: usize = 0,
+    const Buffer = std.ArrayListAligned(u8, types.Vector.LEN_BYTES);
 
-    pub fn init(allocator: Allocator) Parser {
-        return Parser{
-            .document = Document.init(allocator),
-            .allocator = allocator,
-        };
-    }
-
-    pub fn deinit(self: *Parser) void {
-        if (self.loaded_buffer) |b| {
-            self.allocator.free(b);
-            self.loaded_buffer = null;
-        }
-        self.document.deinit();
-    }
-
-    pub fn parse(self: *Parser, document: []const u8) ParseError!Element {
-        return self.document.build(document);
-    }
-
-    pub fn load(self: *Parser, path: []const u8) ParseError!Element {
-        const file = try std.fs.cwd().openFile(path, .{});
-        const len = (try file.metadata()).size();
-
-        if (self.loaded_buffer) |*buffer| {
-            if (buffer.len < len)
-                buffer.* = try self.allocator.realloc(buffer.*, len);
-        } else {
-            self.loaded_buffer = try self.allocator.alignedAlloc(u8, types.Vector.LEN_BYTES, len);
-        }
-
-        _ = try file.readAll(self.loaded_buffer.?);
-        self.loaded_document_len = len;
-
-        return self.document.build(self.loaded_buffer.?[0..self.loaded_document_len]);
-    }
-};
-
-const Document = struct {
+    buffer: Buffer,
     tokens: TokenIterator(TOKEN_OPTIONS),
     chars: ArrayList(u8),
     depth: u32 = 0,
 
-    pub fn init(allocator: Allocator) Document {
-        return .{
+    pub fn init(allocator: Allocator) Parser {
+        return Parser{
+            .buffer = Buffer.init(allocator),
             .tokens = TokenIterator(TOKEN_OPTIONS).init(allocator),
             .chars = ArrayList(u8).init(allocator),
         };
     }
 
-    pub fn deinit(self: *Document) void {
+    pub fn deinit(self: *Parser) void {
+        self.buffer.deinit();
         self.chars.deinit();
         self.tokens.deinit();
     }
 
-    pub fn build(self: *Document, doc: []const u8) ParseError!Element {
+    pub fn parse(self: *Parser, document: []const u8) !Visitor {
         var t = &self.tokens;
-        try t.iter(doc);
+        try t.build(document);
 
         try self.chars.ensureTotalCapacity(t.indexer.reader.document.len + Vector.LEN_BYTES);
         self.chars.shrinkRetainingCapacity(0);
 
-        return Element{
+        return Visitor{
             .document = self,
             .depth = self.depth,
             .index = self.tokens.token,
         };
     }
+
+    pub fn load(self: *Parser, path: []const u8) !Visitor {
+        const file = try std.fs.cwd().openFile(path, .{});
+        const len = (try file.metadata()).size();
+
+        try self.buffer.resize(len);
+
+        _ = try file.readAll(self.buffer.items);
+        self.buffer.items.len = len;
+
+        return self.parse(self.buffer.items);
+    }
 };
 
-const Element = struct {
-    document: *Document,
+pub const Visitor = struct {
+    document: *Parser,
     depth: u32,
     index: u32,
 
-    pub fn getObject(self: Element) Object {
+    pub fn getObject(self: *Visitor) Object {
         assert(self.isObject());
         self.document.depth += 1;
         return Object{ .root = &self };
     }
 
-    pub fn getArray(self: Element) Array {
+    pub fn getArray(self: *Visitor) Array {
         assert(self.isArray());
         self.document.depth += 1;
         return Array{ .root = &self };
     }
 
-    pub fn getNumber(self: *Element) OnDemandError!NumberParser.Result {
+    pub fn getNumber(self: *Visitor) Error!NumberParser.Result {
         assert(self.isNumber());
         return NumberParser.parse(.none, &self.document.tokens);
     }
 
-    pub fn getUnsigned(self: *Element) OnDemandError!u64 {
+    pub fn getUnsigned(self: *Visitor) Error!u64 {
         assert(self.isUnsigned());
         return NumberParser.parseUnsigned(.none, &self.document.tokens);
     }
 
-    pub fn getSigned(self: *Element) OnDemandError!i64 {
+    pub fn getSigned(self: *Visitor) Error!i64 {
         assert(self.isNumber());
         return NumberParser.parseSigned(.none, &self.document.tokens);
     }
 
-    pub fn getFloat(self: *Element) OnDemandError!f64 {
+    pub fn getFloat(self: *Visitor) Error!f64 {
         assert(self.isNumber());
         return NumberParser.parseFloat(.none, &self.document.tokens);
     }
 
-    pub fn getString(self: Element) OnDemandError![]const u8 {
+    pub fn getString(self: *Visitor) Error![]const u8 {
         assert(self.isString());
         const doc = self.document;
         _ = doc.tokens.consume(1, .none);
@@ -149,7 +119,7 @@ const Element = struct {
         return doc.chars.items[next_str..][0..next_len];
     }
 
-    pub fn getBool(self: Element) OnDemandError!bool {
+    pub fn getBool(self: *Visitor) Error!bool {
         assert(self.isBool());
         const t = self.document.tokens;
         switch (t.peek()) {
@@ -167,54 +137,41 @@ const Element = struct {
         }
     }
 
-    pub fn getType(self: Element) ParseError!types.Element {
-        const t = self.document.tokens;
-        return switch (t.peek()) {
-            '{' => .object,
-            '[' => .array,
-            '"' => .string,
-            'n' => .null,
-            't', 'f' => .boolean,
-            '-', '0'...'9' => .number,
-            else => error.NonValue,
-        };
-    }
-
-    pub fn isObject(self: Element) bool {
+    pub fn isObject(self: Visitor) bool {
         return self.document.tokens.peek() == '{';
     }
 
-    pub fn isArray(self: Element) bool {
+    pub fn isArray(self: Visitor) bool {
         return self.document.tokens.peek() == '[';
     }
 
-    pub fn isNumber(self: Element) bool {
+    pub fn isNumber(self: Visitor) bool {
         return self.isUnsigned() or self.isSigned();
     }
 
-    pub fn isSigned(self: Element) bool {
+    pub fn isSigned(self: Visitor) bool {
         return self.document.tokens.peek() == '-';
     }
 
-    pub fn isUnsigned(self: Element) bool {
+    pub fn isUnsigned(self: Visitor) bool {
         return self.document.tokens.peek() -% '0' < 10;
     }
 
-    pub fn isString(self: Element) bool {
+    pub fn isString(self: Visitor) bool {
         return self.document.tokens.peek() == '"';
     }
 
-    pub fn isBool(self: Element) bool {
+    pub fn isBool(self: Visitor) bool {
         const p = self.document.tokens.peek();
         return p == 't' or p == 'f';
     }
 
-    pub fn isNull(self: *Element) ParseError!void {
+    pub fn isNull(self: *Visitor) Error!void {
         try parsers.checkNull(TOKEN_OPTIONS, &self.document.tokens);
         _ = self.document.tokens.consume(4, .none);
     }
 
-    pub fn consume(self: Element) ParseError!void {
+    pub fn consume(self: *Visitor) Error!void {
         const doc = self.document;
         const wanted_depth = self.depth;
         var actual_depth = doc.depth;
@@ -283,15 +240,15 @@ const Element = struct {
     }
 };
 
-const Array = struct {
-    root: *const Element,
+pub const Array = struct {
+    root: *const Visitor,
 
-    pub fn next(self: Array) ParseError!?Element {
+    pub fn next(self: Array) Error!?Visitor {
         const doc = self.root.document;
         const p = doc.tokens.next(null) orelse return error.InvalidStructure;
         if (self.root.index == doc.tokens.index) {
             if (p == ']') return null;
-            return Element{
+            return Visitor{
                 .document = doc,
                 .depth = self.root.depth + 1,
                 .index = doc.tokens.index,
@@ -300,7 +257,7 @@ const Array = struct {
         switch (p) {
             ',' => {
                 _ = doc.tokens.next(null);
-                return Element{
+                return Visitor{
                     .document = doc,
                     .depth = self.root.depth + 1,
                     .index = doc.tokens.index,
@@ -317,23 +274,23 @@ const Array = struct {
         self.root.document.depth = self.root.depth;
     }
 
-    pub fn consume(self: Array) ParseError!void {
+    pub fn consume(self: Array) Error!void {
         self.root.consume();
     }
 
-    pub fn at(self: Array, index: usize) OnDemandError!Element {
+    pub fn at(self: Array, index: usize) Error!Visitor {
         var i: usize = 0;
         while (try self.next()) |el| : (i += 1) if (i == index) return el;
         return error.OutOfBounds;
     }
 
-    pub fn isEmpty(self: Array) ParseError!bool {
+    pub fn isEmpty(self: Array) Error!bool {
         const doc = self.root.document;
         const p = doc.tokens.peekNext() orelse return error.InvalidStructure;
         return p == ']';
     }
 
-    pub fn size(self: Array) ParseError!u24 {
+    pub fn size(self: Array) Error!u24 {
         var count: u24 = 0;
         while (try self.next()) |_| count += 1;
         self.reset();
@@ -341,13 +298,13 @@ const Array = struct {
     }
 };
 
-const Object = struct {
-    root: *const Element,
+pub const Object = struct {
+    root: *const Visitor,
 
     pub const Field = struct {
-        root: *const Element,
+        root: *const Visitor,
 
-        pub fn key(self: Field) OnDemandError![]const u8 {
+        pub fn key(self: Field) Error![]const u8 {
             const doc = self.root.document;
             _ = doc.tokens.consume(1, .none);
             const next_str = doc.chars.items.len;
@@ -356,12 +313,12 @@ const Object = struct {
             return doc.chars.items[next_str..][0..next_len];
         }
 
-        pub fn value(self: Field) OnDemandError!Element {
+        pub fn value(self: Field) Error!Visitor {
             const doc = self.root.document;
             const colon = doc.tokens.next(null) orelse return error.InvalidStructure;
             if (colon == ':') {
                 _ = doc.tokens.next(null);
-                return Element{
+                return Visitor{
                     .document = doc,
                     .depth = self.root.depth,
                     .index = doc.tokens.index,
@@ -376,19 +333,19 @@ const Object = struct {
             self.root.document.depth = self.root.depth;
         }
 
-        pub fn consume(self: Field) ParseError!void {
+        pub fn consume(self: Field) Error!void {
             self.reset();
             const el = try self.value();
             return try el.consume();
         }
     };
 
-    pub fn next(self: Object) ParseError!?Field {
+    pub fn next(self: Object) Error!?Field {
         const doc = self.root.document;
         const p = doc.tokens.next(null) orelse return error.InvalidStructure;
         if (self.root.index == doc.tokens.index) {
             if (p == '}') return null;
-            return Field{ .root = Element{
+            return Field{ .root = Visitor{
                 .document = doc,
                 .depth = self.root.depth + 1,
                 .index = doc.tokens.index,
@@ -397,7 +354,7 @@ const Object = struct {
         switch (p) {
             ',' => {
                 _ = doc.tokens.next(null);
-                return Field{ .root = Element{
+                return Field{ .root = Visitor{
                     .document = doc,
                     .depth = self.root.depth + 1,
                     .index = doc.tokens.index,
@@ -414,22 +371,22 @@ const Object = struct {
         self.root.document.depth = self.root.depth;
     }
 
-    pub fn consume(self: Object) ParseError!void {
+    pub fn consume(self: Object) Error!void {
         self.root.consume();
     }
 
-    pub fn at(self: Object, key: []const u8) OnDemandError!Element {
+    pub fn at(self: Object, key: []const u8) Error!Visitor {
         while (try self.next()) |field| if (std.mem.eql(u8, try field.key(), key)) return field.value() else field.consume();
-        return error.NoSuchField;
+        return error.MissingField;
     }
 
-    pub fn isEmpty(self: Object) ParseError!bool {
+    pub fn isEmpty(self: Object) Error!bool {
         const doc = self.root.document;
         const p = doc.tokens.peekNext() orelse return error.InvalidStructure;
         return p == '}';
     }
 
-    pub fn size(self: Object) ParseError!u24 {
+    pub fn size(self: Object) Error!u24 {
         var count: u24 = 0;
         while (try self.next()) |_| count += 1;
         self.reset();

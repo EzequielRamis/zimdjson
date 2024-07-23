@@ -12,7 +12,7 @@ const imask = types.imask;
 const Mask = types.Mask;
 const Pred = types.Predicate;
 
-const ParseError = types.ParseError;
+const Error = types.Error;
 
 pub const Validator = struct {
     reader: Reader,
@@ -25,7 +25,7 @@ pub const Validator = struct {
         };
     }
 
-    pub fn validate(self: *Validator, document: []const u8) ParseError!void {
+    pub fn validate(self: *Validator, document: []const u8) Error!void {
         self.reader.read(document);
         var i = self.reader.index;
         while (self.reader.next()) |block| : (i = self.reader.index) {
@@ -56,7 +56,7 @@ pub const Validator = struct {
                 else => unreachable,
             }
         }
-        if (!self.checker.succeeded()) return error.InvalidEncoding;
+        if (!self.checker.succeeded()) return error.Encoding;
     }
 };
 

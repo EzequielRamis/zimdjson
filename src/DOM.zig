@@ -4,268 +4,218 @@ const types = @import("types.zig");
 const Indexer = @import("Indexer.zig");
 const Tape = @import("Tape.zig");
 const Allocator = std.mem.Allocator;
-const ParseError = types.ParseError;
-const ConsumeError = types.ConsumeError;
 const assert = std.debug.assert;
 
-pub const Number = union(enum) {
-    unsigned: u64,
-    signed: i64,
-    float: f64,
-};
-
 pub const Parser = struct {
+    const Buffer = std.ArrayListAligned(u8, types.Vector.LEN_BYTES);
+
     tape: Tape,
-    allocator: Allocator,
-    loaded_buffer: ?[]align(types.Vector.LEN_BYTES) u8 = null,
-    loaded_document_len: usize = 0,
+    buffer: Buffer,
 
     pub fn init(allocator: Allocator) Parser {
         return .{
             .tape = Tape.init(allocator),
-            .allocator = allocator,
+            .buffer = Buffer.init(allocator),
         };
     }
 
     pub fn deinit(self: *Parser) void {
         self.tape.deinit();
-        if (self.loaded_buffer) |buf| {
-            self.allocator.free(buf);
-            self.loaded_buffer = null;
-        }
+        self.buffer.deinit();
     }
 
-    pub fn parse(self: *Parser, document: []const u8) ParseError!Element {
+    pub fn parse(self: *Parser, document: []const u8) !Visitor {
         try self.tape.build(document);
-        return Element{
+        return Visitor{
             .tape = &self.tape,
-            .el = @ptrCast(&self.tape.parsed.items[1]),
+            .index = 1,
         };
     }
 
-    pub fn load(self: *Parser, path: []const u8) ParseError!Element {
+    pub fn load(self: *Parser, path: []const u8) !Visitor {
         const file = try std.fs.cwd().openFile(path, .{});
         const len = (try file.metadata()).size();
 
-        if (self.loaded_buffer) |*buffer| {
-            if (buffer.len < len)
-                buffer.* = try self.allocator.realloc(buffer.*, len);
-        } else {
-            self.loaded_buffer = try self.allocator.alignedAlloc(u8, types.Vector.LEN_BYTES, len);
-        }
+        try self.buffer.resize(len);
 
-        _ = try file.readAll(self.loaded_buffer.?);
-        self.loaded_document_len = len;
+        _ = try file.readAll(self.buffer.items);
+        self.buffer.items.len = len;
 
-        try self.tape.build(self.loaded_buffer.?[0..self.loaded_document_len]);
-        return Element{
-            .tape = &self.tape,
-            .word = self.tape.parsed.get(1),
-        };
+        return self.parse(self.buffer.items);
     }
 };
 
-const Element = struct {
-    tape: *Tape,
-    word: Tape.Word,
+const Visitor = struct {
+    tape: *const Tape,
+    index: u32,
 
-    pub fn getObject(self: Element) ConsumeError!Object {
-        if (!self.isObject()) return error.IncorrectType;
-        return Object{ .tape = self.tape, .root = self.word };
-    }
-
-    pub fn getArray(self: Element) ConsumeError!Array {
-        if (!self.isArray()) return error.IncorrectType;
-        return Array{ .tape = self.tape, .root = self.word };
-    }
-
-    pub fn getString(self: Element) ConsumeError![]const u8 {
-        if (!self.isString()) return error.IncorrectType;
-        const ptr, const len = self.word.string;
-        return self.tape.chars.items[ptr..][0..len];
-    }
-
-    pub fn getNumber(self: Element) ConsumeError!Number {
-        return switch (self.word) {
-            .unsigned => Number{ .unsigned = try self.getUnsigned() },
-            .signed => Number{ .signed = try self.getSigned() },
-            .float => Number{ .float = try self.getFloat() },
-            else => error.IncorrectType,
+    pub fn getObject(self: Visitor) ?Object {
+        const w = self.tape.parsed.get(self.index);
+        return switch (w) {
+            .object_opening => Object{ .tape = self.tape, .root = self.index },
+            else => null,
         };
     }
 
-    pub fn getUnsigned(self: Element) ConsumeError!u64 {
-        if (!self.isUnsigned()) return error.IncorrectType;
-        return self.word.unsigned;
-    }
-
-    pub fn getSigned(self: Element) ConsumeError!i64 {
-        if (!self.isSigned()) return error.IncorrectType;
-        return self.word.signed;
-    }
-
-    pub fn getFloat(self: Element) ConsumeError!f64 {
-        if (!self.isFloat()) return error.IncorrectType;
-        return self.word.float;
-    }
-
-    pub fn getBool(self: Element) ConsumeError!bool {
-        if (!self.isBool()) return error.IncorrectType;
-        return self.word == .true;
-    }
-
-    pub fn getType(self: Element) types.Element {
-        return switch (self.word) {
-            .object_opening => .object,
-            .array_opening => .array,
-            .true, .false => .boolean,
-            .unsigned, .signed, .float => .number,
-            .null => .null,
-            else => unreachable,
+    pub fn getArray(self: Visitor) ?Array {
+        const w = self.tape.parsed.get(self.index);
+        return switch (w) {
+            .array_opening => Array{ .tape = self.tape, .root = self.index },
+            else => null,
         };
     }
 
-    pub fn isObject(self: Element) bool {
-        return self.word == .object_opening;
+    pub fn getString(self: Visitor) ?[]const u8 {
+        const w = self.tape.parsed.get(self.index);
+        return switch (w) {
+            .string => |fit| self.tape.chars.items[fit.ptr..][0..fit.len],
+            else => null,
+        };
     }
 
-    pub fn isArray(self: Element) bool {
-        return self.word == .array_opening;
+    pub fn getNumber(self: Visitor) ?types.Number {
+        const w = self.tape.parsed.get(self.index);
+        return switch (w) {
+            .unsigned => .{ .unsigned = self.getUnsigned().? },
+            .signed => .{ .signed = self.getSigned().? },
+            .float => .{ .float = self.getFloat().? },
+            else => null,
+        };
     }
 
-    pub fn isString(self: Element) bool {
-        return self.word == .string;
+    pub fn getUnsigned(self: Visitor) ?u64 {
+        const w = self.tape.parsed.get(self.index);
+        return switch (w) {
+            .unsigned => |n| n,
+            else => null,
+        };
     }
 
-    pub fn isUnsigned(self: Element) bool {
-        return self.word == .unsigned;
+    pub fn getSigned(self: Visitor) ?i64 {
+        const w = self.tape.parsed.get(self.index);
+        return switch (w) {
+            .signed => |n| n,
+            else => null,
+        };
     }
 
-    pub fn isSigned(self: Element) bool {
-        return self.word == .signed;
+    pub fn getFloat(self: Visitor) ?f64 {
+        const w = self.tape.parsed.get(self.index);
+        return switch (w) {
+            .float => |n| n,
+            else => null,
+        };
     }
 
-    pub fn isInteger(self: Element) bool {
-        return self.isUnsigned() or self.isSigned();
+    pub fn getBool(self: Visitor) ?bool {
+        const w = self.tape.parsed.get(self.index);
+        return switch (w) {
+            .true => true,
+            .false => false,
+            else => null,
+        };
     }
 
-    pub fn isFloat(self: Element) bool {
-        return self.word == .float;
-    }
-
-    pub fn isNumber(self: Element) bool {
-        return self.isInteger() or self.isFloat();
-    }
-
-    pub fn isBool(self: Element) bool {
-        return self.word == .true or self.word == .false;
-    }
-
-    pub fn isNull(self: Element) bool {
-        return self.word == .null;
-    }
-
-    pub fn atKey(self: Element, key: []const u8) ConsumeError!Object.Field {
-        const obj = try self.getObject();
+    pub fn atKey(self: Visitor, key: []const u8) ?Object.Field {
+        const obj = self.getObject() orelse return null;
         return obj.at(key);
     }
 
-    pub fn atIndex(self: Element, index: usize) ConsumeError!Element {
-        const arr = try self.getArray();
+    pub fn atIndex(self: Visitor, index: u32) ?Visitor {
+        const arr = self.getArray() orelse return null;
         return arr.at(index);
     }
 
-    pub fn size(self: Element) ConsumeError!u24 {
+    pub fn size(self: Visitor) ?u32 {
         if (self.getObject()) |obj| return obj.size();
         if (self.getArray()) |arr| return arr.size();
-        return error.IncorrectType;
+        return null;
     }
 };
 
 const Array = struct {
-    root: *const Element,
+    tape: *const Tape,
+    root: u32,
 
     pub const Iterator = struct {
-        arr: *const Array,
-        curr: *const Tape.Word,
+        tape: *const Tape,
+        curr: u32,
 
-        pub fn next(self: *Iterator) ?Element {
-            const val = self.curr;
-            const val_info: Tape.Container = @bitCast(val.data);
-
-            const root = self.arr.root.word;
-            const tape = self.arr.root.tape;
-            const root_info: Tape.Container = @bitCast(root.data);
-            if (val.tag == .array_end and val.data == root_info.index) return null;
-            defer self.curr = if (val.tag == .array_begin or val.tag == .object_begin) &tape[val_info.index] else val + 1;
-            return Element{ .tape = tape, .el = val };
+        pub fn next(self: *Iterator) ?Visitor {
+            const w = self.tape.parsed.get(self.curr);
+            if (w == .array_closing) return null;
+            defer self.curr = switch (w) {
+                .array_opening, .object_opening => |fit| fit.ptr,
+                else => self.curr + 1,
+            };
+            return .{ .tape = self.tape, .index = self.curr };
         }
     };
 
-    pub fn iter(self: Array) Iterator {
-        return Iterator{ .arr = &self, .curr = self.root.word + 1 };
+    pub fn iterator(self: Array) Iterator {
+        return Iterator{ .tape = self.tape, .curr = self.root + 1 };
     }
 
-    pub fn at(self: Array, index: usize) ConsumeError!Element {
-        var it = self.iter();
-        var i: usize = 0;
-        while (it.next()) |el| : (i += 1) if (i == index) return el;
-        return error.OutOfBounds;
+    pub fn at(self: Array, index: u32) ?Visitor {
+        var it = self.iterator();
+        var i: u32 = 0;
+        while (it.next()) |v| : (i += 1) if (i == index) return v;
+        return null;
     }
 
     pub fn isEmpty(self: Array) bool {
         return self.size() == 0;
     }
 
-    pub fn size(self: Array) u24 {
-        const info: Tape.Container = @bitCast(self.root.el.data);
-        return info.count;
+    pub fn size(self: Array) u32 {
+        const w = self.tape.parsed.get(self.root);
+        assert(w == .array_opening);
+        return w.array_opening.len;
     }
 };
 
 const Object = struct {
-    root: *const Element,
+    tape: *const Tape,
+    root: u32,
 
     pub const Field = struct {
         key: []const u8,
-        value: Element,
+        value: Visitor,
     };
 
     pub const Iterator = struct {
-        obj: *const Object,
-        curr: *const Tape.Element,
+        tape: *const Tape,
+        curr: u32,
 
         pub fn next(self: *Iterator) ?Field {
-            const key = self.curr;
-            if (key.tag == .object_end and key.data == self.obj.root.el) return null;
-            const val: Tape.Element = self.curr + 1;
-            const val_info: Tape.Container = @bitCast(val.data);
-
-            const tape = self.obj.root.tape;
-            defer self.curr = if (val.tag == .array_begin or val.tag == .object_begin) &tape[val_info.index] else key + 2;
-            return Field{
-                .key = (Element{ .tape = tape, .el = key }).getString() catch unreachable,
-                .value = Element{ .tape = tape, .el = val },
+            const w = self.tape.parsed.get(self.curr);
+            if (w == .object_closing) return null;
+            defer self.curr = switch (w) {
+                .array_opening, .object_opening => |fit| fit.ptr,
+                else => self.curr + 2,
             };
+            const v = Visitor{ .tape = self.tape, .index = self.curr };
+            return .{ .key = v.getString().?, .value = .{ .tape = self.tape, .index = self.curr + 1 } };
         }
     };
 
-    pub fn iter(self: Object) Iterator {
-        return Iterator{ .root = &self, .curr = self.root.el + 1 };
+    pub fn iterator(self: Object) Iterator {
+        return Iterator{ .tape = self.tape, .curr = self.root + 1 };
     }
 
-    pub fn at(self: Object, key: []const u8) ConsumeError!Element {
-        var it = self.iter();
+    pub fn at(self: Object, key: []const u8) ?Visitor {
+        var it = self.iterator();
         while (it.next()) |field| if (std.mem.eql(u8, field.key, key)) return field.value;
-        return error.NoSuchField;
+        return null;
     }
 
     pub fn isEmpty(self: Object) bool {
         return self.size() == 0;
     }
 
-    pub fn size(self: Object) u24 {
-        const container: Tape.Container = @bitCast(self.root.el.data);
-        return container.count;
+    pub fn size(self: Object) u32 {
+        const w = self.tape.parsed.get(self.root);
+        assert(w == .object_opening);
+        return w.object_opening.len;
     }
 };

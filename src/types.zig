@@ -9,38 +9,30 @@ const UNSIGNED = std.builtin.Signedness.unsigned;
 pub const vector = @Vector(Vector.LEN_BYTES, u8);
 pub const array = [Vector.LEN_BYTES]u8;
 
-pub const Element = enum {
-    object,
-    array,
-    number,
-    string,
-    boolean,
-    null,
+pub const Number = union(enum) {
+    unsigned: u64,
+    signed: i64,
+    float: f64,
 };
 
-pub const ParseError = error{
-    Depth,
-    Capacity,
+pub const Error = error{
+    MaxDepth,
+    MaxCapacity,
     Empty,
-    TrueAtom,
-    FalseAtom,
-    NullAtom,
-    String,
+    Encoding,
+    InvalidArray,
+    InvalidObject,
+    TrailingContent,
+    StringUnclosed,
+    StringEscaping,
+    NumberLiteral,
+    NumberOverflow,
     NonValue,
-    UnclosedString,
-    InvalidEncoding,
-    InvalidEscape,
-    InvalidNumber,
-    InvalidStructure,
-    NumberOutOfRange,
-} || IOError;
-
-pub const IOError = std.mem.Allocator.Error || std.fs.File.OpenError || std.fs.File.MetadataError || std.fs.File.ReadError;
-
-pub const ConsumeError = error{
     IncorrectType,
-    OutOfBounds,
-    NoSuchField,
+    IndexOutOfBounds,
+    UnknownField,
+    MissingField,
+    DuplicateField,
 };
 
 pub const Vector = struct {
@@ -93,17 +85,17 @@ pub const Vector = struct {
         return @bitCast(self.v.*);
     }
 
-    pub fn iter(self: Self, comptime f: FormatTag) meta.fieldInfo(ArrFormat, f).type {
+    pub fn format(self: Self, comptime f: FormatTag) meta.fieldInfo(ArrFormat, f).type {
         return @ptrCast(self.v);
     }
 
     pub fn first(self: Self, comptime f: FormatTag) @typeInfo(meta.fieldInfo(Format, f).type).type {
-        return self.iter(f)[0];
+        return self.format(f)[0];
     }
 
     pub fn last(self: Self, comptime f: FormatTag) @typeInfo(meta.fieldInfo(Format, f).type).type {
-        const len = @typeInfo(self.iter(f)).len;
-        return self.iter(f)[len - 1];
+        const len = @typeInfo(self.format(f)).len;
+        return self.format(f)[len - 1];
     }
 };
 

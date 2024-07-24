@@ -32,13 +32,13 @@ pub fn Parser(comptime opt: TokenOptions) type {
             }
             if (digit_count == longest_digit_count) {
                 if (negative) {
-                    return .{ .signed = -(std.math.cast(i64, integer) orelse return error.NumberOverflow) };
+                    return .{ .signed = -(std.math.cast(i64, integer) orelse return error.NumberOutOfRange) };
                 }
                 const max_int: u64 = std.math.maxInt(i64);
-                if (parsed_number.integer[0] != '1' or integer <= max_int) return error.NumberOverflow;
+                if (parsed_number.integer[0] != '1' or integer <= max_int) return error.NumberOutOfRange;
                 return .{ .unsigned = integer };
             }
-            return error.NumberOverflow;
+            return error.NumberOutOfRange;
         }
 
         pub fn parseSigned(comptime phase: TokenPhase, src: *TokenIterator(opt)) Error!i64 {
@@ -50,13 +50,13 @@ pub fn Parser(comptime opt: TokenOptions) type {
 
             const longest_digit_count = max_digits - 1;
             if (digit_count <= longest_digit_count) {
-                if (integer > std.math.maxInt(i64) + @intFromBool(negative)) return error.NumberOverflow;
+                if (integer > std.math.maxInt(i64) + @intFromBool(negative)) return error.NumberOutOfRange;
 
                 const i: i64 = @intCast(integer);
                 return if (negative) -i else i;
             }
 
-            return error.NumberOverflow;
+            return error.NumberOutOfRange;
         }
 
         pub fn parseUnsigned(comptime phase: TokenPhase, src: *TokenIterator(opt)) Error!u64 {
@@ -72,11 +72,11 @@ pub fn Parser(comptime opt: TokenOptions) type {
             if (digit_count < longest_digit_count) return integer;
             if (digit_count == longest_digit_count) {
                 if (parsed_number.integer[0] != '1' or
-                    integer <= std.math.maxInt(i64)) return error.NumberOverflow;
+                    integer <= std.math.maxInt(i64)) return error.NumberOutOfRange;
                 return integer;
             }
 
-            return error.NumberOverflow;
+            return error.NumberOutOfRange;
         }
 
         pub fn parseFloat(comptime phase: TokenPhase, src: *TokenIterator(opt)) Error!f64 {
@@ -145,7 +145,7 @@ fn computeFloat(number: *FromString(.{})) Error!f64 {
     }
     if (bf.e < 0) digit_comp.compute(number.*, &bf);
 
-    if (bf.e == common.inf_exp) return error.NumberOverflow;
+    if (bf.e == common.inf_exp) return error.NumberOutOfRange;
 
     return bf.toFloat(number.negative);
 }

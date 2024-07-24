@@ -88,9 +88,9 @@ pub fn index(self: *Self, document: []const u8) !void {
             else => unreachable,
         }
     }
-    if (self.unescaped_error != 0) return error.Encoding;
-    if (!self.utf8_checker.succeeded()) return error.Encoding;
-    if (self.prev_inside_string != 0) return error.StringUnclosed;
+    if (self.unescaped_error != 0) return error.FoundControlCharacter;
+    if (!self.utf8_checker.succeeded()) return error.InvalidEncoding;
+    if (self.prev_inside_string != 0) return error.ExpectedStringEnd;
     if (self.indexes.items.len == 0) return error.Empty;
 }
 

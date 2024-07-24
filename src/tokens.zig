@@ -89,7 +89,7 @@ pub fn Iterator(comptime options: Options) type {
             const doc = self.document();
             const ixs = self.indexes();
             switch (phase) {
-                .none => return self.next(.unbounded) orelse self.next(.bounded) orelse self.next(.padded),
+                .none => return self.next(.unbounded) orelse self.next(.padded),
                 .unbounded => {
                     if (self.token < self.bounded_token) {
                         defer self.token += 1;
@@ -100,13 +100,10 @@ pub fn Iterator(comptime options: Options) type {
                     return null;
                 },
                 .bounded => {
-                    if (self.token == self.bounded_token) {
-                        defer self.token += 1;
-                        const i = ixs[self.token];
-                        self.ptr = if (copy_bounded) self.padding.items else doc[i..].ptr;
-                        return doc[i];
-                    }
-                    return null;
+                    defer self.token += 1;
+                    const i = ixs[self.token];
+                    self.ptr = if (copy_bounded) self.padding.items else doc[i..].ptr;
+                    return doc[i];
                 },
                 .padded => {
                     if (self.token < ixs.len) {
@@ -115,9 +112,18 @@ pub fn Iterator(comptime options: Options) type {
                         const b = ixs[self.bounded_token];
 
                         const index_ptr = @intFromPtr(doc[i..].ptr);
-                        const padding_ptr = @intFromPtr(if (copy_bounded) doc[b..].ptr else self.padding_ptr);
-                        const offset_ptr = index_ptr - padding_ptr;
-                        self.ptr = self.padding[offset_ptr..].ptr;
+
+                        if (copy_bounded) {
+                            const padding_ptr = @intFromPtr(doc[b..].ptr);
+                            const offset_ptr = index_ptr - padding_ptr;
+                            const padding = self.padding.items;
+                            self.ptr = padding[offset_ptr..].ptr;
+                        } else {
+                            const padding_ptr = @intFromPtr(self.padding_ptr);
+                            const offset_ptr = index_ptr - padding_ptr;
+                            const padding = self.padding;
+                            self.ptr = padding[offset_ptr..].ptr;
+                        }
 
                         return doc[i];
                     }
@@ -127,9 +133,7 @@ pub fn Iterator(comptime options: Options) type {
         }
 
         pub fn consume(self: *Self, n: usize, comptime phase: Phase) []const u8 {
-            if (!copy_bounded and phase == .bounded) {
-                self.shouldSwapSource();
-            }
+            if (!copy_bounded and phase == .bounded) self.shouldSwapSource();
             defer self.ptr += n;
             return self.ptr[0..n];
         }
@@ -138,20 +142,24 @@ pub fn Iterator(comptime options: Options) type {
             return self.ptr[0];
         }
 
-        pub fn backTo(self: *Self, index: usize) void {
+        pub fn jumpBack(self: *Self, index: usize) void {
             comptime assert(copy_bounded);
-            assert(index < self.token);
+            assert(index <= self.token);
 
             const doc = self.document();
             const ixs = self.indexes();
 
+            const i = ixs[index];
+            const b = ixs[self.bounded_token];
+
             if (index < self.bounded_token) {
-                self.ptr = doc[ixs[index]..].ptr;
+                self.ptr = doc[i..].ptr;
             } else {
-                const index_ptr = @intFromPtr(doc[ixs[index]..].ptr);
-                const padding_ptr = self.padding_ptr;
+                const index_ptr = @intFromPtr(doc[i..].ptr);
+                const padding_ptr = @intFromPtr(doc[b..].ptr);
                 const offset_ptr = index_ptr - padding_ptr;
-                self.ptr = self.padding[offset_ptr..].ptr;
+                const padding = self.padding.items;
+                self.ptr = padding[offset_ptr..].ptr;
             }
         }
 

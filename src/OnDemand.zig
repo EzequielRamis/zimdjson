@@ -44,7 +44,7 @@ pub const Parser = struct {
     }
 
     pub fn parse(self: *Parser, document: []const u8) !Visitor {
-        var t = &self.tokens;
+        const t = &self.tokens;
         try t.build(document);
 
         try self.chars.ensureTotalCapacity(t.indexer.reader.document.len + Vector.LEN_BYTES);
@@ -75,6 +75,7 @@ pub const Visitor = struct {
 
     pub fn getObject(self: *Visitor) Error!Object {
         if (self.isObject()) {
+            _ = self.document.tokens.consume(1, .none);
             self.document.depth += 1;
             return Object{ .root = &self };
         }
@@ -83,6 +84,7 @@ pub const Visitor = struct {
 
     pub fn getArray(self: *Visitor) Error!Array {
         if (self.isArray()) {
+            _ = self.document.tokens.consume(1, .none);
             self.document.depth += 1;
             return Array{ .root = &self };
         }
@@ -90,37 +92,37 @@ pub const Visitor = struct {
     }
 
     pub fn getNumber(self: *Visitor) Error!Number {
-        const t = self.document.tokens;
-        errdefer t.backTo(t.token);
+        const t = &self.document.tokens;
+        errdefer t.jumpBack(t.token);
 
-        return NumberParser.parse(.none, &self.document.tokens);
+        return NumberParser.parse(.none, t);
     }
 
     pub fn getUnsigned(self: *Visitor) Error!u64 {
-        const t = self.document.tokens;
-        errdefer t.backTo(t.token);
+        const t = &self.document.tokens;
+        errdefer t.jumpBack(t.token);
 
-        return NumberParser.parseUnsigned(.none, &self.document.tokens);
+        return NumberParser.parseUnsigned(.none, t);
     }
 
     pub fn getSigned(self: *Visitor) Error!i64 {
-        const t = self.document.tokens;
-        errdefer t.backTo(t.token);
+        const t = &self.document.tokens;
+        errdefer t.jumpBack(t.token);
 
-        return NumberParser.parseSigned(.none, &self.document.tokens);
+        return NumberParser.parseSigned(.none, t);
     }
 
     pub fn getFloat(self: *Visitor) Error!f64 {
-        const t = self.document.tokens;
-        errdefer t.backTo(t.token);
+        const t = &self.document.tokens;
+        errdefer t.jumpBack(t.token);
 
-        return NumberParser.parseFloat(.none, &self.document.tokens);
+        return NumberParser.parseFloat(.none, t);
     }
 
     pub fn getString(self: *Visitor) Error![]const u8 {
         if (!self.isString()) return error.IncorrectType;
-        const t = self.document.tokens;
-        errdefer t.backTo(t.token);
+        const t = &self.document.tokens;
+        errdefer t.jumpBack(t.token);
 
         _ = t.consume(1, .none);
         const doc = self.document;
@@ -132,34 +134,22 @@ pub const Visitor = struct {
 
     pub fn getBool(self: *Visitor) Error!bool {
         const t = self.document.tokens;
-        errdefer t.backTo(t.token);
+        errdefer t.jumpBack(t.token);
 
         const is_true = try parsers.checkBool(TOKEN_OPTIONS, t);
         _ = t.consume(if (is_true) 4 else 5, .none);
         return is_true;
     }
 
-    fn isObject(self: Visitor) bool {
-        return self.document.tokens.peek() == '{';
-    }
-
-    fn isArray(self: Visitor) bool {
-        return self.document.tokens.peek() == '[';
-    }
-
-    fn isString(self: Visitor) bool {
-        return self.document.tokens.peek() == '"';
-    }
-
     pub fn isNull(self: *Visitor) Error!void {
         const t = self.document.tokens;
-        errdefer t.backTo(t.token);
+        errdefer t.jumpBack(t.token);
 
         try parsers.checkNull(TOKEN_OPTIONS, t);
         _ = t.consume(4, .none);
     }
 
-    pub fn consume(self: *Visitor) Error!void {
+    pub fn skip(self: *Visitor) Error!void {
         const doc = self.document;
         const wanted_depth = self.depth;
         var actual_depth = doc.depth;
@@ -226,20 +216,33 @@ pub const Visitor = struct {
 
         if (actual_depth != wanted_depth) return error.InvalidStructure;
     }
+
+    fn isObject(self: Visitor) bool {
+        return self.document.tokens.peek() == '{';
+    }
+
+    fn isArray(self: Visitor) bool {
+        return self.document.tokens.peek() == '[';
+    }
+
+    fn isString(self: Visitor) bool {
+        return self.document.tokens.peek() == '"';
+    }
 };
 
 pub const Array = struct {
     root: *const Visitor,
+    at_start: bool = true,
 
-    pub fn next(self: Array) Error!?Visitor {
+    pub fn next(self: *Array) Error!?Visitor {
         const doc = self.root.document;
-        const p = doc.tokens.next(null) orelse return error.InvalidStructure;
-        if (self.root.index == doc.tokens.index) {
+        const p = doc.tokens.next(.none) orelse return error.IncompleteArray;
+        if (self.at_start) {
+            self.at_start = false;
             if (p == ']') return null;
             return Visitor{
                 .document = doc,
                 .depth = self.root.depth + 1,
-                .index = doc.tokens.index,
             };
         }
         switch (p) {
@@ -248,38 +251,37 @@ pub const Array = struct {
                 return Visitor{
                     .document = doc,
                     .depth = self.root.depth + 1,
-                    .index = doc.tokens.index,
                 };
             },
             ']' => return null,
-            else => return error.InvalidStructure,
+            else => return error.ExpectedArrayCommaOrEnd,
         }
     }
 
     pub fn reset(self: Array) void {
         const doc = self.root.document;
-        doc.tokens.backTo(self.root);
+        doc.tokens.jumpBack(self.root);
         self.root.document.depth = self.root.depth;
     }
 
-    pub fn consume(self: Array) Error!void {
-        self.root.consume();
+    pub fn skip(self: Array) Error!void {
+        self.root.skip();
     }
 
     pub fn at(self: Array, index: usize) Error!Visitor {
         var i: usize = 0;
         while (try self.next()) |el| : (i += 1) if (i == index) return el;
-        return error.OutOfBounds;
+        return error.IndexOutOfBounds;
     }
 
     pub fn isEmpty(self: Array) Error!bool {
         const doc = self.root.document;
-        const p = doc.tokens.peekNext() orelse return error.InvalidStructure;
+        const p = doc.tokens.peekNext() orelse return error.IncompleteArray;
         return p == ']';
     }
 
-    pub fn size(self: Array) Error!u24 {
-        var count: u24 = 0;
+    pub fn size(self: Array) Error!u32 {
+        var count: u32 = 0;
         while (try self.next()) |_| count += 1;
         self.reset();
         return count;
@@ -288,6 +290,7 @@ pub const Array = struct {
 
 pub const Object = struct {
     root: *const Visitor,
+    at_start: bool = true,
 
     pub const Field = struct {
         root: *const Visitor,
@@ -303,7 +306,7 @@ pub const Object = struct {
 
         pub fn value(self: Field) Error!Visitor {
             const doc = self.root.document;
-            const colon = doc.tokens.next(null) orelse return error.InvalidStructure;
+            const colon = doc.tokens.next(null) orelse return error.ExpectedColon;
             if (colon == ':') {
                 _ = doc.tokens.next(null);
                 return Visitor{
@@ -312,26 +315,27 @@ pub const Object = struct {
                     .index = doc.tokens.index,
                 };
             }
-            return error.InvalidStructure;
+            return error.ExpectedColon;
         }
 
         pub fn reset(self: Field) void {
             const doc = self.root.document;
-            doc.tokens.backTo(self.root);
+            doc.tokens.jumpBack(self.root);
             self.root.document.depth = self.root.depth;
         }
 
-        pub fn consume(self: Field) Error!void {
+        pub fn skip(self: Field) Error!void {
             self.reset();
             const el = try self.value();
-            return try el.consume();
+            return try el.skip();
         }
     };
 
-    pub fn next(self: Object) Error!?Field {
+    pub fn next(self: *Object) Error!?Field {
         const doc = self.root.document;
-        const p = doc.tokens.next(null) orelse return error.InvalidStructure;
-        if (self.root.index == doc.tokens.index) {
+        const p = doc.tokens.next(null) orelse return error.IncompleteObject;
+        if (self.at_start) {
+            self.at_start = false;
             if (p == '}') return null;
             return Field{ .root = Visitor{
                 .document = doc,
@@ -349,33 +353,33 @@ pub const Object = struct {
                 } };
             },
             '}' => return null,
-            else => return error.InvalidStructure,
+            else => return error.ExpectedObjectCommaOrEnd,
         }
     }
 
     pub fn reset(self: Object) void {
         const doc = self.root.document;
-        doc.tokens.backTo(self.root);
+        doc.tokens.jumpBack(self.root);
         self.root.document.depth = self.root.depth;
     }
 
-    pub fn consume(self: Object) Error!void {
-        self.root.consume();
+    pub fn skip(self: Object) Error!void {
+        self.root.skip();
     }
 
     pub fn at(self: Object, key: []const u8) Error!Visitor {
-        while (try self.next()) |field| if (std.mem.eql(u8, try field.key(), key)) return field.value() else field.consume();
+        while (try self.next()) |field| if (std.mem.eql(u8, try field.key(), key)) return field.value() else field.skip();
         return error.MissingField;
     }
 
     pub fn isEmpty(self: Object) Error!bool {
         const doc = self.root.document;
-        const p = doc.tokens.peekNext() orelse return error.InvalidStructure;
+        const p = doc.tokens.peekNext() orelse return error.IncompleteObject;
         return p == '}';
     }
 
-    pub fn size(self: Object) Error!u24 {
-        var count: u24 = 0;
+    pub fn size(self: Object) Error!u32 {
+        var count: u32 = 0;
         while (try self.next()) |_| count += 1;
         self.reset();
         return count;

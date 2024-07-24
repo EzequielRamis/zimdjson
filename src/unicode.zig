@@ -56,7 +56,7 @@ pub const Validator = struct {
                 else => unreachable,
             }
         }
-        if (!self.checker.succeeded()) return error.Encoding;
+        if (!self.checker.succeeded()) return error.InvalidEncoding;
     }
 };
 

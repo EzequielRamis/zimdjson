@@ -18,20 +18,15 @@ fn testFrom(comptime set: []const u8) !void {
         var actual_buf: [16]u8 = undefined;
         const str = line[4 + 8 + 16 + 3 ..];
         var on_demand = try parser.parse(str);
-        if (on_demand.isNumber()) {
-            const float = on_demand.getFloat() catch |err| switch (err) {
-                error.NumberOverflow => std.math.inf(f64),
-                else => {
-                    // std.debug.print("ignoring invalid number {:0>4}: {s}\n", .{ i, str });
-                    continue;
-                },
-            };
-            const actual = try std.fmt.bufPrint(&actual_buf, "{X:0>16}", .{@as(u64, @bitCast(float))});
-            std.testing.expectEqualStrings(expected, actual) catch @breakpoint();
-        } else {
-            // std.debug.print("ignoring invalid number {:0>4}: {s}\n", .{ i, str });
-            continue;
-        }
+        const float = on_demand.getFloat() catch |err| switch (err) {
+            error.NumberOutOfRange => std.math.inf(f64),
+            else => {
+                // std.debug.print("ignoring invalid number {:0>4}: {s}\n", .{ i, str });
+                continue;
+            },
+        };
+        const actual = try std.fmt.bufPrint(&actual_buf, "{X:0>16}", .{@as(u64, @bitCast(float))});
+        std.testing.expectEqualStrings(expected, actual) catch @breakpoint();
     }
     // std.debug.print("END:     {s}\n\n", .{set});
 }

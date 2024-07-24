@@ -118,13 +118,13 @@ const Visitor = struct {
         };
     }
 
-    pub fn atKey(self: Visitor, key: []const u8) Error!?Object.Field {
-        if (self.getObject()) |obj| return obj.at(key);
+    pub fn atKey(self: Visitor, key: []const u8) Error!Object.Field {
+        if (self.getObject()) |obj| return obj.at(key) orelse error.MissingField;
         return error.IncorrectType;
     }
 
-    pub fn atIndex(self: Visitor, index: u32) Error!?Visitor {
-        if (self.getArray()) |arr| return arr.at(index);
+    pub fn atIndex(self: Visitor, index: u32) Error!Visitor {
+        if (self.getArray()) |arr| return arr.at(index) orelse error.IndexOutOfBounds;
         return error.IncorrectType;
     }
 

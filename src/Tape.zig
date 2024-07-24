@@ -85,7 +85,7 @@ pub fn deinit(self: *Self) void {
 }
 
 pub fn build(self: *Self, doc: []const u8) !void {
-    var t = &self.tokens;
+    const t = &self.tokens;
     try t.build(doc);
 
     try self.chars.ensureTotalCapacity(t.indexer.reader.document.len + types.Vector.LEN_BYTES);
@@ -145,7 +145,7 @@ fn analyze_object_begin(self: *Self, comptime phase: TokenPhase) Error!void {
     log.info("OBJ BEGIN", .{});
 
     if (self.stack.len >= common.DEFAULT_MAX_DEPTH)
-        return error.MaxDepth;
+        return error.ExceededDepth;
     const word = Word{ .object_opening = .{ .ptr = @truncate(self.parsed.len), .len = 0 } };
     self.parsed.appendAssumeCapacity(word);
     self.stack.appendAssumeCapacity(word);
@@ -161,13 +161,13 @@ fn analyze_object_begin(self: *Self, comptime phase: TokenPhase) Error!void {
                 log.info("OBJ END", .{});
                 return self.dispatch(phase, .scope_end);
             },
-            else => return error.InvalidObject,
+            else => return error.ExpectedObjectCommaOrEnd,
         }
     } else {
         if (phase == .unbounded) {
             return self.dispatch(.bounded, .resume_object_begin);
         } else {
-            return error.InvalidObject;
+            return error.ExpectedObjectCommaOrEnd;
         }
     }
 }
@@ -184,7 +184,7 @@ fn resume_object_begin(self: *Self, comptime phase: TokenPhase) Error!void {
             log.info("OBJ END", .{});
             return self.dispatch(.padded, .scope_end);
         },
-        else => return error.InvalidObject,
+        else => return error.ExpectedObjectCommaOrEnd,
     }
 }
 
@@ -205,17 +205,17 @@ fn analyze_object_field(self: *Self, comptime phase: TokenPhase) Error!void {
                 if (phase == .unbounded) {
                     return self.dispatch(.bounded, .resume_object_field_value);
                 } else {
-                    return error.InvalidObject;
+                    return error.ExpectedValue;
                 }
             }
         } else {
-            return error.InvalidObject;
+            return error.ExpectedColon;
         }
     } else {
         if (phase == .unbounded) {
             return self.dispatch(.bounded, .resume_object_field_colon);
         } else {
-            return error.InvalidObject;
+            return error.IncompleteObject;
         }
     }
 }
@@ -233,10 +233,10 @@ fn resume_object_field_colon(self: *Self, comptime phase: TokenPhase) Error!void
                 },
             }
         } else {
-            return error.InvalidObject;
+            return error.ExpectedValue;
         }
     } else {
-        return error.InvalidObject;
+        return error.ExpectedColon;
     }
 }
 
@@ -263,13 +263,13 @@ fn analyze_object_continue(self: *Self, comptime phase: TokenPhase) Error!void {
                         try self.visit_string(phase);
                         return self.dispatch(phase, .object_field);
                     } else {
-                        return error.InvalidObject;
+                        return error.ExpectedKeyAsString;
                     }
                 } else {
                     if (phase == .unbounded) {
                         return self.dispatch(.bounded, .resume_object_continue_key);
                     } else {
-                        return error.InvalidObject;
+                        return error.IncompleteObject;
                     }
                 }
             },
@@ -277,13 +277,13 @@ fn analyze_object_continue(self: *Self, comptime phase: TokenPhase) Error!void {
                 log.info("OBJ END", .{});
                 return self.dispatch(phase, .scope_end);
             },
-            else => return error.InvalidObject,
+            else => return error.ExpectedObjectCommaOrEnd,
         }
     } else {
         if (phase == .unbounded) {
             return self.dispatch(.bounded, .resume_object_continue_comma);
         } else {
-            return error.InvalidObject;
+            return error.ExpectedObjectCommaOrEnd;
         }
     }
 }
@@ -298,17 +298,17 @@ fn resume_object_continue_comma(self: *Self, comptime phase: TokenPhase) Error!v
                     try self.visit_string(.padded);
                     return self.dispatch(.padded, .object_field);
                 } else {
-                    return error.InvalidObject;
+                    return error.ExpectedKeyAsString;
                 }
             } else {
-                return error.InvalidObject;
+                return error.IncompleteObject;
             }
         },
         '}' => {
             log.info("OBJ END", .{});
             return self.dispatch(.padded, .scope_end);
         },
-        else => return error.InvalidObject,
+        else => return error.ExpectedObjectCommaOrEnd,
     }
 }
 
@@ -319,7 +319,7 @@ fn resume_object_continue_key(self: *Self, comptime phase: TokenPhase) Error!voi
         try self.visit_string(.padded);
         return self.dispatch(.padded, .object_field);
     } else {
-        return error.InvalidObject;
+        return error.ExpectedKeyAsString;
     }
 }
 
@@ -328,7 +328,7 @@ fn analyze_array_begin(self: *Self, comptime phase: TokenPhase) Error!void {
     log.info("ARR BEGIN", .{});
 
     if (self.stack.len >= common.DEFAULT_MAX_DEPTH)
-        return error.MaxDepth;
+        return error.ExceededDepth;
     const word = Word{ .array_opening = .{ .ptr = @truncate(self.parsed.len), .len = 0 } };
     self.parsed.appendAssumeCapacity(word);
     self.stack.appendAssumeCapacity(word);
@@ -351,7 +351,7 @@ fn analyze_array_begin(self: *Self, comptime phase: TokenPhase) Error!void {
         if (phase == .unbounded) {
             return self.dispatch(.bounded, .resume_array_begin);
         } else {
-            return error.InvalidArray;
+            return error.IncompleteArray;
         }
     }
 }
@@ -390,7 +390,7 @@ fn analyze_array_value(self: *Self, comptime phase: TokenPhase) Error!void {
         if (phase == .unbounded) {
             return self.dispatch(.bounded, .resume_array_value);
         } else {
-            return error.InvalidArray;
+            return error.IncompleteArray;
         }
     }
 }
@@ -420,13 +420,13 @@ fn analyze_array_continue(self: *Self, comptime phase: TokenPhase) Error!void {
                 log.info("ARR END", .{});
                 return self.dispatch(phase, .scope_end);
             },
-            else => return error.InvalidArray,
+            else => return error.ExpectedArrayCommaOrEnd,
         }
     } else {
         if (phase == .unbounded) {
             return self.dispatch(.bounded, .resume_array_continue);
         } else {
-            return error.InvalidArray;
+            return error.IncompleteArray;
         }
     }
 }
@@ -441,7 +441,7 @@ fn resume_array_continue(self: *Self, comptime phase: TokenPhase) Error!void {
             log.info("ARR END", .{});
             return self.dispatch(.padded, .scope_end);
         },
-        else => return error.InvalidArray,
+        else => return error.ExpectedArrayCommaOrEnd,
     }
 }
 
@@ -488,13 +488,13 @@ fn visit_root_primitive(self: *Self, comptime phase: TokenPhase, token: u8) Erro
             try self.visit_number(phase);
         } else if (token == '"') {
             try self.visit_string(phase);
-        } else return error.NonValue;
+        } else return error.ExpectedValue;
     } else {
         try switch (token) {
             't' => self.visit_true(),
             'f' => self.visit_false(),
             'n' => self.visit_null(),
-            else => return error.NonValue,
+            else => return error.ExpectedValue,
         };
     }
     const s = self.stack.pop();
@@ -513,12 +513,12 @@ fn visit_primitive(self: *Self, comptime phase: TokenPhase, token: u8) Error!voi
         't' => self.visit_true(),
         'f' => self.visit_false(),
         'n' => self.visit_null(),
-        else => error.NonValue,
+        else => error.ExpectedValue,
     };
 }
 
 fn visit_string(self: *Self, comptime phase: TokenPhase) Error!void {
-    var t = &self.tokens;
+    const t = &self.tokens;
     _ = t.consume(1, phase);
     const next_str = self.chars.items.len;
     try parsers.writeString(TOKEN_OPTIONS, phase, t, &self.chars);

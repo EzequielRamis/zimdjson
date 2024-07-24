@@ -11,7 +11,7 @@ const readInt = std.mem.readInt;
 pub fn checkBool(comptime opt: TokenOptions, src: TokenIterator(opt)) Error!bool {
     const is_true = if (checkTrue(opt, src)) true else |_| false;
     const is_false = if (checkFalse(opt, src)) true else |_| false;
-    return if (is_true or is_false) is_true else error.NonValue;
+    return if (is_true or is_false) is_true else error.ExpectedValue;
 }
 
 pub fn checkTrue(comptime opt: TokenOptions, src: TokenIterator(opt)) Error!void {
@@ -20,7 +20,7 @@ pub fn checkTrue(comptime opt: TokenOptions, src: TokenIterator(opt)) Error!void
     const dword_atom = readInt(u32, chunk[0..4], .little);
     const not_struct_white = common.Tables.is_structural_or_whitespace_negated;
     if (dword_true != dword_atom or not_struct_white[chunk[4]]) {
-        return error.NonValue;
+        return error.ExpectedValue;
     }
 }
 
@@ -30,7 +30,7 @@ pub fn checkFalse(comptime opt: TokenOptions, src: TokenIterator(opt)) Error!voi
     const dword_atom = readInt(u32, chunk[1..][0..4], .little);
     const not_struct_white = common.Tables.is_structural_or_whitespace_negated;
     if (dword_alse != dword_atom or not_struct_white[chunk[5]]) {
-        return error.NonValue;
+        return error.ExpectedValue;
     }
 }
 
@@ -40,6 +40,6 @@ pub fn checkNull(comptime opt: TokenOptions, src: TokenIterator(opt)) Error!void
     const dword_atom = readInt(u32, chunk[0..4], .little);
     const not_struct_white = common.Tables.is_structural_or_whitespace_negated;
     if (dword_null != dword_atom or not_struct_white[chunk[4]]) {
-        return error.NonValue;
+        return error.ExpectedValue;
     }
 }

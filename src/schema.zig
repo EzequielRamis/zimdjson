@@ -1,19 +1,11 @@
 const std = @import("std");
 const builtin = @import("builtin");
+const types = @import("types.zig");
 const OnDemand = @import("OnDemand.zig");
 const Visitor = OnDemand.Visitor;
+const Error = types.Error;
 const wyhash = std.hash.Wyhash.hash;
 const assert = std.debug.assert;
-
-const Error = error{
-    InvalidType,
-    InvalidValue,
-    InvalidLength,
-    UnknownVariant,
-    UnknownField,
-    MissingField,
-    DuplicateField,
-};
 
 fn Common(comptime T: type) type {
     return struct {

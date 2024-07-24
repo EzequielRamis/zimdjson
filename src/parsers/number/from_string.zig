@@ -29,7 +29,7 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
             src: *TokenIterator(topt),
         ) Error!FromString(sopt) {
             const is_negative = src.ptr[0] == '-';
-            if (is_negative and !sopt.can_be_signed) return error.NumberLiteral;
+            if (is_negative and !sopt.can_be_signed) return error.InvalidNumberLiteral;
 
             _ = src.consume(@intFromBool(is_negative), phase);
             const first_digit = src.ptr[0];
@@ -49,7 +49,7 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
                 if (phase == .bounded) integer_len += 1;
             }
             if (phase != .bounded) integer_len = @intFromPtr(src.ptr) - @intFromPtr(integer_ptr);
-            if ((first_digit == '0' and integer_len > 1) or integer_len == 0) return error.NumberLiteral;
+            if ((first_digit == '0' and integer_len > 1) or integer_len == 0) return error.InvalidNumberLiteral;
 
             if (sopt.can_be_float) {
                 if (src.ptr[0] == '.') {
@@ -61,7 +61,7 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
                     else
                         @intFromPtr(src.ptr) - @intFromPtr(decimal_ptr);
 
-                    if (decimal_len == 0) return error.NumberLiteral;
+                    if (decimal_len == 0) return error.InvalidNumberLiteral;
                     is_float = true;
                     exponent_10 -= @intCast(decimal_len);
                 }
@@ -73,7 +73,7 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
                 }
             }
 
-            if (common.Tables.is_structural_or_whitespace_negated[src.ptr[0]]) return error.NumberLiteral;
+            if (common.Tables.is_structural_or_whitespace_negated[src.ptr[0]]) return error.InvalidNumberLiteral;
 
             return .{
                 .mantissa = mantissa_10,
@@ -130,7 +130,7 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
                 _ = src.consume(1, phase);
             }
 
-            if (start_exp == @intFromPtr(src.ptr)) return error.NumberLiteral;
+            if (start_exp == @intFromPtr(src.ptr)) return error.InvalidNumberLiteral;
 
             var exp_signed: i64 = @intCast(exp_number);
             if (is_negative) exp_signed = -exp_signed;

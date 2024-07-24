@@ -51,11 +51,11 @@ pub fn writeString(
             try utf8Encode(codepoint, dst);
         } else {
             const escaped = escape_map[escape_char];
-            if (escaped == 0) return error.StringEscaping;
+            if (escaped == 0) return error.InvalidEscape;
             dst.appendAssumeCapacity(escaped);
         }
     }
-    return error.StringUnclosed;
+    return error.ExpectedStringEnd;
 }
 
 fn handleUnicodeCodepoint(
@@ -71,15 +71,15 @@ fn handleUnicodeCodepoint(
             const high_surrogate = first_codepoint;
             const second_literal = src.consume(4, phase)[0..4];
             const low_surrogate = parseHexDword(second_literal);
-            if (!utf16IsLowSurrogate(low_surrogate)) return error.StringEscaping;
+            if (!utf16IsLowSurrogate(low_surrogate)) return error.InvalidUnicodeCodePoint;
             const h = high_surrogate;
             const l = low_surrogate;
             return 0x10000 + ((h & 0x03ff) << 10) | (l & 0x03ff);
         } else {
-            return error.StringEscaping;
+            return error.InvalidUnicodeCodePoint;
         }
     } else if (utf16IsLowSurrogate(first_codepoint)) {
-        return error.StringEscaping;
+        return error.InvalidUnicodeCodePoint;
     }
     return first_codepoint;
 }
@@ -110,7 +110,7 @@ fn utf8Encode(c: u32, dst: *ArrayList(u8)) Error!void {
         buf[3] = @as(u8, @intCast(0b10000000 | (c & 0b111111)));
         return;
     }
-    return error.StringEscaping;
+    return error.InvalidUnicodeCodePoint;
 }
 
 fn utf16IsHighSurrogate(c: u32) bool {

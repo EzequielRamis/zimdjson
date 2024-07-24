@@ -64,3 +64,22 @@ pub const Tables = struct {
         break :init res;
     };
 };
+
+pub inline fn isString(comptime T: type) bool {
+    return switch (@typeInfo(T)) {
+        .Pointer => |info| switch (info.size) {
+            .One => isString(info.child),
+            .Many, .C, .Slice => info.child == u8,
+        },
+        .Array => |info| info.child == u8,
+        else => false,
+    };
+}
+
+pub inline fn isIndex(comptime T: type) bool {
+    return switch (@typeInfo(T)) {
+        .Int => |info| info.signedness == .unsigned and info.bits <= 32,
+        .ComptimeInt => true,
+        else => false,
+    };
+}

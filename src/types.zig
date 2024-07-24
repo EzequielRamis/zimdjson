@@ -35,6 +35,7 @@ pub const Error = error{
     NumberOutOfRange,
     IndexOutOfBounds,
     TrailingContent,
+    IncorrectPointer,
     IncorrectType,
     UnknownVariant,
     UnknownField,

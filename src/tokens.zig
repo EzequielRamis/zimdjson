@@ -139,7 +139,7 @@ pub fn Iterator(comptime options: Options) type {
         }
 
         pub fn peek(self: Self) u8 {
-            return self.ptr[0];
+            return self.document()[self.indexes()[self.token]];
         }
 
         pub fn jumpBack(self: *Self, index: usize) void {

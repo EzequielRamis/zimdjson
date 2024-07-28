@@ -28,6 +28,7 @@ pub const Parser = struct {
     buffer: Buffer,
     tokens: TokenIterator(TOKEN_OPTIONS),
     chars: ArrayList(u8),
+    depth: u32 = 1,
 
     pub fn init(allocator: Allocator) Parser {
         return Parser{
@@ -52,7 +53,8 @@ pub const Parser = struct {
 
         return Visitor{
             .document = self,
-            .depth = 0,
+            .token = t.token,
+            .depth = self.depth,
         };
     }
 
@@ -69,152 +71,206 @@ pub const Parser = struct {
     }
 };
 
-pub const Visitor = struct {
+const Element = union(enum) {
+    null,
+    bool: bool,
+    unsigned: u64,
+    signed: i64,
+    float: f64,
+    string: []const u8,
+    object: Object,
+    array: Array,
+};
+
+const Visitor = struct {
     document: *Parser,
+    token: u32,
     depth: u32,
+    err: ?Error = null,
 
-    pub fn getObject(self: *Visitor) Error!Object {
+    pub fn getObject(self: Visitor) Error!Object {
+        if (self.err) |err| return err;
+
         if (self.isObject()) {
-            _ = self.document.tokens.consume(1, .none);
-            self.document.depth += 1;
-            return Object{ .root = &self };
+            Logger.logStart(self.document.*, "object", self.depth);
+            return .{ .visitor = .{
+                .document = self.document,
+                .token = self.document.tokens.token,
+                .depth = self.document.depth,
+            } };
         }
         return error.IncorrectType;
     }
 
-    pub fn getArray(self: *Visitor) Error!Array {
+    pub fn getArray(self: Visitor) Error!Array {
+        if (self.err) |err| return err;
+
         if (self.isArray()) {
-            _ = self.document.tokens.consume(1, .none);
-            self.document.depth += 1;
-            return Array{ .root = &self };
+            Logger.logStart(self.document.*, "array", self.depth);
+            return .{ .visitor = .{
+                .document = self.document,
+                .token = self.document.tokens.token,
+                .depth = self.document.depth,
+            } };
         }
         return error.IncorrectType;
     }
 
-    pub fn getNumber(self: *Visitor) Error!Number {
-        const t = &self.document.tokens;
-        errdefer t.jumpBack(t.token);
+    pub fn getNumber(self: Visitor) Error!Number {
+        if (self.err) |err| return err;
 
-        return NumberParser.parse(.none, t);
+        var t = &self.document.tokens;
+        errdefer t.jumpBack(t.token);
+        const n = try NumberParser.parse(.none, t);
+        Logger.log(self.document.*, "number", self.depth);
+        self.document.depth -= 1;
+        return n;
     }
 
-    pub fn getUnsigned(self: *Visitor) Error!u64 {
-        const t = &self.document.tokens;
+    pub fn getUnsigned(self: Visitor) Error!u64 {
+        if (self.err) |err| return err;
+
+        var t = &self.document.tokens;
         errdefer t.jumpBack(t.token);
 
-        return NumberParser.parseUnsigned(.none, t);
+        const n = try NumberParser.parseUnsigned(.none, t);
+        Logger.log(self.document.*, "u64   ", self.depth);
+        self.document.depth -= 1;
+        return n;
     }
 
-    pub fn getSigned(self: *Visitor) Error!i64 {
-        const t = &self.document.tokens;
+    pub fn getSigned(self: Visitor) Error!i64 {
+        if (self.err) |err| return err;
+
+        var t = &self.document.tokens;
         errdefer t.jumpBack(t.token);
 
-        return NumberParser.parseSigned(.none, t);
+        const n = try NumberParser.parseSigned(.none, t);
+        Logger.log(self.document.*, "i64   ", self.depth);
+        self.document.depth -= 1;
+        return n;
     }
 
-    pub fn getFloat(self: *Visitor) Error!f64 {
-        const t = &self.document.tokens;
+    pub fn getFloat(self: Visitor) Error!f64 {
+        if (self.err) |err| return err;
+
+        var t = &self.document.tokens;
         errdefer t.jumpBack(t.token);
 
-        return NumberParser.parseFloat(.none, t);
+        const n = try NumberParser.parseFloat(.none, t);
+        Logger.log(self.document.*, "f64   ", self.depth);
+        self.document.depth -= 1;
+        return n;
     }
 
-    pub fn getString(self: *Visitor) Error![]const u8 {
+    pub fn getString(self: Visitor) Error![]const u8 {
+        if (self.err) |err| return err;
+
         if (!self.isString()) return error.IncorrectType;
-        const t = &self.document.tokens;
-        errdefer t.jumpBack(t.token);
-
-        _ = t.consume(1, .none);
-        const doc = self.document;
-        const next_str = doc.chars.items.len;
-        try parsers.writeString(&doc.tokens, &doc.chars, .none);
-        const next_len = self.chars.items.len - 1 - next_str;
-        return doc.chars.items[next_str..][0..next_len];
+        return self.getUnsafeString();
     }
 
-    pub fn getBool(self: *Visitor) Error!bool {
-        const t = self.document.tokens;
+    pub fn getBool(self: Visitor) Error!bool {
+        if (self.err) |err| return err;
+
+        var t = &self.document.tokens;
         errdefer t.jumpBack(t.token);
 
-        const is_true = try parsers.checkBool(TOKEN_OPTIONS, t);
+        const is_true = try parsers.checkBool(TOKEN_OPTIONS, t.*);
         _ = t.consume(if (is_true) 4 else 5, .none);
+        Logger.log(self.document.*, "bool  ", self.depth);
+        self.document.depth -= 1;
         return is_true;
     }
 
-    pub fn isNull(self: *Visitor) Error!void {
-        const t = self.document.tokens;
+    pub fn isNull(self: Visitor) Error!void {
+        if (self.err) |err| return err;
+
+        var t = &self.document.tokens;
         errdefer t.jumpBack(t.token);
 
-        try parsers.checkNull(TOKEN_OPTIONS, t);
+        try parsers.checkNull(TOKEN_OPTIONS, t.*);
         _ = t.consume(4, .none);
+        Logger.log(self.document.*, "null  ", self.depth);
+        self.document.depth -= 1;
     }
 
-    pub fn skip(self: *Visitor) Error!void {
-        const doc = self.document;
-        const wanted_depth = self.depth;
-        var actual_depth = doc.depth;
-        const indexes = doc.tokens.indexer.indexes.items;
+    pub fn getAny(self: Visitor) Error!Element {
+        if (self.err) |err| return err;
 
-        if (actual_depth == wanted_depth) return;
+        var t = &self.document.tokens;
+        return switch (t.peek()) {
+            't', 'f' => .{ .bool = try self.getBool() },
+            'n' => .{ .null = try self.isNull() },
+            '"' => .{ .string = try self.getUnsafeString() },
+            '-', '0'...'9' => switch (try self.getNumber()) {
+                .unsigned => |n| .{ .unsigned = n },
+                .signed => |n| .{ .signed = n },
+                .float => |n| .{ .float = n },
+            },
+            '[' => .{ .array = try self.getArray() },
+            '{' => .{ .object = try self.getObject() },
+            else => {
+                t.jumpBack(t.token);
+                return error.ExpectedValue;
+            },
+        };
+    }
 
-        const ln_table: vector = std.simd.repeat(Vector.LEN_BYTES, [_]u8{ 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 2, 0, 0 });
-        const hn_table: vector = std.simd.repeat(Vector.LEN_BYTES, [_]u8{ 0, 0, 0, 0, 0, 3, 0, 3, 0, 0, 0, 0, 0, 0, 0, 0 });
-        const opening_table: vector = @splat(0b01);
-        const closing_table: vector = @splat(0b10);
+    pub fn skip(self: Visitor) Error!void {
+        if (self.err) |err| return err;
 
-        const unbound = indexes.len - Vector.LEN_BYTES;
-        while (doc.tokens.index < unbound) {
-            var tkns: vector = @splat(0);
-            for (0..Vector.LEN_BYTES) |i| {
-                const t = indexes[doc.tokens.index + i];
-                tkns[i] = t;
+        const t = &self.document.tokens;
+        const wanted_depth = self.depth - 1;
+        const actual_depth = &self.document.depth;
+
+        Logger.logDepth(wanted_depth, actual_depth.*);
+
+        if (actual_depth.* <= wanted_depth) return;
+        switch (t.next(.none).?) {
+            '[', '{', ':' => {
+                Logger.logStart(self.document.*, "skip  ", actual_depth.*);
+            },
+            ',' => {
+                Logger.log(self.document.*, "skip  ", actual_depth.*);
+            },
+            ']', '}' => {
+                Logger.logEnd(self.document.*, "skip  ", actual_depth.*);
+                actual_depth.* -= 1;
+                if (actual_depth.* <= wanted_depth) return;
+            },
+            '"' => if (t.peek() == ':') {
+                Logger.log(self.document.*, "key   ", actual_depth.*);
+                _ = t.next(.none).?;
+            } else {
+                Logger.log(self.document.*, "skip  ", actual_depth.*);
+                actual_depth.* -= 1;
+                if (actual_depth.* <= wanted_depth) return;
+            },
+            else => {
+                Logger.log(self.document.*, "skip  ", actual_depth.*);
+                actual_depth.* -= 1;
+                if (actual_depth.* <= wanted_depth) return;
+            },
+        }
+
+        while (t.next(.none)) |p| {
+            switch (p) {
+                '[', '{' => {
+                    Logger.logStart(self.document.*, "skip  ", actual_depth.*);
+                    actual_depth.* += 1;
+                },
+                ']', '}' => {
+                    Logger.logEnd(self.document.*, "skip  ", actual_depth.*);
+                    actual_depth.* -= 1;
+                    if (actual_depth.* <= wanted_depth) return;
+                },
+                else => {
+                    Logger.log(self.document.*, "skip  ", actual_depth.*);
+                },
             }
-
-            const low_nibbles = tkns & @as(vector, @splat(0xF));
-            const high_nibbles = tkns >> @as(vector, @splat(4));
-            const low_lookup_values = intr.lookupTable(ln_table, low_nibbles);
-            const high_lookup_values = intr.lookupTable(hn_table, high_nibbles);
-            const desired_values = low_lookup_values & high_lookup_values;
-
-            const opening = desired_values & opening_table;
-            const closing = (desired_values & closing_table) << 1;
-
-            for (0..Vector.LEN_BYTES) |i| {
-                const o: u1 = @truncate(opening[i]);
-                const c: u1 = @truncate(closing[i]);
-                actual_depth += o;
-                actual_depth -= c;
-                if (actual_depth == wanted_depth) return;
-                _ = doc.tokens.next(null);
-            }
         }
-
-        var tkns: vector = @splat(0);
-        const remain = indexes.len - doc.tokens.index;
-        for (0..remain) |i| {
-            const t = indexes[doc.tokens.index + i];
-            tkns[i] = t;
-        }
-
-        const low_nibbles = tkns & @as(vector, @splat(0xF));
-        const high_nibbles = tkns >> @as(vector, @splat(4));
-        const low_lookup_values = intr.lookupTable(ln_table, low_nibbles);
-        const high_lookup_values = intr.lookupTable(hn_table, high_nibbles);
-        const desired_values = low_lookup_values & high_lookup_values;
-
-        const opening = desired_values & opening_table;
-        const closing = (desired_values & closing_table) << 1;
-
-        for (0..remain) |i| {
-            const o: u1 = @truncate(opening[i]);
-            const c: u1 = @truncate(closing[i]);
-            actual_depth += o;
-            actual_depth -= c;
-            if (actual_depth == wanted_depth) return;
-            _ = doc.tokens.next(null);
-        }
-
-        if (actual_depth != wanted_depth) return error.InvalidStructure;
+        return error.IncompleteObject;
     }
 
     fn isObject(self: Visitor) bool {
@@ -228,44 +284,56 @@ pub const Visitor = struct {
     fn isString(self: Visitor) bool {
         return self.document.tokens.peek() == '"';
     }
+
+    fn getUnsafeString(self: Visitor) Error![]const u8 {
+        var t = &self.document.tokens;
+        errdefer t.jumpBack(t.token);
+
+        _ = t.consume(1, .none);
+        const chars = &self.document.chars;
+        const next_str = chars.items.len;
+        try parsers.writeString(TOKEN_OPTIONS, .none, t, chars);
+        const next_len = chars.items.len - next_str;
+        if (t.peek() == ':') {
+            Logger.log(self.document.*, "key   ", self.depth);
+        } else {
+            Logger.log(self.document.*, "string", self.depth);
+        }
+        self.document.depth -= 1;
+        return chars.items[next_str..][0..next_len];
+    }
 };
 
-pub const Array = struct {
-    root: *const Visitor,
-    at_start: bool = true,
+const Array = struct {
+    visitor: Visitor,
 
-    pub fn next(self: *Array) Error!?Visitor {
-        const doc = self.root.document;
-        const p = doc.tokens.next(.none) orelse return error.IncompleteArray;
-        if (self.at_start) {
-            self.at_start = false;
-            if (p == ']') return null;
-            return Visitor{
-                .document = doc,
-                .depth = self.root.depth + 1,
-            };
+    pub fn next(self: Array) Error!?Visitor {
+        const doc = self.visitor.document;
+        const t = &doc.tokens;
+        _ = t.next(.none).?;
+        if (self.visitor.token + 1 == t.token) {
+            const q = t.next(.none) orelse return error.IncompleteObject;
+            if (q == ']') {
+                self.visitor.documenactual_depth.* -= 1;
+                return null;
+            }
+            return self.getVisitor();
         }
+        const p = t.next(.none) orelse return error.IncompleteObject;
         switch (p) {
             ',' => {
-                _ = doc.tokens.next(null);
-                return Visitor{
-                    .document = doc,
-                    .depth = self.root.depth + 1,
-                };
+                return self.getVisitor();
             },
-            ']' => return null,
+            ']' => {
+                self.visitor.documenactual_depth.* -= 1;
+                return null;
+            },
             else => return error.ExpectedArrayCommaOrEnd,
         }
     }
 
-    pub fn reset(self: Array) void {
-        const doc = self.root.document;
-        doc.tokens.jumpBack(self.root);
-        self.root.document.depth = self.root.depth;
-    }
-
     pub fn skip(self: Array) Error!void {
-        self.root.skip();
+        self.visitor.skip();
     }
 
     pub fn at(self: Array, index: usize) Error!Visitor {
@@ -275,113 +343,137 @@ pub const Array = struct {
     }
 
     pub fn isEmpty(self: Array) Error!bool {
-        const doc = self.root.document;
-        const p = doc.tokens.peekNext() orelse return error.IncompleteArray;
-        return p == ']';
+        return (try self.getSize()) == 0;
     }
 
-    pub fn size(self: Array) Error!u32 {
+    pub fn getSize(self: Array) Error!u32 {
         var count: u32 = 0;
         while (try self.next()) |_| count += 1;
-        self.reset();
         return count;
+    }
+
+    fn getVisitor(self: Array) Visitor {
+        return Visitor{
+            .document = self.visitor.document,
+            .token = self.visitor.document.tokens.token,
+            .depth = self.visitor.documenactual_depth.*,
+        };
     }
 };
 
-pub const Object = struct {
-    root: *const Visitor,
-    at_start: bool = true,
+const Object = struct {
+    visitor: Visitor,
 
     pub const Field = struct {
-        root: *const Visitor,
-
-        pub fn key(self: Field) Error![]const u8 {
-            const doc = self.root.document;
-            _ = doc.tokens.consume(1, .none);
-            const next_str = doc.chars.items.len;
-            try parsers.writeString(&doc.tokens, &doc.chars, .none);
-            const next_len = self.chars.items.len - 1 - next_str;
-            return doc.chars.items[next_str..][0..next_len];
-        }
-
-        pub fn value(self: Field) Error!Visitor {
-            const doc = self.root.document;
-            const colon = doc.tokens.next(null) orelse return error.ExpectedColon;
-            if (colon == ':') {
-                _ = doc.tokens.next(null);
-                return Visitor{
-                    .document = doc,
-                    .depth = self.root.depth,
-                    .index = doc.tokens.index,
-                };
-            }
-            return error.ExpectedColon;
-        }
-
-        pub fn reset(self: Field) void {
-            const doc = self.root.document;
-            doc.tokens.jumpBack(self.root);
-            self.root.document.depth = self.root.depth;
-        }
+        key: []const u8,
+        value: Visitor,
 
         pub fn skip(self: Field) Error!void {
-            self.reset();
-            const el = try self.value();
-            return try el.skip();
+            return self.value.skip();
         }
     };
 
-    pub fn next(self: *Object) Error!?Field {
-        const doc = self.root.document;
-        const p = doc.tokens.next(null) orelse return error.IncompleteObject;
-        if (self.at_start) {
-            self.at_start = false;
-            if (p == '}') return null;
-            return Field{ .root = Visitor{
-                .document = doc,
-                .depth = self.root.depth + 1,
-                .index = doc.tokens.index,
-            } };
+    pub fn next(self: Object) Error!?Field {
+        const doc = self.visitor.document;
+        const t = &doc.tokens;
+        if (self.visitor.token == t.token) {
+            _ = t.next(.none) orelse return error.IncompleteObject;
+            if (t.peek() == '}') {
+                self.visitor.document.depth -= 1;
+                return null;
+            }
+            return try self.getField();
         }
-        switch (p) {
+        switch (t.peek()) {
             ',' => {
-                _ = doc.tokens.next(null);
-                return Field{ .root = Visitor{
-                    .document = doc,
-                    .depth = self.root.depth + 1,
-                    .index = doc.tokens.index,
-                } };
+                _ = t.next(.none) orelse return error.IncompleteObject;
+                return try self.getField();
             },
-            '}' => return null,
+            '}' => {
+                self.visitor.document.depth -= 1;
+                return null;
+            },
             else => return error.ExpectedObjectCommaOrEnd,
         }
     }
 
-    pub fn reset(self: Object) void {
-        const doc = self.root.document;
-        doc.tokens.jumpBack(self.root);
-        self.root.document.depth = self.root.depth;
-    }
-
     pub fn skip(self: Object) Error!void {
-        self.root.skip();
+        return self.visitor.skip();
     }
 
     pub fn at(self: Object, key: []const u8) Error!Visitor {
-        while (try self.next()) |field| if (std.mem.eql(u8, try field.key(), key)) return field.value() else field.skip();
+        while (try self.next()) |field| if (std.mem.eql(u8, try field.key, key)) return field.value else field.skip();
         return error.MissingField;
     }
 
     pub fn isEmpty(self: Object) Error!bool {
-        const doc = self.root.document;
-        const p = doc.tokens.peekNext() orelse return error.IncompleteObject;
-        return p == '}';
+        return (try self.getSize()) == 0;
     }
 
-    pub fn size(self: Object) Error!u32 {
+    pub fn getSize(self: Object) Error!u32 {
         var count: u32 = 0;
         while (try self.next()) |_| count += 1;
-        self.reset();
         return count;
+    }
+
+    fn getField(self: Object) Error!Field {
+        const doc = self.visitor.document;
+        const t = &doc.tokens;
+        var key_visitor = Visitor{
+            .document = doc,
+            .token = t.token,
+            .depth = self.visitor.document.depth,
+        };
+        const quote = t.next(.none) orelse return error.IncompleteObject;
+        if (quote != '"') return error.ExpectedKeyAsString;
+        const key = try key_visitor.getUnsafeString();
+        const colon = t.next(.none) orelse return error.IncompleteObject;
+        if (colon != ':') return error.ExpectedColon;
+        self.visitor.document.depth += 2;
+        return .{
+            .key = key,
+            .value = .{
+                .document = doc,
+                .token = t.token,
+                .depth = self.visitor.document.depth,
+            },
+        };
+    }
+};
+
+const Logger = struct {
+    pub fn logDepth(expected: u32, actual: u32) void {
+        std.log.info(" SKIP     Wanted depth: {}, actual: {}", .{ expected, actual });
+    }
+
+    pub fn logStart(parser: Parser, label: []const u8, depth: u32) void {
+        const t = parser.tokens;
+        var buffer = t.ptr[0..Vector.LEN_BYTES].*;
+        for (&buffer) |*b| {
+            if (b.* == '\n') b.* = ' ';
+            if (b.* == '\t') b.* = ' ';
+            if (b.* > 127) b.* = '*';
+        }
+        std.log.info("+{s} | {s} | depth: {} | next: {c}", .{ label, buffer, depth, t.peek() });
+    }
+    pub fn log(parser: Parser, label: []const u8, depth: u32) void {
+        const t = parser.tokens;
+        var buffer = t.ptr[0..Vector.LEN_BYTES].*;
+        for (&buffer) |*b| {
+            if (b.* == '\n') b.* = ' ';
+            if (b.* == '\t') b.* = ' ';
+            if (b.* > 127) b.* = '*';
+        }
+        std.log.info(" {s} | {s} | depth: {} | next: {c}", .{ label, buffer, depth, t.peek() });
+    }
+    pub fn logEnd(parser: Parser, label: []const u8, depth: u32) void {
+        const t = parser.tokens;
+        var buffer = t.ptr[0..Vector.LEN_BYTES].*;
+        for (&buffer) |*b| {
+            if (b.* == '\n') b.* = ' ';
+            if (b.* == '\t') b.* = ' ';
+            if (b.* > 127) b.* = '*';
+        }
+        std.log.info("-{s} | {s} | depth: {} | next: {c}", .{ label, buffer, depth, t.peek() });
     }
 };

@@ -520,11 +520,12 @@ fn visit_primitive(self: *Self, comptime phase: TokenPhase, token: u8) Error!voi
 fn visit_string(self: *Self, comptime phase: TokenPhase) Error!void {
     const t = &self.tokens;
     _ = t.consume(1, phase);
-    const next_str = self.chars.items.len;
-    try parsers.writeString(TOKEN_OPTIONS, phase, t, &self.chars);
-    const next_len = self.chars.items.len - next_str;
+    const chars = &self.chars;
+    const next_str = chars.items.len;
+    try parsers.writeString(TOKEN_OPTIONS, phase, t, chars);
+    const next_len = chars.items.len - next_str;
     self.parsed.appendAssumeCapacity(.{ .string = .{ .ptr = @truncate(next_str), .len = @truncate(next_len) } });
-    log.info("STR {s}", .{self.chars.items[next_str..][0..next_len]});
+    log.info("STR {s}", .{chars.items[next_str..][0..next_len]});
 }
 
 fn visit_number(self: *Self, comptime phase: TokenPhase) Error!void {

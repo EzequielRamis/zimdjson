@@ -31,7 +31,6 @@ pub const Parser = struct {
         return Visitor{
             .tape = &self.tape,
             .index = 1,
-            .err = null,
         };
     }
 
@@ -62,7 +61,7 @@ const Element = union(enum) {
 const Visitor = struct {
     tape: *const Tape,
     index: u32,
-    err: ?Error,
+    err: ?Error = null,
 
     pub fn getObject(self: Visitor) Error!Object {
         if (self.err) |err| return err;
@@ -204,8 +203,8 @@ const Visitor = struct {
     pub fn getSize(self: Visitor) Error!u32 {
         if (self.err) |err| return err;
 
-        if (self.getObject()) |obj| return obj.getSize() else |_| {}
         if (self.getArray()) |arr| return arr.getSize() else |_| {}
+        if (self.getObject()) |obj| return obj.getSize() else |_| {}
         return error.IncorrectType;
     }
 };
@@ -225,7 +224,7 @@ const Array = struct {
                 .array_opening, .object_opening => |fit| fit.ptr,
                 else => self.curr + 1,
             };
-            return .{ .tape = self.tape, .index = self.curr, .err = null };
+            return .{ .tape = self.tape, .index = self.curr };
         }
     };
 
@@ -270,8 +269,8 @@ const Object = struct {
         pub fn next(self: *Iterator) ?Field {
             const word = self.tape.parsed.get(self.curr);
             if (word == .object_closing) return null;
-            const field = Visitor{ .tape = self.tape, .index = self.curr, .err = null };
-            const value = Visitor{ .tape = self.tape, .index = self.curr + 1, .err = null };
+            const field = Visitor{ .tape = self.tape, .index = self.curr };
+            const value = Visitor{ .tape = self.tape, .index = self.curr + 1 };
             const value_word = self.tape.parsed.get(self.curr + 1);
             defer self.curr = switch (value_word) {
                 .array_opening, .object_opening => |fit| fit.ptr,

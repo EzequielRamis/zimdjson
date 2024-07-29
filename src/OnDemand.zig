@@ -106,7 +106,7 @@ const Visitor = struct {
         if (self.err) |err| return err;
 
         if (self.isArray()) {
-            Logger.logStart(self.document.*, "array", self.depth);
+            Logger.logStart(self.document.*, "array ", self.depth);
             return .{ .visitor = .{
                 .document = self.document,
                 .token = self.document.tokens.token,
@@ -121,6 +121,8 @@ const Visitor = struct {
 
         var t = &self.document.tokens;
         errdefer t.jumpBack(t.token);
+        _ = t.next(.none) orelse return error.ExpectedValue;
+
         const n = try NumberParser.parse(.none, t);
         Logger.log(self.document.*, "number", self.depth);
         self.document.depth -= 1;
@@ -132,6 +134,7 @@ const Visitor = struct {
 
         var t = &self.document.tokens;
         errdefer t.jumpBack(t.token);
+        _ = t.next(.none) orelse return error.ExpectedValue;
 
         const n = try NumberParser.parseUnsigned(.none, t);
         Logger.log(self.document.*, "u64   ", self.depth);
@@ -144,6 +147,7 @@ const Visitor = struct {
 
         var t = &self.document.tokens;
         errdefer t.jumpBack(t.token);
+        _ = t.next(.none) orelse return error.ExpectedValue;
 
         const n = try NumberParser.parseSigned(.none, t);
         Logger.log(self.document.*, "i64   ", self.depth);
@@ -156,6 +160,7 @@ const Visitor = struct {
 
         var t = &self.document.tokens;
         errdefer t.jumpBack(t.token);
+        _ = t.next(.none) orelse return error.ExpectedValue;
 
         const n = try NumberParser.parseFloat(.none, t);
         Logger.log(self.document.*, "f64   ", self.depth);
@@ -166,8 +171,14 @@ const Visitor = struct {
     pub fn getString(self: Visitor) Error![]const u8 {
         if (self.err) |err| return err;
 
+        var t = &self.document.tokens;
+        errdefer t.jumpBack(t.token);
         if (!self.isString()) return error.IncorrectType;
-        return self.getUnsafeString();
+        _ = t.next(.none) orelse {};
+
+        const string = try self.getUnsafeString();
+        self.document.depth -= 1;
+        return string;
     }
 
     pub fn getBool(self: Visitor) Error!bool {
@@ -175,6 +186,7 @@ const Visitor = struct {
 
         var t = &self.document.tokens;
         errdefer t.jumpBack(t.token);
+        _ = t.next(.none) orelse return error.ExpectedValue;
 
         const is_true = try parsers.checkBool(TOKEN_OPTIONS, t.*);
         _ = t.consume(if (is_true) 4 else 5, .none);
@@ -188,6 +200,7 @@ const Visitor = struct {
 
         var t = &self.document.tokens;
         errdefer t.jumpBack(t.token);
+        _ = t.next(.none) orelse return error.ExpectedValue;
 
         try parsers.checkNull(TOKEN_OPTIONS, t.*);
         _ = t.consume(4, .none);
@@ -202,7 +215,7 @@ const Visitor = struct {
         return switch (t.peek()) {
             't', 'f' => .{ .bool = try self.getBool() },
             'n' => .{ .null = try self.isNull() },
-            '"' => .{ .string = try self.getUnsafeString() },
+            '"' => .{ .string = try self.getString() },
             '-', '0'...'9' => switch (try self.getNumber()) {
                 .unsigned => |n| .{ .unsigned = n },
                 .signed => |n| .{ .signed = n },
@@ -215,6 +228,46 @@ const Visitor = struct {
                 return error.ExpectedValue;
             },
         };
+    }
+
+    pub fn at(self: Visitor, ptr: anytype) Visitor {
+        if (self.err) |_| return self;
+
+        const query = brk: {
+            if (common.isString(@TypeOf(ptr))) {
+                const obj = self.getObject() catch return .{
+                    .document = self.document,
+                    .token = self.token,
+                    .depth = self.depth,
+                    .err = error.IncorrectPointer,
+                };
+                break :brk obj.at(ptr);
+            }
+            if (common.isIndex(@TypeOf(ptr))) {
+                const arr = self.getArray() catch return .{
+                    .document = self.document,
+                    .token = self.token,
+                    .depth = self.depth,
+                    .err = error.IncorrectPointer,
+                };
+                break :brk arr.at(ptr);
+            }
+            @compileError("JSON Pointer must be a string or number");
+        };
+        return if (query) |v| v else |err| .{
+            .document = self.document,
+            .token = self.token,
+            .depth = self.depth,
+            .err = err,
+        };
+    }
+
+    pub fn getSize(self: Visitor) Error!u32 {
+        if (self.err) |err| return err;
+
+        if (self.getArray()) |arr| return arr.getSize() else |_| {}
+        if (self.getObject()) |obj| return obj.getSize() else |_| {}
+        return error.IncorrectType;
     }
 
     pub fn skip(self: Visitor) Error!void {
@@ -287,7 +340,6 @@ const Visitor = struct {
 
     fn getUnsafeString(self: Visitor) Error![]const u8 {
         var t = &self.document.tokens;
-        errdefer t.jumpBack(t.token);
 
         _ = t.consume(1, .none);
         const chars = &self.document.chars;
@@ -299,7 +351,6 @@ const Visitor = struct {
         } else {
             Logger.log(self.document.*, "string", self.depth);
         }
-        self.document.depth -= 1;
         return chars.items[next_str..][0..next_len];
     }
 };
@@ -310,22 +361,23 @@ const Array = struct {
     pub fn next(self: Array) Error!?Visitor {
         const doc = self.visitor.document;
         const t = &doc.tokens;
-        _ = t.next(.none).?;
-        if (self.visitor.token + 1 == t.token) {
-            const q = t.next(.none) orelse return error.IncompleteObject;
-            if (q == ']') {
-                self.visitor.documenactual_depth.* -= 1;
+        if (self.visitor.token == t.token) {
+            _ = t.next(.none) orelse return error.IncompleteArray;
+            if (t.peek() == ']') {
+                _ = t.next(.none) orelse {};
+                self.visitor.document.depth -= 1;
                 return null;
             }
             return self.getVisitor();
         }
-        const p = t.next(.none) orelse return error.IncompleteObject;
-        switch (p) {
+        switch (t.peek()) {
             ',' => {
+                _ = t.next(.none) orelse return error.IncompleteArray;
                 return self.getVisitor();
             },
             ']' => {
-                self.visitor.documenactual_depth.* -= 1;
+                _ = t.next(.none) orelse {};
+                self.visitor.document.depth -= 1;
                 return null;
             },
             else => return error.ExpectedArrayCommaOrEnd,
@@ -336,9 +388,9 @@ const Array = struct {
         self.visitor.skip();
     }
 
-    pub fn at(self: Array, index: usize) Error!Visitor {
-        var i: usize = 0;
-        while (try self.next()) |el| : (i += 1) if (i == index) return el;
+    pub fn at(self: Array, index: u32) Error!Visitor {
+        var i: u32 = 0;
+        while (try self.next()) |v| : (i += 1) if (i == index) return v else try v.skip();
         return error.IndexOutOfBounds;
     }
 
@@ -348,15 +400,16 @@ const Array = struct {
 
     pub fn getSize(self: Array) Error!u32 {
         var count: u32 = 0;
-        while (try self.next()) |_| count += 1;
+        while (try self.next()) |v| : (try v.skip()) count += 1;
         return count;
     }
 
     fn getVisitor(self: Array) Visitor {
+        self.visitor.document.depth += 1;
         return Visitor{
             .document = self.visitor.document,
             .token = self.visitor.document.tokens.token,
-            .depth = self.visitor.documenactual_depth.*,
+            .depth = self.visitor.document.depth,
         };
     }
 };
@@ -379,6 +432,7 @@ const Object = struct {
         if (self.visitor.token == t.token) {
             _ = t.next(.none) orelse return error.IncompleteObject;
             if (t.peek() == '}') {
+                _ = t.next(.none) orelse {};
                 self.visitor.document.depth -= 1;
                 return null;
             }
@@ -390,6 +444,7 @@ const Object = struct {
                 return try self.getField();
             },
             '}' => {
+                _ = t.next(.none) orelse {};
                 self.visitor.document.depth -= 1;
                 return null;
             },
@@ -402,7 +457,7 @@ const Object = struct {
     }
 
     pub fn at(self: Object, key: []const u8) Error!Visitor {
-        while (try self.next()) |field| if (std.mem.eql(u8, try field.key, key)) return field.value else field.skip();
+        while (try self.next()) |field| if (std.mem.eql(u8, field.key, key)) return field.value else try field.skip();
         return error.MissingField;
     }
 
@@ -412,24 +467,25 @@ const Object = struct {
 
     pub fn getSize(self: Object) Error!u32 {
         var count: u32 = 0;
-        while (try self.next()) |_| count += 1;
+        while (try self.next()) |field| : (try field.skip()) count += 1;
         return count;
     }
 
     fn getField(self: Object) Error!Field {
         const doc = self.visitor.document;
-        const t = &doc.tokens;
+        var t = &doc.tokens;
         var key_visitor = Visitor{
             .document = doc,
             .token = t.token,
             .depth = self.visitor.document.depth,
         };
+        errdefer t.jumpBack(t.token);
         const quote = t.next(.none) orelse return error.IncompleteObject;
         if (quote != '"') return error.ExpectedKeyAsString;
         const key = try key_visitor.getUnsafeString();
         const colon = t.next(.none) orelse return error.IncompleteObject;
         if (colon != ':') return error.ExpectedColon;
-        self.visitor.document.depth += 2;
+        self.visitor.document.depth += 1;
         return .{
             .key = key,
             .value = .{
@@ -443,10 +499,12 @@ const Object = struct {
 
 const Logger = struct {
     pub fn logDepth(expected: u32, actual: u32) void {
+        if (true) return;
         std.log.info(" SKIP     Wanted depth: {}, actual: {}", .{ expected, actual });
     }
 
     pub fn logStart(parser: Parser, label: []const u8, depth: u32) void {
+        if (true) return;
         const t = parser.tokens;
         var buffer = t.ptr[0..Vector.LEN_BYTES].*;
         for (&buffer) |*b| {
@@ -457,6 +515,7 @@ const Logger = struct {
         std.log.info("+{s} | {s} | depth: {} | next: {c}", .{ label, buffer, depth, t.peek() });
     }
     pub fn log(parser: Parser, label: []const u8, depth: u32) void {
+        if (true) return;
         const t = parser.tokens;
         var buffer = t.ptr[0..Vector.LEN_BYTES].*;
         for (&buffer) |*b| {
@@ -467,6 +526,7 @@ const Logger = struct {
         std.log.info(" {s} | {s} | depth: {} | next: {c}", .{ label, buffer, depth, t.peek() });
     }
     pub fn logEnd(parser: Parser, label: []const u8, depth: u32) void {
+        if (true) return;
         const t = parser.tokens;
         var buffer = t.ptr[0..Vector.LEN_BYTES].*;
         for (&buffer) |*b| {

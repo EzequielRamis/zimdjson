@@ -12,25 +12,15 @@
         pkgs = import nixpkgs {
           inherit system;
           overlays = [
-            (final: prev: {
+            (final: prev: rec {
               zig = inputs.zig.packages.${system}."0.13.0";
               zls = inputs.zls.packages.${system}.default;
+              tracy = import ./pkgs/tracy.nix { inherit pkgs inputs; };
             })
           ];
         };
       in {
-        devShell = pkgs.mkShell {
-          buildInputs = with pkgs; [
-            zig
-            zls
-            gdb
-            valgrind-light
-            poop
-            clang-tools
-            ccls
-            clang
-            kcachegrind
-          ];
-        };
+        devShell =
+          pkgs.mkShell { buildInputs = with pkgs; [ zig zls tracy poop ]; };
       });
 }

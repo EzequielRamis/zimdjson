@@ -1,4 +1,5 @@
 const std = @import("std");
+const tracy = @import("tracy");
 const common = @import("common.zig");
 const types = @import("types.zig");
 const intr = @import("intrinsics.zig");
@@ -49,6 +50,9 @@ pub fn deinit(self: *Self) void {
 }
 
 pub fn index(self: *Self, document: []const u8) !void {
+    const tracer = tracy.traceNamed(@src(), "Indexer");
+    defer tracer.end();
+
     self.reader.read(document);
     try self.indexes.ensureTotalCapacity(self.reader.document.len);
     self.indexes.shrinkRetainingCapacity(0);

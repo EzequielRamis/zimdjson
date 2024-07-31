@@ -50,6 +50,7 @@ pub const Parser = struct {
 
         try self.chars.ensureTotalCapacity(t.indexer.reader.document.len + Vector.LEN_BYTES);
         self.chars.shrinkRetainingCapacity(0);
+        self.depth = 1;
 
         return Visitor{
             .document = self,
@@ -120,7 +121,8 @@ const Visitor = struct {
         if (self.err) |err| return err;
 
         var t = &self.document.tokens;
-        errdefer t.jumpBack(t.token);
+        const curr = t.token;
+        errdefer t.jumpBack(curr);
         _ = t.next(.none) orelse return error.ExpectedValue;
 
         const n = try NumberParser.parse(.none, t);
@@ -133,7 +135,8 @@ const Visitor = struct {
         if (self.err) |err| return err;
 
         var t = &self.document.tokens;
-        errdefer t.jumpBack(t.token);
+        const curr = t.token;
+        errdefer t.jumpBack(curr);
         _ = t.next(.none) orelse return error.ExpectedValue;
 
         const n = try NumberParser.parseUnsigned(.none, t);
@@ -146,7 +149,8 @@ const Visitor = struct {
         if (self.err) |err| return err;
 
         var t = &self.document.tokens;
-        errdefer t.jumpBack(t.token);
+        const curr = t.token;
+        errdefer t.jumpBack(curr);
         _ = t.next(.none) orelse return error.ExpectedValue;
 
         const n = try NumberParser.parseSigned(.none, t);
@@ -159,7 +163,8 @@ const Visitor = struct {
         if (self.err) |err| return err;
 
         var t = &self.document.tokens;
-        errdefer t.jumpBack(t.token);
+        const curr = t.token;
+        errdefer t.jumpBack(curr);
         _ = t.next(.none) orelse return error.ExpectedValue;
 
         const n = try NumberParser.parseFloat(.none, t);
@@ -172,7 +177,8 @@ const Visitor = struct {
         if (self.err) |err| return err;
 
         var t = &self.document.tokens;
-        errdefer t.jumpBack(t.token);
+        const curr = t.token;
+        errdefer t.jumpBack(curr);
         if (!self.isString()) return error.IncorrectType;
         _ = t.next(.none) orelse {};
 
@@ -185,7 +191,8 @@ const Visitor = struct {
         if (self.err) |err| return err;
 
         var t = &self.document.tokens;
-        errdefer t.jumpBack(t.token);
+        const curr = t.token;
+        errdefer t.jumpBack(curr);
         _ = t.next(.none) orelse return error.ExpectedValue;
 
         const is_true = try parsers.checkBool(TOKEN_OPTIONS, t.*);
@@ -199,7 +206,8 @@ const Visitor = struct {
         if (self.err) |err| return err;
 
         var t = &self.document.tokens;
-        errdefer t.jumpBack(t.token);
+        const curr = t.token;
+        errdefer t.jumpBack(curr);
         _ = t.next(.none) orelse return error.ExpectedValue;
 
         try parsers.checkNull(TOKEN_OPTIONS, t.*);
@@ -224,7 +232,6 @@ const Visitor = struct {
             '[' => .{ .array = try self.getArray() },
             '{' => .{ .object = try self.getObject() },
             else => {
-                t.jumpBack(t.token);
                 return error.ExpectedValue;
             },
         };
@@ -479,7 +486,8 @@ const Object = struct {
             .token = t.token,
             .depth = self.visitor.document.depth,
         };
-        errdefer t.jumpBack(t.token);
+        const curr = t.token;
+        errdefer t.jumpBack(curr);
         const quote = t.next(.none) orelse return error.IncompleteObject;
         if (quote != '"') return error.ExpectedKeyAsString;
         const key = try key_visitor.getUnsafeString();

@@ -1,4 +1,5 @@
 const std = @import("std");
+const tracy = @import("tracy");
 const common = @import("common.zig");
 const types = @import("types.zig");
 const parsers = @import("parsers.zig");
@@ -88,6 +89,9 @@ pub fn build(self: *Self, doc: []const u8) !void {
     const t = &self.tokens;
     try t.build(doc);
 
+    const tracer = tracy.traceNamed(@src(), "Tape");
+    defer tracer.end();
+
     try self.chars.ensureTotalCapacity(t.indexer.reader.document.len + types.Vector.LEN_BYTES);
     try self.stack.ensureTotalCapacity(self.allocator, common.DEFAULT_MAX_DEPTH);
     try self.parsed.ensureTotalCapacity(self.allocator, t.indexer.indexes.items.len + 2);
@@ -142,7 +146,7 @@ inline fn dispatch(self: *Self, comptime phase: TokenPhase, next_state: State) E
 
 fn analyze_object_begin(self: *Self, comptime phase: TokenPhase) Error!void {
     assert(phase != .bounded);
-    log.info("OBJ BEGIN", .{});
+    // log.info("OBJ BEGIN", .{});
 
     if (self.stack.len >= common.DEFAULT_MAX_DEPTH)
         return error.ExceededDepth;
@@ -158,7 +162,7 @@ fn analyze_object_begin(self: *Self, comptime phase: TokenPhase) Error!void {
                 return self.dispatch(phase, .object_field);
             },
             '}' => {
-                log.info("OBJ END", .{});
+                // log.info("OBJ END", .{});
                 return self.dispatch(phase, .scope_end);
             },
             else => return error.ExpectedObjectCommaOrEnd,
@@ -181,7 +185,7 @@ fn resume_object_begin(self: *Self, comptime phase: TokenPhase) Error!void {
             return self.dispatch(.padded, .object_field);
         },
         '}' => {
-            log.info("OBJ END", .{});
+            // log.info("OBJ END", .{});
             return self.dispatch(.padded, .scope_end);
         },
         else => return error.ExpectedObjectCommaOrEnd,
@@ -274,7 +278,7 @@ fn analyze_object_continue(self: *Self, comptime phase: TokenPhase) Error!void {
                 }
             },
             '}' => {
-                log.info("OBJ END", .{});
+                // log.info("OBJ END", .{});
                 return self.dispatch(phase, .scope_end);
             },
             else => return error.ExpectedObjectCommaOrEnd,
@@ -305,7 +309,7 @@ fn resume_object_continue_comma(self: *Self, comptime phase: TokenPhase) Error!v
             }
         },
         '}' => {
-            log.info("OBJ END", .{});
+            // log.info("OBJ END", .{});
             return self.dispatch(.padded, .scope_end);
         },
         else => return error.ExpectedObjectCommaOrEnd,
@@ -325,7 +329,7 @@ fn resume_object_continue_key(self: *Self, comptime phase: TokenPhase) Error!voi
 
 fn analyze_array_begin(self: *Self, comptime phase: TokenPhase) Error!void {
     assert(phase != .bounded);
-    log.info("ARR BEGIN", .{});
+    // log.info("ARR BEGIN", .{});
 
     if (self.stack.len >= common.DEFAULT_MAX_DEPTH)
         return error.ExceededDepth;
@@ -335,7 +339,7 @@ fn analyze_array_begin(self: *Self, comptime phase: TokenPhase) Error!void {
 
     if (self.tokens.next(phase)) |t| {
         if (t == ']') {
-            log.info("ARR END", .{});
+            // log.info("ARR END", .{});
             return self.dispatch(phase, .scope_end);
         }
         self.increment_container_count();
@@ -360,7 +364,7 @@ fn resume_array_begin(self: *Self, comptime phase: TokenPhase) Error!void {
     assert(phase == .bounded);
     const t = self.tokens.next(phase).?;
     if (t == ']') {
-        log.info("ARR END", .{});
+        // log.info("ARR END", .{});
         return self.dispatch(.padded, .scope_end);
     }
     self.increment_container_count();
@@ -417,7 +421,7 @@ fn analyze_array_continue(self: *Self, comptime phase: TokenPhase) Error!void {
                 return self.dispatch(phase, .array_value);
             },
             ']' => {
-                log.info("ARR END", .{});
+                // log.info("ARR END", .{});
                 return self.dispatch(phase, .scope_end);
             },
             else => return error.ExpectedArrayCommaOrEnd,
@@ -438,7 +442,7 @@ fn resume_array_continue(self: *Self, comptime phase: TokenPhase) Error!void {
             return self.dispatch(.padded, .array_value);
         },
         ']' => {
-            log.info("ARR END", .{});
+            // log.info("ARR END", .{});
             return self.dispatch(.padded, .scope_end);
         },
         else => return error.ExpectedArrayCommaOrEnd,
@@ -525,7 +529,7 @@ fn visit_string(self: *Self, comptime phase: TokenPhase) Error!void {
     try parsers.writeString(TOKEN_OPTIONS, phase, t, chars);
     const next_len = chars.items.len - next_str;
     self.parsed.appendAssumeCapacity(.{ .string = .{ .ptr = @truncate(next_str), .len = @truncate(next_len) } });
-    log.info("STR {s}", .{chars.items[next_str..][0..next_len]});
+    // log.info("STR {s}", .{chars.items[next_str..][0..next_len]});
 }
 
 fn visit_number(self: *Self, comptime phase: TokenPhase) Error!void {
@@ -534,15 +538,15 @@ fn visit_number(self: *Self, comptime phase: TokenPhase) Error!void {
     switch (number) {
         .float => |n| {
             self.parsed.appendAssumeCapacity(.{ .float = n });
-            log.info("FLT {d}", .{n});
+            // log.info("FLT {d}", .{n});
         },
         .signed => |n| {
             self.parsed.appendAssumeCapacity(.{ .signed = n });
-            log.info("INT {d}", .{n});
+            // log.info("INT {d}", .{n});
         },
         .unsigned => |n| {
             self.parsed.appendAssumeCapacity(.{ .unsigned = n });
-            log.info("UNT {d}", .{n});
+            // log.info("UNT {d}", .{n});
         },
     }
 }
@@ -551,19 +555,19 @@ fn visit_true(self: *Self) Error!void {
     const t = self.tokens;
     try parsers.checkTrue(TOKEN_OPTIONS, t);
     self.parsed.appendAssumeCapacity(.true);
-    log.info("TRU", .{});
+    // log.info("TRU", .{});
 }
 
 fn visit_false(self: *Self) Error!void {
     const t = self.tokens;
     try parsers.checkFalse(TOKEN_OPTIONS, t);
     self.parsed.appendAssumeCapacity(.false);
-    log.info("FAL", .{});
+    // log.info("FAL", .{});
 }
 
 fn visit_null(self: *Self) Error!void {
     const t = self.tokens;
     try parsers.checkNull(TOKEN_OPTIONS, t);
     self.parsed.appendAssumeCapacity(.null);
-    log.info("NUL", .{});
+    // log.info("NUL", .{});
 }

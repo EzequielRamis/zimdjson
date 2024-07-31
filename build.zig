@@ -14,10 +14,12 @@ pub fn build(b: *std.Build) !void {
 
     var lazy_simdjson_data: ?*std.Build.Dependency = null;
     var lazy_float_data: ?*std.Build.Dependency = null;
+    var enable_tracy = false;
 
     var args = try std.process.argsWithAllocator(alloc);
     defer args.deinit();
     while (args.next()) |a| {
+        if (std.mem.startsWith(u8, a, "profile")) enable_tracy = true;
         if (std.mem.startsWith(u8, a, "test")) lazy_simdjson_data = b.lazyDependency("simdjson-data", .{});
         if (std.mem.eql(u8, a, "test") or
             std.mem.eql(u8, a, "test/float-parsing")) lazy_float_data = b.lazyDependency("parse_number_fxx", .{});
@@ -64,31 +66,26 @@ pub fn build(b: *std.Build) !void {
     }
     // --
 
-    // -- Benchmarking
-    // const simdjson_dep = b.dependency("simdjson", .{});
-    // const simdjson_cpp =
-    //     simdjson_dep.path("singleheader/simdjson.cpp");
-    // const simdjson_h = simdjson_dep.path("singleheader/simdjson.h");
-    // const simdjson = b.addStaticLibrary(.{
-    //     .name = "simdjson",
-    //     .target = target,
-    //     .optimize = .ReleaseFast,
-    // });
-    // simdjson.linkLibCpp();
-    // simdjson.addCSourceFile(.{ .file = simdjson_cpp });
-    // simdjson.installHeader(simdjson_h, "simdjson.h");
-    // const bench_step = b.step("bench", "Benchmark against simdjson");
-    // bench_step.dependOn(&simdjson.step);
-    // --
+    // -- Profiling
+    const tracy_module = getTracyModule(b, .{
+        .target = target,
+        .optimize = optimize,
+        .enable = enable_tracy,
+    });
+    zimdjson.addImport("tracy", tracy_module);
+    const tracy_example = b.addExecutable(.{
+        .name = "tracy_example",
+        .root_source_file = b.path("profile/tracy_example.zig"),
+        .target = b.host,
+        .optimize = optimize,
+    });
+    tracy_example.root_module.addImport("zimdjson", zimdjson);
+    tracy_example.root_module.addImport("tracy", tracy_module);
+    const run_tracy_example = b.addRunArtifact(tracy_example);
 
-    // -- C API
-    // const lib = b.addStaticLibrary(.{
-    //     .name = "zimdjson",
-    //     .root_source_file = b.path("src/c.zig"),
-    //     .target = target,
-    //     .optimize = optimize,
-    // });
-    // b.installArtifact(lib);
+    const tracy_step = b.step("profile", "Profile using tracy");
+    tracy_step.dependOn(&tracy_example.step);
+    tracy_step.dependOn(&run_tracy_example.step);
     // --
 }
 
@@ -99,4 +96,30 @@ fn addSimdjsonDataPath(b: *std.Build, module: *std.Build.Module, dep: *std.Build
             dep.path(".").getPath(b),
         ),
     });
+}
+
+fn getTracyModule(
+    b: *std.Build,
+    options: struct {
+        target: std.Build.ResolvedTarget,
+        optimize: std.builtin.OptimizeMode,
+        enable: bool,
+    },
+) *std.Build.Module {
+    const tracy_options = b.addOptions();
+    tracy_options.step.name = "tracy options";
+    tracy_options.addOption(bool, "enable", options.enable);
+
+    const tracy_module = b.addModule("tracy", .{
+        .root_source_file = b.path("src/tracy.zig"),
+        .target = options.target,
+        .optimize = options.optimize,
+    });
+    tracy_module.addImport("options", tracy_options.createModule());
+    if (!options.enable) return tracy_module;
+
+    tracy_module.link_libc = true;
+    tracy_module.linkSystemLibrary("TracyClient", .{});
+
+    return tracy_module;
 }

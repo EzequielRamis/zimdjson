@@ -33,7 +33,7 @@ pub fn Iterator(comptime options: Options) type {
         padding_ptr: if (copy_bounded) void else [*]const u8 = undefined,
         ptr: [*]const u8 = undefined,
         bounded_token: usize = undefined,
-        token: u32 = 0,
+        token: u32 = undefined,
 
         pub fn init(allocator: Allocator) Self {
             return .{
@@ -58,6 +58,7 @@ pub fn Iterator(comptime options: Options) type {
                 if (t <= padding_bound) break;
             }
             const padding_ptr = doc[padding_bound..].ptr;
+            self.token = 0;
             self.bounded_token = bounded_token;
             self.ptr = doc.ptr;
             if (copy_bounded) {
@@ -116,13 +117,11 @@ pub fn Iterator(comptime options: Options) type {
                         if (copy_bounded) {
                             const padding_ptr = @intFromPtr(doc[b..].ptr);
                             const offset_ptr = index_ptr - padding_ptr;
-                            const padding = self.padding.items;
-                            self.ptr = padding[offset_ptr..].ptr;
+                            self.ptr = self.padding.items[offset_ptr..].ptr;
                         } else {
                             const padding_ptr = @intFromPtr(self.padding_ptr);
                             const offset_ptr = index_ptr - padding_ptr;
-                            const padding = self.padding;
-                            self.ptr = padding[offset_ptr..].ptr;
+                            self.ptr = self.padding[offset_ptr..].ptr;
                         }
 
                         return doc[i];
@@ -142,13 +141,14 @@ pub fn Iterator(comptime options: Options) type {
             return self.document()[self.indexes()[self.token]];
         }
 
-        pub fn jumpBack(self: *Self, index: usize) void {
+        pub fn jumpBack(self: *Self, index: u32) void {
             comptime assert(copy_bounded);
             assert(index <= self.token);
 
             const doc = self.document();
             const ixs = self.indexes();
 
+            defer self.token = index;
             const i = ixs[index];
             const b = ixs[self.bounded_token];
 
@@ -158,8 +158,7 @@ pub fn Iterator(comptime options: Options) type {
                 const index_ptr = @intFromPtr(doc[i..].ptr);
                 const padding_ptr = @intFromPtr(doc[b..].ptr);
                 const offset_ptr = index_ptr - padding_ptr;
-                const padding = self.padding.items;
-                self.ptr = padding[offset_ptr..].ptr;
+                self.ptr = self.padding.items[offset_ptr..].ptr;
             }
         }
 

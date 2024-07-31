@@ -111,6 +111,7 @@ const Visitor = struct {
         const w = self.tape.parsed.get(self.index);
         return switch (w) {
             .unsigned => |n| n,
+            .signed => |n| std.math.cast(u64, n) orelse error.NumberOutOfRange,
             else => error.IncorrectType,
         };
     }
@@ -121,6 +122,7 @@ const Visitor = struct {
         const w = self.tape.parsed.get(self.index);
         return switch (w) {
             .signed => |n| n,
+            .unsigned => |n| std.math.cast(i64, n) orelse error.NumberOutOfRange,
             else => error.IncorrectType,
         };
     }

@@ -2,99 +2,96 @@ const std = @import("std");
 
 pub fn build(b: *std.Build) !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-    const alloc = gpa.allocator();
+    const allocator = gpa.allocator();
+    defer _ = gpa.deinit();
 
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
+    var center = try CommandCenter.init(allocator, b);
+    defer center.deinit();
+
     const zimdjson = b.addModule("zimdjson", .{ .root_source_file = b.path("src/root.zig") });
 
     // -- Testing
-    const test_step = b.step("test", "Run all unit tests");
+    {
+        var com = center.command("test", "Run test suites");
 
-    var lazy_simdjson_data: ?*std.Build.Dependency = null;
-    var lazy_float_data: ?*std.Build.Dependency = null;
-    var enable_tracy = false;
-
-    var args = try std.process.argsWithAllocator(alloc);
-    defer args.deinit();
-    while (args.next()) |a| {
-        if (std.mem.startsWith(u8, a, "profile")) enable_tracy = true;
-        if (std.mem.startsWith(u8, a, "test")) lazy_simdjson_data = b.lazyDependency("simdjson-data", .{});
-        if (std.mem.eql(u8, a, "test") or
-            std.mem.eql(u8, a, "test/float-parsing")) lazy_float_data = b.lazyDependency("parse_number_fxx", .{});
-    }
-
-    const minefield_gen = b.addExecutable(.{
-        .name = "minefield_gen",
-        .root_source_file = b.path("tests/minefield_gen.zig"),
-        .target = b.host,
-    });
-    if (lazy_simdjson_data) |dep| addSimdjsonDataPath(b, &minefield_gen.root_module, dep);
-    const run_minefield_gen = b.addRunArtifact(minefield_gen);
-    _ = run_minefield_gen.addArg(b.path("tests/minefield.zig").getPath(b));
-
-    inline for ([_]struct { step: []const u8, name: []const u8, path: []const u8 }{
-        .{ .step = "test/minefield", .name = "minefield", .path = "tests/minefield.zig" },
-        .{ .step = "test/float-parsing", .name = "float parsing", .path = "tests/float_parsing.zig" },
-    }) |t| {
-        const unit_test = b.addTest(.{
-            .root_source_file = b.path(t.path),
-            .target = target,
-            .optimize = optimize,
-        });
-        unit_test.root_module.addImport("zimdjson", zimdjson);
-
-        if (lazy_simdjson_data) |dep| addSimdjsonDataPath(b, &unit_test.root_module, dep);
-
-        if (lazy_float_data) |dep| {
-            unit_test.root_module.addAnonymousImport("parse_number_fxx", .{
-                .root_source_file = b.addWriteFiles().add(
-                    "parse_number_fxx.txt",
-                    dep.path(".").getPath(b),
-                ),
+        {
+            const com_minefield = try com.sub("minefield", "Run minefield test suite");
+            const minefield_gen = b.addExecutable(.{
+                .name = "minefield_gen",
+                .root_source_file = b.path("tests/minefield_gen.zig"),
+                .target = b.host,
             });
+            const run_minefield_gen = b.addRunArtifact(minefield_gen);
+            _ = run_minefield_gen.addArg(b.path("tests/minefield.zig").getPath(b));
+
+            const minefield = b.addTest(.{
+                .root_source_file = b.path("tests/minefield.zig"),
+                .target = target,
+                .optimize = optimize,
+            });
+            if (com_minefield.with("simdjson-data")) |dep| {
+                addEmbeddedPath(b, minefield_gen, dep, "simdjson-data");
+                addEmbeddedPath(b, minefield, dep, "simdjson-data");
+            }
+            minefield.root_module.addImport("zimdjson", zimdjson);
+
+            const run_minefield = b.addRunArtifact(minefield);
+            run_minefield.step.dependOn(&run_minefield_gen.step);
+            com_minefield.dependOn(&run_minefield.step);
         }
 
-        const run_test = b.addRunArtifact(unit_test);
-        const run_test_step = b.step(t.step, "Run " ++ t.name ++ " unit tests");
-        run_test_step.dependOn(&run_test.step);
-        test_step.dependOn(&run_test.step);
-        if (std.mem.eql(u8, t.step, "test/minefield")) {
-            run_test.step.dependOn(&run_minefield_gen.step);
+        {
+            const com_float_parsing = try com.sub("float-parsing", "Run float parsing test suite");
+            const float_parsing = b.addTest(.{
+                .root_source_file = b.path("tests/float_parsing.zig"),
+                .target = target,
+                .optimize = optimize,
+            });
+            if (com_float_parsing.with("parse_number_fxx")) |dep| {
+                addEmbeddedPath(b, float_parsing, dep, "parse_number_fxx");
+            }
+            float_parsing.root_module.addImport("zimdjson", zimdjson);
+
+            const run_float_parsing = b.addRunArtifact(float_parsing);
+            com_float_parsing.dependOn(&run_float_parsing.step);
         }
     }
     // --
 
     // -- Profiling
-    const tracy_module = getTracyModule(b, .{
-        .target = target,
-        .optimize = optimize,
-        .enable = enable_tracy,
-    });
-    zimdjson.addImport("tracy", tracy_module);
-    const tracy_example = b.addExecutable(.{
-        .name = "tracy_example",
-        .root_source_file = b.path("profile/tracy_example.zig"),
-        .target = b.host,
-        .optimize = optimize,
-    });
-    tracy_example.root_module.addImport("zimdjson", zimdjson);
-    tracy_example.root_module.addImport("tracy", tracy_module);
-    const run_tracy_example = b.addRunArtifact(tracy_example);
+    {
+        var com = center.command("profile", "Profile using tracy");
+        var enable_tracy = false;
+        if (com.isExecuted()) enable_tracy = true;
 
-    const tracy_step = b.step("profile", "Profile using tracy");
-    tracy_step.dependOn(&tracy_example.step);
-    tracy_step.dependOn(&run_tracy_example.step);
+        const tracy_module = getTracyModule(b, .{
+            .target = target,
+            .optimize = optimize,
+            .enable = enable_tracy,
+        });
+        const profile = b.addExecutable(.{
+            .name = "tracy_example",
+            .root_source_file = b.path("profile/tracy_example.zig"),
+            .target = b.host,
+            .optimize = optimize,
+        });
+
+        zimdjson.addImport("tracy", tracy_module);
+        profile.root_module.addImport("zimdjson", zimdjson);
+        profile.root_module.addImport("tracy", tracy_module);
+
+        const run_profile = b.addRunArtifact(profile);
+        com.dependOn(&run_profile.step);
+    }
     // --
 }
 
-fn addSimdjsonDataPath(b: *std.Build, module: *std.Build.Module, dep: *std.Build.Dependency) void {
-    module.addAnonymousImport("simdjson-data", .{
-        .root_source_file = b.addWriteFiles().add(
-            "simdjson-data.txt",
-            dep.path(".").getPath(b),
-        ),
+fn addEmbeddedPath(b: *std.Build, compile: *std.Build.Step.Compile, dep: *std.Build.Dependency, alias: []const u8) void {
+    compile.root_module.addAnonymousImport(alias, .{
+        .root_source_file = b.addWriteFiles().add(alias, dep.path(".").getPath(b)),
     });
 }
 
@@ -123,3 +120,75 @@ fn getTracyModule(
 
     return tracy_module;
 }
+
+const CommandCenter = struct {
+    b: *std.Build,
+    allocator: std.mem.Allocator,
+    names: std.ArrayList(u8),
+    args: []const [:0]u8,
+
+    pub fn init(allocator: std.mem.Allocator, b: *std.Build) !CommandCenter {
+        const args = try std.process.argsAlloc(allocator);
+        return .{
+            .b = b,
+            .allocator = allocator,
+            .names = std.ArrayList(u8).init(allocator),
+            .args = args,
+        };
+    }
+
+    pub fn deinit(self: *CommandCenter) void {
+        self.names.deinit();
+        std.process.argsFree(self.allocator, self.args);
+    }
+
+    pub fn command(self: *CommandCenter, name: []const u8, description: []const u8) Command {
+        return .{
+            .center = self,
+            .step = self.b.step(name, description),
+        };
+    }
+};
+
+const Command = struct {
+    center: *CommandCenter,
+    step: *std.Build.Step,
+    parent: ?*const Command = null,
+
+    pub fn sub(self: *Command, name: []const u8, description: []const u8) !Command {
+        const name_ptr = self.center.names.items.len;
+        try self.center.names.appendSlice(self.step.name);
+        try self.center.names.append('/');
+        try self.center.names.appendSlice(name);
+        const name_len = self.step.name.len + 1 + name.len;
+        return .{
+            .center = self.center,
+            .parent = self,
+            .step = self.center.b.step(self.center.names.items[name_ptr..][0..name_len], description),
+        };
+    }
+
+    pub fn isExecuted(self: Command) bool {
+        for (self.center.args) |arg| {
+            var prefix: ?*const Command = &self;
+            while (prefix) |p| : (prefix = p.parent) {
+                if (std.mem.eql(u8, arg, p.step.name)) return true;
+            }
+        }
+        return false;
+    }
+
+    pub fn with(self: Command, dependency: []const u8) ?*std.Build.Dependency {
+        return if (self.isExecuted())
+            self.center.b.lazyDependency(dependency, .{})
+        else
+            null;
+    }
+
+    pub fn dependOn(self: Command, step: *std.Build.Step) void {
+        var prefix: ?*const Command = &self;
+        while (prefix) |p| : (prefix = p.parent) {
+            p.step.dependOn(step);
+        }
+    }
+};

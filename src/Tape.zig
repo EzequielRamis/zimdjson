@@ -2,7 +2,6 @@ const std = @import("std");
 const tracy = @import("tracy");
 const common = @import("common.zig");
 const types = @import("types.zig");
-const parsers = @import("parsers.zig");
 const tokens = @import("tokens.zig");
 const ArrayList = std.ArrayList;
 const MultiArrayList = std.MultiArrayList;
@@ -526,7 +525,8 @@ fn visit_string(self: *Self, comptime phase: TokenPhase) Error!void {
     _ = t.consume(1, phase);
     const chars = &self.chars;
     const next_str = chars.items.len;
-    try parsers.writeString(TOKEN_OPTIONS, phase, t, chars);
+    const parse = @import("parsers/string.zig").writeString;
+    try parse(TOKEN_OPTIONS, phase, t, chars);
     const next_len = chars.items.len - next_str;
     self.parsed.appendAssumeCapacity(.{ .string = .{ .ptr = @truncate(next_str), .len = @truncate(next_len) } });
     // log.info("STR {s}", .{chars.items[next_str..][0..next_len]});
@@ -534,7 +534,8 @@ fn visit_string(self: *Self, comptime phase: TokenPhase) Error!void {
 
 fn visit_number(self: *Self, comptime phase: TokenPhase) Error!void {
     const t = &self.tokens;
-    const number = try parsers.Number(TOKEN_OPTIONS).parse(phase, t);
+    const parser = @import("parsers/number/parser.zig").Parser(TOKEN_OPTIONS);
+    const number = try parser.parse(phase, t);
     switch (number) {
         .float => |n| {
             self.parsed.appendAssumeCapacity(.{ .float = n });
@@ -553,21 +554,24 @@ fn visit_number(self: *Self, comptime phase: TokenPhase) Error!void {
 
 fn visit_true(self: *Self) Error!void {
     const t = self.tokens;
-    try parsers.checkTrue(TOKEN_OPTIONS, t);
+    const check = @import("parsers/atoms.zig").checkTrue;
+    try check(TOKEN_OPTIONS, t);
     self.parsed.appendAssumeCapacity(.true);
     // log.info("TRU", .{});
 }
 
 fn visit_false(self: *Self) Error!void {
     const t = self.tokens;
-    try parsers.checkFalse(TOKEN_OPTIONS, t);
+    const check = @import("parsers/atoms.zig").checkFalse;
+    try check(TOKEN_OPTIONS, t);
     self.parsed.appendAssumeCapacity(.false);
     // log.info("FAL", .{});
 }
 
 fn visit_null(self: *Self) Error!void {
     const t = self.tokens;
-    try parsers.checkNull(TOKEN_OPTIONS, t);
+    const check = @import("parsers/atoms.zig").checkNull;
+    try check(TOKEN_OPTIONS, t);
     self.parsed.appendAssumeCapacity(.null);
     // log.info("NUL", .{});
 }

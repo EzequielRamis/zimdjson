@@ -2,7 +2,6 @@ const std = @import("std");
 const common = @import("common.zig");
 const types = @import("types.zig");
 const intr = @import("intrinsics.zig");
-const parsers = @import("parsers.zig");
 const tokens = @import("tokens.zig");
 const ArrayList = std.ArrayList;
 const Indexer = @import("Indexer.zig");
@@ -13,7 +12,6 @@ const TokenOptions = tokens.Options;
 const Allocator = std.mem.Allocator;
 const Error = types.Error;
 const Number = types.Number;
-const NumberParser = parsers.Number(TOKEN_OPTIONS);
 const vector = types.vector;
 const log = std.log;
 const assert = std.debug.assert;
@@ -21,6 +19,8 @@ const assert = std.debug.assert;
 const TOKEN_OPTIONS = TokenOptions{
     .copy_bounded = true,
 };
+
+const NumberParser = @import("parsers/number/parser.zig").Parser(TOKEN_OPTIONS);
 
 pub const Parser = struct {
     const Buffer = std.ArrayListAligned(u8, types.Vector.LEN_BYTES);
@@ -195,7 +195,8 @@ const Visitor = struct {
         errdefer t.jumpBack(curr);
         _ = t.next(.none) orelse return error.ExpectedValue;
 
-        const is_true = try parsers.checkBool(TOKEN_OPTIONS, t.*);
+        const check = @import("parsers/atoms.zig").checkBool;
+        const is_true = try check(TOKEN_OPTIONS, t.*);
         _ = t.consume(if (is_true) 4 else 5, .none);
         Logger.log(self.document.*, "bool  ", self.depth);
         self.document.depth -= 1;
@@ -210,7 +211,8 @@ const Visitor = struct {
         errdefer t.jumpBack(curr);
         _ = t.next(.none) orelse return error.ExpectedValue;
 
-        try parsers.checkNull(TOKEN_OPTIONS, t.*);
+        const check = @import("parsers/atoms.zig").checkNull;
+        try check(TOKEN_OPTIONS, t.*);
         _ = t.consume(4, .none);
         Logger.log(self.document.*, "null  ", self.depth);
         self.document.depth -= 1;
@@ -351,7 +353,8 @@ const Visitor = struct {
         _ = t.consume(1, .none);
         const chars = &self.document.chars;
         const next_str = chars.items.len;
-        try parsers.writeString(TOKEN_OPTIONS, .none, t, chars);
+        const parse = @import("parsers/string.zig").writeString;
+        try parse(TOKEN_OPTIONS, .none, t, chars);
         const next_len = chars.items.len - next_str;
         if (t.peek() == ':') {
             Logger.log(self.document.*, "key   ", self.depth);

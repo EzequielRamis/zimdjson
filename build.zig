@@ -15,7 +15,23 @@ pub fn build(b: *std.Build) !void {
 
     // -- Testing
     {
-        var com = center.command("test", "Run test suites");
+        var com = center.command("test", "Run all test suites");
+
+        {
+            const com_float_parsing = try com.sub("float-parsing", "Run float parsing test suite");
+            const float_parsing = b.addTest(.{
+                .root_source_file = b.path("tests/float_parsing.zig"),
+                .target = target,
+                .optimize = optimize,
+            });
+            if (com_float_parsing.with("parse_number_fxx")) |dep| {
+                addEmbeddedPath(b, float_parsing, dep, "parse_number_fxx");
+            }
+            float_parsing.root_module.addImport("zimdjson", zimdjson);
+
+            const run_float_parsing = b.addRunArtifact(float_parsing);
+            com_float_parsing.dependOn(&run_float_parsing.step);
+        }
 
         {
             const com_minefield = try com.sub("minefield", "Run minefield test suite");
@@ -44,19 +60,55 @@ pub fn build(b: *std.Build) !void {
         }
 
         {
-            const com_float_parsing = try com.sub("float-parsing", "Run float parsing test suite");
-            const float_parsing = b.addTest(.{
-                .root_source_file = b.path("tests/float_parsing.zig"),
+            const com_adversarial = try com.sub("adversarial", "Run adversarial test suite");
+            const adversarial_gen = b.addExecutable(.{
+                .name = "adversarial_gen",
+                .root_source_file = b.path("tests/adversarial_gen.zig"),
+                .target = b.host,
+            });
+            const run_adversarial_gen = b.addRunArtifact(adversarial_gen);
+            _ = run_adversarial_gen.addArg(b.path("tests/adversarial.zig").getPath(b));
+
+            const adversarial = b.addTest(.{
+                .root_source_file = b.path("tests/adversarial.zig"),
                 .target = target,
                 .optimize = optimize,
             });
-            if (com_float_parsing.with("parse_number_fxx")) |dep| {
-                addEmbeddedPath(b, float_parsing, dep, "parse_number_fxx");
+            if (com_adversarial.with("simdjson-data")) |dep| {
+                addEmbeddedPath(b, adversarial_gen, dep, "simdjson-data");
+                addEmbeddedPath(b, adversarial, dep, "simdjson-data");
             }
-            float_parsing.root_module.addImport("zimdjson", zimdjson);
+            adversarial.root_module.addImport("zimdjson", zimdjson);
 
-            const run_float_parsing = b.addRunArtifact(float_parsing);
-            com_float_parsing.dependOn(&run_float_parsing.step);
+            const run_adversarial = b.addRunArtifact(adversarial);
+            run_adversarial.step.dependOn(&run_adversarial_gen.step);
+            com_adversarial.dependOn(&run_adversarial.step);
+        }
+
+        {
+            const com_examples = try com.sub("examples", "Run examples test suite");
+            const examples_gen = b.addExecutable(.{
+                .name = "examples_gen",
+                .root_source_file = b.path("tests/examples_gen.zig"),
+                .target = b.host,
+            });
+            const run_examples_gen = b.addRunArtifact(examples_gen);
+            _ = run_examples_gen.addArg(b.path("tests/examples.zig").getPath(b));
+
+            const examples = b.addTest(.{
+                .root_source_file = b.path("tests/examples.zig"),
+                .target = target,
+                .optimize = optimize,
+            });
+            if (com_examples.with("simdjson-data")) |dep| {
+                addEmbeddedPath(b, examples_gen, dep, "simdjson-data");
+                addEmbeddedPath(b, examples, dep, "simdjson-data");
+            }
+            examples.root_module.addImport("zimdjson", zimdjson);
+
+            const run_examples = b.addRunArtifact(examples);
+            run_examples.step.dependOn(&run_examples_gen.step);
+            com_examples.dependOn(&run_examples.step);
         }
     }
     // --

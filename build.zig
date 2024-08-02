@@ -40,11 +40,12 @@ pub fn build(b: *std.Build) !void {
                 .root_source_file = b.path("tests/minefield_gen.zig"),
                 .target = b.host,
             });
+            const path = b.path("tests/minefield.zig");
             const run_minefield_gen = b.addRunArtifact(minefield_gen);
-            _ = run_minefield_gen.addArg(b.path("tests/minefield.zig").getPath(b));
+            run_minefield_gen.addArg(path.getPath(b));
 
             const minefield = b.addTest(.{
-                .root_source_file = b.path("tests/minefield.zig"),
+                .root_source_file = path,
                 .target = target,
                 .optimize = optimize,
             });
@@ -66,11 +67,12 @@ pub fn build(b: *std.Build) !void {
                 .root_source_file = b.path("tests/adversarial_gen.zig"),
                 .target = b.host,
             });
+            const path = b.path("tests/adversarial.zig");
             const run_adversarial_gen = b.addRunArtifact(adversarial_gen);
-            _ = run_adversarial_gen.addArg(b.path("tests/adversarial.zig").getPath(b));
+            run_adversarial_gen.addArg(path.getPath(b));
 
             const adversarial = b.addTest(.{
-                .root_source_file = b.path("tests/adversarial.zig"),
+                .root_source_file = path,
                 .target = target,
                 .optimize = optimize,
             });
@@ -92,11 +94,12 @@ pub fn build(b: *std.Build) !void {
                 .root_source_file = b.path("tests/examples_gen.zig"),
                 .target = b.host,
             });
+            const path = b.path("tests/examples.zig");
             const run_examples_gen = b.addRunArtifact(examples_gen);
-            _ = run_examples_gen.addArg(b.path("tests/examples.zig").getPath(b));
+            run_examples_gen.addArg(path.getPath(b));
 
             const examples = b.addTest(.{
-                .root_source_file = b.path("tests/examples.zig"),
+                .root_source_file = path,
                 .target = target,
                 .optimize = optimize,
             });

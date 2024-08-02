@@ -68,27 +68,27 @@ pub fn main() !void {
         if (!is_excluded) {
             try checker_zig_content.appendSlice("test \"");
             try checker_zig_content.appendSlice(identifier);
-            try checker_zig_content.appendSlice("\"{\n");
+            try checker_zig_content.appendSlice("\" {\n");
             try checker_zig_content.appendSlice(
-                \\  const allocator = std.testing.allocator;
-                \\  var parser = DOM.Parser.init(allocator);
-                \\  defer parser.deinit();
+                \\    const allocator = std.testing.allocator;
+                \\    var parser = DOM.Parser.init(allocator);
+                \\    defer parser.deinit();
                 \\
             );
             if (is_pass) {
-                try checker_zig_content.appendSlice("  _ = try parser.load(SIMDJSON_DATA ++ \"/jsonchecker/");
+                try checker_zig_content.appendSlice("    _ = try parser.load(SIMDJSON_DATA ++ \"/jsonchecker/");
                 if (is_minefield) try checker_zig_content.appendSlice("minefield/");
                 try checker_zig_content.appendSlice(file);
                 try checker_zig_content.appendSlice(
                     \\");
                 );
             } else {
-                try checker_zig_content.appendSlice("  _ = parser.load(SIMDJSON_DATA ++ \"/jsonchecker/");
+                try checker_zig_content.appendSlice("    _ = parser.load(SIMDJSON_DATA ++ \"/jsonchecker/");
                 if (is_minefield) try checker_zig_content.appendSlice("minefield/");
                 try checker_zig_content.appendSlice(file);
                 try checker_zig_content.appendSlice(
                     \\") catch return;
-                    \\  return error.MustHaveFailed;
+                    \\    return error.MustHaveFailed;
                 );
             }
             try checker_zig_content.appendSlice("\n}\n\n");

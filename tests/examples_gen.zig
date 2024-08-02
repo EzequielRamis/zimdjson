@@ -77,14 +77,14 @@ pub fn main() !void {
         const identifier = file[0 .. file.len - 5];
         try checker_zig_content.appendSlice("test \"");
         try checker_zig_content.appendSlice(identifier);
-        try checker_zig_content.appendSlice("\"{\n");
+        try checker_zig_content.appendSlice("\" {\n");
         try checker_zig_content.appendSlice(
-            \\  const allocator = std.testing.allocator;
-            \\  var parser = DOM.Parser.init(allocator);
-            \\  defer parser.deinit();
+            \\    const allocator = std.testing.allocator;
+            \\    var parser = DOM.Parser.init(allocator);
+            \\    defer parser.deinit();
             \\
         );
-        try checker_zig_content.appendSlice("  _ = try parser.load(SIMDJSON_DATA ++ \"/jsonexamples/");
+        try checker_zig_content.appendSlice("    _ = try parser.load(SIMDJSON_DATA ++ \"/jsonexamples/");
         try checker_zig_content.appendSlice(file);
         try checker_zig_content.appendSlice(
             \\");

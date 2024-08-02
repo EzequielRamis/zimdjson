@@ -27,6 +27,7 @@ pub const Parser = struct {
     }
 
     pub fn parse(self: *Parser, document: []const u8) !Visitor {
+        if (document.len >= std.math.maxInt(u32)) return error.ExceededCapacity;
         try self.tape.build(document);
         return Visitor{
             .tape = &self.tape,
@@ -38,6 +39,7 @@ pub const Parser = struct {
         const file = try std.fs.cwd().openFile(path, .{});
         const len = (try file.metadata()).size();
 
+        if (len >= std.math.maxInt(u32)) return error.ExceededCapacity;
         try self.buffer.resize(len);
 
         _ = try file.readAll(self.buffer.items);

@@ -32,7 +32,7 @@ pub fn Iterator(comptime options: Options) type {
         padding: if (copy_bounded) ArrayList(u8) else [Vector.LEN_BYTES * 2]u8 = undefined,
         padding_ptr: if (copy_bounded) void else [*]const u8 = undefined,
         ptr: [*]const u8 = undefined,
-        bounded_token: usize = undefined,
+        bounded_token: u32 = undefined,
         token: u32 = undefined,
 
         pub fn init(allocator: Allocator) Self {
@@ -52,7 +52,7 @@ pub fn Iterator(comptime options: Options) type {
 
             const ixs = self.indexes();
             const padding_bound = doc.len -| Vector.LEN_BYTES;
-            var bounded_token: usize = ixs.len - 1;
+            var bounded_token: u32 = @intCast(ixs.len - 1);
             var rev = std.mem.reverseIterator(ixs);
             while (rev.next()) |t| : (bounded_token -|= 1) {
                 if (t <= padding_bound) break;
@@ -131,7 +131,7 @@ pub fn Iterator(comptime options: Options) type {
             }
         }
 
-        pub fn consume(self: *Self, n: usize, comptime phase: Phase) []const u8 {
+        pub fn consume(self: *Self, n: u32, comptime phase: Phase) []const u8 {
             if (!copy_bounded and phase == .bounded) self.shouldSwapSource();
             defer self.ptr += n;
             return self.ptr[0..n];

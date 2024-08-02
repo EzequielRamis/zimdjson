@@ -143,7 +143,7 @@ fn scientificExponent(parsed_number: FromString(.{})) i32 {
 fn parseBigMantissa(bigint: *BigInt, number: FromString(.{})) i32 {
     const max_digits = common.max_big_digits + 1;
     const step = common.max_digits - 1;
-    var counter: usize = 0;
+    var counter: u32 = 0;
     var digits: i32 = 0;
     var value: Limb = 0;
 

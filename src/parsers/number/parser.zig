@@ -23,7 +23,7 @@ pub fn Parser(comptime opt: TokenOptions) type {
             const digit_count = parsed_number.integer.len;
             const negative = parsed_number.negative;
             const integer = parsed_number.mantissa;
-            const longest_digit_count: usize = if (negative) max_digits - 1 else max_digits;
+            const longest_digit_count: u32 = if (negative) max_digits - 1 else max_digits;
             if (digit_count < longest_digit_count) {
                 if (std.math.cast(i64, integer)) |i| {
                     return .{ .signed = if (negative) -i else i };

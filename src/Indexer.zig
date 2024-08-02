@@ -165,14 +165,14 @@ fn escapedChars(self: *Self, backs: umask) umask {
     return escaped;
 }
 
-fn extract(self: *Self, tokens: umask, i: usize) void {
+fn extract(self: *Self, tokens: umask, i: u32) void {
     const pop_count = @popCount(tokens);
     const new_len = self.indexes.items.len + pop_count;
     var s = tokens;
     while (s != 0) {
         inline for (0..8) |_| {
             const tz = @ctz(s);
-            self.indexes.appendAssumeCapacity(@as(u32, @truncate(i)) + tz);
+            self.indexes.appendAssumeCapacity(i + tz);
             s &= s -% 1;
         }
     }

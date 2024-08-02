@@ -11,8 +11,8 @@ const BLOCK_SIZE = Mask.LEN_BITS * MASKS_PER_ITER;
 
 pub const block = [BLOCK_SIZE]u8;
 
-index: usize = undefined,
-last_partial_index: usize = undefined,
+index: u32 = undefined,
+last_partial_index: u32 = undefined,
 document: []const u8 = undefined,
 padding: block = undefined,
 
@@ -22,7 +22,7 @@ pub fn init() Self {
 
 pub fn read(self: *Self, doc: []const u8) void {
     const remaining = doc.len % BLOCK_SIZE;
-    const last_partial_index = doc.len -| remaining;
+    const last_partial_index: u32 = @intCast(doc.len -| remaining);
     self.index = 0;
     self.document = doc;
     self.last_partial_index = last_partial_index;

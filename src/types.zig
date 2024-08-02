@@ -107,8 +107,8 @@ pub const Vector = struct {
     }
 };
 
-pub const umask = usize;
-pub const imask = isize;
+pub const umask = u64;
+pub const imask = i64;
 
 pub const Mask = struct {
     const Self = @This();

@@ -40,15 +40,15 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
 
             var integer_ptr: [*]const u8 = src.ptr;
             var decimal_ptr: [*]const u8 = src.ptr;
-            var integer_len: usize = 0;
-            var decimal_len: usize = 0;
+            var integer_len: u32 = 0;
+            var decimal_len: u32 = 0;
 
             while (parseDigit(topt, src)) |d| {
                 mantissa_10 = mantissa_10 *% 10 +% d;
                 _ = src.consume(1, phase);
                 if (phase == .bounded) integer_len += 1;
             }
-            if (phase != .bounded) integer_len = @intFromPtr(src.ptr) - @intFromPtr(integer_ptr);
+            if (phase != .bounded) integer_len = @intCast(@intFromPtr(src.ptr) - @intFromPtr(integer_ptr));
             if ((first_digit == '0' and integer_len > 1) or integer_len == 0) return error.InvalidNumberLiteral;
 
             if (sopt.can_be_float) {
@@ -59,7 +59,7 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
                     decimal_len = if (phase == .bounded)
                         decimal_len + parsed_decimal_len
                     else
-                        @intFromPtr(src.ptr) - @intFromPtr(decimal_ptr);
+                        @intCast(@intFromPtr(src.ptr) - @intFromPtr(decimal_ptr));
 
                     if (decimal_len == 0) return error.InvalidNumberLiteral;
                     is_float = true;
@@ -95,8 +95,8 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
             comptime phase: TokenPhase,
             src: *TokenIterator(topt),
             man: *u64,
-        ) usize {
-            var len: usize = 0;
+        ) u32 {
+            var len: u32 = 0;
             while (number.isEightDigits(src.ptr[0..8])) {
                 man.* = man.* *% 100000000 +% number.parseEightDigits(src.ptr[0..8]);
                 _ = src.consume(8, phase);

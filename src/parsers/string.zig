@@ -22,8 +22,8 @@ pub fn writeString(
 ) Error!void {
     while (true) {
         const chunk = src.ptr[0..Vector.LEN_BYTES];
-        const slash = Pred(.bytes).from(Vector.SLASH == chunk.*).pack();
-        const quote = Pred(.bytes).from(Vector.QUOTE == chunk.*).pack();
+        const slash = Pred(.bytes).pack(Vector.SLASH == chunk.*);
+        const quote = Pred(.bytes).pack(Vector.QUOTE == chunk.*);
         const slash_index = @ctz(slash);
         const quote_index = @ctz(quote);
         // none of the characters are present in the buffer

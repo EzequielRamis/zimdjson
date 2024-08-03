@@ -17,8 +17,10 @@ pub fn build(b: *std.Build) !void {
     {
         var com = center.command("test", "Run all test suites");
 
+        const com_generate = try com.sub("generate", "Generate automated tests", .{ .propagate = false });
+
         {
-            const com_float_parsing = try com.sub("float-parsing", "Run float parsing test suite");
+            const com_float_parsing = try com.sub("float-parsing", "Run float parsing test suite", .{});
             const float_parsing = b.addTest(.{
                 .root_source_file = b.path("tests/float_parsing.zig"),
                 .target = target,
@@ -34,7 +36,7 @@ pub fn build(b: *std.Build) !void {
         }
 
         {
-            const com_minefield = try com.sub("minefield", "Run minefield test suite");
+            const com_minefield = try com.sub("minefield", "Run minefield test suite", .{});
             const minefield_gen = b.addExecutable(.{
                 .name = "minefield_gen",
                 .root_source_file = b.path("tests/minefield_gen.zig"),
@@ -50,18 +52,20 @@ pub fn build(b: *std.Build) !void {
                 .optimize = optimize,
             });
             if (com_minefield.with("simdjson-data")) |dep| {
-                addEmbeddedPath(b, minefield_gen, dep, "simdjson-data");
                 addEmbeddedPath(b, minefield, dep, "simdjson-data");
+            }
+            if (com_generate.with("simdjson-data")) |dep| {
+                addEmbeddedPath(b, minefield_gen, dep, "simdjson-data");
             }
             minefield.root_module.addImport("zimdjson", zimdjson);
 
             const run_minefield = b.addRunArtifact(minefield);
-            run_minefield.step.dependOn(&run_minefield_gen.step);
             com_minefield.dependOn(&run_minefield.step);
+            com_generate.dependOn(&run_minefield_gen.step);
         }
 
         {
-            const com_adversarial = try com.sub("adversarial", "Run adversarial test suite");
+            const com_adversarial = try com.sub("adversarial", "Run adversarial test suite", .{});
             const adversarial_gen = b.addExecutable(.{
                 .name = "adversarial_gen",
                 .root_source_file = b.path("tests/adversarial_gen.zig"),
@@ -77,18 +81,20 @@ pub fn build(b: *std.Build) !void {
                 .optimize = optimize,
             });
             if (com_adversarial.with("simdjson-data")) |dep| {
-                addEmbeddedPath(b, adversarial_gen, dep, "simdjson-data");
                 addEmbeddedPath(b, adversarial, dep, "simdjson-data");
+            }
+            if (com_generate.with("simdjson-data")) |dep| {
+                addEmbeddedPath(b, adversarial_gen, dep, "simdjson-data");
             }
             adversarial.root_module.addImport("zimdjson", zimdjson);
 
             const run_adversarial = b.addRunArtifact(adversarial);
-            run_adversarial.step.dependOn(&run_adversarial_gen.step);
             com_adversarial.dependOn(&run_adversarial.step);
+            com_generate.dependOn(&run_adversarial_gen.step);
         }
 
         {
-            const com_examples = try com.sub("examples", "Run examples test suite");
+            const com_examples = try com.sub("examples", "Run examples test suite", .{});
             const examples_gen = b.addExecutable(.{
                 .name = "examples_gen",
                 .root_source_file = b.path("tests/examples_gen.zig"),
@@ -104,14 +110,16 @@ pub fn build(b: *std.Build) !void {
                 .optimize = optimize,
             });
             if (com_examples.with("simdjson-data")) |dep| {
-                addEmbeddedPath(b, examples_gen, dep, "simdjson-data");
                 addEmbeddedPath(b, examples, dep, "simdjson-data");
+            }
+            if (com_generate.with("simdjson-data")) |dep| {
+                addEmbeddedPath(b, examples_gen, dep, "simdjson-data");
             }
             examples.root_module.addImport("zimdjson", zimdjson);
 
             const run_examples = b.addRunArtifact(examples);
-            run_examples.step.dependOn(&run_examples_gen.step);
             com_examples.dependOn(&run_examples.step);
+            com_generate.dependOn(&run_examples_gen.step);
         }
     }
     // --
@@ -201,16 +209,22 @@ const CommandCenter = struct {
         return .{
             .center = self,
             .step = self.b.step(name, description),
+            .options = .{},
         };
     }
 };
 
 const Command = struct {
+    pub const Options = struct {
+        propagate: bool = true,
+    };
+
     center: *CommandCenter,
     step: *std.Build.Step,
     parent: ?*const Command = null,
+    options: Options,
 
-    pub fn sub(self: *Command, name: []const u8, description: []const u8) !Command {
+    pub fn sub(self: *Command, name: []const u8, description: []const u8, options: Options) !Command {
         const name_ptr = self.center.names.items.len;
         try self.center.names.appendSlice(self.step.name);
         try self.center.names.append('/');
@@ -220,14 +234,16 @@ const Command = struct {
             .center = self.center,
             .parent = self,
             .step = self.center.b.step(self.center.names.items[name_ptr..][0..name_len], description),
+            .options = options,
         };
     }
 
     pub fn isExecuted(self: Command) bool {
-        for (self.center.args) |arg| {
+        args: for (self.center.args) |arg| {
             var prefix: ?*const Command = &self;
             while (prefix) |p| : (prefix = p.parent) {
                 if (std.mem.eql(u8, arg, p.step.name)) return true;
+                if (!self.options.propagate) continue :args;
             }
         }
         return false;
@@ -244,6 +260,7 @@ const Command = struct {
         var prefix: ?*const Command = &self;
         while (prefix) |p| : (prefix = p.parent) {
             p.step.dependOn(step);
+            if (!self.options.propagate) return;
         }
     }
 };

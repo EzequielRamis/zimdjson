@@ -148,26 +148,22 @@ pub fn Predicate(comptime f: Vector.FormatTag) type {
         .packs => Vector.LEN_BYTES,
     };
 
-    const V = @Vector(L, bool);
-
     return struct {
-        v: V,
+        pub const Pred = @Vector(L, bool);
+        pub const Packed = meta.Int(UNSIGNED, L);
+        pub const Unpacked = meta.fieldInfo(Vector.Format, f).type;
 
-        pub fn from(v: V) @This() {
-            return .{ .v = v };
+        pub fn pack(p: Pred) Packed {
+            return @bitCast(p);
         }
 
-        pub fn pack(self: @This()) meta.Int(UNSIGNED, L) {
-            return @bitCast(self.v);
-        }
-
-        pub fn unpack(self: @This()) meta.fieldInfo(Vector.Format, f).type {
+        pub fn unpack(p: Pred) Unpacked {
             return @as(@Vector(L, meta.Int(UNSIGNED, E)), @bitCast(@as(
                 @Vector(L, meta.Int(SIGNED, E)),
                 @intCast(@as(
                     @Vector(L, i1),
                     @bitCast(
-                        @as(@Vector(L, u1), @intFromBool(self.v)),
+                        @as(@Vector(L, u1), @intFromBool(p)),
                     ),
                 )),
             )));

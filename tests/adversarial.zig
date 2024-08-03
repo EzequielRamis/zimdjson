@@ -1,4 +1,4 @@
-//! This file is auto-generated with `zig build test/adversarial`
+//! This file is auto-generated with `zig build test/generate`
 
 const std = @import("std");
 const DOM = @import("zimdjson").DOM;

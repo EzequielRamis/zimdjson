@@ -50,47 +50,18 @@ pub fn deinit(self: *Self) void {
 }
 
 pub fn index(self: *Self, document: []const u8) !void {
-    const tracer = tracy.traceNamed(@src(), "Indexer");
-    defer tracer.end();
-
     self.reader.read(document);
+    const tracer = tracy.traceNamed(@src(), "Indexer.index");
+    defer tracer.end();
     try self.indexes.ensureTotalCapacity(self.reader.document.len);
     self.indexes.shrinkRetainingCapacity(0);
 
     var i = self.reader.index;
     while (self.reader.next()) |block| : (i = self.reader.index) {
-        switch (Reader.MASKS_PER_ITER) {
-            1 => {
-                const tokens = self.identify(block);
-                self.extract(tokens, i);
-            },
-            2 => {
-                const chunk1 = block[0..Mask.LEN_BITS];
-                const chunk2 = block[Mask.LEN_BITS..][0..Mask.LEN_BITS];
-                const tokens1 = self.identify(chunk1);
-                const tokens2 = self.identify(chunk2);
-                self.extract(tokens1, i);
-                self.extract(tokens2, i + Mask.LEN_BITS);
-            },
-            else => unreachable,
-        }
+        self.step(block, i);
     }
     if (self.reader.last()) |block| {
-        switch (Reader.MASKS_PER_ITER) {
-            1 => {
-                const tokens = identify(block);
-                self.extract(tokens, i);
-            },
-            2 => {
-                const chunk1 = block[0..Mask.LEN_BITS];
-                const chunk2 = block[Mask.LEN_BITS..][0..Mask.LEN_BITS];
-                const tokens1 = self.identify(chunk1);
-                const tokens2 = self.identify(chunk2);
-                self.extract(tokens1, i);
-                self.extract(tokens2, i + Mask.LEN_BITS);
-            },
-            else => unreachable,
-        }
+        self.step(block, i);
     }
     if (self.unescaped_error != 0) return error.FoundControlCharacter;
     if (!self.utf8_checker.succeeded()) return error.InvalidEncoding;
@@ -98,36 +69,55 @@ pub fn index(self: *Self, document: []const u8) !void {
     if (self.indexes.items.len == 0) return error.Empty;
 }
 
-fn identify(self: *Self, block: *const [Mask.LEN_BITS]u8) umask {
-    self.utf8_checker.check(block);
-    var structural: umask = 0;
-    var whitespace: umask = 0;
-    var quotes: umask = 0;
-    var backslash: umask = 0;
-    var unescaped: umask = 0;
-    for (0..Mask.COMPUTED_VECTORS) |i| {
+inline fn step(self: *Self, block: *const Reader.block, i: u32) void {
+    switch (Reader.MASKS_PER_ITER) {
+        1 => {
+            const tokens = identify(block);
+            self.utf8_checker.check(block);
+            self.extract(tokens, i);
+        },
+        2 => {
+            const chunk1 = block[0..Mask.LEN_BITS];
+            const chunk2 = block[Mask.LEN_BITS..][0..Mask.LEN_BITS];
+            const tokens1 = self.identify(chunk1);
+            const tokens2 = self.identify(chunk2);
+            self.utf8_checker.check(chunk1);
+            self.utf8_checker.check(chunk2);
+            self.extract(tokens1, i);
+            self.extract(tokens2, i + Mask.LEN_BITS);
+        },
+        else => unreachable,
+    }
+}
+
+inline fn identify(self: *Self, block: *const [Mask.LEN_BITS]u8) umask {
+    // const tracer = tracy.traceNamed(@src(), "Indexer.identify");
+    // defer tracer.end();
+
+    const vec = Vector.fromPtr(block[0..Vector.LEN_BYTES]).to(.bytes);
+    var quotes: umask = Pred(.bytes).pack(vec == Vector.QUOTE);
+    var backslash: umask = Pred(.bytes).pack(vec == Vector.SLASH);
+    var unescaped: umask = Pred(.bytes).pack(vec < @as(vector, @splat(0x20)));
+
+    inline for (1..Mask.COMPUTED_VECTORS) |i| {
         const offset = i * Vector.LEN_BYTES;
-        const vec = Vector.fromPtr(block[offset..][0..Vector.LEN_BYTES]).to(.bytes);
-        const low_nibbles = vec & @as(vector, @splat(0xF));
-        const high_nibbles = vec >> @as(vector, @splat(4));
-        const low_lookup_values = intr.lookupTable(ln_table, low_nibbles);
-        const high_lookup_values = intr.lookupTable(hn_table, high_nibbles);
-        const desired_values = low_lookup_values & high_lookup_values;
-        const w = ~Pred(.bytes).from(desired_values & whitespace_table == Vector.ZER).pack();
-        const s = ~Pred(.bytes).from(desired_values & structural_table == Vector.ZER).pack();
-        const q = Pred(.bytes).from(vec == Vector.QUOTE).pack();
-        const b = Pred(.bytes).from(vec == Vector.SLASH).pack();
-        const u = Pred(.bytes).from(vec < @as(vector, @splat(0x20))).pack();
-        whitespace |= @as(umask, w) << @truncate(offset);
-        structural |= @as(umask, s) << @truncate(offset);
+        const _vec = Vector.fromPtr(block[offset..][0..Vector.LEN_BYTES]).to(.bytes);
+        const q = Pred(.bytes).pack(_vec == Vector.QUOTE);
+        const b = Pred(.bytes).pack(_vec == Vector.SLASH);
+        const u = Pred(.bytes).pack(_vec < @as(vector, @splat(0x20)));
         quotes |= @as(umask, q) << @truncate(offset);
         backslash |= @as(umask, b) << @truncate(offset);
         unescaped |= @as(umask, u) << @truncate(offset);
     }
+
     const unescaped_quotes = quotes & ~self.escapedChars(backslash);
     const clmul_ranges = intr.clmul(unescaped_quotes);
     const inside_string = self.prev_inside_string;
     const quoted_ranges = clmul_ranges ^ inside_string;
+
+    const sw = structuralAndWhitespace(block);
+    const structural = sw.structural;
+    const whitespace = sw.whitespace;
 
     const struct_white = structural | whitespace;
     const scalar = ~struct_white;
@@ -148,7 +138,38 @@ fn identify(self: *Self, block: *const [Mask.LEN_BITS]u8) umask {
     return structural_start;
 }
 
-fn escapedChars(self: *Self, backs: umask) umask {
+inline fn structuralAndWhitespace(block: *const [Mask.LEN_BITS]u8) struct {
+    structural: umask,
+    whitespace: umask,
+} {
+    // const tracer = tracy.traceNamed(@src(), "Indexer.sw");
+    // defer tracer.end();
+
+    const vec = Vector.fromPtr(block[0..Vector.LEN_BYTES]).to(.bytes);
+    const low_nibbles = vec & @as(vector, @splat(0xF));
+    const high_nibbles = vec >> @as(vector, @splat(4));
+    const low_lookup_values = intr.lookupTable(ln_table, low_nibbles);
+    const high_lookup_values = intr.lookupTable(hn_table, high_nibbles);
+    const desired_values = low_lookup_values & high_lookup_values;
+    var whitespace: umask = ~Pred(.bytes).pack(desired_values & whitespace_table == Vector.ZER);
+    var structural: umask = ~Pred(.bytes).pack(desired_values & structural_table == Vector.ZER);
+    inline for (1..Mask.COMPUTED_VECTORS) |i| {
+        const offset = i * Vector.LEN_BYTES;
+        const _vec = Vector.fromPtr(block[offset..][0..Vector.LEN_BYTES]).to(.bytes);
+        const _low_nibbles = _vec & @as(vector, @splat(0xF));
+        const _high_nibbles = _vec >> @as(vector, @splat(4));
+        const _low_lookup_values = intr.lookupTable(ln_table, _low_nibbles);
+        const _high_lookup_values = intr.lookupTable(hn_table, _high_nibbles);
+        const _desired_values = _low_lookup_values & _high_lookup_values;
+        const w = ~Pred(.bytes).pack(_desired_values & whitespace_table == Vector.ZER);
+        const s = ~Pred(.bytes).pack(_desired_values & structural_table == Vector.ZER);
+        whitespace |= @as(umask, w) << @truncate(offset);
+        structural |= @as(umask, s) << @truncate(offset);
+    }
+    return .{ .structural = structural, .whitespace = whitespace };
+}
+
+inline fn escapedChars(self: *Self, backs: umask) umask {
     if (backs == 0) {
         const escaped = self.next_is_escaped;
         self.next_is_escaped = 0;
@@ -165,7 +186,7 @@ fn escapedChars(self: *Self, backs: umask) umask {
     return escaped;
 }
 
-fn extract(self: *Self, tokens: umask, i: u32) void {
+inline fn extract(self: *Self, tokens: umask, i: u32) void {
     const pop_count = @popCount(tokens);
     const new_len = self.indexes.items.len + pop_count;
     var s = tokens;

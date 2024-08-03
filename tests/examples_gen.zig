@@ -21,7 +21,7 @@ pub fn main() !void {
     defer files.deinit();
 
     try checker_zig_content.appendSlice(
-        \\//! This file is auto-generated with `zig build test/examples`
+        \\//! This file is auto-generated with `zig build test/generate`
         \\
         \\const std = @import("std");
         \\const DOM = @import("zimdjson").DOM;

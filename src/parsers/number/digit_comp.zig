@@ -234,7 +234,7 @@ fn skipZeroes(slice: *[]const u8) void {
     const len = types.Vector.LEN_BYTES;
     while (slice.len >= len) {
         const vec: types.vector = @bitCast(slice.*[0..len].*);
-        if (!types.Mask.allSet(types.Predicate(.bytes).from(vec == zer).pack())) break;
+        if (!types.Mask.allSet(types.Predicate(.bytes).pack(vec == zer))) break;
         slice.* = slice.*[len..];
     }
     while (slice.len > 0) {
@@ -249,7 +249,7 @@ fn isTruncated(src: []const u8) bool {
     const len = types.Vector.LEN_BYTES;
     while (slice.len >= len) {
         const vec: types.vector = @bitCast(slice[0..len].*);
-        if (!types.Mask.allSet(types.Predicate(.bytes).from(vec == zer).pack())) return true;
+        if (!types.Mask.allSet(types.Predicate(.bytes).pack(vec == zer))) return true;
         slice = slice[len..];
     }
     for (slice) |p| if (p != '0') return true;

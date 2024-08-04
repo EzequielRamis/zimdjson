@@ -212,12 +212,18 @@ inline fn extract(self: *Self, tokens: umask, i: u32) void {
     const pop_count = @popCount(tokens);
     const new_len = self.indexes.items.len + pop_count;
     var ptr = self.indexes.items[self.indexes.items.len..].ptr;
-    var s = tokens;
+    var s = if (cpu.arch.isARM()) @bitReverse(tokens) else tokens;
     while (s != 0) : (ptr += 8) {
         inline for (0..8) |j| {
-            const tz = @ctz(s);
-            ptr[j] = i + tz;
-            s &= s -% 1;
+            if (cpu.arch.isARM()) {
+                const lz = @clz(s);
+                ptr[j] = i + lz;
+                s ^= std.math.shr(u64, 1 << 63, lz);
+            } else {
+                const tz = @ctz(s);
+                ptr[j] = i + tz;
+                s &= s -% 1;
+            }
         }
     }
     self.indexes.items.len = new_len;

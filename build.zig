@@ -16,8 +16,14 @@ pub fn build(b: *std.Build) !void {
     // -- Testing
     {
         var com = center.command("test", "Run all test suites");
-
         const com_generate = try com.sub("generate", "Generate automated tests", .{ .propagate = false });
+
+        const debug_module = getDebugModule(b, .{
+            .target = target,
+            .optimize = optimize,
+            .enable = com.isExecuted(),
+        });
+        zimdjson.addImport("debug", debug_module);
 
         {
             const com_float_parsing = try com.sub("float-parsing", "Run float parsing test suite", .{});
@@ -126,15 +132,14 @@ pub fn build(b: *std.Build) !void {
 
     // -- Profiling
     {
-        var com = center.command("profile", "Profile using tracy");
-        var enable_tracy = false;
-        if (com.isExecuted()) enable_tracy = true;
+        var com = center.command("profile", "Profile with Tracy");
 
         const tracy_module = getTracyModule(b, .{
             .target = target,
             .optimize = optimize,
-            .enable = enable_tracy,
+            .enable = com.isExecuted(),
         });
+
         const profile = b.addExecutable(.{
             .name = "tracy_example",
             .root_source_file = b.path("profile/tracy_example.zig"),
@@ -158,6 +163,28 @@ fn addEmbeddedPath(b: *std.Build, compile: *std.Build.Step.Compile, dep: *std.Bu
     });
 }
 
+fn getDebugModule(
+    b: *std.Build,
+    options: struct {
+        target: std.Build.ResolvedTarget,
+        optimize: std.builtin.OptimizeMode,
+        enable: bool,
+    },
+) *std.Build.Module {
+    const debug_options = b.addOptions();
+    debug_options.addOption(bool, "enable_debug", options.enable);
+
+    const debug_module = b.createModule(.{
+        .root_source_file = b.path("src/debug.zig"),
+        .target = options.target,
+        .optimize = options.optimize,
+    });
+    debug_module.addImport("build_options", debug_options.createModule());
+    if (!options.enable) return debug_module;
+
+    return debug_module;
+}
+
 fn getTracyModule(
     b: *std.Build,
     options: struct {
@@ -167,15 +194,14 @@ fn getTracyModule(
     },
 ) *std.Build.Module {
     const tracy_options = b.addOptions();
-    tracy_options.step.name = "tracy options";
-    tracy_options.addOption(bool, "enable", options.enable);
+    tracy_options.addOption(bool, "enable_tracy", options.enable);
 
     const tracy_module = b.createModule(.{
         .root_source_file = b.path("src/tracy.zig"),
         .target = options.target,
         .optimize = options.optimize,
     });
-    tracy_module.addImport("options", tracy_options.createModule());
+    tracy_module.addImport("build_options", tracy_options.createModule());
     if (!options.enable) return tracy_module;
 
     tracy_module.link_libc = true;
@@ -229,17 +255,17 @@ const Command = struct {
         try self.center.names.appendSlice(self.step.name);
         try self.center.names.append('/');
         try self.center.names.appendSlice(name);
-        const end = self.center.names.items.len;
+        const len = self.center.names.items.len;
         return .{
             .center = self.center,
             .parent = self,
-            .step = self.center.b.step(self.center.names.items[ptr..end], description),
+            .step = self.center.b.step(self.center.names.items[ptr..len], description),
             .options = options,
         };
     }
 
     pub fn isExecuted(self: Command) bool {
-        args: for (self.center.args) |arg| {
+        args: for (self.center.args[1..]) |arg| {
             var prefix: ?*const Command = &self;
             while (prefix) |p| : (prefix = p.parent) {
                 if (self.center.b.top_level_steps.contains(arg)) return true;

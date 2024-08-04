@@ -1,10 +1,10 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const tracy = @import("tracy");
+const debug = @import("debug");
 const common = @import("common.zig");
 const types = @import("types.zig");
 const intr = @import("intrinsics.zig");
-const debug = @import("debug.zig");
 const unicode = @import("unicode.zig");
 const Reader = @import("Reader.zig");
 const ArrayList = std.ArrayList;
@@ -234,79 +234,77 @@ const Debug = struct {
     next_is_escaped: bool = false,
 
     pub fn expectIdentified(self: *Debug, block: *const [Mask.LEN_BITS]u8, actual: umask) void {
-        if (debug.is_set) {
 
-            // Structural chars
-            var expected_structural: umask = 0;
-            for (block, 0..) |c, i| {
-                if (common.Tables.is_structural[c]) {
-                    expected_structural |= @as(umask, 1) << @truncate(i);
-                }
+        // Structural chars
+        var expected_structural: umask = 0;
+        for (block, 0..) |c, i| {
+            if (common.Tables.is_structural[c]) {
+                expected_structural |= @as(umask, 1) << @truncate(i);
             }
-
-            // Scalars
-            for (block, 0..) |c, i| {
-                if (i == 0) {
-                    if (!self.prev_scalar and common.Tables.is_structural_or_whitespace_negated[c]) {
-                        expected_structural |= @as(umask, 1) << @truncate(i);
-                    }
-                    continue;
-                }
-                const prev = block[i - 1];
-                if ((prev == '"' or common.Tables.is_structural_or_whitespace[prev]) and !common.Tables.is_whitespace[c]) {
-                    expected_structural |= @as(umask, 1) << @truncate(i);
-                    continue;
-                }
-            }
-            self.prev_scalar = common.Tables.is_structural_or_whitespace_negated[block[block.len - 1]];
-
-            // Escaped chars
-            var expected_escaped: umask = 0;
-            for (block, 0..) |c, i| {
-                if (self.next_is_escaped) {
-                    expected_escaped |= @as(umask, 1) << @truncate(i);
-                    self.next_is_escaped = false;
-                    continue;
-                }
-                if (c == '\\') {
-                    self.next_is_escaped = true;
-                }
-            }
-
-            // Filter inside strings
-            var expected_string_ranges: umask = 0;
-            for (block, 0..) |c, i| {
-                if (self.prev_inside_string) {
-                    expected_string_ranges |= @as(umask, 1) << @truncate(i);
-                }
-                if (c == '"' and @as(u1, @truncate(expected_escaped >> @truncate(i))) == 0) {
-                    self.prev_inside_string = !self.prev_inside_string;
-                }
-            }
-            const expected = expected_structural & ~expected_string_ranges;
-
-            var printable_block: [Mask.LEN_BITS]u8 = undefined;
-            @memcpy(&printable_block, block);
-            for (&printable_block) |*c| {
-                if (common.Tables.is_whitespace[c.*] and c.* != ' ') {
-                    c.* = '~';
-                }
-            }
-            debug.assert(
-                expected == actual,
-                \\Misindexed block
-                \\
-                \\Block:    '{s}'
-                \\Actual:   '{b:0>64}'
-                \\Expected: '{b:0>64}'
-                \\
-            ,
-                .{
-                    printable_block,
-                    @as(umask, @bitCast(std.simd.reverseOrder(@as(@Vector(64, u1), @bitCast(actual))))),
-                    @as(umask, @bitCast(std.simd.reverseOrder(@as(@Vector(64, u1), @bitCast(expected))))),
-                },
-            );
         }
+
+        // Scalars
+        for (block, 0..) |c, i| {
+            if (i == 0) {
+                if (!self.prev_scalar and common.Tables.is_structural_or_whitespace_negated[c]) {
+                    expected_structural |= @as(umask, 1) << @truncate(i);
+                }
+                continue;
+            }
+            const prev = block[i - 1];
+            if ((prev == '"' or common.Tables.is_structural_or_whitespace[prev]) and !common.Tables.is_whitespace[c]) {
+                expected_structural |= @as(umask, 1) << @truncate(i);
+                continue;
+            }
+        }
+        self.prev_scalar = common.Tables.is_structural_or_whitespace_negated[block[block.len - 1]];
+
+        // Escaped chars
+        var expected_escaped: umask = 0;
+        for (block, 0..) |c, i| {
+            if (self.next_is_escaped) {
+                expected_escaped |= @as(umask, 1) << @truncate(i);
+                self.next_is_escaped = false;
+                continue;
+            }
+            if (c == '\\') {
+                self.next_is_escaped = true;
+            }
+        }
+
+        // Filter inside strings
+        var expected_string_ranges: umask = 0;
+        for (block, 0..) |c, i| {
+            if (self.prev_inside_string) {
+                expected_string_ranges |= @as(umask, 1) << @truncate(i);
+            }
+            if (c == '"' and @as(u1, @truncate(expected_escaped >> @truncate(i))) == 0) {
+                self.prev_inside_string = !self.prev_inside_string;
+            }
+        }
+        const expected = expected_structural & ~expected_string_ranges;
+
+        var printable_block: [Mask.LEN_BITS]u8 = undefined;
+        @memcpy(&printable_block, block);
+        for (&printable_block) |*c| {
+            if (common.Tables.is_whitespace[c.*] and c.* != ' ') {
+                c.* = '~';
+            }
+        }
+        debug.assert(
+            expected == actual,
+            \\Misindexed block
+            \\
+            \\Block:    '{s}'
+            \\Actual:   '{b:0>64}'
+            \\Expected: '{b:0>64}'
+            \\
+        ,
+            .{
+                printable_block,
+                @as(umask, @bitCast(std.simd.reverseOrder(@as(@Vector(64, u1), @bitCast(actual))))),
+                @as(umask, @bitCast(std.simd.reverseOrder(@as(@Vector(64, u1), @bitCast(expected))))),
+            },
+        );
     }
 };

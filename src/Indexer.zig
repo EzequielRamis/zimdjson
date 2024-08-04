@@ -46,8 +46,6 @@ pub fn deinit(self: *Self) void {
 
 pub fn index(self: *Self, document: []const u8) !void {
     self.reader.read(document);
-    const tracer = tracy.traceNamed(@src(), "Indexer.index");
-    defer tracer.end();
     try self.indexes.ensureTotalCapacity(self.reader.document.len);
     self.indexes.shrinkRetainingCapacity(0);
 
@@ -87,20 +85,17 @@ inline fn step(self: *Self, block: *const Reader.block, i: u32) void {
 }
 
 inline fn identify(self: *Self, block: *const [Mask.LEN_BITS]u8) umask {
-    // const tracer = tracy.traceNamed(@src(), "Indexer.identify");
-    // defer tracer.end();
-
     const vec: vector = block[0..Vector.LEN_BYTES].*;
     var quotes: umask = Pred(.bytes).pack(vec == Vector.QUOTE);
     var backslash: umask = Pred(.bytes).pack(vec == Vector.SLASH);
-    var unescaped: umask = Pred(.bytes).pack(vec < @as(vector, @splat(0x20)));
+    var unescaped: umask = Pred(.bytes).pack(vec <= @as(vector, @splat(0x1F)));
 
     inline for (1..Mask.COMPUTED_VECTORS) |i| {
         const offset = i * Vector.LEN_BYTES;
         const _vec: vector = block[offset..][0..Vector.LEN_BYTES].*;
         const q = Pred(.bytes).pack(_vec == Vector.QUOTE);
         const b = Pred(.bytes).pack(_vec == Vector.SLASH);
-        const u = Pred(.bytes).pack(_vec < @as(vector, @splat(0x20)));
+        const u = Pred(.bytes).pack(_vec <= @as(vector, @splat(0x1F)));
         quotes |= @as(umask, q) << @truncate(offset);
         backslash |= @as(umask, b) << @truncate(offset);
         unescaped |= @as(umask, u) << @truncate(offset);

@@ -92,31 +92,21 @@ pub const Checker = struct {
     }
 
     inline fn isASCII(block: *const [Mask.LEN_BITS]u8) bool {
-        // const tracer = tracy.traceNamed(@src(), "Unicode.isASCII");
-        // defer tracer.end();
-
-        const Unpacked = Pred(.bytes).Unpacked;
-        var reduced: Unpacked = @splat(0);
+        var reduced: vector = block[0..Vector.LEN_BYTES].*;
         inline for (0..Mask.COMPUTED_VECTORS) |i| {
             const offset = i * Vector.LEN_BYTES;
             const vec: vector = block[offset..][0..Vector.LEN_BYTES].*;
-            reduced |= Pred(.bytes).unpack(vec >= @as(vector, @splat(0x80)));
+            reduced |= vec;
         }
-        return Pred(.bytes).pack(reduced != @as(Unpacked, @splat(0))) == 0;
+        return Pred(.bytes).pack(@as(vector, @splat(0x80)) <= reduced) == 0;
     }
 
     inline fn isIncomplete(vec: vector) vector {
-        var max: vector = @splat(255);
-        max[Vector.LEN_BYTES - 1] = 0b11000000 - 1;
-        max[Vector.LEN_BYTES - 2] = 0b11100000 - 1;
-        max[Vector.LEN_BYTES - 3] = 0b11110000 - 1;
-        return Pred(.bytes).unpack(vec > max);
+        const max: vector = @splat(255);
+        return vec -| max;
     }
 
     inline fn checkUTF8Bytes(self: *Checker, vec: vector) void {
-        // const tracer = tracy.traceNamed(@src(), "Unicode.checkUTF8Bytes");
-        // defer tracer.end();
-
         const len = Vector.LEN_BYTES;
         const prev1_mask: @Vector(len, i32) = [_]i32{len} ++ ([_]i32{0} ** (len - 1));
         const prev2_mask: @Vector(len, i32) = [_]i32{ len - 1, len } ++ ([_]i32{0} ** (len - 2));
@@ -224,8 +214,8 @@ pub const Checker = struct {
         const prev2 = @shuffle(u8, vec, self.prev_vec, shift2_mask);
         const prev3 = @shuffle(u8, vec, self.prev_vec, shift3_mask);
 
-        const is_third_byte = Pred(.bytes).unpack(prev2 >= @as(vector, @splat(0xE0)));
-        const is_fourth_byte = Pred(.bytes).unpack(prev3 >= @as(vector, @splat(0xF0)));
+        const is_third_byte = prev2 -| @as(vector, @splat(0xE0 - 0x80));
+        const is_fourth_byte = prev3 -| @as(vector, @splat(0xF0 - 0x80));
 
         const must_be_2_3_continuation = is_third_byte ^ is_fourth_byte;
         const must_be_2_3_80 = must_be_2_3_continuation & @as(vector, @splat(0x80));

@@ -141,8 +141,8 @@ pub fn build(b: *std.Build) !void {
         });
 
         const profile = b.addExecutable(.{
-            .name = "tracy_example",
-            .root_source_file = b.path("profile/tracy_example.zig"),
+            .name = "profile",
+            .root_source_file = b.path("profile/main.zig"),
             .target = b.host,
             .optimize = optimize,
         });
@@ -152,6 +152,7 @@ pub fn build(b: *std.Build) !void {
         profile.root_module.addImport("tracy", tracy_module);
 
         const run_profile = b.addRunArtifact(profile);
+        if (b.args) |args| run_profile.addArgs(args);
         com.dependOn(&run_profile.step);
     }
     // --

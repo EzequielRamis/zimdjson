@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const tracy = @import("tracy");
 const common = @import("common.zig");
 const types = @import("types.zig");
@@ -13,19 +14,13 @@ const Vector = types.Vector;
 const umask = types.umask;
 const imask = types.imask;
 const assert = debug.assert;
+const cpu = builtin.cpu;
 const Mask = types.Mask;
 const Pred = types.Predicate;
 
 const Error = types.Error;
 const Allocator = std.mem.Allocator;
 const Self = @This();
-
-const ln_table: vector = simd.repeat(Vector.LEN_BYTES, [_]u8{ 16, 0, 0, 0, 0, 0, 0, 0, 0, 8, 10, 4, 1, 12, 0, 0 });
-const hn_table: vector = simd.repeat(Vector.LEN_BYTES, [_]u8{ 8, 0, 17, 2, 0, 4, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0 });
-const whitespace_table: vector = @splat(0b11000);
-const structural_table: vector = @splat(0b00111);
-const evn_mask: umask = @bitCast(simd.repeat(Mask.LEN_BITS, [_]u1{ 1, 0 }));
-const odd_mask: umask = @bitCast(simd.repeat(Mask.LEN_BITS, [_]u1{ 0, 1 }));
 
 debug: if (debug.is_set) Debug else void = if (debug.is_set) .{} else {},
 
@@ -142,31 +137,61 @@ inline fn structuralAndWhitespace(block: *const [Mask.LEN_BITS]u8) struct {
     structural: umask,
     whitespace: umask,
 } {
-    // const tracer = tracy.traceNamed(@src(), "Indexer.sw");
-    // defer tracer.end();
+    if (cpu.arch.isX86()) {
+        const whitespace_table = simd.repeat(Vector.LEN_BYTES, [_]u8{ ' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100 });
+        const structural_table = simd.repeat(Vector.LEN_BYTES, [_]u8{
+            0, 0, 0, 0,
+            0, 0, 0, 0,
+            0, 0, ':', '{', // : = 3A, [ = 5B, { = 7B
+            ',', '}', 0, 0, // , = 2C, ] = 5D, } = 7D
+        });
+        const vec = Vector.fromPtr(block[0..Vector.LEN_BYTES]).to(.bytes);
 
-    const vec = Vector.fromPtr(block[0..Vector.LEN_BYTES]).to(.bytes);
-    const low_nibbles = vec & @as(vector, @splat(0xF));
-    const high_nibbles = vec >> @as(vector, @splat(4));
-    const low_lookup_values = intr.lookupTable(ln_table, low_nibbles);
-    const high_lookup_values = intr.lookupTable(hn_table, high_nibbles);
-    const desired_values = low_lookup_values & high_lookup_values;
-    var whitespace: umask = ~Pred(.bytes).pack(desired_values & whitespace_table == Vector.ZER);
-    var structural: umask = ~Pred(.bytes).pack(desired_values & structural_table == Vector.ZER);
-    inline for (1..Mask.COMPUTED_VECTORS) |i| {
-        const offset = i * Vector.LEN_BYTES;
-        const _vec = Vector.fromPtr(block[offset..][0..Vector.LEN_BYTES]).to(.bytes);
-        const _low_nibbles = _vec & @as(vector, @splat(0xF));
-        const _high_nibbles = _vec >> @as(vector, @splat(4));
-        const _low_lookup_values = intr.lookupTable(ln_table, _low_nibbles);
-        const _high_lookup_values = intr.lookupTable(hn_table, _high_nibbles);
-        const _desired_values = _low_lookup_values & _high_lookup_values;
-        const w = ~Pred(.bytes).pack(_desired_values & whitespace_table == Vector.ZER);
-        const s = ~Pred(.bytes).pack(_desired_values & structural_table == Vector.ZER);
-        whitespace |= @as(umask, w) << @truncate(offset);
-        structural |= @as(umask, s) << @truncate(offset);
+        var whitespace: umask = Pred(.bytes).pack(vec == intr.lookupTable(whitespace_table, vec));
+        inline for (1..Mask.COMPUTED_VECTORS) |i| {
+            const offset = i * Vector.LEN_BYTES;
+            const _vec = Vector.fromPtr(block[offset..][0..Vector.LEN_BYTES]).to(.bytes);
+            const w: umask = Pred(.bytes).pack(_vec == intr.lookupTable(whitespace_table, _vec));
+            whitespace |= w << @truncate(offset);
+        }
+
+        var structural: umask = Pred(.bytes).pack(vec | @as(vector, @splat(0x20)) == intr.lookupTable(structural_table, vec));
+        inline for (1..Mask.COMPUTED_VECTORS) |i| {
+            const offset = i * Vector.LEN_BYTES;
+            const _vec = Vector.fromPtr(block[offset..][0..Vector.LEN_BYTES]).to(.bytes);
+            const s: umask = Pred(.bytes).pack(_vec | @as(vector, @splat(0x20)) == intr.lookupTable(structural_table, _vec));
+            structural |= s << @truncate(offset);
+        }
+
+        return .{ .structural = structural, .whitespace = whitespace };
+    } else {
+        const ln_table: vector = simd.repeat(Vector.LEN_BYTES, [_]u8{ 16, 0, 0, 0, 0, 0, 0, 0, 0, 8, 10, 4, 1, 12, 0, 0 });
+        const hn_table: vector = simd.repeat(Vector.LEN_BYTES, [_]u8{ 8, 0, 17, 2, 0, 4, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0 });
+        const whitespace_table: vector = @splat(0b11000);
+        const structural_table: vector = @splat(0b00111);
+        const vec = Vector.fromPtr(block[0..Vector.LEN_BYTES]).to(.bytes);
+        const low_nibbles = vec & @as(vector, @splat(0xF));
+        const high_nibbles = vec >> @as(vector, @splat(4));
+        const low_lookup_values = intr.lookupTable(ln_table, low_nibbles);
+        const high_lookup_values = intr.lookupTable(hn_table, high_nibbles);
+        const desired_values = low_lookup_values & high_lookup_values;
+        var whitespace: umask = ~Pred(.bytes).pack(desired_values & whitespace_table == Vector.ZER);
+        var structural: umask = ~Pred(.bytes).pack(desired_values & structural_table == Vector.ZER);
+        inline for (1..Mask.COMPUTED_VECTORS) |i| {
+            const offset = i * Vector.LEN_BYTES;
+            const _vec = Vector.fromPtr(block[offset..][0..Vector.LEN_BYTES]).to(.bytes);
+            const _low_nibbles = _vec & @as(vector, @splat(0xF));
+            const _high_nibbles = _vec >> @as(vector, @splat(4));
+            const _low_lookup_values = intr.lookupTable(ln_table, _low_nibbles);
+            const _high_lookup_values = intr.lookupTable(hn_table, _high_nibbles);
+            const _desired_values = _low_lookup_values & _high_lookup_values;
+            const w: umask = ~Pred(.bytes).pack(_desired_values & whitespace_table == Vector.ZER);
+            const s: umask = ~Pred(.bytes).pack(_desired_values & structural_table == Vector.ZER);
+            whitespace |= w << @truncate(offset);
+            structural |= s << @truncate(offset);
+        }
+        return .{ .structural = structural, .whitespace = whitespace };
     }
-    return .{ .structural = structural, .whitespace = whitespace };
 }
 
 inline fn escapedChars(self: *Self, backs: umask) umask {
@@ -175,6 +200,7 @@ inline fn escapedChars(self: *Self, backs: umask) umask {
         self.next_is_escaped = 0;
         return escaped;
     }
+    const odd_mask: umask = @bitCast(simd.repeat(Mask.LEN_BITS, [_]u1{ 0, 1 }));
     const potential_escape = backs & ~self.next_is_escaped;
     const maybe_escaped = potential_escape << 1;
     const maybe_escaped_and_odd_bits = maybe_escaped | odd_mask;

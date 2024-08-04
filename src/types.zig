@@ -66,45 +66,7 @@ pub const Vector = struct {
         packs: @Vector(8, PackedElem),
     };
 
-    const ArrFormat = union(FormatTag) {
-        bytes: *const [LEN_BYTES]u8,
-        words: *const [LEN_WORDS]u16,
-        dords: *const [LEN_DORDS]u32,
-        masks: *const [LEN_MASKS]u64,
-        packs: *const [8]PackedElem,
-    };
-
     pub const PackedElem = meta.Int(UNSIGNED, LEN_BYTES);
-    pub const Packed = @Vector(8, PackedElem);
-    pub const Masks = @Vector(LEN_MASKS, u64);
-    pub const LAST_MASK = LEN_MASKS - 1;
-
-    v: *const [LEN_BYTES]u8,
-
-    pub fn from(v: anytype) Self {
-        return .{ .v = @bitCast(v) };
-    }
-
-    pub fn fromPtr(v: anytype) Self {
-        return .{ .v = @ptrCast(v) };
-    }
-
-    pub fn to(self: Self, comptime f: FormatTag) meta.fieldInfo(Format, f).type {
-        return @bitCast(self.v.*);
-    }
-
-    pub fn format(self: Self, comptime f: FormatTag) meta.fieldInfo(ArrFormat, f).type {
-        return @ptrCast(self.v);
-    }
-
-    pub fn first(self: Self, comptime f: FormatTag) @typeInfo(meta.fieldInfo(Format, f).type).type {
-        return self.format(f)[0];
-    }
-
-    pub fn last(self: Self, comptime f: FormatTag) @typeInfo(meta.fieldInfo(Format, f).type).type {
-        const len = @typeInfo(self.format(f)).len;
-        return self.format(f)[len - 1];
-    }
 };
 
 pub const umask = u64;

@@ -170,7 +170,7 @@ fn getTracyModule(
     tracy_options.step.name = "tracy options";
     tracy_options.addOption(bool, "enable", options.enable);
 
-    const tracy_module = b.addModule("tracy", .{
+    const tracy_module = b.createModule(.{
         .root_source_file = b.path("src/tracy.zig"),
         .target = options.target,
         .optimize = options.optimize,
@@ -225,15 +225,15 @@ const Command = struct {
     options: Options,
 
     pub fn sub(self: *Command, name: []const u8, description: []const u8, options: Options) !Command {
-        const name_ptr = self.center.names.items.len;
+        const ptr = self.center.names.items.len;
         try self.center.names.appendSlice(self.step.name);
         try self.center.names.append('/');
         try self.center.names.appendSlice(name);
-        const name_len = self.step.name.len + 1 + name.len;
+        const end = self.center.names.items.len;
         return .{
             .center = self.center,
             .parent = self,
-            .step = self.center.b.step(self.center.names.items[name_ptr..][0..name_len], description),
+            .step = self.center.b.step(self.center.names.items[ptr..end], description),
             .options = options,
         };
     }
@@ -242,7 +242,7 @@ const Command = struct {
         args: for (self.center.args) |arg| {
             var prefix: ?*const Command = &self;
             while (prefix) |p| : (prefix = p.parent) {
-                if (std.mem.eql(u8, arg, p.step.name)) return true;
+                if (self.center.b.top_level_steps.contains(arg)) return true;
                 if (!self.options.propagate) continue :args;
             }
         }

@@ -81,7 +81,7 @@ pub const Checker = struct {
         } else {
             inline for (0..Mask.COMPUTED_VECTORS) |i| {
                 const offset = i * Vector.LEN_BYTES;
-                const vec = Vector.fromPtr(block[offset..][0..Vector.LEN_BYTES]).to(.bytes);
+                const vec: vector = block[offset..][0..Vector.LEN_BYTES].*;
                 self.checkUTF8Bytes(vec);
                 self.prev_vec = vec;
                 if (i == Mask.COMPUTED_VECTORS - 1) {
@@ -99,7 +99,7 @@ pub const Checker = struct {
         var reduced: Unpacked = @splat(0);
         inline for (0..Mask.COMPUTED_VECTORS) |i| {
             const offset = i * Vector.LEN_BYTES;
-            const vec = Vector.fromPtr(block[offset..][0..Vector.LEN_BYTES]).to(.bytes);
+            const vec: vector = block[offset..][0..Vector.LEN_BYTES].*;
             reduced |= Pred(.bytes).unpack(vec >= @as(vector, @splat(0x80)));
         }
         return Pred(.bytes).pack(reduced != @as(Unpacked, @splat(0))) == 0;

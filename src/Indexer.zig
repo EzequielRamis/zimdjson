@@ -215,11 +215,12 @@ inline fn escapedChars(self: *Self, backs: umask) umask {
 inline fn extract(self: *Self, tokens: umask, i: u32) void {
     const pop_count = @popCount(tokens);
     const new_len = self.indexes.items.len + pop_count;
+    var ptr = self.indexes.items[self.indexes.items.len..].ptr;
     var s = tokens;
-    while (s != 0) {
-        inline for (0..8) |_| {
+    while (s != 0) : (ptr += 8) {
+        inline for (0..8) |j| {
             const tz = @ctz(s);
-            self.indexes.appendAssumeCapacity(i + tz);
+            ptr[j] = i + tz;
             s &= s -% 1;
         }
     }

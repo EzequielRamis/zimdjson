@@ -46,6 +46,9 @@ pub fn deinit(self: *Self) void {
 
 pub fn index(self: *Self, document: []const u8) !void {
     self.reader.read(document);
+    const tracer = tracy.traceNamed(@src(), "Indexer.index");
+    defer tracer.end();
+
     try self.indexes.ensureTotalCapacity(self.reader.document.len);
     self.indexes.shrinkRetainingCapacity(0);
 
@@ -62,17 +65,17 @@ pub fn index(self: *Self, document: []const u8) !void {
     if (self.indexes.items.len == 0) return error.Empty;
 }
 
-inline fn step(self: *Self, block: *const Reader.block, i: u32) void {
+inline fn step(self: *Self, block: Reader.Block, i: u32) void {
     switch (Reader.MASKS_PER_ITER) {
         1 => {
-            const chunk = block[0..Mask.LEN_BITS];
+            const chunk = block[0..Mask.LEN_BITS].*;
             const tokens = self.identify(chunk);
             self.utf8_checker.check(chunk);
             self.extract(tokens, i);
         },
         2 => {
-            const chunk1 = block[0..Mask.LEN_BITS];
-            const chunk2 = block[Mask.LEN_BITS..][0..Mask.LEN_BITS];
+            const chunk1 = block[0..Mask.LEN_BITS].*;
+            const chunk2 = block[Mask.LEN_BITS..][0..Mask.LEN_BITS].*;
             const tokens1 = self.identify(chunk1);
             const tokens2 = self.identify(chunk2);
             self.utf8_checker.check(chunk1);
@@ -84,7 +87,7 @@ inline fn step(self: *Self, block: *const Reader.block, i: u32) void {
     }
 }
 
-inline fn identify(self: *Self, block: *const [Mask.LEN_BITS]u8) umask {
+inline fn identify(self: *Self, block: [Mask.LEN_BITS]u8) umask {
     const vec: vector = block[0..Vector.LEN_BYTES].*;
     var quotes: umask = Pred(.bytes).pack(vec == Vector.QUOTE);
     var backslash: umask = Pred(.bytes).pack(vec == Vector.SLASH);
@@ -129,7 +132,7 @@ inline fn identify(self: *Self, block: *const [Mask.LEN_BITS]u8) umask {
     return structural_start;
 }
 
-inline fn structuralAndWhitespace(block: *const [Mask.LEN_BITS]u8) struct {
+inline fn structuralAndWhitespace(block: [Mask.LEN_BITS]u8) struct {
     structural: umask,
     whitespace: umask,
 } {
@@ -218,7 +221,7 @@ inline fn extract(self: *Self, tokens: umask, i: u32) void {
             if (cpu.arch.isARM()) {
                 const lz = @clz(s);
                 ptr[j] = i + lz;
-                s ^= std.math.shr(u64, 1 << 63, lz);
+                s ^= std.math.shr(umask, 1 << 63, lz);
             } else {
                 const tz = @ctz(s);
                 ptr[j] = i + tz;
@@ -234,7 +237,7 @@ const Debug = struct {
     prev_inside_string: bool = false,
     next_is_escaped: bool = false,
 
-    pub fn expectIdentified(self: *Debug, block: *const [Mask.LEN_BITS]u8, actual: umask) void {
+    pub fn expectIdentified(self: *Debug, block: [Mask.LEN_BITS]u8, actual: umask) void {
 
         // Structural chars
         var expected_structural: umask = 0;
@@ -286,7 +289,7 @@ const Debug = struct {
         const expected = expected_structural & ~expected_string_ranges;
 
         var printable_block: [Mask.LEN_BITS]u8 = undefined;
-        @memcpy(&printable_block, block);
+        @memcpy(&printable_block, &block);
         for (&printable_block) |*c| {
             if (common.Tables.is_whitespace[c.*] and c.* != ' ') {
                 c.* = '~';

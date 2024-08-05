@@ -155,7 +155,7 @@ fn parseBigMantissa(bigint: *BigInt, number: FromString(.{})) i32 {
             step - counter >= 8 and
             max_digits - digits >= 8)
         {
-            value = value * 100000000 + common.parseEightDigits(int_slice[0..8]);
+            value = value * 100000000 + common.parseEightDigits(int_slice[0..8].*);
             counter += 8;
             digits += 8;
             int_slice = int_slice[8..];
@@ -195,7 +195,7 @@ fn parseBigMantissa(bigint: *BigInt, number: FromString(.{})) i32 {
                 step - counter >= 8 and
                 max_digits - digits >= 8)
             {
-                value = value * 100000000 + common.parseEightDigits(dec_slice[0..8]);
+                value = value * 100000000 + common.parseEightDigits(dec_slice[0..8].*);
                 counter += 8;
                 digits += 8;
                 dec_slice = dec_slice[8..];

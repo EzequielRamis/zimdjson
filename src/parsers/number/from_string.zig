@@ -97,8 +97,8 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
             man: *u64,
         ) u32 {
             var len: u32 = 0;
-            while (number.isEightDigits(src.ptr[0..8])) {
-                man.* = man.* *% 100000000 +% number.parseEightDigits(src.ptr[0..8]);
+            while (number.isEightDigits(src.ptr[0..8].*)) {
+                man.* = man.* *% 100000000 +% number.parseEightDigits(src.ptr[0..8].*);
                 _ = src.consume(8, phase);
                 len += 8;
             }

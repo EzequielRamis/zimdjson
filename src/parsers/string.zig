@@ -63,13 +63,13 @@ fn handleUnicodeCodepoint(
     src: *TokenIterator(opt),
     comptime phase: TokenPhase,
 ) Error!u32 {
-    const first_literal = src.consume(4, phase)[0..4];
+    const first_literal = src.consume(4, phase)[0..4].*;
     const first_codepoint = parseHexDword(first_literal);
     if (utf16IsHighSurrogate(first_codepoint)) {
         if (readInt(u16, src.ptr[0..2], .little) == readInt(u16, "\\u", .little)) {
             _ = src.consume(2, phase);
             const high_surrogate = first_codepoint;
-            const second_literal = src.consume(4, phase)[0..4];
+            const second_literal = src.consume(4, phase)[0..4].*;
             const low_surrogate = parseHexDword(second_literal);
             if (!utf16IsLowSurrogate(low_surrogate)) return error.InvalidUnicodeCodePoint;
             const h = high_surrogate;
@@ -121,7 +121,7 @@ fn utf16IsLowSurrogate(c: u32) bool {
     return c & ~@as(u32, 0x03ff) == 0xdc00;
 }
 
-fn parseHexDword(src: *const [4]u8) u32 {
+fn parseHexDword(src: [4]u8) u32 {
     const v1 = hex_digit_map[@as(usize, src[0]) + 624];
     const v2 = hex_digit_map[@as(usize, src[1]) + 416];
     const v3 = hex_digit_map[@as(usize, src[2]) + 208];

@@ -75,7 +75,7 @@ pub const Checker = struct {
         return simd.prefixScan(.Or, 1, err)[Vector.LEN_BYTES - 1] == 0;
     }
 
-    pub inline fn check(self: *Checker, block: *const [Mask.LEN_BITS]u8) void {
+    pub inline fn check(self: *Checker, block: [Mask.LEN_BITS]u8) void {
         if (isASCII(block)) {
             self.err |= self.prev_incomplete;
         } else {
@@ -91,7 +91,7 @@ pub const Checker = struct {
         }
     }
 
-    inline fn isASCII(block: *const [Mask.LEN_BITS]u8) bool {
+    inline fn isASCII(block: [Mask.LEN_BITS]u8) bool {
         var reduced: vector = block[0..Vector.LEN_BYTES].*;
         inline for (0..Mask.COMPUTED_VECTORS) |i| {
             const offset = i * Vector.LEN_BYTES;

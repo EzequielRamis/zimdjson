@@ -7,14 +7,13 @@ const Mask = types.Mask;
 const Self = @This();
 
 pub const MASKS_PER_ITER = if (arch.isX86()) 2 else 1;
-const BLOCK_SIZE = Mask.LEN_BITS * MASKS_PER_ITER;
-
-pub const block = [BLOCK_SIZE]u8;
+pub const BLOCK_SIZE = Mask.LEN_BITS * MASKS_PER_ITER;
+pub const Block = [BLOCK_SIZE]u8;
 
 index: u32 = undefined,
 last_partial_index: u32 = undefined,
 document: []const u8 = undefined,
-padding: block = undefined,
+padding: Block = undefined,
 
 pub fn init() Self {
     return Self{};
@@ -30,18 +29,18 @@ pub fn read(self: *Self, doc: []const u8) void {
     @memcpy(self.padding[0..remaining], self.document[self.last_partial_index..]);
 }
 
-pub fn next(self: *Self) ?*const block {
+pub fn next(self: *Self) ?Block {
     if (self.index < self.last_partial_index) {
         defer self.index += BLOCK_SIZE;
-        return self.document[self.index..][0..BLOCK_SIZE];
+        return self.document[self.index..][0..BLOCK_SIZE].*;
     }
     return null;
 }
 
-pub fn last(self: *Self) ?*const block {
+pub fn last(self: *Self) ?Block {
     if (self.index == self.last_partial_index) {
         defer self.index += BLOCK_SIZE;
-        return &self.padding;
+        return self.padding;
     }
     return null;
 }

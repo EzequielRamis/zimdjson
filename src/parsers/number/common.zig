@@ -49,27 +49,27 @@ pub const BiasedFp = struct {
     }
 };
 
-pub fn isEightDigits(src: *const [8]u8) bool {
-    const val = readInt(u64, src, .little);
+pub fn isEightDigits(src: [8]u8) bool {
+    const val = readInt(u64, &src, .little);
     const a = val +% 0x4646464646464646;
     const b = val -% 0x3030303030303030;
     return (((a | b) & 0x8080808080808080)) == 0;
 }
 
-pub fn parseEightDigits(src: *const [8]u8) u32 {
+pub fn parseEightDigits(src: [8]u8) u32 {
     if (cpu.arch.isX86()) {
         const ascii0: @Vector(16, u8) = @splat('0');
         const mul_1_10 = std.simd.repeat(16, [_]u8{ 10, 1 });
         const mul_1_100 = std.simd.repeat(8, [_]i16{ 100, 1 });
         const mul_1_10000 = std.simd.repeat(8, [_]i16{ 10000, 1 });
-        const input = std.simd.repeat(16, src.*) - ascii0;
+        const input = std.simd.repeat(16, src) - ascii0;
         const t1 = intr.mulSaturatingAdd(input, mul_1_10);
         const t2 = intr.mulWrappingAdd(@bitCast(t1), mul_1_100);
         const t3 = intr.pack(t2, t2);
         const t4 = intr.mulWrappingAdd(@bitCast(t3), mul_1_10000);
         return @intCast(t4[0]);
     } else {
-        var val = readInt(u64, src, .little);
+        var val = readInt(u64, &src, .little);
         const mask = 0x000000FF000000FF;
         const mul1 = 0x000F424000000064; // 100 + (1000000ULL << 32)
         const mul2 = 0x0000271000000001; // 1 + (10000ULL << 32)

@@ -33,7 +33,7 @@ pub fn Checker(comptime options: io.Options) type {
             } else {
                 inline for (0..Mask.COMPUTED_VECTORS) |i| {
                     const offset = i * Vector.LEN_BYTES;
-                    const vec: Aligned.Vector = block[offset..][0..Vector.LEN_BYTES];
+                    const vec: Aligned.Vector = @alignCast(block[offset..][0..Vector.LEN_BYTES]);
                     self.checkUTF8Bytes(vec.*);
                     self.prev_vec = vec.*;
                     if (i == Mask.COMPUTED_VECTORS - 1) {
@@ -44,11 +44,11 @@ pub fn Checker(comptime options: io.Options) type {
         }
 
         inline fn isASCII(block: [Mask.LEN_BITS]u8) bool {
-            const _reduced: Aligned.Vector = block[0..Vector.LEN_BYTES];
+            const _reduced: Aligned.Vector = @alignCast(block[0..Vector.LEN_BYTES]);
             var reduced: vector = _reduced.*;
             inline for (0..Mask.COMPUTED_VECTORS) |i| {
                 const offset = i * Vector.LEN_BYTES;
-                const vec: Aligned.Vector = block[offset..][0..Vector.LEN_BYTES];
+                const vec: Aligned.Vector = @alignCast(block[offset..][0..Vector.LEN_BYTES]);
                 reduced |= vec.*;
             }
             return Pred(.bytes).pack(@as(vector, @splat(0x80)) <= reduced) == 0;

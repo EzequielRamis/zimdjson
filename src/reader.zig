@@ -38,7 +38,7 @@ pub fn Reader(comptime options: io.Options) type {
         pub fn next(self: *Self) ?Block {
             if (self.index < self.last_partial_index) {
                 defer self.index += BLOCK_SIZE;
-                const offset: Aligned.Slice = self.document[self.index..];
+                const offset: Aligned.Slice = @alignCast(self.document[self.index..]);
                 const block: *align(Aligned.Alignment) const Block = offset[0..BLOCK_SIZE];
                 return block.*;
             }

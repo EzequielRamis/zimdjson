@@ -21,6 +21,8 @@ pub fn Aligned(comptime aligned: bool) type {
     };
 }
 
+pub const Vectors = [Mask.COMPUTED_VECTORS]vector;
+
 pub const Number = union(enum) {
     unsigned: u64,
     signed: i64,

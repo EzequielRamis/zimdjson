@@ -27,29 +27,25 @@ pub fn Checker(comptime options: io.Options) type {
             return simd.prefixScan(.Or, 1, err)[Vector.LEN_BYTES - 1] == 0;
         }
 
-        pub inline fn check(self: *Self, block: [Mask.LEN_BITS]u8) void {
-            if (isASCII(block)) {
+        pub inline fn check(self: *Self, vecs: types.Vectors) void {
+            if (isASCII(vecs)) {
                 self.err |= self.prev_incomplete;
             } else {
                 inline for (0..Mask.COMPUTED_VECTORS) |i| {
-                    const offset = i * Vector.LEN_BYTES;
-                    const vec: Aligned.Vector = @alignCast(block[offset..][0..Vector.LEN_BYTES]);
-                    self.checkUTF8Bytes(vec.*);
-                    self.prev_vec = vec.*;
+                    const vec = vecs[i];
+                    self.checkUTF8Bytes(vec);
+                    self.prev_vec = vec;
                     if (i == Mask.COMPUTED_VECTORS - 1) {
-                        self.prev_incomplete = isIncomplete(vec.*);
+                        self.prev_incomplete = isIncomplete(vec);
                     }
                 }
             }
         }
 
-        inline fn isASCII(block: [Mask.LEN_BITS]u8) bool {
-            const _reduced: Aligned.Vector = @alignCast(block[0..Vector.LEN_BYTES]);
-            var reduced: vector = _reduced.*;
+        inline fn isASCII(vecs: types.Vectors) bool {
+            var reduced = vecs[0];
             inline for (0..Mask.COMPUTED_VECTORS) |i| {
-                const offset = i * Vector.LEN_BYTES;
-                const vec: Aligned.Vector = @alignCast(block[offset..][0..Vector.LEN_BYTES]);
-                reduced |= vec.*;
+                reduced |= vecs[i];
             }
             return Pred(.bytes).pack(@as(vector, @splat(0x80)) <= reduced) == 0;
         }

@@ -3,10 +3,10 @@ const builtin = @import("builtin");
 const simd = std.simd;
 const testing = std.testing;
 
-pub const DEFAULT_MAX_DEPTH = 1024;
-pub const DEFAULT_MAX_CAPACITY = std.math.maxInt(u32);
+pub const default_max_depth = 1024;
+pub const default_max_capacity = std.math.maxInt(u32);
 
-pub const Tables = struct {
+pub const tables = struct {
     pub const is_structural: [256]bool = init: {
         var res: [256]bool = undefined;
         for (0..res.len) |i| {

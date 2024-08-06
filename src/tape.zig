@@ -58,14 +58,14 @@ pub const Options = struct {
 };
 
 pub fn Tape(comptime options: Options) type {
-    const TOKEN_OPTIONS = tokens.Options{
+    const token_options = tokens.Options{
         .aligned = options.aligned,
         .copy_bounded = false,
     };
 
     return struct {
         const Self = @This();
-        const Tokens = tokens.Iterator(TOKEN_OPTIONS);
+        const Tokens = tokens.Iterator(token_options);
         const Aligned = types.Aligned(options.aligned);
 
         parsed: MultiArrayList(Word),
@@ -91,14 +91,14 @@ pub fn Tape(comptime options: Options) type {
             self.chars.deinit();
         }
 
-        pub fn build(self: *Self, doc: Aligned.Slice) !void {
+        pub fn build(self: *Self, doc: Aligned.slice) !void {
             const t = &self.tokens;
             try t.build(doc);
 
             const tracer = tracy.traceNamed(@src(), "Tape");
             defer tracer.end();
 
-            try self.chars.ensureTotalCapacity(t.indexer.reader.document.len + types.Vector.LEN_BYTES);
+            try self.chars.ensureTotalCapacity(t.indexer.reader.document.len + types.Vector.len_bytes);
             try self.stack.ensureTotalCapacity(self.allocator, options.max_depth);
             try self.parsed.ensureTotalCapacity(self.allocator, t.indexer.indexes.items.len + 2);
             self.chars.shrinkRetainingCapacity(0);
@@ -533,7 +533,7 @@ pub fn Tape(comptime options: Options) type {
             const chars = &self.chars;
             const next_str = chars.items.len;
             const parse = @import("parsers/string.zig").writeString;
-            try parse(TOKEN_OPTIONS, phase, t, chars);
+            try parse(token_options, phase, t, chars);
             const next_len = chars.items.len - next_str;
             self.parsed.appendAssumeCapacity(.{ .string = .{ .ptr = @truncate(next_str), .len = @truncate(next_len) } });
             // log.info("STR {s}", .{chars.items[next_str..][0..next_len]});
@@ -541,7 +541,7 @@ pub fn Tape(comptime options: Options) type {
 
         fn visit_number(self: *Self, comptime phase: Phase) Error!void {
             const t = &self.tokens;
-            const parser = @import("parsers/number/parser.zig").Parser(TOKEN_OPTIONS);
+            const parser = @import("parsers/number/parser.zig").Parser(token_options);
             const number = try parser.parse(phase, t);
             switch (number) {
                 .float => |n| {
@@ -562,7 +562,7 @@ pub fn Tape(comptime options: Options) type {
         fn visit_true(self: *Self) Error!void {
             const t = self.tokens;
             const check = @import("parsers/atoms.zig").checkTrue;
-            try check(TOKEN_OPTIONS, t);
+            try check(token_options, t);
             self.parsed.appendAssumeCapacity(.true);
             // log.info("TRU", .{});
         }
@@ -570,7 +570,7 @@ pub fn Tape(comptime options: Options) type {
         fn visit_false(self: *Self) Error!void {
             const t = self.tokens;
             const check = @import("parsers/atoms.zig").checkFalse;
-            try check(TOKEN_OPTIONS, t);
+            try check(token_options, t);
             self.parsed.appendAssumeCapacity(.false);
             // log.info("FAL", .{});
         }
@@ -578,7 +578,7 @@ pub fn Tape(comptime options: Options) type {
         fn visit_null(self: *Self) Error!void {
             const t = self.tokens;
             const check = @import("parsers/atoms.zig").checkNull;
-            try check(TOKEN_OPTIONS, t);
+            try check(token_options, t);
             self.parsed.appendAssumeCapacity(.null);
             // log.info("NUL", .{});
         }

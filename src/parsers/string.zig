@@ -7,29 +7,28 @@ const TokenPhase = tokens.Phase;
 const TokenOptions = tokens.Options;
 const unicode = std.unicode;
 const vector = types.vector;
-const array = types.array;
 const Vector = types.Vector;
-const Pred = types.Predicate;
+const Predicate = types.Predicate;
 const ArrayList = std.ArrayList;
 const Error = types.Error;
 const readInt = std.mem.readInt;
 
-pub fn writeString(
+pub inline fn writeString(
     comptime opt: TokenOptions,
     comptime phase: TokenPhase,
     src: *TokenIterator(opt),
     dst: *ArrayList(u8),
 ) Error!void {
     while (true) {
-        const chunk = src.ptr[0..Vector.LEN_BYTES];
-        const slash = Pred(.bytes).pack(Vector.SLASH == chunk.*);
-        const quote = Pred(.bytes).pack(Vector.QUOTE == chunk.*);
+        const chunk = src.ptr[0..Vector.len_bytes];
+        const slash = Predicate.pack(Vector.slash == chunk.*);
+        const quote = Predicate.pack(Vector.quote == chunk.*);
         const slash_index = @ctz(slash);
         const quote_index = @ctz(quote);
         // none of the characters are present in the buffer
         if (quote_index == slash_index) {
             dst.appendSliceAssumeCapacity(chunk);
-            _ = src.consume(Vector.LEN_BYTES, phase);
+            _ = src.consume(Vector.len_bytes, phase);
             continue;
         }
         // end of string
@@ -58,7 +57,7 @@ pub fn writeString(
     return error.ExpectedStringEnd;
 }
 
-fn handleUnicodeCodepoint(
+inline fn handleUnicodeCodepoint(
     comptime opt: TokenOptions,
     src: *TokenIterator(opt),
     comptime phase: TokenPhase,
@@ -84,7 +83,7 @@ fn handleUnicodeCodepoint(
     return first_codepoint;
 }
 
-fn utf8Encode(c: u32, dst: *ArrayList(u8)) Error!void {
+inline fn utf8Encode(c: u32, dst: *ArrayList(u8)) Error!void {
     if (c < 0x80) {
         dst.appendAssumeCapacity(@as(u8, @intCast(c)));
         return;
@@ -113,15 +112,15 @@ fn utf8Encode(c: u32, dst: *ArrayList(u8)) Error!void {
     return error.InvalidUnicodeCodePoint;
 }
 
-fn utf16IsHighSurrogate(c: u32) bool {
+inline fn utf16IsHighSurrogate(c: u32) bool {
     return c & ~@as(u32, 0x03ff) == 0xd800;
 }
 
-fn utf16IsLowSurrogate(c: u32) bool {
+inline fn utf16IsLowSurrogate(c: u32) bool {
     return c & ~@as(u32, 0x03ff) == 0xdc00;
 }
 
-fn parseHexDword(src: [4]u8) u32 {
+inline fn parseHexDword(src: [4]u8) u32 {
     const v1 = hex_digit_map[@as(usize, src[0]) + 624];
     const v2 = hex_digit_map[@as(usize, src[1]) + 416];
     const v3 = hex_digit_map[@as(usize, src[2]) + 208];
@@ -152,7 +151,7 @@ const hex_digit_map: [0xD0 * 3 + 256]u32 = init: {
     break :init prefix ++ chunk1 ++ chunk2 ++ chunk3 ++ chunk4;
 };
 
-fn charToDigit(c: u8) ?u32 {
+inline fn charToDigit(c: u8) ?u32 {
     return switch (c) {
         '0'...'9' => c - 0x30,
         else => switch (c | 0x20) {

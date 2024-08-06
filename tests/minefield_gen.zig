@@ -1,5 +1,5 @@
 const std = @import("std");
-const SIMDJSON_DATA = @embedFile("simdjson-data");
+const simdjson_data = @embedFile("simdjson-data");
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -24,14 +24,14 @@ pub fn main() !void {
         \\//! This file is auto-generated with `zig build test/generate`
         \\
         \\const std = @import("std");
-        \\const DOM = @import("zimdjson").DOM;
-        \\const Reader = @import("zimdjson").io.FileReader;
-        \\const SIMDJSON_DATA = @embedFile("simdjson-data");
+        \\const dom = @import("zimdjson").dom;
+        \\const Reader = @import("zimdjson").io.Reader(.{});
+        \\const simdjson_data = @embedFile("simdjson-data");
         \\
         \\
     );
 
-    const checker_path = SIMDJSON_DATA ++ "/jsonchecker";
+    const checker_path = simdjson_data ++ "/jsonchecker";
     var checker_dir = try std.fs.openDirAbsolute(checker_path, .{ .iterate = true });
     defer checker_dir.close();
 
@@ -42,7 +42,7 @@ pub fn main() !void {
             try strings.appendSlice(file.name);
         }
     }
-    const minefield_path = SIMDJSON_DATA ++ "/jsonchecker/minefield";
+    const minefield_path = simdjson_data ++ "/jsonchecker/minefield";
     var minefield_dir = try std.fs.openDirAbsolute(minefield_path, .{ .iterate = true });
     defer minefield_dir.close();
 
@@ -72,26 +72,26 @@ pub fn main() !void {
             try checker_zig_content.appendSlice("\" {\n");
             try checker_zig_content.appendSlice(
                 \\    const allocator = std.testing.allocator;
-                \\    var parser = DOM.Parser(.{}).init(allocator);
+                \\    var parser = dom.Parser(.{}).init(allocator);
                 \\    defer parser.deinit();
-                \\    var reader = Reader.init(allocator);
-                \\    defer reader.deinit();
                 \\
             );
             if (is_pass) {
-                try checker_zig_content.appendSlice("    const file = try reader.from(std.fs.cwd(), SIMDJSON_DATA ++ \"/jsonchecker/");
+                try checker_zig_content.appendSlice("    const file = try Reader.readFileAlloc(allocator, std.fs.cwd(), simdjson_data ++ \"/jsonchecker/");
                 if (is_minefield) try checker_zig_content.appendSlice("minefield/");
                 try checker_zig_content.appendSlice(file);
                 try checker_zig_content.appendSlice(
                     \\");
+                    \\    defer allocator.free(file);
                     \\    _ = try parser.parse(file);
                 );
             } else {
-                try checker_zig_content.appendSlice("    const file = try reader.from(std.fs.cwd(), SIMDJSON_DATA ++ \"/jsonchecker/");
+                try checker_zig_content.appendSlice("    const file = try Reader.readFileAlloc(allocator, std.fs.cwd(), simdjson_data ++ \"/jsonchecker/");
                 if (is_minefield) try checker_zig_content.appendSlice("minefield/");
                 try checker_zig_content.appendSlice(file);
                 try checker_zig_content.appendSlice(
                     \\");
+                    \\    defer allocator.free(file);
                     \\    _ = parser.parse(file) catch return;
                     \\    return error.MustHaveFailed;
                 );

@@ -29,19 +29,19 @@ pub const BiasedFp = struct {
     /// The biased, binary exponent.
     e: i32,
 
-    pub fn zero() Self {
+    pub inline fn zero() Self {
         return .{ .f = 0, .e = 0 };
     }
 
-    pub fn zeroPow2(e: i32) Self {
+    pub inline fn zeroPow2(e: i32) Self {
         return .{ .f = 0, .e = e };
     }
 
-    pub fn eql(self: Self, other: Self) bool {
+    pub inline fn eql(self: Self, other: Self) bool {
         return self.m == other.m and self.e == other.e;
     }
 
-    pub fn toFloat(self: Self, negative: bool) f64 {
+    pub inline fn toFloat(self: Self, negative: bool) f64 {
         var f = self.m;
         f |= @as(u64, @intCast(self.e)) << std.math.floatMantissaBits(f64);
         f |= @as(u64, @intFromBool(negative)) << 63;
@@ -49,14 +49,14 @@ pub const BiasedFp = struct {
     }
 };
 
-pub fn isEightDigits(src: [8]u8) bool {
+pub inline fn isEightDigits(src: [8]u8) bool {
     const val = readInt(u64, &src, .little);
     const a = val +% 0x4646464646464646;
     const b = val -% 0x3030303030303030;
     return (((a | b) & 0x8080808080808080)) == 0;
 }
 
-pub fn parseEightDigits(src: [8]u8) u32 {
+pub inline fn parseEightDigits(src: [8]u8) u32 {
     if (cpu.arch.isX86()) {
         const ascii0: @Vector(16, u8) = @splat('0');
         const mul_1_10 = std.simd.repeat(16, [_]u8{ 10, 1 });

@@ -14,21 +14,21 @@ const log = std.log;
 const assert = std.debug.assert;
 
 pub const Options = struct {
-    max_capacity: u32 = common.DEFAULT_MAX_CAPACITY,
+    max_capacity: u32 = common.default_max_capacity,
     aligned: bool = false,
 };
 
 pub fn Parser(comptime options: Options) type {
-    const TOKEN_OPTIONS = tokens.Options{
+    const token_options = tokens.Options{
         .aligned = options.aligned,
         .copy_bounded = true,
     };
 
-    const NumberParser = @import("parsers/number/parser.zig").Parser(TOKEN_OPTIONS);
+    const NumberParser = @import("parsers/number/parser.zig").Parser(token_options);
 
     return struct {
         const Self = @This();
-        const Tokens = tokens.Iterator(TOKEN_OPTIONS);
+        const Tokens = tokens.Iterator(token_options);
         const Aligned = types.Aligned(options.aligned);
 
         tokens: Tokens,
@@ -47,12 +47,12 @@ pub fn Parser(comptime options: Options) type {
             self.tokens.deinit();
         }
 
-        pub fn parse(self: *Self, document: Aligned.Slice) !Visitor {
+        pub fn parse(self: *Self, document: Aligned.slice) !Visitor {
             if (document.len >= options.max_capacity) return error.ExceededCapacity;
             const t = &self.tokens;
             try t.build(document);
 
-            try self.chars.ensureTotalCapacity(t.indexer.reader.document.len + Vector.LEN_BYTES);
+            try self.chars.ensureTotalCapacity(t.indexer.reader.document.len + Vector.len_bytes);
             self.chars.shrinkRetainingCapacity(0);
             self.depth = 1;
 
@@ -187,7 +187,7 @@ pub fn Parser(comptime options: Options) type {
                 _ = t.next(.none) orelse return error.ExpectedValue;
 
                 const check = @import("parsers/atoms.zig").checkBool;
-                const is_true = try check(TOKEN_OPTIONS, t.*);
+                const is_true = try check(token_options, t.*);
                 _ = t.consume(if (is_true) 4 else 5, .none);
                 Logger.log(self.document.*, "bool  ", self.depth);
                 self.document.depth -= 1;
@@ -203,7 +203,7 @@ pub fn Parser(comptime options: Options) type {
                 _ = t.next(.none) orelse return error.ExpectedValue;
 
                 const check = @import("parsers/atoms.zig").checkNull;
-                try check(TOKEN_OPTIONS, t.*);
+                try check(token_options, t.*);
                 _ = t.consume(4, .none);
                 Logger.log(self.document.*, "null  ", self.depth);
                 self.document.depth -= 1;
@@ -345,7 +345,7 @@ pub fn Parser(comptime options: Options) type {
                 const chars = &self.document.chars;
                 const next_str = chars.items.len;
                 const write = @import("parsers/string.zig").writeString;
-                try write(TOKEN_OPTIONS, .none, t, chars);
+                try write(token_options, .none, t, chars);
                 const next_len = chars.items.len - next_str;
                 if (t.peek() == ':') {
                     Logger.log(self.document.*, "key   ", self.depth);
@@ -508,7 +508,7 @@ pub fn Parser(comptime options: Options) type {
             pub fn logStart(parser: Self, label: []const u8, depth: u32) void {
                 if (true) return;
                 const t = parser.tokens;
-                var buffer = t.ptr[0..Vector.LEN_BYTES].*;
+                var buffer = t.ptr[0..Vector.len_bytes].*;
                 for (&buffer) |*b| {
                     if (b.* == '\n') b.* = ' ';
                     if (b.* == '\t') b.* = ' ';
@@ -519,7 +519,7 @@ pub fn Parser(comptime options: Options) type {
             pub fn log(parser: Self, label: []const u8, depth: u32) void {
                 if (true) return;
                 const t = parser.tokens;
-                var buffer = t.ptr[0..Vector.LEN_BYTES].*;
+                var buffer = t.ptr[0..Vector.len_bytes].*;
                 for (&buffer) |*b| {
                     if (b.* == '\n') b.* = ' ';
                     if (b.* == '\t') b.* = ' ';
@@ -530,7 +530,7 @@ pub fn Parser(comptime options: Options) type {
             pub fn logEnd(parser: Self, label: []const u8, depth: u32) void {
                 if (true) return;
                 const t = parser.tokens;
-                var buffer = t.ptr[0..Vector.LEN_BYTES].*;
+                var buffer = t.ptr[0..Vector.len_bytes].*;
                 for (&buffer) |*b| {
                     if (b.* == '\n') b.* = ' ';
                     if (b.* == '\t') b.* = ' ';

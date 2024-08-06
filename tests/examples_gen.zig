@@ -1,5 +1,5 @@
 const std = @import("std");
-const SIMDJSON_DATA = @embedFile("simdjson-data");
+const simdjson_data = @embedFile("simdjson-data");
 
 pub fn main() !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -24,14 +24,14 @@ pub fn main() !void {
         \\//! This file is auto-generated with `zig build test/generate`
         \\
         \\const std = @import("std");
-        \\const DOM = @import("zimdjson").DOM;
-        \\const Reader = @import("zimdjson").io.FileReader;
-        \\const SIMDJSON_DATA = @embedFile("simdjson-data");
+        \\const dom = @import("zimdjson").dom;
+        \\const Reader = @import("zimdjson").io.Reader(.{});
+        \\const simdjson_data = @embedFile("simdjson-data");
         \\
         \\
     );
 
-    const examples_path = SIMDJSON_DATA ++ "/jsonexamples";
+    const examples_path = simdjson_data ++ "/jsonexamples";
     var examples_dir = try std.fs.openDirAbsolute(examples_path, .{ .iterate = true });
     defer examples_dir.close();
 
@@ -42,7 +42,7 @@ pub fn main() !void {
             try strings.appendSlice(file.name);
         }
     }
-    const small_path = SIMDJSON_DATA ++ "/jsonexamples/small";
+    const small_path = simdjson_data ++ "/jsonexamples/small";
     var small_dir = try std.fs.openDirAbsolute(small_path, .{ .iterate = true });
     defer small_dir.close();
 
@@ -54,7 +54,7 @@ pub fn main() !void {
             try strings.appendSlice(file.name);
         }
     }
-    const scala_path = SIMDJSON_DATA ++ "/jsonexamples/small/jsoniter_scala";
+    const scala_path = simdjson_data ++ "/jsonexamples/small/jsoniter_scala";
     var scala_dir = try std.fs.openDirAbsolute(scala_path, .{ .iterate = true });
     defer scala_dir.close();
 
@@ -81,16 +81,15 @@ pub fn main() !void {
         try checker_zig_content.appendSlice("\" {\n");
         try checker_zig_content.appendSlice(
             \\    const allocator = std.testing.allocator;
-            \\    var parser = DOM.Parser(.{}).init(allocator);
+            \\    var parser = dom.Parser(.{}).init(allocator);
             \\    defer parser.deinit();
-            \\    var reader = Reader.init(allocator);
-            \\    defer reader.deinit();
             \\
         );
-        try checker_zig_content.appendSlice("    const file = try reader.from(std.fs.cwd(), SIMDJSON_DATA ++ \"/jsonexamples/");
+        try checker_zig_content.appendSlice("    const file = try Reader.readFileAlloc(allocator, std.fs.cwd(), simdjson_data ++ \"/jsonexamples/");
         try checker_zig_content.appendSlice(file);
         try checker_zig_content.appendSlice(
             \\");
+            \\    defer allocator.free(file);
             \\    _ = try parser.parse(file);
         );
         try checker_zig_content.appendSlice("\n}\n\n");

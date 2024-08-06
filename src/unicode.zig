@@ -7,7 +7,7 @@ const simd = std.simd;
 const vector = types.vector;
 const Vector = types.Vector;
 const Mask = types.Mask;
-const Pred = types.Predicate;
+const Predicate = types.Predicate;
 
 pub fn Checker(comptime options: io.Options) type {
     return struct {
@@ -24,30 +24,30 @@ pub fn Checker(comptime options: io.Options) type {
 
         pub fn succeeded(self: Self) bool {
             const err = self.err | self.prev_incomplete;
-            return simd.prefixScan(.Or, 1, err)[Vector.LEN_BYTES - 1] == 0;
+            return simd.prefixScan(.Or, 1, err)[Vector.len_bytes - 1] == 0;
         }
 
-        pub inline fn check(self: *Self, vecs: types.Vectors) void {
+        pub inline fn check(self: *Self, vecs: types.vectors) void {
             if (isASCII(vecs)) {
                 self.err |= self.prev_incomplete;
             } else {
-                inline for (0..Mask.COMPUTED_VECTORS) |i| {
+                inline for (0..Mask.computed_vectors) |i| {
                     const vec = vecs[i];
                     self.checkUTF8Bytes(vec);
                     self.prev_vec = vec;
-                    if (i == Mask.COMPUTED_VECTORS - 1) {
+                    if (i == Mask.computed_vectors - 1) {
                         self.prev_incomplete = isIncomplete(vec);
                     }
                 }
             }
         }
 
-        inline fn isASCII(vecs: types.Vectors) bool {
+        inline fn isASCII(vecs: types.vectors) bool {
             var reduced = vecs[0];
-            inline for (0..Mask.COMPUTED_VECTORS) |i| {
+            inline for (0..Mask.computed_vectors) |i| {
                 reduced |= vecs[i];
             }
-            return Pred(.bytes).pack(@as(vector, @splat(0x80)) <= reduced) == 0;
+            return Predicate.pack(@as(vector, @splat(0x80)) <= reduced) == 0;
         }
 
         inline fn isIncomplete(vec: vector) vector {
@@ -56,7 +56,7 @@ pub fn Checker(comptime options: io.Options) type {
         }
 
         inline fn checkUTF8Bytes(self: *Self, vec: vector) void {
-            const len = Vector.LEN_BYTES;
+            const len = Vector.len_bytes;
             const prev1_mask: @Vector(len, i32) = [_]i32{len} ++ ([_]i32{0} ** (len - 1));
             const prev2_mask: @Vector(len, i32) = [_]i32{ len - 1, len } ++ ([_]i32{0} ** (len - 2));
             const prev3_mask: @Vector(len, i32) = [_]i32{ len - 2, len - 1, len } ++ ([_]i32{0} ** (len - 3));
@@ -93,7 +93,7 @@ pub fn Checker(comptime options: io.Options) type {
                                             // 11111___ 1000____
             const OVERLONG_4     :u8 = 1 << 6; // 11110000 1000____
 
-            const byte_1_high = intr.lookupTable(simd.repeat(Vector.LEN_BYTES, [_]u8{
+            const byte_1_high = intr.lookupTable(simd.repeat(Vector.len_bytes, [_]u8{
                 // 0_______ ________ <ASCII in byte 1>
                 TOO_LONG, TOO_LONG, TOO_LONG, TOO_LONG,
                 TOO_LONG, TOO_LONG, TOO_LONG, TOO_LONG,
@@ -111,7 +111,7 @@ pub fn Checker(comptime options: io.Options) type {
 
             const CARRY = TOO_SHORT | TOO_LONG | TWO_CONTS; // These all have ____ in byte 1 .
 
-            const byte_1_low = intr.lookupTable(simd.repeat(Vector.LEN_BYTES, [_]u8{
+            const byte_1_low = intr.lookupTable(simd.repeat(Vector.len_bytes, [_]u8{
                 // ____0000 ________
                 CARRY | OVERLONG_3 | OVERLONG_2 | OVERLONG_4,
                 // ____0001 ________
@@ -140,7 +140,7 @@ pub fn Checker(comptime options: io.Options) type {
                 CARRY | TOO_LARGE | TOO_LARGE_1000,
             }), prev1 & @as(vector, @splat(0x0F)));
 
-            const byte_2_high = intr.lookupTable(simd.repeat(Vector.LEN_BYTES, [_]u8{
+            const byte_2_high = intr.lookupTable(simd.repeat(Vector.len_bytes, [_]u8{
                 // ________ 0_______ <ASCII in byte 2>
                 TOO_SHORT, TOO_SHORT, TOO_SHORT, TOO_SHORT,
                 TOO_SHORT, TOO_SHORT, TOO_SHORT, TOO_SHORT,

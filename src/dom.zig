@@ -9,8 +9,8 @@ const Number = types.Number;
 const assert = std.debug.assert;
 
 pub const Options = struct {
-    max_capacity: u32 = common.DEFAULT_MAX_CAPACITY,
-    max_depth: u32 = common.DEFAULT_MAX_DEPTH,
+    max_capacity: u32 = common.default_max_capacity,
+    max_depth: u32 = common.default_max_depth,
     aligned: bool = false,
 };
 
@@ -35,7 +35,7 @@ pub fn Parser(comptime options: Options) type {
             self.tape.deinit();
         }
 
-        pub fn parse(self: *Self, document: Aligned.Slice) !Visitor {
+        pub fn parse(self: *Self, document: Aligned.slice) !Visitor {
             if (document.len >= options.max_capacity) return error.ExceededCapacity;
             try self.tape.build(document);
             return Visitor{

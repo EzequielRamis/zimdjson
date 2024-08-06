@@ -1,12 +1,12 @@
 const std = @import("std");
-const OnDemand = @import("zimdjson").OnDemand;
-const PARSE_NUMBER_FXX = @embedFile("parse_number_fxx");
+const ondemand = @import("zimdjson").ondemand;
+const parse_number_fxx = @embedFile("parse_number_fxx");
 
 fn testFrom(comptime set: []const u8) !void {
     // std.debug.print("START:   {s}\n", .{set});
-    const path = PARSE_NUMBER_FXX ++ "/data/" ++ set ++ ".txt";
+    const path = parse_number_fxx ++ "/data/" ++ set ++ ".txt";
     const allocator = std.testing.allocator;
-    var parser = OnDemand.Parser(.{}).init(allocator);
+    var parser = ondemand.Parser(.{}).init(allocator);
     defer parser.deinit();
     const buf = try allocator.alloc(u8, 2048);
     defer allocator.free(buf);
@@ -17,8 +17,8 @@ fn testFrom(comptime set: []const u8) !void {
         const expected = line[4 + 8 + 2 ..][0..16];
         var actual_buf: [16]u8 = undefined;
         const str = line[4 + 8 + 16 + 3 ..];
-        var on_demand = try parser.parse(str);
-        const float = on_demand.getFloat() catch |err| switch (err) {
+        var document = try parser.parse(str);
+        const float = document.getFloat() catch |err| switch (err) {
             error.NumberOutOfRange => std.math.inf(f64),
             else => {
                 // std.debug.print("ignoring invalid number {:0>4}: {s}\n", .{ i, str });

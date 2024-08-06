@@ -86,7 +86,7 @@ pub fn Parser(comptime opt: TokenOptions) type {
     };
 }
 
-fn computeFloat(number: *FromString(.{})) Error!f64 {
+inline fn computeFloat(number: *FromString(.{})) Error!f64 {
     @setFloatMode(.strict);
 
     var many_digits = false;

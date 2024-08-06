@@ -7,7 +7,7 @@ const Limb = BigInt.Limb;
 const BiasedFp = common.BiasedFp;
 const assert = std.debug.assert;
 
-pub fn compute(parsed_number: FromString(.{}), bf: *BiasedFp) void {
+pub inline fn compute(parsed_number: FromString(.{}), bf: *BiasedFp) void {
     @setCold(true);
 
     const sci_exp = scientificExponent(parsed_number);
@@ -24,7 +24,7 @@ pub fn compute(parsed_number: FromString(.{}), bf: *BiasedFp) void {
     }
 }
 
-fn positiveDigitComp(bigman: *BigInt, exp: u32, bf: *BiasedFp) void {
+inline fn positiveDigitComp(bigman: *BigInt, exp: u32, bf: *BiasedFp) void {
     assert(if (bigman.pow10(exp)) true else |_| false);
 
     const high = bigman.high64();
@@ -37,7 +37,7 @@ fn positiveDigitComp(bigman: *BigInt, exp: u32, bf: *BiasedFp) void {
     round(bf, positiveRound1, .{ .truncated = high.truncated });
 }
 
-fn negativeDigitComp(real_digits: *BigInt, real_exp: i32, bf: *BiasedFp) void {
+inline fn negativeDigitComp(real_digits: *BigInt, real_exp: i32, bf: *BiasedFp) void {
     var bf2 = bf.*;
     round(&bf2, negativeRound1, {});
     const b2 = bf2.toFloat(false);
@@ -60,7 +60,7 @@ fn negativeDigitComp(real_digits: *BigInt, real_exp: i32, bf: *BiasedFp) void {
     round(bf, negativeRound2, .{ .order = order });
 }
 
-fn toExtendedHalfway(value: f64) BiasedFp {
+inline fn toExtendedHalfway(value: f64) BiasedFp {
     var bf = toExtended(value);
     bf.m <<= 1;
     bf.m += 1;
@@ -68,7 +68,7 @@ fn toExtendedHalfway(value: f64) BiasedFp {
     return bf;
 }
 
-fn toExtended(value: f64) BiasedFp {
+inline fn toExtended(value: f64) BiasedFp {
     const mask_exp = 0x7FF0000000000000;
     const mask_man = 0x000FFFFFFFFFFFFF;
     const mask_hid = 0x0010000000000000;
@@ -89,19 +89,19 @@ fn toExtended(value: f64) BiasedFp {
     return bf;
 }
 
-fn positiveRound1(bf: *BiasedFp, shift: u32, args: anytype) void {
+inline fn positiveRound1(bf: *BiasedFp, shift: u32, args: anytype) void {
     roundNearestTieEven(bf, shift, positiveRound2, args);
 }
 
-fn positiveRound2(is_odd: bool, is_halfway: bool, is_above: bool, args: anytype) bool {
+inline fn positiveRound2(is_odd: bool, is_halfway: bool, is_above: bool, args: anytype) bool {
     return is_above or (is_halfway and args.truncated) or (is_odd and is_halfway);
 }
 
-fn negativeRound1(bf: *BiasedFp, shift: u32, _: anytype) void {
+inline fn negativeRound1(bf: *BiasedFp, shift: u32, _: anytype) void {
     roundDown(bf, shift);
 }
 
-fn roundDown(bf: *BiasedFp, shift: u32) void {
+inline fn roundDown(bf: *BiasedFp, shift: u32) void {
     if (shift == 64) {
         bf.m = 0;
     } else {
@@ -110,11 +110,11 @@ fn roundDown(bf: *BiasedFp, shift: u32) void {
     bf.e += @intCast(shift);
 }
 
-fn negativeRound2(bf: *BiasedFp, shift: u32, args: anytype) void {
+inline fn negativeRound2(bf: *BiasedFp, shift: u32, args: anytype) void {
     roundNearestTieEven(bf, shift, negativeRound3, args);
 }
 
-fn negativeRound3(is_odd: bool, _: bool, _: bool, args: anytype) bool {
+inline fn negativeRound3(is_odd: bool, _: bool, _: bool, args: anytype) bool {
     return switch (args.order) {
         .gt => true,
         .lt => false,
@@ -122,7 +122,7 @@ fn negativeRound3(is_odd: bool, _: bool, _: bool, args: anytype) bool {
     };
 }
 
-fn scientificExponent(parsed_number: FromString(.{})) i32 {
+inline fn scientificExponent(parsed_number: FromString(.{})) i32 {
     var man = parsed_number.mantissa;
     var exp: i32 = @truncate(parsed_number.exponent);
     while (man >= 10000) {
@@ -140,7 +140,7 @@ fn scientificExponent(parsed_number: FromString(.{})) i32 {
     return exp;
 }
 
-fn parseBigMantissa(bigint: *BigInt, number: FromString(.{})) i32 {
+inline fn parseBigMantissa(bigint: *BigInt, number: FromString(.{})) i32 {
     const max_digits = common.max_big_digits + 1;
     const step = common.max_digits - 1;
     var counter: u32 = 0;
@@ -229,12 +229,12 @@ fn parseBigMantissa(bigint: *BigInt, number: FromString(.{})) i32 {
     return digits;
 }
 
-fn skipZeroes(slice: *[]const u8) void {
+inline fn skipZeroes(slice: *[]const u8) void {
     const zer: types.vector = @splat('0');
-    const len = types.Vector.LEN_BYTES;
+    const len = types.Vector.len_bytes;
     while (slice.len >= len) {
         const vec: types.vector = @bitCast(slice.*[0..len].*);
-        if (!types.Mask.allSet(types.Predicate(.bytes).pack(vec == zer))) break;
+        if (!types.Mask.allSet(types.Predicate.pack(vec == zer))) break;
         slice.* = slice.*[len..];
     }
     while (slice.len > 0) {
@@ -243,25 +243,25 @@ fn skipZeroes(slice: *[]const u8) void {
     }
 }
 
-fn isTruncated(src: []const u8) bool {
+inline fn isTruncated(src: []const u8) bool {
     var slice = src;
     const zer: types.vector = @splat('0');
-    const len = types.Vector.LEN_BYTES;
+    const len = types.Vector.len_bytes;
     while (slice.len >= len) {
         const vec: types.vector = @bitCast(slice[0..len].*);
-        if (!types.Mask.allSet(types.Predicate(.bytes).pack(vec == zer))) return true;
+        if (!types.Mask.allSet(types.Predicate.pack(vec == zer))) return true;
         slice = slice[len..];
     }
     for (slice) |p| if (p != '0') return true;
     return false;
 }
 
-fn roundUpBigInt(bigint: *BigInt, digits: *i32) void {
+inline fn roundUpBigInt(bigint: *BigInt, digits: *i32) void {
     addNative(bigint, 10, 1);
     digits.* += 1;
 }
 
-fn addNative(bigint: *BigInt, power: Limb, value: Limb) void {
+inline fn addNative(bigint: *BigInt, power: Limb, value: Limb) void {
     bigint.mulScalar(power) catch unreachable;
     bigint.addScalar(value) catch unreachable;
 }
@@ -274,10 +274,10 @@ const power_of_ten: [20]u64 = brk: {
     break :brk res;
 };
 
-const RoundCallback = fn (*BiasedFp, u32, anytype) void;
-const NearestCallback = fn (bool, bool, bool, anytype) bool;
+const RoundCallback = fn (*BiasedFp, u32, anytype) callconv(.Inline) void;
+const NearestCallback = fn (bool, bool, bool, anytype) callconv(.Inline) bool;
 
-fn round(bf: *BiasedFp, callback: RoundCallback, args: anytype) void {
+inline fn round(bf: *BiasedFp, callback: RoundCallback, args: anytype) void {
     const man_bits = common.man_bits;
     const man_shift = BigInt.limb_bits - man_bits - 1;
     if (-bf.e >= man_shift) {
@@ -302,7 +302,7 @@ fn round(bf: *BiasedFp, callback: RoundCallback, args: anytype) void {
     }
 }
 
-fn roundNearestTieEven(bf: *BiasedFp, shift: u32, callback: NearestCallback, args: anytype) void {
+inline fn roundNearestTieEven(bf: *BiasedFp, shift: u32, callback: NearestCallback, args: anytype) void {
     const mask = if (shift == 64) std.math.maxInt(u64) else (@as(u64, 1) << @intCast(shift)) - 1;
     const halfway = if (shift == 0) 0 else @as(u64, 1) << @intCast(shift - 1);
     const truncated_bits = bf.m & mask;

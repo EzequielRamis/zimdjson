@@ -8,7 +8,6 @@ const ArrayList = std.ArrayList;
 const Vector = types.Vector;
 const Error = types.Error;
 const vector = types.vector;
-const array = types.array;
 const umask = types.umask;
 const assert = std.debug.assert;
 
@@ -33,7 +32,7 @@ pub fn Iterator(comptime options: Options) type {
         const Aligned = types.Aligned(options.aligned);
 
         indexer: Indexer,
-        padding: if (copy_bounded) ArrayList(u8) else [Vector.LEN_BYTES * 2]u8 = undefined,
+        padding: if (copy_bounded) ArrayList(u8) else [Vector.len_bytes * 2]u8 = undefined,
         padding_ptr: if (copy_bounded) void else [*]const u8 = undefined,
         ptr: [*]const u8 = undefined,
         bounded_token: u32 = undefined,
@@ -51,11 +50,11 @@ pub fn Iterator(comptime options: Options) type {
             self.indexer.deinit();
         }
 
-        pub fn build(self: *Self, doc: Aligned.Slice) !void {
+        pub fn build(self: *Self, doc: Aligned.slice) !void {
             try self.indexer.index(doc);
 
             const ixs = self.indexes();
-            const padding_bound = doc.len -| Vector.LEN_BYTES;
+            const padding_bound = doc.len -| Vector.len_bytes;
             var bounded_token: u32 = @intCast(ixs.len - 1);
             var rev = std.mem.reverseIterator(ixs);
             while (rev.next()) |t| : (bounded_token -|= 1) {
@@ -68,8 +67,8 @@ pub fn Iterator(comptime options: Options) type {
             if (copy_bounded) {
                 const bounded_index = ixs[bounded_token];
                 const padding_len = doc.len - bounded_index;
-                try self.padding.ensureTotalCapacity(padding_len + Vector.LEN_BYTES);
-                self.padding.items.len = padding_len + Vector.LEN_BYTES;
+                try self.padding.ensureTotalCapacity(padding_len + Vector.len_bytes);
+                self.padding.items.len = padding_len + Vector.len_bytes;
                 @memset(self.padding.items, ' ');
                 @memcpy(self.padding.items[0..padding_len], doc[bounded_index..]);
                 if (bounded_token == 0) {
@@ -82,15 +81,15 @@ pub fn Iterator(comptime options: Options) type {
             }
         }
 
-        pub fn indexes(self: Self) []const u32 {
+        pub inline fn indexes(self: Self) []const u32 {
             return self.indexer.indexes.items;
         }
 
-        pub fn document(self: Self) Aligned.Slice {
+        pub inline fn document(self: Self) Aligned.slice {
             return self.indexer.reader.document;
         }
 
-        pub fn next(self: *Self, comptime phase: Phase) ?u8 {
+        pub inline fn next(self: *Self, comptime phase: Phase) ?u8 {
             const doc = self.document();
             const ixs = self.indexes();
             switch (phase) {
@@ -135,13 +134,13 @@ pub fn Iterator(comptime options: Options) type {
             }
         }
 
-        pub fn consume(self: *Self, n: u32, comptime phase: Phase) []const u8 {
+        pub inline fn consume(self: *Self, n: u32, comptime phase: Phase) []const u8 {
             if (!copy_bounded and phase == .bounded) self.shouldSwapSource();
             defer self.ptr += n;
             return self.ptr[0..n];
         }
 
-        pub fn peek(self: Self) u8 {
+        pub inline fn peek(self: Self) u8 {
             return self.document()[self.indexes()[self.token]];
         }
 

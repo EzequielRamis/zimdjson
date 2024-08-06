@@ -73,7 +73,7 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
                 }
             }
 
-            if (common.Tables.is_structural_or_whitespace_negated[src.ptr[0]]) return error.InvalidNumberLiteral;
+            if (common.tables.is_structural_or_whitespace_negated[src.ptr[0]]) return error.InvalidNumberLiteral;
 
             return .{
                 .mantissa = mantissa_10,
@@ -85,12 +85,12 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
             };
         }
 
-        fn parseDigit(comptime topt: TokenOptions, src: *TokenIterator(topt)) ?u8 {
+        inline fn parseDigit(comptime topt: TokenOptions, src: *TokenIterator(topt)) ?u8 {
             const digit = src.ptr[0] -% '0';
             return if (digit < 10) digit else null;
         }
 
-        fn parseDecimal(
+        inline fn parseDecimal(
             comptime topt: TokenOptions,
             comptime phase: TokenPhase,
             src: *TokenIterator(topt),
@@ -111,7 +111,7 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
             return len;
         }
 
-        fn parseExponent(
+        inline fn parseExponent(
             comptime topt: TokenOptions,
             comptime phase: TokenPhase,
             src: *TokenIterator(topt),

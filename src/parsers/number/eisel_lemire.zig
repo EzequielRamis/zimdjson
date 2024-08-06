@@ -10,7 +10,7 @@ const max_even_exp = common.max_even_exp;
 const inf_exp = common.inf_exp;
 const man_bits = common.man_bits;
 
-pub fn computeError(mantissa: u64, exponent: i64) BiasedFp {
+pub inline fn computeError(mantissa: u64, exponent: i64) BiasedFp {
     const lz: u6 = @intCast(@clz(mantissa));
     const w = mantissa << @intCast(lz);
     const q = exponent;
@@ -18,7 +18,7 @@ pub fn computeError(mantissa: u64, exponent: i64) BiasedFp {
     return computeErrorScaled(product.high, q, lz);
 }
 
-pub fn compute(mantissa: u64, exponent: i64) BiasedFp {
+pub inline fn compute(mantissa: u64, exponent: i64) BiasedFp {
     var answer: BiasedFp = undefined;
     if (mantissa == 0 or exponent < min_pow10) {
         answer.e = 0;
@@ -72,7 +72,7 @@ pub fn compute(mantissa: u64, exponent: i64) BiasedFp {
     return answer;
 }
 
-fn power(q: i32) i32 {
+inline fn power(q: i32) i32 {
     return (((152170 + 65536) * q) >> 16) + 63;
 }
 
@@ -80,19 +80,19 @@ const U128 = packed struct {
     high: u64,
     low: u64,
 
-    pub fn from(n: u128) U128 {
+    pub inline fn from(n: u128) U128 {
         return .{
             .high = @truncate(n >> 64),
             .low = @truncate(n),
         };
     }
 
-    pub fn mul(a: u64, b: u64) U128 {
+    pub inline fn mul(a: u64, b: u64) U128 {
         return U128.from(std.math.mulWide(u64, a, b));
     }
 };
 
-fn productApproximation(comptime precision: comptime_int, w: u64, q: i64) U128 {
+inline fn productApproximation(comptime precision: comptime_int, w: u64, q: i64) U128 {
     comptime assert(precision >= 0 and precision <= 64);
     const index: usize = 2 * @as(usize, @intCast(q - min_pow10));
     var first_product = U128.mul(w, power_of_five_u64[index]);
@@ -110,7 +110,7 @@ fn productApproximation(comptime precision: comptime_int, w: u64, q: i64) U128 {
     return first_product;
 }
 
-fn computeErrorScaled(w: u64, q: i64, lz: u8) BiasedFp {
+inline fn computeErrorScaled(w: u64, q: i64, lz: u8) BiasedFp {
     const hilz = ~@as(u1, @intCast(w >> 63));
     return .{
         .m = w << hilz,

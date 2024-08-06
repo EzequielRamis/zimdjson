@@ -4,24 +4,21 @@ const io = @import("io.zig");
 const meta = std.meta;
 const simd = std.simd;
 
-const Self = @This();
+const signed = std.builtin.Signedness.signed;
+const unsigned = std.builtin.Signedness.unsigned;
 
-const SIGNED = std.builtin.Signedness.signed;
-const UNSIGNED = std.builtin.Signedness.unsigned;
-
-pub const vector = @Vector(Vector.LEN_BYTES, u8);
-pub const array = [Vector.LEN_BYTES]u8;
+pub const vector = @Vector(Vector.len_bytes, u8);
 
 pub fn Aligned(comptime aligned: bool) type {
     return struct {
-        pub const Alignment = if (aligned) Self.Vector.LEN_BYTES else 1;
-        pub const Slice = []align(Alignment) const u8;
-        pub const Chunk = *align(Alignment) const [Self.Mask.LEN_BITS]u8;
-        pub const Vector = *align(Alignment) const [Self.Vector.LEN_BYTES]u8;
+        pub const alignment = if (aligned) Vector.len_bytes else 1;
+        pub const slice = []align(alignment) const u8;
+        pub const chunk = *align(alignment) const [Mask.len_bits]u8;
+        pub const vector = *align(alignment) const [Vector.len_bytes]u8;
     };
 }
 
-pub const Vectors = [Mask.COMPUTED_VECTORS]vector;
+pub const vectors = [Mask.computed_vectors]vector;
 
 pub const Number = union(enum) {
     unsigned: u64,
@@ -58,45 +55,24 @@ pub const Error = error{
 };
 
 pub const Vector = struct {
-    const Self = @This();
+    pub const len_bytes = simd.suggestVectorLength(u8) orelse @compileError("SIMD unsupported on this target.");
 
-    pub const LEN_BYTES = simd.suggestVectorLength(u8) orelse @compileError("SIMD unsupported on this target.");
-    pub const LEN_WORDS = LEN_BYTES / 2;
-    pub const LEN_DORDS = LEN_BYTES / 4;
-    pub const LEN_MASKS = LEN_BYTES / 8;
-
-    pub const ZER: vector = @splat(0);
-    pub const ONE: vector = @splat(255);
-    pub const SLASH: vector = @splat('\\');
-    pub const QUOTE: vector = @splat('"');
-
-    const FormatTag = enum { bytes, words, dords, masks, packs };
-
-    const Format = union(FormatTag) {
-        bytes: @Vector(LEN_BYTES, u8),
-        words: @Vector(LEN_WORDS, u16),
-        dords: @Vector(LEN_DORDS, u32),
-        masks: @Vector(LEN_MASKS, u64),
-        packs: @Vector(8, PackedElem),
-    };
-
-    pub const PackedElem = meta.Int(UNSIGNED, LEN_BYTES);
+    pub const zer: vector = @splat(0);
+    pub const one: vector = @splat(255);
+    pub const slash: vector = @splat('\\');
+    pub const quote: vector = @splat('"');
 };
 
 pub const umask = u64;
 pub const imask = i64;
 
 pub const Mask = struct {
-    const Self = @This();
+    pub const computed_vectors = 64 / Vector.len_bytes;
+    pub const len_bits = 64;
+    pub const last_bit = 64 - 1;
 
-    pub const COMPUTED_VECTORS = 64 / Vector.LEN_BYTES;
-    pub const LEN_BITS = 64;
-    pub const LAST_BIT = 64 - 1;
-    pub const LAST_BYTE = 64 - 8;
-    pub const LAST_WORD = 64 - 16;
-    pub const LAST_DORD = 64 - 32;
-    pub const ZER: umask = 0;
-    pub const ONE: umask = @bitCast(@as(imask, -1));
+    pub const zer: umask = 0;
+    pub const one: umask = @bitCast(@as(imask, -1));
 
     pub fn allSet(m: umask) bool {
         return @as(imask, @bitCast(m)) == -1;
@@ -107,42 +83,27 @@ pub const Mask = struct {
     }
 };
 
-pub fn Predicate(comptime f: Vector.FormatTag) type {
-    const L = switch (f) {
-        .bytes => Vector.LEN_BYTES,
-        .words => Vector.LEN_WORDS,
-        .dords => Vector.LEN_DORDS,
-        .masks => Vector.LEN_MASKS,
-        .packs => 8,
-    };
+pub const Predicate = struct {
+    const L = Vector.len_bytes;
+    const E = 8;
 
-    const E = switch (f) {
-        .bytes => 8,
-        .words => 16,
-        .dords => 32,
-        .masks => 64,
-        .packs => Vector.LEN_BYTES,
-    };
+    const predicate = @Vector(L, bool);
+    const @"packed" = meta.Int(unsigned, L);
+    const unpacked = vector;
 
-    return struct {
-        pub const Pred = @Vector(L, bool);
-        pub const Packed = meta.Int(UNSIGNED, L);
-        pub const Unpacked = meta.fieldInfo(Vector.Format, f).type;
+    pub fn pack(p: predicate) @"packed" {
+        return @bitCast(p);
+    }
 
-        pub fn pack(p: Pred) Packed {
-            return @bitCast(p);
-        }
-
-        pub fn unpack(p: Pred) Unpacked {
-            return @as(@Vector(L, meta.Int(UNSIGNED, E)), @bitCast(@as(
-                @Vector(L, meta.Int(SIGNED, E)),
-                @intCast(@as(
-                    @Vector(L, i1),
-                    @bitCast(
-                        @as(@Vector(L, u1), @intFromBool(p)),
-                    ),
-                )),
-            )));
-        }
-    };
-}
+    pub fn unpack(p: predicate) unpacked {
+        return @as(@Vector(L, meta.Int(unsigned, E)), @bitCast(@as(
+            @Vector(L, meta.Int(signed, E)),
+            @intCast(@as(
+                @Vector(L, i1),
+                @bitCast(
+                    @as(@Vector(L, u1), @intFromBool(p)),
+                ),
+            )),
+        )));
+    }
+};

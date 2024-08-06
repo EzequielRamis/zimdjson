@@ -244,16 +244,21 @@ pub fn Indexer(comptime options: io.Options) type {
 }
 
 const Debug = struct {
+    loc: u32 = 0,
     prev_scalar: bool = false,
     prev_inside_string: bool = false,
     next_is_escaped: bool = false,
+
+    fn isX86Relaxed(c: u8) bool {
+        return if (cpu.arch.isX86()) c == 26 or c == 255 else true;
+    }
 
     pub fn expectIdentified(self: *Debug, block: [Mask.LEN_BITS]u8, actual: umask) void {
 
         // Structural chars
         var expected_structural: umask = 0;
         for (block, 0..) |c, i| {
-            if (common.Tables.is_structural[c]) {
+            if (common.Tables.is_structural[c] or isX86Relaxed(c)) {
                 expected_structural |= @as(umask, 1) << @truncate(i);
             }
         }
@@ -261,18 +266,18 @@ const Debug = struct {
         // Scalars
         for (block, 0..) |c, i| {
             if (i == 0) {
-                if (!self.prev_scalar and common.Tables.is_structural_or_whitespace_negated[c]) {
+                if (!self.prev_scalar and !(common.Tables.is_structural_or_whitespace[c] or isX86Relaxed(c))) {
                     expected_structural |= @as(umask, 1) << @truncate(i);
                 }
                 continue;
             }
             const prev = block[i - 1];
-            if ((prev == '"' or common.Tables.is_structural_or_whitespace[prev]) and !common.Tables.is_whitespace[c]) {
+            if ((prev == '"' or common.Tables.is_structural_or_whitespace[prev] or isX86Relaxed(prev)) and !common.Tables.is_whitespace[c]) {
                 expected_structural |= @as(umask, 1) << @truncate(i);
                 continue;
             }
         }
-        self.prev_scalar = common.Tables.is_structural_or_whitespace_negated[block[block.len - 1]];
+        self.prev_scalar = !(common.Tables.is_structural_or_whitespace[block[block.len - 1]] or isX86Relaxed(block[block.len - 1]));
 
         // Escaped chars
         var expected_escaped: umask = 0;
@@ -299,16 +304,23 @@ const Debug = struct {
         }
         const expected = expected_structural & ~expected_string_ranges;
 
+        for (block) |c| {
+            if (c == '\n') self.loc += 1;
+        }
+
         var printable_block: [Mask.LEN_BITS]u8 = undefined;
         @memcpy(&printable_block, &block);
         for (&printable_block) |*c| {
             if (common.Tables.is_whitespace[c.*] and c.* != ' ') {
                 c.* = '~';
             }
+            if (!(32 <= c.* and c.* < 128)) {
+                c.* = '*';
+            }
         }
         debug.assert(
             expected == actual,
-            \\Misindexed block
+            \\Misindexed block at line {}
             \\
             \\Block:    '{s}'
             \\Actual:   '{b:0>64}'
@@ -316,6 +328,7 @@ const Debug = struct {
             \\
         ,
             .{
+                self.loc,
                 printable_block,
                 @as(umask, @bitCast(std.simd.reverseOrder(@as(@Vector(64, u1), @bitCast(actual))))),
                 @as(umask, @bitCast(std.simd.reverseOrder(@as(@Vector(64, u1), @bitCast(expected))))),

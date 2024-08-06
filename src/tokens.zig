@@ -1,7 +1,8 @@
 const std = @import("std");
 const common = @import("common.zig");
 const types = @import("types.zig");
-const Indexer = @import("Indexer.zig");
+const indexer = @import("indexer.zig");
+const io = @import("io.zig");
 const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
 const Vector = types.Vector;
@@ -19,6 +20,7 @@ pub const Phase = enum {
 };
 
 pub const Options = struct {
+    aligned: bool,
     copy_bounded: bool,
 };
 
@@ -27,6 +29,8 @@ pub fn Iterator(comptime options: Options) type {
 
     return struct {
         const Self = @This();
+        const Indexer = indexer.Indexer(.{ .aligned = options.aligned });
+        const Aligned = types.Aligned(options.aligned);
 
         indexer: Indexer,
         padding: if (copy_bounded) ArrayList(u8) else [Vector.LEN_BYTES * 2]u8 = undefined,
@@ -47,7 +51,7 @@ pub fn Iterator(comptime options: Options) type {
             self.indexer.deinit();
         }
 
-        pub fn build(self: *Self, doc: []const u8) !void {
+        pub fn build(self: *Self, doc: Aligned.Slice) !void {
             try self.indexer.index(doc);
 
             const ixs = self.indexes();
@@ -82,7 +86,7 @@ pub fn Iterator(comptime options: Options) type {
             return self.indexer.indexes.items;
         }
 
-        pub fn document(self: Self) []const u8 {
+        pub fn document(self: Self) Aligned.Slice {
             return self.indexer.reader.document;
         }
 

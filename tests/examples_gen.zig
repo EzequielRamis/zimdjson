@@ -25,6 +25,7 @@ pub fn main() !void {
         \\
         \\const std = @import("std");
         \\const DOM = @import("zimdjson").DOM;
+        \\const Reader = @import("zimdjson").io.FileReader;
         \\const SIMDJSON_DATA = @embedFile("simdjson-data");
         \\
         \\
@@ -80,14 +81,17 @@ pub fn main() !void {
         try checker_zig_content.appendSlice("\" {\n");
         try checker_zig_content.appendSlice(
             \\    const allocator = std.testing.allocator;
-            \\    var parser = DOM.Parser.init(allocator);
+            \\    var parser = DOM.Parser(.{}).init(allocator);
             \\    defer parser.deinit();
+            \\    var reader = Reader.init(allocator);
+            \\    defer reader.deinit();
             \\
         );
-        try checker_zig_content.appendSlice("    _ = try parser.load(SIMDJSON_DATA ++ \"/jsonexamples/");
+        try checker_zig_content.appendSlice("    const file = try reader.from(std.fs.cwd(), SIMDJSON_DATA ++ \"/jsonexamples/");
         try checker_zig_content.appendSlice(file);
         try checker_zig_content.appendSlice(
             \\");
+            \\    _ = try parser.parse(file);
         );
         try checker_zig_content.appendSlice("\n}\n\n");
     }

@@ -25,6 +25,7 @@ pub fn main() !void {
         \\
         \\const std = @import("std");
         \\const DOM = @import("zimdjson").DOM;
+        \\const Reader = @import("zimdjson").io.FileReader;
         \\const SIMDJSON_DATA = @embedFile("simdjson-data");
         \\
         \\
@@ -71,23 +72,27 @@ pub fn main() !void {
             try checker_zig_content.appendSlice("\" {\n");
             try checker_zig_content.appendSlice(
                 \\    const allocator = std.testing.allocator;
-                \\    var parser = DOM.Parser.init(allocator);
+                \\    var parser = DOM.Parser(.{}).init(allocator);
                 \\    defer parser.deinit();
+                \\    var reader = Reader.init(allocator);
+                \\    defer reader.deinit();
                 \\
             );
             if (is_pass) {
-                try checker_zig_content.appendSlice("    _ = try parser.load(SIMDJSON_DATA ++ \"/jsonchecker/");
+                try checker_zig_content.appendSlice("    const file = try reader.from(std.fs.cwd(), SIMDJSON_DATA ++ \"/jsonchecker/");
                 if (is_minefield) try checker_zig_content.appendSlice("minefield/");
                 try checker_zig_content.appendSlice(file);
                 try checker_zig_content.appendSlice(
                     \\");
+                    \\    _ = try parser.parse(file);
                 );
             } else {
-                try checker_zig_content.appendSlice("    _ = parser.load(SIMDJSON_DATA ++ \"/jsonchecker/");
+                try checker_zig_content.appendSlice("    const file = try reader.from(std.fs.cwd(), SIMDJSON_DATA ++ \"/jsonchecker/");
                 if (is_minefield) try checker_zig_content.appendSlice("minefield/");
                 try checker_zig_content.appendSlice(file);
                 try checker_zig_content.appendSlice(
-                    \\") catch return;
+                    \\");
+                    \\    _ = parser.parse(file) catch return;
                     \\    return error.MustHaveFailed;
                 );
             }

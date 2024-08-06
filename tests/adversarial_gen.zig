@@ -25,6 +25,7 @@ pub fn main() !void {
         \\
         \\const std = @import("std");
         \\const DOM = @import("zimdjson").DOM;
+        \\const Reader = @import("zimdjson").io.FileReader;
         \\const SIMDJSON_DATA = @embedFile("simdjson-data");
         \\
         \\
@@ -56,14 +57,17 @@ pub fn main() !void {
         try checker_zig_content.appendSlice("\" {\n");
         try checker_zig_content.appendSlice(
             \\    const allocator = std.testing.allocator;
-            \\    var parser = DOM.Parser.init(allocator);
+            \\    var parser = DOM.Parser(.{}).init(allocator);
             \\    defer parser.deinit();
+            \\    var reader = Reader.init(allocator);
+            \\    defer reader.deinit();
             \\
         );
-        try checker_zig_content.appendSlice("    _ = parser.load(SIMDJSON_DATA ++ \"/jsonchecker/adversarial/issue150/");
+        try checker_zig_content.appendSlice("    const file = try reader.from(std.fs.cwd(), SIMDJSON_DATA ++ \"/jsonchecker/adversarial/issue150/");
         try checker_zig_content.appendSlice(file);
         try checker_zig_content.appendSlice(
-            \\") catch return;
+            \\");
+            \\    _ = parser.parse(file) catch return;
             \\    return error.MustHaveFailed;
         );
         try checker_zig_content.appendSlice("\n}\n\n");

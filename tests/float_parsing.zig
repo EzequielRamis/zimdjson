@@ -6,7 +6,7 @@ fn testFrom(comptime set: []const u8) !void {
     // std.debug.print("START:   {s}\n", .{set});
     const path = PARSE_NUMBER_FXX ++ "/data/" ++ set ++ ".txt";
     const allocator = std.testing.allocator;
-    var parser = OnDemand.Parser.init(allocator);
+    var parser = OnDemand.Parser(.{}).init(allocator);
     defer parser.deinit();
     const buf = try allocator.alloc(u8, 2048);
     defer allocator.free(buf);

@@ -1,13 +1,25 @@
 const std = @import("std");
 const builtin = @import("builtin");
+const io = @import("io.zig");
 const meta = std.meta;
 const simd = std.simd;
+
+const Self = @This();
 
 const SIGNED = std.builtin.Signedness.signed;
 const UNSIGNED = std.builtin.Signedness.unsigned;
 
 pub const vector = @Vector(Vector.LEN_BYTES, u8);
 pub const array = [Vector.LEN_BYTES]u8;
+
+pub fn Aligned(comptime aligned: bool) type {
+    return struct {
+        pub const Alignment = if (aligned) Self.Vector.LEN_BYTES else 1;
+        pub const Slice = []align(Alignment) const u8;
+        pub const Chunk = *align(Alignment) const [Self.Mask.LEN_BITS]u8;
+        pub const Vector = *align(Alignment) const [Self.Vector.LEN_BYTES]u8;
+    };
+}
 
 pub const Number = union(enum) {
     unsigned: u64,

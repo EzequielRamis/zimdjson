@@ -128,17 +128,9 @@ pub fn main() !void {
 
     var timer = std.time.Timer.start() catch @panic("need timer to work");
 
+    const base_rss = try getCurrentRss();
     inline for (&commands, benchmarks, 1..) |*command, benchmark, i| {
         stderr_fba.reset();
-
-        const max_prog_name_len = 50;
-        const prog_name = blk: {
-            if (command.name.len > max_prog_name_len) {
-                break :blk try std.fmt.allocPrint(arena, "'{s}...'", .{command.name[0 .. max_prog_name_len - 3]});
-            }
-            break :blk try std.fmt.allocPrint(arena, "'{s}'", .{command.name});
-        };
-        _ = prog_name;
 
         const min_samples = 3;
 
@@ -151,6 +143,7 @@ pub fn main() !void {
             (timer.read() - first_start) < max_nano_seconds) and
             sample_index < samples_buf.len) : (sample_index += 1)
         {
+            const delta_rss = try getCurrentRss() -| base_rss;
             if (tty_conf != .no_color) try bar.render();
             for (perf_measurements, &perf_fds) |measurement, *perf_fd| {
                 var attr: std.os.linux.perf_event_attr = .{
@@ -170,7 +163,6 @@ pub fn main() !void {
             }
 
             benchmark.prerun();
-            const curr_rss = try getCurrentRss();
 
             _ = std.os.linux.ioctl(perf_fds[0], PERF.EVENT_IOC.DISABLE, PERF.IOC_FLAG_GROUP);
             _ = std.os.linux.ioctl(perf_fds[0], PERF.EVENT_IOC.RESET, PERF.IOC_FLAG_GROUP);
@@ -179,25 +171,24 @@ pub fn main() !void {
             const start = timer.read();
 
             benchmark.run();
-            // std.debug.print("run: {}\n", .{sample_index});
 
             const end = timer.read();
             _ = std.os.linux.ioctl(perf_fds[0], PERF.EVENT_IOC.DISABLE, PERF.IOC_FLAG_GROUP);
-            const peak_rss = try getCurrentRss() -| curr_rss;
+            const peak_rss = try getCurrentRss() -| delta_rss;
 
             benchmark.postrun();
 
             samples_buf[sample_index] = .{
-                .throughput = 632000 / (end - start),
+                .throughput = 632000 * 1000_000_000 / (end - start),
                 .wall_time = end - start,
-                .peak_rss = peak_rss,
+                .peak_rss = peak_rss * 1000,
                 .cpu_cycles = readPerfFd(perf_fds[0]),
                 .instructions = readPerfFd(perf_fds[1]),
                 .cache_references = readPerfFd(perf_fds[2]),
                 .cache_misses = readPerfFd(perf_fds[3]),
                 .branch_misses = readPerfFd(perf_fds[4]),
             };
-            // std.debug.print("{}\n", .{samples_buf[sample_index].peak_rss});
+
             for (&perf_fds) |*perf_fd| {
                 std.posix.close(perf_fd.*);
                 perf_fd.* = -1;
@@ -239,10 +230,12 @@ pub fn main() !void {
             try tty_conf.setColor(stdout_w, .bold);
             try stdout_w.print("Benchmark {d}", .{i});
             try tty_conf.setColor(stdout_w, .dim);
-            try stdout_w.print(" ({d} runs)", .{command.sample_count});
+            try stdout_w.print(" ({d} runs, size of json: ", .{command.sample_count});
+            try printUnit(stdout_w, 632000, .bytes, 0, false, false);
+            try stdout_w.print(")", .{});
             try tty_conf.setColor(stdout_w, .reset);
             try stdout_w.writeAll(":");
-            try stdout_w.print(" {s}", .{command.name});
+            try stdout_w.print(" {s} ", .{command.name});
             try stdout_w.writeAll("\n");
 
             try tty_conf.setColor(stdout_w, .bold);
@@ -401,14 +394,14 @@ fn printMeasurement(
     try w.writeByteNTimes(' ', spaces);
     if (m.unit != .throughput) try w.writeByteNTimes(' ', 2);
     try tty_conf.setColor(w, .bright_green);
-    try printUnit(fbs.writer(), m.mean, m.unit, m.std_dev, color_enabled);
+    try printUnit(fbs.writer(), m.mean, m.unit, m.std_dev, color_enabled, true);
     try w.writeAll(fbs.getWritten());
     count += fbs.pos;
     fbs.pos = 0;
     try tty_conf.setColor(w, .reset);
     try w.writeAll(" ± ");
     try tty_conf.setColor(w, .green);
-    try printUnit(fbs.writer(), m.std_dev, m.unit, 0, color_enabled);
+    try printUnit(fbs.writer(), m.std_dev, m.unit, 0, color_enabled, true);
     try w.writeAll(fbs.getWritten());
     count += fbs.pos;
     fbs.pos = 0;
@@ -418,14 +411,14 @@ fn printMeasurement(
     count = 0;
 
     try tty_conf.setColor(w, .cyan);
-    try printUnit(fbs.writer(), @floatFromInt(m.min), m.unit, m.std_dev, color_enabled);
+    try printUnit(fbs.writer(), @floatFromInt(m.min), m.unit, m.std_dev, color_enabled, true);
     try w.writeAll(fbs.getWritten());
     count += fbs.pos;
     fbs.pos = 0;
     try tty_conf.setColor(w, .reset);
     try w.writeAll(" … ");
     try tty_conf.setColor(w, .magenta);
-    try printUnit(fbs.writer(), @floatFromInt(m.max), m.unit, m.std_dev, color_enabled);
+    try printUnit(fbs.writer(), @floatFromInt(m.max), m.unit, m.std_dev, color_enabled, true);
     try w.writeAll(fbs.getWritten());
     count += fbs.pos;
     fbs.pos = 0;
@@ -528,67 +521,72 @@ fn printMeasurement(
     try w.writeAll("\n");
 }
 
-fn printNum3SigFigs(w: anytype, num: f64) !void {
+fn printNum3SigFigs(w: anytype, num: f64, comptime whitespace: bool) !void {
     if (num >= 1000 or num == 0) {
-        try w.print("{d: >4.0}", .{num});
+        const fmt = if (whitespace) "{d: >4.0}" else "{d:.0}";
+        try w.print(fmt, .{num});
         // TODO Do we need special handling here since it overruns 3 sig figs?
     } else if (num >= 100) {
-        try w.print("{d: >4.0}", .{num});
+        const fmt = if (whitespace) "{d: >4.0}" else "{d:.0}";
+        try w.print(fmt, .{num});
     } else if (num >= 10) {
-        try w.print("{d: >3.1}", .{num});
+        const fmt = if (whitespace) "{d: >3.1}" else "{d:.1}";
+        try w.print(fmt, .{num});
     } else {
-        try w.print("{d: >3.2}", .{num});
+        const fmt = if (whitespace) "{d: >3.2}" else "{d:.2}";
+        try w.print(fmt, .{num});
     }
 }
 
-fn printUnit(w: anytype, x: f64, unit: Measurement.Unit, std_dev: f64, color_enabled: bool) !void {
+fn printUnit(w: anytype, x: f64, unit: Measurement.Unit, std_dev: f64, color_enabled: bool, comptime whitespace_enabled: bool) !void {
     _ = std_dev; // TODO something useful with this
     const num = x;
     var val: f64 = 0;
     const color: []const u8 = progress.EscapeCodes.dim ++ progress.EscapeCodes.white;
+    const right_pad = if (whitespace_enabled) " " else "";
     var ustr: []const u8 = "  ";
     if (num >= 1000_000_000_000) {
         val = num / 1000_000_000_000;
         ustr = switch (unit) {
-            .count => "T ",
+            .count => "T" ++ right_pad,
             .nanoseconds => "ks",
             .bytes => "TB",
-            .throughput => "GB/s",
+            .throughput => "TB/s", // unreachable
         };
     } else if (num >= 1000_000_000) {
         val = num / 1000_000_000;
         ustr = switch (unit) {
-            .count => "G ",
-            .nanoseconds => "s ",
+            .count => "G" ++ right_pad,
+            .nanoseconds => "s" ++ right_pad,
             .bytes => "GB",
             .throughput => "GB/s",
         };
     } else if (num >= 1000_000) {
         val = num / 1000_000;
         ustr = switch (unit) {
-            .count => "M ",
+            .count => "M" ++ right_pad,
             .nanoseconds => "ms",
             .bytes => "MB",
-            .throughput => "GB/s",
+            .throughput => "MB/s",
         };
     } else if (num >= 1000) {
         val = num / 1000;
         ustr = switch (unit) {
-            .count => "K ",
+            .count => "K" ++ right_pad,
             .nanoseconds => "us",
             .bytes => "KB",
-            .throughput => "GB/s",
+            .throughput => "KB/s",
         };
     } else {
         val = num;
         ustr = switch (unit) {
-            .count => "  ",
+            .count => " " ++ right_pad,
             .nanoseconds => "ns",
-            .bytes => "  ",
-            .throughput => "GB/s",
+            .bytes => "B" ++ right_pad,
+            .throughput => "B/s", // unreachable
         };
     }
-    try printNum3SigFigs(w, val);
+    try printNum3SigFigs(w, val, whitespace_enabled);
     if (color_enabled) {
         try w.print("{s}{s}{s}", .{ color, ustr, progress.EscapeCodes.reset });
     } else {
@@ -791,34 +789,18 @@ const progress = struct {
 fn getCurrentRss() !u64 {
     if (builtin.os.tag == .linux) {
         const file = try std.fs.openFileAbsolute("/proc/self/status", .{});
-        const reader = file.reader();
         defer file.close();
+        const reader = file.reader();
         for (0..22) |_| try reader.skipUntilDelimiterOrEof('\n');
         var line_buf: [256]u8 = undefined;
-        var line = (try reader.readUntilDelimiterOrEof(&line_buf, '\n')).?;
-        while (line[0] -% '0' > 9) {
-            line = line[1..];
+        const line = (try reader.readUntilDelimiterOrEof(&line_buf, '\n')).?;
+        var res: u64 = 0;
+        for (line) |c| {
+            const d = c -% '0';
+            if (d < 10) {
+                res = res * 10 + d;
+            }
         }
-        while (line[line.len - 1] -% '0' > 9) {
-            line.len -= 1;
-        }
-        return std.mem.readVarInt(u64, line, .little);
-    } else unreachable;
-}
-
-fn getPeakRss() !u64 {
-    if (builtin.os.tag == .linux) {
-        const file = try std.fs.openFileAbsolute("/proc/self/status", .{});
-        const reader = file.reader();
-        for (0..21) |_| try reader.skipUntilDelimiterOrEof('\n');
-        var line_buf: [256]u8 = undefined;
-        var line = (try reader.readUntilDelimiterOrEof(&line_buf, '\n')).?;
-        while (line[0] -% '0' > 9) {
-            line = line[1..];
-        }
-        while (line[line.len - 1] -% '0' > 9) {
-            line.len -= 1;
-        }
-        return std.mem.readVarInt(u64, line, .little);
+        return res;
     } else unreachable;
 }

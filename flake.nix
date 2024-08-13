@@ -13,7 +13,7 @@
           inherit system;
           overlays = [
             (final: prev: rec {
-              zig = inputs.zig.packages.${system}."0.13.0";
+              zig = inputs.zig.packages.${system}."0.12.1";
               zls = inputs.zls.packages.${system}.default;
               tracy = import ./pkgs/tracy.nix { inherit pkgs inputs; };
             })
@@ -21,6 +21,6 @@
         };
       in {
         devShell =
-          pkgs.mkShell { buildInputs = with pkgs; [ zig zls tracy poop ]; };
+          pkgs.mkShell { buildInputs = with pkgs; [ zig zls tracy ccls ]; };
       });
 }

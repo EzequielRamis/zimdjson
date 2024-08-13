@@ -1,13 +1,15 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const io = @import("io.zig");
 const types = @import("types.zig");
 const arch = builtin.cpu.arch;
 const Mask = types.Mask;
 
-pub fn Reader(comptime options: io.Options) type {
+const Options = struct {
+    aligned: bool,
+};
+
+pub fn Reader(comptime options: Options) type {
     return struct {
-        const IO = io.Reader(options);
         const Aligned = types.Aligned(options.aligned);
 
         const Self = @This();
@@ -20,10 +22,6 @@ pub fn Reader(comptime options: io.Options) type {
         last_full_index: u32 = undefined,
         document: Aligned.slice = undefined,
         padding: Block align(Aligned.alignment) = undefined,
-
-        pub fn init() Self {
-            return Self{};
-        }
 
         pub fn read(self: *Self, doc: Aligned.slice) void {
             const remaining = doc.len % BLOCK_SIZE;

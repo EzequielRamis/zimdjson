@@ -2,11 +2,6 @@
     .name = "zimdjson",
     .version = "0.0.0",
     .dependencies = .{
-        .simdjson = .{
-            .url = "git+https://github.com/simdjson/simdjson.git#v3.8.0",
-            .hash = "1220e7a37d6c11ba4bf0e96702e302c314c6a389c3579496592bf8e8805e4427d1ed",
-            .lazy = true,
-        },
         .@"simdjson-data" = .{
             .url = "git+https://github.com/simdjson/simdjson-data.git#a5b13babe65c1bba7186b41b43d4cbdc20a5c470",
             .hash = "1220b889265da3e0bc471a53803786ad6a4f4ee23fbdf9af683af467e995136bd1f4",
@@ -15,6 +10,51 @@
         .parse_number_fxx = .{
             .url = "git+https://github.com/nigeltao/parse-number-fxx-test-data.git#55d79b184b7d8fac2e143e89dc19b766ec4e54b8",
             .hash = "12201656f7fb84a9cc63c8a9067de435a21efba72d41d75c853542fb37ab0504e9a0",
+            .lazy = true,
+        },
+        .simdjson = .{
+            .url = "git+https://github.com/simdjson/simdjson.git#v3.10.0",
+            .hash = "1220f1c87f0fc045224fbf1abb206679b416e9fc96048dc7557901fa989319083387",
+            .lazy = true,
+        },
+        .yyjson = .{
+            .url = "git+https://github.com/ibireme/yyjson.git#0.10.0",
+            .hash = "122042efdb4807799a361ed8758404dfd25965757812ce587bea0f917015720fff26",
+            .lazy = true,
+        },
+        .rapidjson = .{
+            .url = "git+https://github.com/Tencent/rapidjson.git#v1.1.0",
+            .hash = "122084f00a476f61099ac1d0723da671ac4568d49cc6021313ad75981adc17e9bad4",
+            .lazy = true,
+        },
+        .nlohmann = .{
+            .url = "git+https://github.com/nlohmann/json.git#v3.11.3",
+            .hash = "12203ada5de99b48676019c52ad8ea06a5cae74319c5f1fe5aaf020ec9636872f423",
+            .lazy = true,
+        },
+        .sajson = .{
+            .url = "git+https://github.com/chadaustin/sajson.git#ec644013e34f9984a3cc9ba568cab97a391db9cd",
+            .hash = "1220b753d73a84a84af97df31e712ab5d2fdc7f17f8c68d2c4ae37d2313f12da3b4b",
+            .lazy = true,
+        },
+        .boost = .{
+            .url = "git+https://github.com/boostorg/json.git#boost-1.85.0",
+            .hash = "122033d984f580d5e269c1ad6a327fb727990ce55486ca59b1311ffc12922f240990",
+            .lazy = true,
+        },
+        .glaze = .{
+            .url = "git+https://github.com/stephenberry/glaze.git#v3.2.3",
+            .hash = "1220861e04bc0ddacb4350b14e0fdca59ccef85e1da44052ac3e0971a6d4094c4822",
+            .lazy = true,
+        },
+        .daw_json_link = .{
+            .url = "git+https://github.com/beached/daw_json_link.git#v3.27.1",
+            .hash = "1220004764a1aafa45dcf1ea787fd213666ffa6dc91622d8bfcb0ee18a3db04b994e",
+            .lazy = true,
+        },
+        .json_struct = .{
+            .url = "git+https://github.com/jorgen/json_struct.git#1fc4672c1c93ea336ef62b5deadbabb0d1b02649",
+            .hash = "1220717c16ead609830c00920168cc920a5a064a82901fea8de8b611e8c66b6671c2",
             .lazy = true,
         },
     },

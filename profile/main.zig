@@ -1,8 +1,9 @@
 const std = @import("std");
 const zimdjson = @import("zimdjson");
 const tracy = @import("tracy");
-const DOM = zimdjson.DOM;
-const OnDemand = zimdjson.OnDemand;
+const dom = zimdjson.dom;
+const ondemand = zimdjson.ondemand;
+const Reader = zimdjson.io.Reader(.{});
 
 pub fn main() !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
@@ -10,16 +11,23 @@ pub fn main() !void {
     const args = try std.process.argsAlloc(arena.allocator());
     defer std.process.argsFree(arena.allocator(), args);
 
+    if (args.len == 1) return;
+
     var tracy_alloc = tracy.tracyAllocator(std.heap.c_allocator);
     const allocator = tracy_alloc.allocator();
 
-    var parser = DOM.Parser.init(allocator);
-    // var parser = OnDemand.Parser.init(allocator);
+    const file = try Reader.readFileAlloc(allocator, std.fs.cwd(), args[1]);
+    defer allocator.free(file);
 
+    // var parser = dom.Parser(.{ .aligned = true }).init(allocator);
+    var parser = ondemand.Parser(.{ .aligned = true }).init(allocator);
     defer parser.deinit();
 
+    const rand = std.crypto.random;
     while (true) {
-        const document = try parser.load(args[1]);
-        _ = document;
+        const index = rand.uintLessThan(u8, 100);
+        const document = try parser.parse(file);
+        const created_at = try document.at(index).at("reportedOn").getString();
+        tracy.messageCopy(created_at);
     }
 }

@@ -67,17 +67,18 @@ pub fn main() !void {
         const is_minefield = std.mem.startsWith(u8, file, "y_") or std.mem.startsWith(u8, file, "n_");
         const identifier = file[0 .. file.len - 5];
         if (!is_excluded) {
-            try checker_zig_content.appendSlice("test \"");
-            try checker_zig_content.appendSlice(identifier);
-            try checker_zig_content.appendSlice("\" {\n");
-            try checker_zig_content.appendSlice(
+            var buf: [1024]u8 = undefined;
+            try checker_zig_content.appendSlice(try std.fmt.bufPrint(&buf,
+                \\test "{[id]s}" {{
                 \\    const allocator = std.testing.allocator;
-                \\    var parser = dom.Parser(.{}).init(allocator);
+                \\    var parser = dom.Parser(.{{}}).init(allocator);
                 \\    defer parser.deinit();
                 \\
-            );
+            , .{ .id = identifier }));
             if (is_pass) {
-                try checker_zig_content.appendSlice("    const file = try Reader.readFileAlloc(allocator, std.fs.cwd(), simdjson_data ++ \"/jsonchecker/");
+                try checker_zig_content.appendSlice(
+                    \\    const file = try Reader.readFileAlloc(allocator, std.fs.cwd(), simdjson_data ++ "/jsonchecker/
+                );
                 if (is_minefield) try checker_zig_content.appendSlice("minefield/");
                 try checker_zig_content.appendSlice(file);
                 try checker_zig_content.appendSlice(
@@ -86,7 +87,9 @@ pub fn main() !void {
                     \\    _ = try parser.parse(file);
                 );
             } else {
-                try checker_zig_content.appendSlice("    const file = try Reader.readFileAlloc(allocator, std.fs.cwd(), simdjson_data ++ \"/jsonchecker/");
+                try checker_zig_content.appendSlice(
+                    \\    const file = try Reader.readFileAlloc(allocator, std.fs.cwd(), simdjson_data ++ "/jsonchecker/
+                );
                 if (is_minefield) try checker_zig_content.appendSlice("minefield/");
                 try checker_zig_content.appendSlice(file);
                 try checker_zig_content.appendSlice(
@@ -96,7 +99,12 @@ pub fn main() !void {
                     \\    return error.MustHaveFailed;
                 );
             }
-            try checker_zig_content.appendSlice("\n}\n\n");
+            try checker_zig_content.appendSlice(
+                \\
+                \\}
+                \\
+                \\
+            );
         }
     }
 

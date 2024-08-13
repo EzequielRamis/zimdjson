@@ -76,23 +76,19 @@ pub fn main() !void {
     std.sort.insertion([]const u8, files.items, {}, lessThanSlice);
     for (files.items) |file| {
         const identifier = file[0 .. file.len - 5];
-        try checker_zig_content.appendSlice("test \"");
-        try checker_zig_content.appendSlice(identifier);
-        try checker_zig_content.appendSlice("\" {\n");
-        try checker_zig_content.appendSlice(
+        var buf: [1024]u8 = undefined;
+        try checker_zig_content.appendSlice(try std.fmt.bufPrint(&buf,
+            \\test "{[id]s}" {{
             \\    const allocator = std.testing.allocator;
-            \\    var parser = dom.Parser(.{}).init(allocator);
+            \\    var parser = dom.Parser(.{{}}).init(allocator);
             \\    defer parser.deinit();
-            \\
-        );
-        try checker_zig_content.appendSlice("    const file = try Reader.readFileAlloc(allocator, std.fs.cwd(), simdjson_data ++ \"/jsonexamples/");
-        try checker_zig_content.appendSlice(file);
-        try checker_zig_content.appendSlice(
-            \\");
+            \\    const file = try Reader.readFileAlloc(allocator, std.fs.cwd(), simdjson_data ++ "/jsonexamples/{[path]s}");
             \\    defer allocator.free(file);
             \\    _ = try parser.parse(file);
-        );
-        try checker_zig_content.appendSlice("\n}\n\n");
+            \\}}
+            \\
+            \\
+        , .{ .id = identifier, .path = file }));
     }
 
     try output_file.writeAll(checker_zig_content.items);

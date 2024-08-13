@@ -8,10 +8,11 @@ pub const Options = struct {
 pub fn Reader(comptime options: Options) type {
     return struct {
         const Aligned = types.Aligned(options.aligned);
-        pub const MaxBytes = std.math.maxInt(u32);
+        pub const slice = Aligned.slice;
+        pub const max_bytes = std.math.maxInt(u32);
 
-        pub fn readFileAlloc(allocator: std.mem.Allocator, dir: std.fs.Dir, file_path: []const u8) !Aligned.slice {
-            return dir.readFileAllocOptions(allocator, file_path, MaxBytes, null, Aligned.alignment, null);
+        pub fn readFileAlloc(allocator: std.mem.Allocator, dir: std.fs.Dir, file_path: []const u8) !slice {
+            return dir.readFileAllocOptions(allocator, file_path, max_bytes, null, Aligned.alignment, null);
         }
     };
 }

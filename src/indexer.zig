@@ -7,8 +7,6 @@ const types = @import("types.zig");
 const intr = @import("intrinsics.zig");
 const unicode = @import("unicode.zig");
 const reader = @import("reader.zig");
-const io = @import("io.zig");
-const ArrayList = std.ArrayList;
 const simd = std.simd;
 const vector = types.vector;
 const Vector = types.Vector;
@@ -22,13 +20,18 @@ const Predicate = types.Predicate;
 const Error = types.Error;
 const Allocator = std.mem.Allocator;
 
-pub fn Indexer(comptime options: io.Options) type {
+const Options = struct {
+    aligned: bool,
+};
+
+pub fn Indexer(comptime options: Options) type {
     return struct {
         const Aligned = types.Aligned(options.aligned);
 
         const Self = @This();
-        const Reader = reader.Reader(options);
-        const Checker = unicode.Checker(options);
+        const Indexes = std.ArrayList(u32);
+        const Reader = reader.Reader(.{ .aligned = options.aligned });
+        const Checker = unicode.Checker(.{ .aligned = options.aligned });
 
         debug: if (debug.is_set) Debug else void = if (debug.is_set) .{} else {},
 
@@ -37,15 +40,13 @@ pub fn Indexer(comptime options: io.Options) type {
         prev_inside_string: umask = 0,
         next_is_escaped: umask = 0,
         unescaped_error: umask = 0,
-        reader: Reader,
-        indexes: ArrayList(u32),
-        utf8_checker: Checker,
+        reader: Reader = .{},
+        utf8_checker: Checker = .{},
+        indexes: Indexes,
 
         pub fn init(allocator: Allocator) Self {
             return Self{
-                .reader = Reader.init(),
-                .indexes = ArrayList(u32).init(allocator),
-                .utf8_checker = Checker.init(),
+                .indexes = Indexes.init(allocator),
             };
         }
 

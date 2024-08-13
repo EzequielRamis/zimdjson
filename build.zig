@@ -1,4 +1,7 @@
 const std = @import("std");
+const bench = @import("build/bench.zig");
+const CommandCenter = @import("build/center.zig").CommandCenter;
+const Parsers = @import("build/parsers.zig").Parsers;
 
 pub fn build(b: *std.Build) !void {
     var gpa = std.heap.GeneralPurposeAllocator(.{}){};
@@ -46,7 +49,7 @@ pub fn build(b: *std.Build) !void {
             const minefield_gen = b.addExecutable(.{
                 .name = "minefield_gen",
                 .root_source_file = b.path("tests/minefield_gen.zig"),
-                .target = b.host,
+                .target = target,
             });
             const path = b.path("tests/minefield.zig");
             const run_minefield_gen = b.addRunArtifact(minefield_gen);
@@ -75,7 +78,7 @@ pub fn build(b: *std.Build) !void {
             const adversarial_gen = b.addExecutable(.{
                 .name = "adversarial_gen",
                 .root_source_file = b.path("tests/adversarial_gen.zig"),
-                .target = b.host,
+                .target = target,
             });
             const path = b.path("tests/adversarial.zig");
             const run_adversarial_gen = b.addRunArtifact(adversarial_gen);
@@ -104,7 +107,7 @@ pub fn build(b: *std.Build) !void {
             const examples_gen = b.addExecutable(.{
                 .name = "examples_gen",
                 .root_source_file = b.path("tests/examples_gen.zig"),
-                .target = b.host,
+                .target = target,
             });
             const path = b.path("tests/examples.zig");
             const run_examples_gen = b.addRunArtifact(examples_gen);
@@ -143,7 +146,7 @@ pub fn build(b: *std.Build) !void {
         const profile = b.addExecutable(.{
             .name = "profile",
             .root_source_file = b.path("profile/main.zig"),
-            .target = b.host,
+            .target = target,
             .optimize = optimize,
         });
 
@@ -154,6 +157,34 @@ pub fn build(b: *std.Build) !void {
         const run_profile = b.addRunArtifact(profile);
         if (b.args) |args| run_profile.addArgs(args);
         com.dependOn(&run_profile.step);
+    }
+    // --
+
+    // -- Benchmarking
+    {
+        var com = center.command("bench", "Benchmark against simdjson");
+
+        {
+            const com_find_tweet = try com.sub("find-tweet", "Run find_tweet benchmark", .{});
+            const runner = b.addExecutable(.{
+                .name = com.step.name,
+                .root_source_file = b.path("bench/runner.zig"),
+                .target = target,
+                .optimize = optimize,
+            });
+            if (Parsers.get(com, target, optimize)) |parsers| {
+                _ = parsers;
+                // const simdjson_dom = bench.addCppBenchmark(runner, "find_tweet", "simdjson_dom", parsers.simdjson);
+                const zimdjson_dom = bench.addZimdjsonBenchmark(runner, "find_tweet", "zimdjson_dom", zimdjson);
+
+                bench.addBenchmarkSuite(runner, "find_tweet", &.{
+                    zimdjson_dom,
+                    // simdjson_dom,
+                });
+                const run = b.addRunArtifact(runner);
+                com_find_tweet.dependOn(&run.step);
+            }
+        }
     }
     // --
 }
@@ -210,84 +241,3 @@ fn getTracyModule(
 
     return tracy_module;
 }
-
-const CommandCenter = struct {
-    b: *std.Build,
-    allocator: std.mem.Allocator,
-    names: std.ArrayList(u8),
-    args: []const [:0]u8,
-
-    pub fn init(allocator: std.mem.Allocator, b: *std.Build) !CommandCenter {
-        const args = try std.process.argsAlloc(allocator);
-        return .{
-            .b = b,
-            .allocator = allocator,
-            .names = std.ArrayList(u8).init(allocator),
-            .args = args,
-        };
-    }
-
-    pub fn deinit(self: *CommandCenter) void {
-        self.names.deinit();
-        std.process.argsFree(self.allocator, self.args);
-    }
-
-    pub fn command(self: *CommandCenter, name: []const u8, description: []const u8) Command {
-        return .{
-            .center = self,
-            .step = self.b.step(name, description),
-            .options = .{},
-        };
-    }
-};
-
-const Command = struct {
-    pub const Options = struct {
-        propagate: bool = true,
-    };
-
-    center: *CommandCenter,
-    step: *std.Build.Step,
-    parent: ?*const Command = null,
-    options: Options,
-
-    pub fn sub(self: *Command, name: []const u8, description: []const u8, options: Options) !Command {
-        const ptr = self.center.names.items.len;
-        try self.center.names.appendSlice(self.step.name);
-        try self.center.names.append('/');
-        try self.center.names.appendSlice(name);
-        const len = self.center.names.items.len;
-        return .{
-            .center = self.center,
-            .parent = self,
-            .step = self.center.b.step(self.center.names.items[ptr..len], description),
-            .options = options,
-        };
-    }
-
-    pub fn isExecuted(self: Command) bool {
-        args: for (self.center.args[1..]) |arg| {
-            var prefix: ?*const Command = &self;
-            while (prefix) |p| : (prefix = p.parent) {
-                if (self.center.b.top_level_steps.contains(arg)) return true;
-                if (!self.options.propagate) continue :args;
-            }
-        }
-        return false;
-    }
-
-    pub fn with(self: Command, dependency: []const u8) ?*std.Build.Dependency {
-        return if (self.isExecuted())
-            self.center.b.lazyDependency(dependency, .{})
-        else
-            null;
-    }
-
-    pub fn dependOn(self: Command, step: *std.Build.Step) void {
-        var prefix: ?*const Command = &self;
-        while (prefix) |p| : (prefix = p.parent) {
-            p.step.dependOn(step);
-            if (!self.options.propagate) return;
-        }
-    }
-};

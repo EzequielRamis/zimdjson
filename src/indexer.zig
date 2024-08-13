@@ -35,11 +35,11 @@ pub fn Indexer(comptime options: Options) type {
 
         debug: if (debug.is_set) Debug else void = if (debug.is_set) .{} else {},
 
-        prev_structural: umask = 0,
-        prev_scalar: umask = 0,
-        prev_inside_string: umask = 0,
-        next_is_escaped: umask = 0,
-        unescaped_error: umask = 0,
+        prev_structural: umask = undefined,
+        prev_scalar: umask = undefined,
+        prev_inside_string: umask = undefined,
+        next_is_escaped: umask = undefined,
+        unescaped_error: umask = undefined,
         reader: Reader = .{},
         utf8_checker: Checker = .{},
         indexes: Indexes,
@@ -61,6 +61,12 @@ pub fn Indexer(comptime options: Options) type {
 
             try self.indexes.ensureTotalCapacity(self.reader.document.len);
             self.indexes.shrinkRetainingCapacity(0);
+            self.prev_structural = 0;
+            self.prev_scalar = 0;
+            self.prev_inside_string = 0;
+            self.next_is_escaped = 0;
+            self.unescaped_error = 0;
+            self.utf8_checker = .{};
 
             while (self.reader.next()) |block| {
                 self.step(block, self.reader.index -% Reader.BLOCK_SIZE);

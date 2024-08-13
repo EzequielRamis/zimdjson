@@ -173,13 +173,12 @@ pub fn build(b: *std.Build) !void {
                 .optimize = optimize,
             });
             if (Parsers.get(com, target, optimize)) |parsers| {
-                _ = parsers;
-                // const simdjson_dom = bench.addCppBenchmark(runner, "find_tweet", "simdjson_dom", parsers.simdjson);
+                const simdjson_dom = bench.addCppBenchmark(runner, "find_tweet", "simdjson_dom", parsers.simdjson);
                 const zimdjson_dom = bench.addZimdjsonBenchmark(runner, "find_tweet", "zimdjson_dom", zimdjson);
 
                 bench.addBenchmarkSuite(runner, "find_tweet", &.{
                     zimdjson_dom,
-                    // simdjson_dom,
+                    simdjson_dom,
                 });
                 const run = b.addRunArtifact(runner);
                 com_find_tweet.dependOn(&run.step);

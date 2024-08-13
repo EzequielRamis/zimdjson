@@ -51,6 +51,7 @@ const Command = struct {
     sample_count: usize,
 
     const Measurements = struct {
+        throughput: Measurement,
         wall_time: Measurement,
         peak_rss: Measurement,
         cpu_cycles: Measurement,
@@ -62,6 +63,7 @@ const Command = struct {
 };
 
 const Sample = struct {
+    throughput: u64,
     wall_time: u64,
     cpu_cycles: u64,
     instructions: u64,
@@ -186,6 +188,7 @@ pub fn main() !void {
             benchmark.postrun();
 
             samples_buf[sample_index] = .{
+                .throughput = 632000 / (end - start),
                 .wall_time = end - start,
                 .peak_rss = peak_rss,
                 .cpu_cycles = readPerfFd(perf_fds[0]),
@@ -221,6 +224,7 @@ pub fn main() !void {
         const all_samples = samples_buf[0..sample_index];
 
         command.measurements = .{
+            .throughput = Measurement.compute(all_samples, "throughput", .throughput),
             .wall_time = Measurement.compute(all_samples, "wall_time", .nanoseconds),
             .peak_rss = Measurement.compute(all_samples, "peak_rss", .bytes),
             .cpu_cycles = Measurement.compute(all_samples, "cpu_cycles", .count),
@@ -243,7 +247,7 @@ pub fn main() !void {
 
             try tty_conf.setColor(stdout_w, .bold);
             try stdout_w.writeAll("  measurement");
-            try stdout_w.writeByteNTimes(' ', 23 - "  measurement".len);
+            try stdout_w.writeByteNTimes(' ', 25 - "  measurement".len);
             try tty_conf.setColor(stdout_w, .bright_green);
             try stdout_w.writeAll("mean");
             try tty_conf.setColor(stdout_w, .reset);
@@ -254,7 +258,7 @@ pub fn main() !void {
             try tty_conf.setColor(stdout_w, .reset);
 
             try tty_conf.setColor(stdout_w, .bold);
-            try stdout_w.writeByteNTimes(' ', 12);
+            try stdout_w.writeByteNTimes(' ', 14);
             try tty_conf.setColor(stdout_w, .cyan);
             try stdout_w.writeAll("min");
             try tty_conf.setColor(stdout_w, .reset);
@@ -325,6 +329,7 @@ const Measurement = struct {
         nanoseconds,
         bytes,
         count,
+        throughput, // 1byte/ns == 1GB/s
     };
 
     fn compute(samples: []Sample, comptime field: []const u8, unit: Unit) Measurement {
@@ -394,6 +399,7 @@ fn printMeasurement(
     const color_enabled = tty_conf != .no_color;
     const spaces = 32 - ("  (mean  ):".len + name.len + 2);
     try w.writeByteNTimes(' ', spaces);
+    if (m.unit != .throughput) try w.writeByteNTimes(' ', 2);
     try tty_conf.setColor(w, .bright_green);
     try printUnit(fbs.writer(), m.mean, m.unit, m.std_dev, color_enabled);
     try w.writeAll(fbs.getWritten());
@@ -408,7 +414,7 @@ fn printMeasurement(
     fbs.pos = 0;
     try tty_conf.setColor(w, .reset);
 
-    try w.writeByteNTimes(' ', 64 - ("  measurement      ".len + count + 3));
+    try w.writeByteNTimes(' ', 66 - ("  measurement      ".len + count + 3));
     count = 0;
 
     try tty_conf.setColor(w, .cyan);
@@ -426,6 +432,7 @@ fn printMeasurement(
     try tty_conf.setColor(w, .reset);
 
     try w.writeByteNTimes(' ', 46 - (count + 1));
+    if (m.unit == .throughput) try w.writeByteNTimes(' ', 2);
     count = 0;
 
     const outlier_percent = @as(f64, @floatFromInt(m.outlier_count)) / @as(f64, @floatFromInt(m.sample_count)) * 100;
@@ -466,7 +473,28 @@ fn printMeasurement(
                     break :blk false;
                 }
             };
-            if (m.mean > f.mean) {
+            if (m.unit == .throughput) {
+                if (m.mean <= f.mean) {
+                    if (is_sig) {
+                        try w.writeAll("💩");
+                        try tty_conf.setColor(w, .bright_red);
+                    } else {
+                        try tty_conf.setColor(w, .dim);
+                        try w.writeAll("  ");
+                    }
+                    try w.writeAll("-");
+                } else {
+                    if (is_sig) {
+                        try tty_conf.setColor(w, .bright_yellow);
+                        try w.writeAll("⚡");
+                        try tty_conf.setColor(w, .bright_green);
+                    } else {
+                        try tty_conf.setColor(w, .dim);
+                        try w.writeAll("  ");
+                    }
+                    try w.writeAll("+");
+                }
+            } else if (m.mean > f.mean) {
                 if (is_sig) {
                     try w.writeAll("💩");
                     try tty_conf.setColor(w, .bright_red);
@@ -501,7 +529,7 @@ fn printMeasurement(
 }
 
 fn printNum3SigFigs(w: anytype, num: f64) !void {
-    if (num >= 1000 or @round(num) == num) {
+    if (num >= 1000 or num == 0) {
         try w.print("{d: >4.0}", .{num});
         // TODO Do we need special handling here since it overruns 3 sig figs?
     } else if (num >= 100) {
@@ -525,6 +553,7 @@ fn printUnit(w: anytype, x: f64, unit: Measurement.Unit, std_dev: f64, color_ena
             .count => "T ",
             .nanoseconds => "ks",
             .bytes => "TB",
+            .throughput => "GB/s",
         };
     } else if (num >= 1000_000_000) {
         val = num / 1000_000_000;
@@ -532,6 +561,7 @@ fn printUnit(w: anytype, x: f64, unit: Measurement.Unit, std_dev: f64, color_ena
             .count => "G ",
             .nanoseconds => "s ",
             .bytes => "GB",
+            .throughput => "GB/s",
         };
     } else if (num >= 1000_000) {
         val = num / 1000_000;
@@ -539,6 +569,7 @@ fn printUnit(w: anytype, x: f64, unit: Measurement.Unit, std_dev: f64, color_ena
             .count => "M ",
             .nanoseconds => "ms",
             .bytes => "MB",
+            .throughput => "GB/s",
         };
     } else if (num >= 1000) {
         val = num / 1000;
@@ -546,6 +577,7 @@ fn printUnit(w: anytype, x: f64, unit: Measurement.Unit, std_dev: f64, color_ena
             .count => "K ",
             .nanoseconds => "us",
             .bytes => "KB",
+            .throughput => "GB/s",
         };
     } else {
         val = num;
@@ -553,6 +585,7 @@ fn printUnit(w: anytype, x: f64, unit: Measurement.Unit, std_dev: f64, color_ena
             .count => "  ",
             .nanoseconds => "ns",
             .bytes => "  ",
+            .throughput => "GB/s",
         };
     }
     try printNum3SigFigs(w, val);

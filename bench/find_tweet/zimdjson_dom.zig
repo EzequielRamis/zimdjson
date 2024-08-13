@@ -14,11 +14,9 @@ export fn zimdjson_dom__init() void {
         std.fs.cwd(),
         "../simdjson-data/jsonexamples/twitter.json",
     ) catch unreachable;
-    // parser = zimdjson.dom.Parser(.{}).init(allocator);
+    parser = zimdjson.dom.Parser(.{}).init(allocator);
 }
-export fn zimdjson_dom__prerun() void {
-    parser = zimdjson.dom.Parser(.{}).init(arena.allocator());
-}
+export fn zimdjson_dom__prerun() void {}
 
 export fn zimdjson_dom__run() void {
     const document = parser.parse(file) catch unreachable;
@@ -27,6 +25,7 @@ export fn zimdjson_dom__run() void {
 }
 
 export fn zimdjson_dom__postrun() void {}
+
 export fn zimdjson_dom__deinit() void {
     arena.allocator().free(file);
     parser.deinit();

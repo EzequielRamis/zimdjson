@@ -136,22 +136,22 @@ pub fn build(b: *std.Build) !void {
     // -- Benchmarking
     {
         var com = center.command("bench", "Run all benchmarks");
+        const parsers = Parsers.get(com, target, optimize);
 
         {
-            const com_find_tweet = try com.sub("find-tweet", "Run 'find tweet' benchmark", .{});
-            if (Parsers.get(com, target, optimize)) |parsers| {
+            if (parsers) |p| {
                 const bench_indexer = bench.Suite("indexer"){
                     .zimdjson = zimdjson,
-                    .simdjson = parsers.simdjson,
+                    .simdjson = p.simdjson,
                     .target = target,
                     .optimize = optimize,
                 };
                 const runner = bench_indexer.create(&.{
                     bench_indexer.addZigBenchmark("zimdjson"),
-                    bench_indexer.addCppBenchmark("simdjson", parsers.simdjson),
+                    bench_indexer.addCppBenchmark("simdjson", p.simdjson),
                 });
                 const run = b.addRunArtifact(runner);
-                com_find_tweet.dependOn(&run.step);
+                com.dependOn(&run.step);
             }
         }
     }

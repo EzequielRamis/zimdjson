@@ -28,7 +28,7 @@ const PERF = std.os.linux.PERF;
 const fd_t = std.posix.fd_t;
 const pid_t = std.os.pid_t;
 const assert = std.debug.assert;
-const MAX_SAMPLES = 100000;
+const MAX_SAMPLES = 10000;
 
 const benchmarks = @import("benchmarks").tuple;
 
@@ -65,12 +65,12 @@ const Command = struct {
 const Sample = struct {
     throughput: u64,
     wall_time: u64,
+    peak_rss: u64,
     cpu_cycles: u64,
     instructions: u64,
     cache_references: u64,
     cache_misses: u64,
     branch_misses: u64,
-    peak_rss: u64,
 
     pub fn lessThanContext(comptime field: []const u8) type {
         return struct {
@@ -128,15 +128,22 @@ pub fn main() !void {
 
     var timer = std.time.Timer.start() catch @panic("need timer to work");
 
+    // current rss:
+    // runner
+    // const runner_rss = try getCurrentRss();
     inline for (&commands, benchmarks, 1..) |*command, benchmark, i| {
-        const base_rss = try getCurrentRss();
+        // current rss:
+        // runner + prev samples
+        // const prev_samples_rss = try getCurrentRss() -| runner_rss;
         stderr_fba.reset();
 
         const min_samples = 3;
 
         benchmark.init();
         defer benchmark.deinit();
-        const init_rss = try getCurrentRss() -| base_rss;
+        // current rss:
+        // runner + prev samples + bench allocations
+        // const init_rss = try getCurrentRss() -| (runner_rss + prev_samples_rss);
 
         const first_start = timer.read();
         var sample_index: usize = 0;
@@ -144,7 +151,9 @@ pub fn main() !void {
             (timer.read() - first_start) < max_nano_seconds) and
             sample_index < samples_buf.len) : (sample_index += 1)
         {
-            const sample_rss = try getCurrentRss() -| init_rss;
+            // current rss:
+            // runner + prev samples + bench allocations + curr samples
+            // const curr_samples_rss = try getCurrentRss() -| (runner_rss + prev_samples_rss + init_rss);
             if (tty_conf != .no_color) try bar.render();
             for (perf_measurements, &perf_fds) |measurement, *perf_fd| {
                 var attr: std.os.linux.perf_event_attr = .{
@@ -154,29 +163,36 @@ pub fn main() !void {
                         .disabled = true,
                         .exclude_kernel = true,
                         .exclude_hv = true,
-                        .inherit = true,
+                        .inherit = false,
                         .enable_on_exec = true,
                     },
                 };
-                perf_fd.* = std.posix.perf_event_open(&attr, 0, -1, perf_fds[0], PERF.FLAG.FD_CLOEXEC) catch |err| {
+                perf_fd.* = std.posix.perf_event_open(&attr, 0, -1, -1, 0) catch |err| {
                     std.debug.panic("unable to open perf event: {s}\n", .{@errorName(err)});
                 };
             }
 
             benchmark.prerun();
 
-            _ = std.os.linux.ioctl(perf_fds[0], PERF.EVENT_IOC.DISABLE, PERF.IOC_FLAG_GROUP);
-            _ = std.os.linux.ioctl(perf_fds[0], PERF.EVENT_IOC.RESET, PERF.IOC_FLAG_GROUP);
-            _ = std.os.linux.ioctl(perf_fds[0], PERF.EVENT_IOC.ENABLE, PERF.IOC_FLAG_GROUP);
+            for (perf_fds) |perf_fd| {
+                _ = std.os.linux.ioctl(perf_fd, PERF.EVENT_IOC.ENABLE, 0);
+            }
 
             const start = timer.read();
 
             benchmark.run();
 
             const end = timer.read();
-            const run_rss = try getCurrentRss() -| sample_rss;
-            _ = std.os.linux.ioctl(perf_fds[0], PERF.EVENT_IOC.DISABLE, PERF.IOC_FLAG_GROUP);
-            const peak_rss = run_rss;
+            for (perf_fds) |perf_fd| {
+                _ = std.os.linux.ioctl(perf_fd, PERF.EVENT_IOC.DISABLE, 0);
+            }
+
+            // current rss:
+            // runner + prev samples + bench allocations + curr samples + bench runtime allocations
+            // const run_rss = try getCurrentRss() -| (runner_rss + prev_samples_rss + init_rss + curr_samples_rss);
+            const peak_rss = try getCurrentRss();
+
+            // std.debug.print("{any}\n", .{perf_fds});
 
             benchmark.postrun();
 

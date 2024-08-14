@@ -5,77 +5,85 @@ const Benchmark = struct {
     name: []const u8,
 };
 
-pub fn addZigBenchmark(
-    runner: *std.Build.Step.Compile,
-    comptime benchmark: []const u8,
-    comptime name: []const u8,
-    zimdjson: *std.Build.Module,
-) Benchmark {
-    const b = runner.step.owner;
-    const target = runner.root_module.resolved_target.?;
-    const optimize = runner.root_module.optimize.?;
-    const identifier = benchmark ++ "/" ++ name;
-    const lib = b.addStaticLibrary(.{
-        .name = benchmark ++ "_" ++ name,
-        .target = target,
-        .optimize = optimize,
-        .root_source_file = b.path("bench/" ++ identifier ++ ".zig"),
-    });
-    lib.installHeader(b.addWriteFiles().add(identifier, formatTemplateHeader(name)), identifier ++ ".h");
-    lib.root_module.addImport("zimdjson", zimdjson);
-    const mod = b.createModule(.{
-        .root_source_file = b.addWriteFiles().add(identifier ++ ".zig", formatWrapper(identifier, name)),
-    });
-    mod.linkLibrary(lib);
-    return .{ .module = mod, .name = identifier };
-}
+pub fn Suite(comptime suite: []const u8) type {
+    return struct {
+        const Self = @This();
 
-pub fn addCppBenchmark(
-    runner: *std.Build.Step.Compile,
-    comptime benchmark: []const u8,
-    comptime name: []const u8,
-    simdjson: *std.Build.Step.Compile,
-    parser: *std.Build.Step.Compile,
-) Benchmark {
-    const b = runner.step.owner;
-    const target = runner.root_module.resolved_target.?;
-    const optimize = runner.root_module.optimize.?;
-    const identifier = benchmark ++ "/" ++ name;
-    const lib = b.addStaticLibrary(.{
-        .name = benchmark ++ "_" ++ name,
-        .target = target,
-        .optimize = optimize,
-    });
-    lib.installHeader(b.addWriteFiles().add(identifier, formatTemplateHeader(name)), identifier ++ ".h");
-    lib.addCSourceFile(.{ .file = b.path("bench/" ++ identifier ++ ".cpp") });
-    lib.linkLibrary(simdjson);
-    lib.linkLibrary(parser);
-    const mod = b.createModule(.{
-        .root_source_file = b.addWriteFiles().add(identifier ++ ".zig", formatWrapper(identifier, name)),
-    });
-    mod.linkLibrary(lib);
-    return .{ .module = mod, .name = identifier };
-}
+        comptime suite: []const u8 = suite,
+        zimdjson: *std.Build.Module,
+        simdjson: *std.Build.Step.Compile,
+        target: std.Build.ResolvedTarget,
+        optimize: std.builtin.OptimizeMode,
 
-pub fn addBenchmarkSuite(
-    runner: *std.Build.Step.Compile,
-    comptime benchmark: []const u8,
-    benchs: []const Benchmark,
-) void {
-    const b = runner.step.owner;
-    const target = runner.root_module.resolved_target.?;
-    const optimize = runner.root_module.optimize.?;
-    var buf = std.BoundedArray(u8, 1024).init(0) catch unreachable;
-    const suite = formatWrappers(&buf, benchs);
-    const mod = b.createModule(.{
-        .root_source_file = b.addWriteFiles().add(benchmark ++ ".zig", suite),
-        .target = target,
-        .optimize = optimize,
-    });
-    for (benchs) |bench| {
-        mod.addImport(bench.name, bench.module);
-    }
-    runner.root_module.addImport("benchmarks", mod);
+        pub fn addZigBenchmark(
+            self: Self,
+            comptime name: []const u8,
+        ) Benchmark {
+            const b = self.zimdjson.owner;
+            const identifier = self.suite ++ "/" ++ name;
+            const lib = b.addStaticLibrary(.{
+                .name = self.suite ++ "_" ++ name,
+                .target = self.target,
+                .optimize = self.optimize,
+                .root_source_file = b.path("bench/" ++ identifier ++ ".zig"),
+            });
+            lib.installHeader(b.addWriteFiles().add(identifier, formatTemplateHeader(name)), identifier ++ ".h");
+            lib.root_module.addImport("zimdjson", self.zimdjson);
+            const mod = b.createModule(.{
+                .root_source_file = b.addWriteFiles().add(identifier ++ ".zig", formatWrapper(identifier, name)),
+            });
+            mod.linkLibrary(lib);
+            return .{ .module = mod, .name = identifier };
+        }
+
+        pub fn addCppBenchmark(
+            self: Self,
+            comptime name: []const u8,
+            parser: *std.Build.Step.Compile,
+        ) Benchmark {
+            const b = self.zimdjson.owner;
+            const identifier = self.suite ++ "/" ++ name;
+            const lib = b.addStaticLibrary(.{
+                .name = self.suite ++ "_" ++ name,
+                .target = self.target,
+                .optimize = self.optimize,
+            });
+            lib.installHeader(b.addWriteFiles().add(identifier, formatTemplateHeader(name)), identifier ++ ".h");
+            lib.addCSourceFile(.{ .file = b.path("bench/" ++ identifier ++ ".cpp") });
+            lib.linkLibrary(self.simdjson);
+            lib.linkLibrary(parser);
+            const mod = b.createModule(.{
+                .root_source_file = b.addWriteFiles().add(identifier ++ ".zig", formatWrapper(identifier, name)),
+            });
+            mod.linkLibrary(lib);
+            return .{ .module = mod, .name = identifier };
+        }
+
+        pub fn create(
+            self: Self,
+            benchs: []const Benchmark,
+        ) *std.Build.Step.Compile {
+            const b = self.zimdjson.owner;
+            var buf = std.BoundedArray(u8, 1024).init(0) catch unreachable;
+            const wrappers = formatWrappers(&buf, benchs);
+            const mod = b.createModule(.{
+                .root_source_file = b.addWriteFiles().add(self.suite ++ ".zig", wrappers),
+                .target = self.target,
+                .optimize = self.optimize,
+            });
+            for (benchs) |bench| {
+                mod.addImport(bench.name, bench.module);
+            }
+            const runner = b.addExecutable(.{
+                .name = self.suite,
+                .root_source_file = b.path("bench/runner.zig"),
+                .target = self.target,
+                .optimize = self.optimize,
+            });
+            runner.root_module.addImport("benchmarks", mod);
+            return runner;
+        }
+    };
 }
 
 inline fn formatTemplateHeader(comptime name: []const u8) []const u8 {

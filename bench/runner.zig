@@ -28,7 +28,7 @@ const PERF = std.os.linux.PERF;
 const fd_t = std.posix.fd_t;
 const pid_t = std.os.pid_t;
 const assert = std.debug.assert;
-const MAX_SAMPLES = 10000;
+const MAX_SAMPLES = 100000;
 
 const benchmarks = @import("benchmarks").tuple;
 
@@ -101,7 +101,7 @@ pub fn main() !void {
     const stdout_w = stdout_bw.writer();
 
     var commands: [benchmarks.len]Command = undefined;
-    const max_nano_seconds: u64 = std.time.ns_per_s * 5;
+    const max_nano_seconds: u64 = std.time.ns_per_s * 10;
     const color: ColorMode = .auto;
 
     inline for (&commands, benchmarks) |*c, b| {
@@ -128,14 +128,15 @@ pub fn main() !void {
 
     var timer = std.time.Timer.start() catch @panic("need timer to work");
 
-    const base_rss = try getCurrentRss();
     inline for (&commands, benchmarks, 1..) |*command, benchmark, i| {
+        const base_rss = try getCurrentRss();
         stderr_fba.reset();
 
         const min_samples = 3;
 
         benchmark.init();
         defer benchmark.deinit();
+        const init_rss = try getCurrentRss() -| base_rss;
 
         const first_start = timer.read();
         var sample_index: usize = 0;
@@ -143,7 +144,7 @@ pub fn main() !void {
             (timer.read() - first_start) < max_nano_seconds) and
             sample_index < samples_buf.len) : (sample_index += 1)
         {
-            const delta_rss = try getCurrentRss() -| base_rss;
+            const sample_rss = try getCurrentRss() -| init_rss;
             if (tty_conf != .no_color) try bar.render();
             for (perf_measurements, &perf_fds) |measurement, *perf_fd| {
                 var attr: std.os.linux.perf_event_attr = .{
@@ -173,8 +174,9 @@ pub fn main() !void {
             benchmark.run();
 
             const end = timer.read();
+            const run_rss = try getCurrentRss() -| sample_rss;
             _ = std.os.linux.ioctl(perf_fds[0], PERF.EVENT_IOC.DISABLE, PERF.IOC_FLAG_GROUP);
-            const peak_rss = try getCurrentRss() -| delta_rss;
+            const peak_rss = run_rss;
 
             benchmark.postrun();
 

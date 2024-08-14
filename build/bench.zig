@@ -5,7 +5,7 @@ const Benchmark = struct {
     name: []const u8,
 };
 
-pub fn addZimdjsonBenchmark(
+pub fn addZigBenchmark(
     runner: *std.Build.Step.Compile,
     comptime benchmark: []const u8,
     comptime name: []const u8,
@@ -30,35 +30,11 @@ pub fn addZimdjsonBenchmark(
     return .{ .module = mod, .name = identifier };
 }
 
-pub fn addCBenchmark(
-    runner: *std.Build.Step.Compile,
-    comptime benchmark: []const u8,
-    comptime name: []const u8,
-    parser: *std.Build.Step.Compile,
-) Benchmark {
-    const b = runner.step.owner;
-    const target = runner.root_module.resolved_target.?;
-    const optimize = runner.root_module.optimize.?;
-    const identifier = benchmark ++ "/" ++ name;
-    const lib = b.addStaticLibrary(.{
-        .name = benchmark ++ "_" ++ name,
-        .target = target,
-        .optimize = optimize,
-    });
-    lib.installHeader(b.addWriteFiles().add(identifier, formatTemplateHeader(name)), identifier ++ ".h");
-    lib.addCSourceFile(.{ .file = b.path("bench/" ++ identifier ++ ".c") });
-    lib.linkLibrary(parser);
-    const mod = b.createModule(.{
-        .root_source_file = b.addWriteFiles().add(identifier ++ ".zig", formatWrapper(identifier, name)),
-    });
-    mod.linkLibrary(lib);
-    return .{ .module = mod, .name = identifier };
-}
-
 pub fn addCppBenchmark(
     runner: *std.Build.Step.Compile,
     comptime benchmark: []const u8,
     comptime name: []const u8,
+    simdjson: *std.Build.Step.Compile,
     parser: *std.Build.Step.Compile,
 ) Benchmark {
     const b = runner.step.owner;
@@ -72,6 +48,7 @@ pub fn addCppBenchmark(
     });
     lib.installHeader(b.addWriteFiles().add(identifier, formatTemplateHeader(name)), identifier ++ ".h");
     lib.addCSourceFile(.{ .file = b.path("bench/" ++ identifier ++ ".cpp") });
+    lib.linkLibrary(simdjson);
     lib.linkLibrary(parser);
     const mod = b.createModule(.{
         .root_source_file = b.addWriteFiles().add(identifier ++ ".zig", formatWrapper(identifier, name)),

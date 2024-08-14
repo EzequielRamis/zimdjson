@@ -123,19 +123,15 @@ pub fn main() !void {
     var perf_fds = [1]fd_t{-1} ** perf_measurements.len;
     var samples_buf: [MAX_SAMPLES]Sample = undefined;
 
-    var stderr_buffer: [4096]u8 = undefined;
-    var stderr_fba = std.heap.FixedBufferAllocator.init(&stderr_buffer);
-
     var timer = std.time.Timer.start() catch @panic("need timer to work");
 
     // current rss:
     // runner
-    // const runner_rss = try getCurrentRss();
+    const runner_rss = try getCurrentRss();
     inline for (&commands, benchmarks, 1..) |*command, benchmark, i| {
         // current rss:
         // runner + prev samples
-        // const prev_samples_rss = try getCurrentRss() -| runner_rss;
-        stderr_fba.reset();
+        const prev_samples_rss = try getCurrentRss() -| runner_rss;
 
         const min_samples = 3;
 
@@ -143,7 +139,7 @@ pub fn main() !void {
         defer benchmark.deinit();
         // current rss:
         // runner + prev samples + bench allocations
-        // const init_rss = try getCurrentRss() -| (runner_rss + prev_samples_rss);
+        const init_rss = try getCurrentRss() -| (runner_rss + prev_samples_rss);
 
         const first_start = timer.read();
         var sample_index: usize = 0;
@@ -151,9 +147,6 @@ pub fn main() !void {
             (timer.read() - first_start) < max_nano_seconds) and
             sample_index < samples_buf.len) : (sample_index += 1)
         {
-            // current rss:
-            // runner + prev samples + bench allocations + curr samples
-            // const curr_samples_rss = try getCurrentRss() -| (runner_rss + prev_samples_rss + init_rss);
             if (tty_conf != .no_color) try bar.render();
             for (perf_measurements, &perf_fds) |measurement, *perf_fd| {
                 var attr: std.os.linux.perf_event_attr = .{
@@ -175,7 +168,8 @@ pub fn main() !void {
             benchmark.prerun();
 
             for (perf_fds) |perf_fd| {
-                _ = std.os.linux.ioctl(perf_fd, PERF.EVENT_IOC.ENABLE, 0);
+                const err = std.os.linux.ioctl(perf_fd, PERF.EVENT_IOC.ENABLE, 0);
+                assert(err == 0);
             }
 
             const start = timer.read();
@@ -184,20 +178,16 @@ pub fn main() !void {
 
             const end = timer.read();
             for (perf_fds) |perf_fd| {
-                _ = std.os.linux.ioctl(perf_fd, PERF.EVENT_IOC.DISABLE, 0);
+                const err = std.os.linux.ioctl(perf_fd, PERF.EVENT_IOC.DISABLE, 0);
+                assert(err == 0);
             }
 
-            // current rss:
-            // runner + prev samples + bench allocations + curr samples + bench runtime allocations
-            // const run_rss = try getCurrentRss() -| (runner_rss + prev_samples_rss + init_rss + curr_samples_rss);
-            const peak_rss = try getCurrentRss();
-
-            // std.debug.print("{any}\n", .{perf_fds});
+            const peak_rss = init_rss;
 
             benchmark.postrun();
 
             samples_buf[sample_index] = .{
-                .throughput = 632000 * 1000_000_000 / (end - start),
+                .throughput = 2_700_000_000 * 1000_000_000 / (end - start),
                 .wall_time = end - start,
                 .peak_rss = peak_rss * 1000,
                 .cpu_cycles = readPerfFd(perf_fds[0]),
@@ -249,7 +239,7 @@ pub fn main() !void {
             try stdout_w.print("Benchmark {d}", .{i});
             try tty_conf.setColor(stdout_w, .dim);
             try stdout_w.print(" ({d} runs, size of json: ", .{command.sample_count});
-            try printUnit(stdout_w, 632000, .bytes, 0, false, false);
+            try printUnit(stdout_w, 2_700_000_000, .bytes, 0, false, false);
             try stdout_w.print(")", .{});
             try tty_conf.setColor(stdout_w, .reset);
             try stdout_w.writeAll(":");

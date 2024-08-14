@@ -9,7 +9,7 @@ int i;
 
 extern "C" void simdjson__init() {
   padded_string original_json;
-  auto err = padded_string::load("../simdjson-data/jsonexamples/twitter.json")
+  auto err = padded_string::load("../simdjson-data/jsonexamples/codex.json")
                  .get(original_json);
   json = new padded_string(original_json.data(), original_json.size());
   parser = new ondemand::parser();

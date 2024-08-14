@@ -9,7 +9,7 @@ const allocator = arena.allocator();
 
 export fn zimdjson__init() void {
     parser = zimdjson.ondemand.Parser(.{}).init(allocator);
-    file = zimdjson.io.Reader(.{}).readFileAlloc(allocator, std.fs.cwd(), "../simdjson-data/jsonexamples/twitter.json") catch unreachable;
+    file = zimdjson.io.Reader(.{}).readFileAlloc(allocator, std.fs.cwd(), "../simdjson-data/jsonexamples/codex.json") catch unreachable;
 }
 
 export fn zimdjson__prerun() void {

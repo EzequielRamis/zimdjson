@@ -121,6 +121,30 @@ pub fn main() !void {
     };
 
     var perf_fds = [1]fd_t{-1} ** perf_measurements.len;
+    var perf_ids = [1]u64{0} ** perf_measurements.len;
+    defer for (&perf_fds) |*perf_fd| {
+        std.posix.close(perf_fd.*);
+    };
+
+    const PERF_EVENT_IOC_ID = 536_880_135;
+    for (perf_measurements, &perf_fds, &perf_ids) |measurement, *perf_fd, *perf_id| {
+        var attr: std.os.linux.perf_event_attr = .{
+            .type = PERF.TYPE.HARDWARE,
+            .config = @intFromEnum(measurement.config),
+            .flags = .{
+                .disabled = true,
+                .exclude_kernel = true,
+                .exclude_hv = true,
+                .inherit = true,
+            },
+            .read_format = (1 << 2) | (1 << 3),
+        };
+        perf_fd.* = std.posix.perf_event_open(&attr, 0, -1, perf_fds[0], 0) catch |err| {
+            std.debug.panic("unable to open perf event: {s}\n", .{@errorName(err)});
+        };
+        if (std.os.linux.ioctl(perf_fd.*, PERF_EVENT_IOC_ID, @intFromPtr(perf_id)) == -1) @panic("ioctl(PERF.EVENT_IOC.ID)");
+    }
+
     var samples_buf: [MAX_SAMPLES]Sample = undefined;
 
     var timer = std.time.Timer.start() catch @panic("need timer to work");
@@ -148,59 +172,36 @@ pub fn main() !void {
             sample_index < samples_buf.len) : (sample_index += 1)
         {
             if (tty_conf != .no_color) try bar.render();
-            for (perf_measurements, &perf_fds) |measurement, *perf_fd| {
-                var attr: std.os.linux.perf_event_attr = .{
-                    .type = PERF.TYPE.HARDWARE,
-                    .config = @intFromEnum(measurement.config),
-                    .flags = .{
-                        .disabled = true,
-                        .exclude_kernel = true,
-                        .exclude_hv = true,
-                        .inherit = false,
-                        .enable_on_exec = true,
-                    },
-                };
-                perf_fd.* = std.posix.perf_event_open(&attr, 0, -1, -1, 0) catch |err| {
-                    std.debug.panic("unable to open perf event: {s}\n", .{@errorName(err)});
-                };
-            }
 
             benchmark.prerun();
 
-            for (perf_fds) |perf_fd| {
-                const err = std.os.linux.ioctl(perf_fd, PERF.EVENT_IOC.ENABLE, 0);
-                assert(err == 0);
-            }
+            _ = std.os.linux.ioctl(perf_fds[0], PERF.EVENT_IOC.RESET, PERF.IOC_FLAG_GROUP);
+            _ = std.os.linux.ioctl(perf_fds[0], PERF.EVENT_IOC.ENABLE, PERF.IOC_FLAG_GROUP);
 
             const start = timer.read();
 
             benchmark.run();
 
             const end = timer.read();
-            for (perf_fds) |perf_fd| {
-                const err = std.os.linux.ioctl(perf_fd, PERF.EVENT_IOC.DISABLE, 0);
-                assert(err == 0);
-            }
+
+            _ = std.os.linux.ioctl(perf_fds[0], PERF.EVENT_IOC.DISABLE, PERF.IOC_FLAG_GROUP);
 
             const peak_rss = init_rss;
 
             benchmark.postrun();
 
+            const format = readPerfFd(perf_fds[0]);
+
             samples_buf[sample_index] = .{
-                .throughput = 2_700_000_000 * 1000_000_000 / (end - start),
+                .throughput = 632_000 * 1000_000_000 / (end - start),
                 .wall_time = end - start,
                 .peak_rss = peak_rss * 1000,
-                .cpu_cycles = readPerfFd(perf_fds[0]),
-                .instructions = readPerfFd(perf_fds[1]),
-                .cache_references = readPerfFd(perf_fds[2]),
-                .cache_misses = readPerfFd(perf_fds[3]),
-                .branch_misses = readPerfFd(perf_fds[4]),
+                .cpu_cycles = format.values[0].v,
+                .instructions = format.values[1].v,
+                .cache_references = format.values[2].v,
+                .cache_misses = format.values[3].v,
+                .branch_misses = format.values[4].v,
             };
-
-            for (&perf_fds) |*perf_fd| {
-                std.posix.close(perf_fd.*);
-                perf_fd.* = -1;
-            }
 
             if (tty_conf != .no_color) {
                 bar.estimate = est_total: {
@@ -239,7 +240,7 @@ pub fn main() !void {
             try stdout_w.print("Benchmark {d}", .{i});
             try tty_conf.setColor(stdout_w, .dim);
             try stdout_w.print(" ({d} runs, size of json: ", .{command.sample_count});
-            try printUnit(stdout_w, 2_700_000_000, .bytes, 0, false, false);
+            try printUnit(stdout_w, 632_000, .bytes, 0, false, false);
             try stdout_w.print(")", .{});
             try tty_conf.setColor(stdout_w, .reset);
             try stdout_w.writeAll(":");
@@ -305,12 +306,20 @@ fn parseCmd(list: *std.ArrayList([]const u8), cmd: []const u8) !void {
     while (it.next()) |s| try list.append(s);
 }
 
-fn readPerfFd(fd: fd_t) usize {
-    var result: usize = 0;
+const Format = extern struct {
+    const Value = extern struct {
+        v: u64,
+        id: u64,
+    };
+    n: u64,
+    values: [perf_measurements.len]Value,
+};
+fn readPerfFd(fd: fd_t) Format {
+    var result: Format = undefined;
     const n = std.posix.read(fd, std.mem.asBytes(&result)) catch |err| {
         std.debug.panic("unable to read perf fd: {s}\n", .{@errorName(err)});
     };
-    assert(n == @sizeOf(usize));
+    assert(n == @sizeOf(Format));
     return result;
 }
 

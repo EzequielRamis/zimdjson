@@ -45,10 +45,20 @@ const perf_measurements = [_]PerfMeasurement{
     .{ .name = "branch_misses", .config = PERF.COUNT.HW.BRANCH_MISSES },
 };
 
+const Events = struct {
+    load: *const fn ([]u8) void,
+    init: *const fn () void,
+    prerun: *const fn () void,
+    run: *const fn () void,
+    postrun: *const fn () void,
+    deinit: *const fn () void,
+};
+
 const Command = struct {
     name: []const u8,
     measurements: Measurements,
     sample_count: usize,
+    events: Events,
 
     const Measurements = struct {
         throughput: Measurement,
@@ -104,11 +114,26 @@ pub fn main() !void {
     const max_nano_seconds: u64 = std.time.ns_per_s * 10;
     const color: ColorMode = .auto;
 
+    const args = try std.process.argsAlloc(arena);
+    const path = args[1];
+
+    const file = try std.fs.openFileAbsolute(path, .{});
+    const file_stat = try file.stat();
+    const file_size = file_stat.size;
+
     inline for (&commands, benchmarks) |*c, b| {
         c.* = .{
             .name = b.name,
             .measurements = undefined,
             .sample_count = undefined,
+            .events = .{
+                .load = b.load,
+                .init = b.init,
+                .prerun = b.prerun,
+                .run = b.run,
+                .postrun = b.postrun,
+                .deinit = b.deinit,
+            },
         };
     }
 
@@ -152,18 +177,20 @@ pub fn main() !void {
     // current rss:
     // runner
     const runner_rss = try getCurrentRss();
-    inline for (&commands, benchmarks, 1..) |*command, benchmark, i| {
+    for (&commands, 1..) |*command, i| {
         // current rss:
         // runner + prev samples
         const prev_samples_rss = try getCurrentRss() -| runner_rss;
 
         const min_samples = 3;
 
-        benchmark.init();
-        defer benchmark.deinit();
+        command.events.load(path);
         // current rss:
-        // runner + prev samples + bench allocations
-        const init_rss = try getCurrentRss() -| (runner_rss + prev_samples_rss);
+        // runner + prev samples + file allocation
+        const load_rss = try getCurrentRss() -| (runner_rss + prev_samples_rss);
+
+        command.events.init();
+        defer command.events.deinit();
 
         const first_start = timer.read();
         var sample_index: usize = 0;
@@ -173,27 +200,27 @@ pub fn main() !void {
         {
             if (tty_conf != .no_color) try bar.render();
 
-            benchmark.prerun();
+            command.events.prerun();
 
             _ = std.os.linux.ioctl(perf_fds[0], PERF.EVENT_IOC.RESET, PERF.IOC_FLAG_GROUP);
             _ = std.os.linux.ioctl(perf_fds[0], PERF.EVENT_IOC.ENABLE, PERF.IOC_FLAG_GROUP);
 
             const start = timer.read();
 
-            benchmark.run();
+            command.events.run();
 
             const end = timer.read();
 
             _ = std.os.linux.ioctl(perf_fds[0], PERF.EVENT_IOC.DISABLE, PERF.IOC_FLAG_GROUP);
 
-            const peak_rss = init_rss;
+            const peak_rss = try getCurrentRss() -| (runner_rss + prev_samples_rss + load_rss);
 
-            benchmark.postrun();
+            command.events.postrun();
 
             const format = readPerfFd(perf_fds[0]);
 
             samples_buf[sample_index] = .{
-                .throughput = 632_000 * 1000_000_000 / (end - start),
+                .throughput = file_size * 1000_000_000 / (end - start),
                 .wall_time = end - start,
                 .peak_rss = peak_rss * 1000,
                 .cpu_cycles = format.values[0].v,
@@ -240,7 +267,7 @@ pub fn main() !void {
             try stdout_w.print("Benchmark {d}", .{i});
             try tty_conf.setColor(stdout_w, .dim);
             try stdout_w.print(" ({d} runs, size of json: ", .{command.sample_count});
-            try printUnit(stdout_w, 632_000, .bytes, 0, false, false);
+            try printUnit(stdout_w, @floatFromInt(file_size), .bytes, 0, false, false);
             try stdout_w.print(")", .{});
             try tty_conf.setColor(stdout_w, .reset);
             try stdout_w.writeAll(":");
@@ -314,6 +341,7 @@ const Format = extern struct {
     n: u64,
     values: [perf_measurements.len]Value,
 };
+
 fn readPerfFd(fd: fd_t) Format {
     var result: Format = undefined;
     const n = std.posix.read(fd, std.mem.asBytes(&result)) catch |err| {

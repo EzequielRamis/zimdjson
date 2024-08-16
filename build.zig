@@ -133,26 +133,38 @@ pub fn build(b: *std.Build) !void {
     }
     // --
 
+    const use_cwd = b.option(bool, "use-cwd",
+        \\Prefix the file path with the current directory instead
+        \\                               of simdjson/simdjson-data (default: no)
+    ) orelse false;
+    const json_path = if (b.args) |args| args[0] else "";
+
     // -- Benchmarking
     {
         var com = center.command("bench", "Run all benchmarks");
         const parsers = Parsers.get(com, target, optimize);
 
-        {
-            if (parsers) |p| {
-                const bench_indexer = bench.Suite("indexer"){
-                    .zimdjson = zimdjson,
-                    .simdjson = p.simdjson,
-                    .target = target,
-                    .optimize = optimize,
-                };
-                const runner = bench_indexer.create(&.{
-                    bench_indexer.addZigBenchmark("zimdjson"),
-                    bench_indexer.addCppBenchmark("simdjson", p.simdjson),
-                });
-                const run = b.addRunArtifact(runner);
-                com.dependOn(&run.step);
-            }
+        var path_buf: [1024]u8 = undefined;
+        const resolved_path = path: {
+            if (use_cwd) {
+                break :path try std.fs.cwd().realpath(json_path, &path_buf);
+            } else if (com.with("simdjson-data")) |dep| {
+                break :path b.pathJoin(&.{ dep.path("jsonexamples").getPath(b), json_path });
+            } else break :path "";
+        };
+        if (parsers) |p| {
+            const suite = bench.Suite("indexer"){
+                .zimdjson = zimdjson,
+                .simdjson = p.simdjson,
+                .target = target,
+                .optimize = optimize,
+            };
+            const runner = b.addRunArtifact(suite.create(&.{
+                suite.addZigBenchmark("zimdjson"),
+                suite.addCppBenchmark("simdjson", p.simdjson),
+            }));
+            runner.addArg(resolved_path);
+            com.dependOn(&runner.step);
         }
     }
     // --
@@ -160,6 +172,15 @@ pub fn build(b: *std.Build) !void {
     // -- Profiling
     {
         var com = center.command("profile", "Profile with Tracy");
+
+        var path_buf: [1024]u8 = undefined;
+        const resolved_path = path: {
+            if (use_cwd) {
+                break :path try std.fs.cwd().realpath(json_path, &path_buf);
+            } else if (com.with("simdjson-data")) |dep| {
+                break :path b.pathJoin(&.{ dep.path("jsonexamples").getPath(b), json_path });
+            } else break :path "";
+        };
 
         const tracy_module = getTracyModule(b, .{
             .target = target,
@@ -179,7 +200,7 @@ pub fn build(b: *std.Build) !void {
         profile.root_module.addImport("tracy", tracy_module);
 
         const run_profile = b.addRunArtifact(profile);
-        if (b.args) |args| run_profile.addArgs(args);
+        run_profile.addArg(resolved_path);
         com.dependOn(&run_profile.step);
     }
     // --

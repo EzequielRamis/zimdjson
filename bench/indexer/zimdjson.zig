@@ -6,9 +6,12 @@ var file: zimdjson.io.Reader(.{}).slice = undefined;
 var parser: zimdjson.ondemand.Parser(.{}) = undefined;
 const allocator = arena.allocator();
 
+export fn zimdjson__load(ptr: [*c]const u8, len: usize) void {
+    file = zimdjson.io.Reader(.{}).readFileAlloc(allocator, ptr[0..len]) catch @panic("file not found");
+}
+
 export fn zimdjson__init() void {
     parser = zimdjson.ondemand.Parser(.{}).init(allocator);
-    file = zimdjson.io.Reader(.{}).readFileAlloc(allocator, std.fs.cwd(), "../simdjson-data/jsonexamples/twitter.json") catch unreachable;
 }
 
 export fn zimdjson__prerun() void {}

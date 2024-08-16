@@ -11,8 +11,8 @@ pub fn Reader(comptime options: Options) type {
         pub const slice = Aligned.slice;
         pub const max_bytes = std.math.maxInt(u32);
 
-        pub fn readFileAlloc(allocator: std.mem.Allocator, dir: std.fs.Dir, file_path: []const u8) !slice {
-            return dir.readFileAllocOptions(allocator, file_path, max_bytes, null, Aligned.alignment, null);
+        pub fn readFileAlloc(allocator: std.mem.Allocator, file_path: []const u8) !slice {
+            return std.fs.cwd().readFileAllocOptions(allocator, file_path, max_bytes, null, Aligned.alignment, null);
         }
     };
 }

@@ -58,7 +58,9 @@ pub fn main() !void {
             \\    const allocator = std.testing.allocator;
             \\    var parser = dom.Parser(.{{}}).init(allocator);
             \\    defer parser.deinit();
-            \\    const file = try Reader.readFileAlloc(allocator, std.fs.cwd(), simdjson_data ++ "/jsonchecker/adversarial/issue150/{[path]s}");
+            \\    const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonchecker/adversarial/issue150/{[path]s}");
+            \\    defer allocator.free(path);
+            \\    const file = try Reader.readFileAlloc(allocator, path);
             \\    defer allocator.free(file);
             \\    _ = parser.parse(file) catch return;
             \\    return error.MustHaveFailed;

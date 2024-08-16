@@ -77,23 +77,27 @@ pub fn main() !void {
             , .{ .id = identifier }));
             if (is_pass) {
                 try checker_zig_content.appendSlice(
-                    \\    const file = try Reader.readFileAlloc(allocator, std.fs.cwd(), simdjson_data ++ "/jsonchecker/
+                    \\    const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonchecker/
                 );
                 if (is_minefield) try checker_zig_content.appendSlice("minefield/");
                 try checker_zig_content.appendSlice(file);
                 try checker_zig_content.appendSlice(
                     \\");
+                    \\    defer allocator.free(path);
+                    \\    const file = try Reader.readFileAlloc(allocator, path);
                     \\    defer allocator.free(file);
                     \\    _ = try parser.parse(file);
                 );
             } else {
                 try checker_zig_content.appendSlice(
-                    \\    const file = try Reader.readFileAlloc(allocator, std.fs.cwd(), simdjson_data ++ "/jsonchecker/
+                    \\    const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonchecker/
                 );
                 if (is_minefield) try checker_zig_content.appendSlice("minefield/");
                 try checker_zig_content.appendSlice(file);
                 try checker_zig_content.appendSlice(
                     \\");
+                    \\    defer allocator.free(path);
+                    \\    const file = try Reader.readFileAlloc(allocator, path);
                     \\    defer allocator.free(file);
                     \\    _ = parser.parse(file) catch return;
                     \\    return error.MustHaveFailed;

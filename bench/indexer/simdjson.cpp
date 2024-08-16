@@ -6,11 +6,14 @@ using namespace simdjson;
 padded_string *json;
 ondemand::parser *parser;
 
-extern "C" void simdjson__init() {
+extern "C" void simdjson__load(char *ptr, size_t len) {
   padded_string original_json;
-  auto err = padded_string::load("../simdjson-data/jsonexamples/twitter.json")
-                 .get(original_json);
+  string_view path{ptr, len};
+  auto err = padded_string::load(path).get(original_json);
   json = new padded_string(original_json.data(), original_json.size());
+}
+
+extern "C" void simdjson__init() {
   parser = new ondemand::parser();
 }
 

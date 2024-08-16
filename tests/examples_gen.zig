@@ -82,7 +82,9 @@ pub fn main() !void {
             \\    const allocator = std.testing.allocator;
             \\    var parser = dom.Parser(.{{}}).init(allocator);
             \\    defer parser.deinit();
-            \\    const file = try Reader.readFileAlloc(allocator, std.fs.cwd(), simdjson_data ++ "/jsonexamples/{[path]s}");
+            \\    const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonexamples/{[path]s}");
+            \\    defer allocator.free(path);
+            \\    const file = try Reader.readFileAlloc(allocator, path);
             \\    defer allocator.free(file);
             \\    _ = try parser.parse(file);
             \\}}

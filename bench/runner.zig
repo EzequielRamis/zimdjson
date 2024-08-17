@@ -46,12 +46,12 @@ const perf_measurements = [_]PerfMeasurement{
 };
 
 const Events = struct {
-    load: *const fn ([]u8) void,
-    init: *const fn () void,
+    init: *const fn ([]u8) void,
     prerun: *const fn () void,
     run: *const fn () void,
     postrun: *const fn () void,
     deinit: *const fn () void,
+    memusage: *const fn () usize,
 };
 
 const Command = struct {
@@ -63,7 +63,7 @@ const Command = struct {
     const Measurements = struct {
         throughput: Measurement,
         wall_time: Measurement,
-        peak_rss: Measurement,
+        mem_required: Measurement,
         cpu_cycles: Measurement,
         instructions: Measurement,
         cache_references: Measurement,
@@ -75,7 +75,7 @@ const Command = struct {
 const Sample = struct {
     throughput: u64,
     wall_time: u64,
-    peak_rss: u64,
+    mem_required: u64,
     cpu_cycles: u64,
     instructions: u64,
     cache_references: u64,
@@ -127,12 +127,12 @@ pub fn main() !void {
             .measurements = undefined,
             .sample_count = undefined,
             .events = .{
-                .load = b.load,
                 .init = b.init,
                 .prerun = b.prerun,
                 .run = b.run,
                 .postrun = b.postrun,
                 .deinit = b.deinit,
+                .memusage = b.memusage,
             },
         };
     }
@@ -174,22 +174,10 @@ pub fn main() !void {
 
     var timer = std.time.Timer.start() catch @panic("need timer to work");
 
-    // current rss:
-    // runner
-    const runner_rss = try getCurrentRss();
     for (&commands, 1..) |*command, i| {
-        // current rss:
-        // runner + prev samples
-        const prev_samples_rss = try getCurrentRss() -| runner_rss;
-
         const min_samples = 3;
 
-        command.events.load(path);
-        // current rss:
-        // runner + prev samples + file allocation
-        const load_rss = try getCurrentRss() -| (runner_rss + prev_samples_rss);
-
-        command.events.init();
+        command.events.init(path);
         defer command.events.deinit();
 
         const first_start = timer.read();
@@ -213,7 +201,7 @@ pub fn main() !void {
 
             _ = std.os.linux.ioctl(perf_fds[0], PERF.EVENT_IOC.DISABLE, PERF.IOC_FLAG_GROUP);
 
-            const peak_rss = try getCurrentRss() -| (runner_rss + prev_samples_rss + load_rss);
+            const mem_required = command.events.memusage() -| file_size;
 
             command.events.postrun();
 
@@ -222,12 +210,12 @@ pub fn main() !void {
             samples_buf[sample_index] = .{
                 .throughput = file_size * 1000_000_000 / (end - start),
                 .wall_time = end - start,
-                .peak_rss = peak_rss * 1000,
-                .cpu_cycles = format.values[0].v,
-                .instructions = format.values[1].v,
-                .cache_references = format.values[2].v,
-                .cache_misses = format.values[3].v,
-                .branch_misses = format.values[4].v,
+                .mem_required = mem_required,
+                .cpu_cycles = format.values[0].value,
+                .instructions = format.values[1].value,
+                .cache_references = format.values[2].value,
+                .cache_misses = format.values[3].value,
+                .branch_misses = format.values[4].value,
             };
 
             if (tty_conf != .no_color) {
@@ -253,7 +241,7 @@ pub fn main() !void {
         command.measurements = .{
             .throughput = Measurement.compute(all_samples, "throughput", .throughput),
             .wall_time = Measurement.compute(all_samples, "wall_time", .nanoseconds),
-            .peak_rss = Measurement.compute(all_samples, "peak_rss", .bytes),
+            .mem_required = Measurement.compute(all_samples, "mem_required", .bytes),
             .cpu_cycles = Measurement.compute(all_samples, "cpu_cycles", .count),
             .instructions = Measurement.compute(all_samples, "instructions", .count),
             .cache_references = Measurement.compute(all_samples, "cache_references", .count),
@@ -335,10 +323,10 @@ fn parseCmd(list: *std.ArrayList([]const u8), cmd: []const u8) !void {
 
 const Format = extern struct {
     const Value = extern struct {
-        v: u64,
+        value: u64,
         id: u64,
     };
-    n: u64,
+    len: u64,
     values: [perf_measurements.len]Value,
 };
 
@@ -348,6 +336,7 @@ fn readPerfFd(fd: fd_t) Format {
         std.debug.panic("unable to read perf fd: {s}\n", .{@errorName(err)});
     };
     assert(n == @sizeOf(Format));
+    assert(result.len == perf_measurements.len);
     return result;
 }
 
@@ -830,22 +819,3 @@ const progress = struct {
         }
     };
 };
-
-fn getCurrentRss() !u64 {
-    if (builtin.os.tag == .linux) {
-        const file = try std.fs.openFileAbsolute("/proc/self/status", .{});
-        defer file.close();
-        const reader = file.reader();
-        for (0..22) |_| try reader.skipUntilDelimiterOrEof('\n');
-        var line_buf: [256]u8 = undefined;
-        const line = (try reader.readUntilDelimiterOrEof(&line_buf, '\n')).?;
-        var res: u64 = 0;
-        for (line) |c| {
-            const d = c -% '0';
-            if (d < 10) {
-                res = res * 10 + d;
-            }
-        }
-        return res;
-    } else unreachable;
-}

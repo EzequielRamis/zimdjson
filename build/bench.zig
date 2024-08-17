@@ -29,6 +29,11 @@ pub fn Suite(comptime suite: []const u8) type {
             });
             lib.installHeader(b.addWriteFiles().add(identifier, formatTemplateHeader(name)), identifier ++ ".h");
             lib.root_module.addImport("zimdjson", self.zimdjson);
+            lib.root_module.addImport("TracedAllocator", b.createModule(.{
+                .root_source_file = b.path("bench/TracedAllocator.zig"),
+                .target = self.target,
+                .optimize = self.optimize,
+            }));
             const mod = b.createModule(.{
                 .root_source_file = b.addWriteFiles().add(identifier ++ ".zig", formatWrapper(identifier, name)),
                 .target = self.target,
@@ -54,6 +59,7 @@ pub fn Suite(comptime suite: []const u8) type {
             lib.addCSourceFile(.{ .file = b.path("bench/" ++ identifier ++ ".cpp") });
             lib.linkLibrary(self.simdjson);
             lib.linkLibrary(parser);
+            lib.addIncludePath(b.path("bench"));
             const mod = b.createModule(.{
                 .root_source_file = b.addWriteFiles().add(identifier ++ ".zig", formatWrapper(identifier, name)),
                 .target = self.target,
@@ -93,12 +99,12 @@ pub fn Suite(comptime suite: []const u8) type {
 inline fn formatTemplateHeader(comptime name: []const u8) []const u8 {
     return std.fmt.comptimePrint(
         \\#include <stddef.h>
-        \\void {[id]s}__load(char *ptr, size_t len);
-        \\void {[id]s}__init();
+        \\void {[id]s}__init(char *ptr, size_t len);
         \\void {[id]s}__prerun();
         \\void {[id]s}__run();
         \\void {[id]s}__postrun();
         \\void {[id]s}__deinit();
+        \\size_t {[id]s}__memusage();
     , .{ .id = name });
 }
 
@@ -108,12 +114,8 @@ inline fn formatWrapper(comptime header: []const u8, comptime name: []const u8) 
         \\
         \\pub const name = "{[header]s}";
         \\
-        \\pub fn load(slice: []u8) void {{
-        \\    return c.{[id]s}__load(@ptrCast(slice.ptr), slice.len);
-        \\}}
-        \\
-        \\pub fn init() void {{
-        \\    return c.{[id]s}__init();
+        \\pub fn init(slice: []u8) void {{
+        \\    return c.{[id]s}__init(@ptrCast(slice.ptr), slice.len);
         \\}}
         \\
         \\pub fn prerun() void {{
@@ -130,6 +132,10 @@ inline fn formatWrapper(comptime header: []const u8, comptime name: []const u8) 
         \\
         \\pub fn deinit() void {{
         \\    return c.{[id]s}__deinit();
+        \\}}
+        \\
+        \\pub fn memusage() usize {{
+        \\    return c.{[id]s}__memusage();
         \\}}
     , .{ .header = header, .id = name });
 }

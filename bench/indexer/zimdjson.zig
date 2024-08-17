@@ -1,16 +1,15 @@
 const std = @import("std");
 const zimdjson = @import("zimdjson");
+const TracedAllocator = @import("TracedAllocator");
 
-var arena: std.heap.ArenaAllocator = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+var traced = TracedAllocator{ .wrapped = gpa.allocator() };
 var file: zimdjson.io.Reader(.{}).slice = undefined;
 var parser: zimdjson.ondemand.Parser(.{}) = undefined;
-const allocator = arena.allocator();
+const allocator = traced.allocator();
 
-export fn zimdjson__load(ptr: [*c]const u8, len: usize) void {
+export fn zimdjson__init(ptr: [*c]const u8, len: usize) void {
     file = zimdjson.io.Reader(.{}).readFileAlloc(allocator, ptr[0..len]) catch @panic("file not found");
-}
-
-export fn zimdjson__init() void {
     parser = zimdjson.ondemand.Parser(.{}).init(allocator);
 }
 
@@ -23,5 +22,10 @@ export fn zimdjson__run() void {
 export fn zimdjson__postrun() void {}
 
 export fn zimdjson__deinit() void {
-    arena.deinit();
+    allocator.free(file);
+    parser.deinit();
+}
+
+export fn zimdjson__memusage() usize {
+    return traced.total;
 }

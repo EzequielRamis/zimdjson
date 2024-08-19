@@ -148,7 +148,7 @@ pub fn build(b: *std.Build) !void {
             const file_path = try getProvidedPath(com, &path_buf, use_cwd);
 
             if (parsers) |p| {
-                const suite = bench.Suite("indexer"){
+                var suite = bench.Suite("indexer"){
                     .zimdjson = zimdjson,
                     .simdjson = p.simdjson,
                     .target = target,
@@ -156,8 +156,10 @@ pub fn build(b: *std.Build) !void {
                 };
                 const runner = suite.create(
                     &.{
-                        suite.addZigBenchmark("zimdjson"),
+                        suite.addZigBenchmark("zimdjson_ondemand"),
                         suite.addCppBenchmark("simdjson_ondemand", p.simdjson),
+                        suite.addZigBenchmark("zimdjson_dom"),
+                        suite.addCppBenchmark("simdjson_dom", p.simdjson),
                     },
                     file_path,
                 );

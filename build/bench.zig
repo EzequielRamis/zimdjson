@@ -14,32 +14,30 @@ pub fn Suite(comptime suite: []const u8) type {
         simdjson: *std.Build.Step.Compile,
         target: std.Build.ResolvedTarget,
         optimize: std.builtin.OptimizeMode,
+        traced_alloc: ?*std.Build.Module = null,
 
         pub fn addZigBenchmark(
-            self: Self,
+            self: *Self,
             comptime name: []const u8,
         ) Benchmark {
             const b = self.zimdjson.owner;
             const identifier = self.suite ++ "/" ++ name;
-            const lib = b.addSharedLibrary(.{
-                .name = self.suite ++ "_" ++ name,
-                .target = self.target,
-                .optimize = self.optimize,
-                .root_source_file = b.path("bench/" ++ identifier ++ ".zig"),
-            });
-            lib.installHeader(b.addWriteFiles().add(identifier, formatTemplateHeader(name)), identifier ++ ".h");
-            lib.root_module.addImport("zimdjson", self.zimdjson);
-            lib.root_module.addImport("TracedAllocator", b.createModule(.{
-                .root_source_file = b.path("bench/TracedAllocator.zig"),
-                .target = self.target,
-                .optimize = self.optimize,
-            }));
             const mod = b.createModule(.{
-                .root_source_file = b.addWriteFiles().add(identifier ++ ".zig", formatWrapper(identifier, name)),
+                .root_source_file = b.path("bench/" ++ identifier ++ ".zig"),
                 .target = self.target,
                 .optimize = self.optimize,
             });
-            mod.linkLibrary(lib);
+            mod.addImport("zimdjson", self.zimdjson);
+            if (self.traced_alloc) |t| {
+                mod.addImport("TracedAllocator", t);
+            } else {
+                self.traced_alloc = b.createModule(.{
+                    .root_source_file = b.path("bench/TracedAllocator.zig"),
+                    .target = self.target,
+                    .optimize = self.optimize,
+                });
+                mod.addImport("TracedAllocator", self.traced_alloc.?);
+            }
             return .{ .module = mod, .name = identifier };
         }
 
@@ -115,8 +113,6 @@ inline fn formatWrapper(comptime header: []const u8, comptime name: []const u8) 
     return std.fmt.comptimePrint(
         \\const c = @cImport({{ @cInclude("{[header]s}.h"); }});
         \\
-        \\pub const name = "{[header]s}";
-        \\
         \\pub fn init(slice: []u8) void {{
         \\    return c.{[id]s}__init(@ptrCast(slice.ptr), slice.len);
         \\}}
@@ -144,11 +140,18 @@ inline fn formatWrapper(comptime header: []const u8, comptime name: []const u8) 
 }
 
 fn formatWrappers(content: *std.BoundedArray(u8, 1024), benchmarks: []const Benchmark) []const u8 {
-    content.appendSliceAssumeCapacity("pub const tuple = .{\n");
+    content.appendSliceAssumeCapacity("pub const wrappers = .{");
     for (benchmarks) |b| {
-        content.appendSliceAssumeCapacity("    @import(\"");
+        content.appendSliceAssumeCapacity("@import(\"");
         content.appendSliceAssumeCapacity(b.name);
-        content.appendSliceAssumeCapacity("\"),\n");
+        content.appendSliceAssumeCapacity("\"),");
+    }
+    content.appendSliceAssumeCapacity("};");
+    content.appendSliceAssumeCapacity("pub const names = .{");
+    for (benchmarks) |b| {
+        content.appendSliceAssumeCapacity("\"");
+        content.appendSliceAssumeCapacity(b.name);
+        content.appendSliceAssumeCapacity("\",");
     }
     content.appendSliceAssumeCapacity("};");
     return content.constSlice();

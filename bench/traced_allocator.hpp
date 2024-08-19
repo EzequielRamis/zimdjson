@@ -15,7 +15,7 @@ void *operator new(std::size_t sz) {
     ++sz; // avoid std::malloc(0) which may return nullptr on success
 
   if (void *ptr = std::malloc(sz)) {
-    total += sz;
+    total += malloc_usable_size(ptr);
     return ptr;
   }
 
@@ -28,7 +28,7 @@ void *operator new[](std::size_t sz) {
     ++sz; // avoid std::malloc(0) which may return nullptr on success
 
   if (void *ptr = std::malloc(sz)) {
-    total += sz;
+    total += malloc_usable_size(ptr);
     return ptr;
   }
 
@@ -36,21 +36,21 @@ void *operator new[](std::size_t sz) {
 }
 
 void operator delete(void *ptr) noexcept {
-  total = std::min(size_t(0), total - malloc_usable_size(ptr));
+  total -= malloc_usable_size(ptr);
   std::free(ptr);
 }
 
 void operator delete(void *ptr, std::size_t size) noexcept {
-  total = std::min(size_t(0), total - size);
+  total -= malloc_usable_size(ptr);
   std::free(ptr);
 }
 
 void operator delete[](void *ptr) noexcept {
-  total = std::min(size_t(0), total - malloc_usable_size(ptr));
+  total -= malloc_usable_size(ptr);
   std::free(ptr);
 }
 
 void operator delete[](void *ptr, std::size_t size) noexcept {
-  total = std::min(size_t(0), total - size);
+  total -= malloc_usable_size(ptr);
   std::free(ptr);
 }

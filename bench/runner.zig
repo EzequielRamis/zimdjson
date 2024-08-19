@@ -30,7 +30,7 @@ const pid_t = std.os.pid_t;
 const assert = std.debug.assert;
 const MAX_SAMPLES = 10000;
 
-const benchmarks = @import("benchmarks").tuple;
+const benchmarks = @import("benchmarks");
 
 const PerfMeasurement = struct {
     name: []const u8,
@@ -110,7 +110,7 @@ pub fn main() !void {
     var stdout_bw = std.io.bufferedWriter(stdout.writer());
     const stdout_w = stdout_bw.writer();
 
-    var commands: [benchmarks.len]Command = undefined;
+    var commands: [benchmarks.wrappers.len]Command = undefined;
     const max_nano_seconds: u64 = std.time.ns_per_s * 10;
     const color: ColorMode = .auto;
 
@@ -121,9 +121,9 @@ pub fn main() !void {
     const file_stat = try file.stat();
     const file_size = file_stat.size;
 
-    inline for (&commands, benchmarks) |*c, b| {
+    inline for (&commands, benchmarks.wrappers, 0..) |*c, b, i| {
         c.* = .{
-            .name = b.name,
+            .name = benchmarks.names[i],
             .measurements = undefined,
             .sample_count = undefined,
             .events = .{

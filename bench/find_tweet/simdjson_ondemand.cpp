@@ -19,10 +19,9 @@ struct simdjson_ondemand {
   string_view result;
   ondemand::parser parser;
 
-  void init(string_view str) {
-    padded_string original_json;
-    auto err = padded_string::load(str).get(original_json);
-    json = padded_string(original_json.data(), original_json.size());
+  void init(string_view path) {
+    simdjson::error_code err;
+    if (err = padded_string::load(path).get(json)) throw runtime_error("file not found");
   }
 
   void prerun() {}

@@ -50,7 +50,7 @@ pub fn Suite(comptime suite: []const u8) type {
         ) Benchmark {
             const b = self.zimdjson.owner;
             const identifier = self.suite ++ "/" ++ name;
-            const lib = b.addStaticLibrary(.{
+            const lib = b.addSharedLibrary(.{
                 .name = self.suite ++ "_" ++ name,
                 .target = self.target,
                 .optimize = self.optimize,
@@ -72,7 +72,8 @@ pub fn Suite(comptime suite: []const u8) type {
         pub fn create(
             self: Self,
             benchs: []const Benchmark,
-        ) *std.Build.Step.Compile {
+            file_path: []const u8,
+        ) *std.Build.Step.Run {
             const b = self.zimdjson.owner;
             var buf = std.BoundedArray(u8, 1024).init(0) catch unreachable;
             const wrappers = formatWrappers(&buf, benchs);
@@ -91,7 +92,9 @@ pub fn Suite(comptime suite: []const u8) type {
                 .optimize = self.optimize,
             });
             runner.root_module.addImport("benchmarks", mod);
-            return runner;
+            const artifact = b.addRunArtifact(runner);
+            artifact.addArg(file_path);
+            return artifact;
         }
     };
 }

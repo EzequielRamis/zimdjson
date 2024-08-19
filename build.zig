@@ -1,6 +1,7 @@
 const std = @import("std");
 const bench = @import("build/bench.zig");
-const CommandCenter = @import("build/center.zig").CommandCenter;
+const cc = @import("build/center.zig");
+const CommandCenter = cc.CommandCenter;
 const Parsers = @import("build/parsers.zig").Parsers;
 
 pub fn build(b: *std.Build) !void {
@@ -137,34 +138,59 @@ pub fn build(b: *std.Build) !void {
         \\Prefix the file path with the current directory instead
         \\                               of simdjson/simdjson-data (default: no)
     ) orelse false;
-    const json_path = if (b.args) |args| args[0] else "";
+    var path_buf: [1024]u8 = undefined;
 
     // -- Benchmarking
     {
-        var com = center.command("bench", "Run all benchmarks");
-        const parsers = Parsers.get(com, target, optimize);
+        {
+            const com = center.command("bench/indexer", "Run 'indexer' benchmark");
+            const parsers = Parsers.get(com, target, optimize);
+            const file_path = try getProvidedPath(com, &path_buf, use_cwd);
 
-        var path_buf: [1024]u8 = undefined;
-        const resolved_path = path: {
-            if (use_cwd) {
-                break :path try std.fs.cwd().realpath(json_path, &path_buf);
-            } else if (com.with("simdjson-data")) |dep| {
-                break :path b.pathJoin(&.{ dep.path("jsonexamples").getPath(b), json_path });
-            } else break :path "";
-        };
-        if (parsers) |p| {
-            const suite = bench.Suite("indexer"){
-                .zimdjson = zimdjson,
-                .simdjson = p.simdjson,
-                .target = target,
-                .optimize = optimize,
+            if (parsers) |p| {
+                const suite = bench.Suite("indexer"){
+                    .zimdjson = zimdjson,
+                    .simdjson = p.simdjson,
+                    .target = target,
+                    .optimize = optimize,
+                };
+                const runner = suite.create(
+                    &.{
+                        suite.addZigBenchmark("zimdjson"),
+                        suite.addCppBenchmark("simdjson", p.simdjson),
+                    },
+                    file_path,
+                );
+                com.dependOn(&runner.step);
+            }
+        }
+
+        {
+            const com = center.command("bench/find-tweet", "Run 'find tweet' benchmark");
+            const parsers = Parsers.get(com, target, optimize);
+            const file_path = path: {
+                if (com.with("simdjson-data")) |dep| {
+                    break :path dep.path("jsonexamples/twitter.json").getPath(b);
+                } else break :path "";
             };
-            const runner = b.addRunArtifact(suite.create(&.{
-                suite.addZigBenchmark("zimdjson"),
-                suite.addCppBenchmark("simdjson", p.simdjson),
-            }));
-            runner.addArg(resolved_path);
-            com.dependOn(&runner.step);
+
+            if (parsers) |p| {
+                const suite = bench.Suite("find_tweet"){
+                    .zimdjson = zimdjson,
+                    .simdjson = p.simdjson,
+                    .target = target,
+                    .optimize = optimize,
+                };
+                const runner = suite.create(
+                    &.{
+                        // suite.addZigBenchmark("zimdjson"),
+                        suite.addCppBenchmark("simdjson_dom", p.simdjson),
+                        suite.addCppBenchmark("simdjson_ondemand", p.simdjson),
+                    },
+                    file_path,
+                );
+                com.dependOn(&runner.step);
+            }
         }
     }
     // --
@@ -172,15 +198,7 @@ pub fn build(b: *std.Build) !void {
     // -- Profiling
     {
         var com = center.command("profile", "Profile with Tracy");
-
-        var path_buf: [1024]u8 = undefined;
-        const resolved_path = path: {
-            if (use_cwd) {
-                break :path try std.fs.cwd().realpath(json_path, &path_buf);
-            } else if (com.with("simdjson-data")) |dep| {
-                break :path b.pathJoin(&.{ dep.path("jsonexamples").getPath(b), json_path });
-            } else break :path "";
-        };
+        const file_path = try getProvidedPath(com, &path_buf, use_cwd);
 
         const tracy_module = getTracyModule(b, .{
             .target = target,
@@ -200,7 +218,7 @@ pub fn build(b: *std.Build) !void {
         profile.root_module.addImport("tracy", tracy_module);
 
         const run_profile = b.addRunArtifact(profile);
-        run_profile.addArg(resolved_path);
+        run_profile.addArg(file_path);
         com.dependOn(&run_profile.step);
     }
     // --
@@ -210,6 +228,16 @@ fn addEmbeddedPath(b: *std.Build, compile: *std.Build.Step.Compile, dep: *std.Bu
     compile.root_module.addAnonymousImport(alias, .{
         .root_source_file = b.addWriteFiles().add(alias, dep.path(".").getPath(b)),
     });
+}
+
+fn getProvidedPath(com: cc.Command, buf: []u8, use_cwd: bool) ![]const u8 {
+    const b = com.step.owner;
+    const json_path = if (b.args) |args| args[0] else "";
+    if (use_cwd) {
+        return try std.fs.cwd().realpath(json_path, buf);
+    } else if (com.with("simdjson-data")) |dep| {
+        return b.pathJoin(&.{ dep.path("jsonexamples").getPath(b), json_path });
+    } else return "";
 }
 
 fn getDebugModule(

@@ -1,11 +1,15 @@
+#pragma once
+
 #include <cstdlib>
 #include <new>
+#include <malloc.h>
+#include <algorithm>
+
+using namespace std;
 
 size_t total = 0;
 
-size_t allocated_bytes() {
-  return total;
-}
+size_t allocated_bytes() { return total; }
 
 // no inline, required by [replacement.functions]/3
 void *operator new(std::size_t sz) {
@@ -34,19 +38,21 @@ void *operator new[](std::size_t sz) {
 }
 
 void operator delete(void *ptr) noexcept {
+  total = std::min(size_t(0), total - malloc_usable_size(ptr));
   std::free(ptr);
 }
 
 void operator delete(void *ptr, std::size_t size) noexcept {
-  total -= size;
+  total = std::min(size_t(0), total - size);
   std::free(ptr);
 }
 
 void operator delete[](void *ptr) noexcept {
+  total = std::min(size_t(0), total - malloc_usable_size(ptr));
   std::free(ptr);
 }
 
 void operator delete[](void *ptr, std::size_t size) noexcept {
-  total -= size;
+  total = std::min(size_t(0), total - size);
   std::free(ptr);
 }

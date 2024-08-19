@@ -2,8 +2,7 @@ const std = @import("std");
 const zimdjson = @import("zimdjson");
 const TracedAllocator = @import("TracedAllocator");
 
-var gpa = std.heap.GeneralPurposeAllocator(.{}){};
-var traced = TracedAllocator{ .wrapped = gpa.allocator() };
+var traced = TracedAllocator{ .wrapped = std.heap.c_allocator };
 var file: zimdjson.io.Reader(.{}).slice = undefined;
 var parser: zimdjson.ondemand.Parser(.{}) = undefined;
 const allocator = traced.allocator();

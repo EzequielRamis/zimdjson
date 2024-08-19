@@ -1,11 +1,9 @@
 #pragma once
 
-#include <cstdlib>
-#include <new>
-#include <malloc.h>
 #include <algorithm>
-
-using namespace std;
+#include <cstdlib>
+#include <malloc.h>
+#include <new>
 
 size_t total = 0;
 

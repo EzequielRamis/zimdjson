@@ -157,7 +157,7 @@ pub fn build(b: *std.Build) !void {
                 const runner = suite.create(
                     &.{
                         suite.addZigBenchmark("zimdjson"),
-                        suite.addCppBenchmark("simdjson", p.simdjson),
+                        suite.addCppBenchmark("simdjson_ondemand", p.simdjson),
                     },
                     file_path,
                 );

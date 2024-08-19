@@ -21,7 +21,7 @@ pub fn Suite(comptime suite: []const u8) type {
         ) Benchmark {
             const b = self.zimdjson.owner;
             const identifier = self.suite ++ "/" ++ name;
-            const lib = b.addStaticLibrary(.{
+            const lib = b.addSharedLibrary(.{
                 .name = self.suite ++ "_" ++ name,
                 .target = self.target,
                 .optimize = self.optimize,

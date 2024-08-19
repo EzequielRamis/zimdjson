@@ -1,6 +1,8 @@
 #include "simdjson.h"
+#include "template.hpp"
 #include "traced_allocator.hpp"
 
+using namespace std;
 using namespace simdjson;
 
 const uint64_t find_id = 505874901689851904;
@@ -11,36 +13,37 @@ const string expected = "RT @shiawaseomamori: "
                         "んどん大切なものを置き去りにしていくものでしょう。本当"
                         "に正しいことというのは、一番初めの場所にあるの…";
 
-padded_string simdjson_dom__json;
-dom::parser simdjson_dom__parser;
-string_view simdjson_dom__result;
+struct simdjson_dom {
 
-extern "C" void simdjson_dom__init(char *ptr, size_t len) {
-  padded_string original_json;
-  string_view path{ptr, len};
-  auto err = padded_string::load(path).get(original_json);
-  simdjson_dom__json =
-      padded_string(original_json.data(), original_json.size());
-}
+  padded_string json;
+  string_view result;
+  dom::parser parser;
 
-extern "C" void simdjson_dom__prerun() {}
-
-extern "C" void simdjson_dom__run() {
-  auto doc = simdjson_dom__parser.parse(simdjson_dom__json);
-  for (auto tweet : doc["statuses"]) {
-    if (uint64_t(tweet["id"]) == find_id) {
-      simdjson_dom__result = tweet["text"];
-      return;
-    }
+  void init(string_view str) {
+    padded_string original_json;
+    auto err = padded_string::load(str).get(original_json);
+    json = padded_string(original_json.data(), original_json.size());
   }
-  throw runtime_error("tweet not found");
-}
 
-extern "C" void simdjson_dom__postrun() {}
+  void prerun() {}
 
-extern "C" void simdjson_dom__deinit() {
-  if (expected != simdjson_dom__result)
-    throw runtime_error("tweet text unequal to expected");
-}
+  void run() {
+    auto doc = parser.parse(json);
+    for (auto tweet : doc["statuses"]) {
+      if (uint64_t(tweet["id"]) == find_id) {
+        result = tweet["text"];
+        return;
+      }
+    }
+    throw runtime_error("tweet not found");
+  }
 
-extern "C" size_t simdjson_dom__memusage() { return allocated_bytes(); }
+  void postrun() {}
+
+  void deinit() {
+    if (expected != result)
+      throw runtime_error("tweet text unequal to expected");
+  }
+};
+
+BENCHMARK_TEMPLATE(simdjson_dom);

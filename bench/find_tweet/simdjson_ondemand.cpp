@@ -16,8 +16,8 @@ const string expected = "RT @shiawaseomamori: "
 struct simdjson_ondemand {
 
   padded_string json;
-  string_view result;
   ondemand::parser parser;
+  string_view result;
 
   void init(string_view path) {
     simdjson::error_code err;

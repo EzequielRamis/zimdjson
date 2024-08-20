@@ -83,12 +83,16 @@ pub fn Parser(comptime options: Options) type {
             pub fn getObject(self: Visitor) Error!Object {
                 if (self.err) |err| return err;
 
-                if (self.isObject()) {
+                const document = self.document.tokens.document();
+                const indexes = self.document.tokens.indexes();
+                const token = document[indexes[self.token]];
+
+                if (token == '{') {
                     Logger.logStart(self.document.*, "object", self.depth);
                     return .{ .visitor = .{
                         .document = self.document,
-                        .token = self.document.tokens.token,
-                        .depth = self.document.depth,
+                        .token = self.token,
+                        .depth = self.depth,
                     } };
                 }
                 return error.IncorrectType;
@@ -97,12 +101,16 @@ pub fn Parser(comptime options: Options) type {
             pub fn getArray(self: Visitor) Error!Array {
                 if (self.err) |err| return err;
 
-                if (self.isArray()) {
+                const document = self.document.tokens.document();
+                const indexes = self.document.tokens.indexes();
+                const token = document[indexes[self.token]];
+
+                if (token == '[') {
                     Logger.logStart(self.document.*, "array ", self.depth);
                     return .{ .visitor = .{
                         .document = self.document,
-                        .token = self.document.tokens.token,
-                        .depth = self.document.depth,
+                        .token = self.token,
+                        .depth = self.depth,
                     } };
                 }
                 return error.IncorrectType;
@@ -170,7 +178,8 @@ pub fn Parser(comptime options: Options) type {
                 var t = &self.document.tokens;
                 const curr = t.token;
                 errdefer t.jumpBack(curr);
-                if (!self.isString()) return error.IncorrectType;
+
+                if (self.document.tokens.peek() != '"') return error.IncorrectType;
                 _ = t.next(.none) orelse {};
 
                 const string = try self.getUnsafeString();
@@ -235,31 +244,16 @@ pub fn Parser(comptime options: Options) type {
 
                 const query = brk: {
                     if (common.isString(@TypeOf(ptr))) {
-                        const obj = self.getObject() catch return .{
-                            .document = self.document,
-                            .token = self.token,
-                            .depth = self.depth,
-                            .err = error.IncorrectPointer,
-                        };
+                        const obj = self.getObject() catch return self.throw(error.IncorrectPointer);
                         break :brk obj.at(ptr);
                     }
                     if (common.isIndex(@TypeOf(ptr))) {
-                        const arr = self.getArray() catch return .{
-                            .document = self.document,
-                            .token = self.token,
-                            .depth = self.depth,
-                            .err = error.IncorrectPointer,
-                        };
+                        const arr = self.getArray() catch return self.throw(error.IncorrectPointer);
                         break :brk arr.at(ptr);
                     }
                     @compileError("JSON Pointer must be a string or number");
                 };
-                return if (query) |v| v else |err| .{
-                    .document = self.document,
-                    .token = self.token,
-                    .depth = self.depth,
-                    .err = err,
-                };
+                return query;
             }
 
             pub fn getSize(self: Visitor) Error!u32 {
@@ -323,19 +317,13 @@ pub fn Parser(comptime options: Options) type {
                         },
                     }
                 }
-                return error.IncompleteObject;
-            }
-
-            fn isObject(self: Visitor) bool {
-                return self.document.tokens.peek() == '{';
-            }
-
-            fn isArray(self: Visitor) bool {
-                return self.document.tokens.peek() == '[';
-            }
-
-            fn isString(self: Visitor) bool {
-                return self.document.tokens.peek() == '"';
+                const document = self.document.tokens.document();
+                const indexes = self.document.tokens.indexes();
+                const token = document[indexes[self.token]];
+                return if (token == '{')
+                    error.IncompleteObject
+                else
+                    error.IncompleteArray;
             }
 
             fn getUnsafeString(self: Visitor) Error![]const u8 {
@@ -353,6 +341,15 @@ pub fn Parser(comptime options: Options) type {
                     Logger.log(self.document.*, "string", self.depth);
                 }
                 return chars.items[next_str..][0..next_len];
+            }
+
+            fn throw(self: Visitor, err: Error) Visitor {
+                return .{
+                    .document = self.document,
+                    .token = self.token,
+                    .depth = self.depth,
+                    .err = err,
+                };
             }
         };
 
@@ -389,10 +386,16 @@ pub fn Parser(comptime options: Options) type {
                 self.visitor.skip();
             }
 
-            pub fn at(self: Array, index: u32) Error!Visitor {
+            pub fn at(self: Array, index: u32) Visitor {
                 var i: u32 = 0;
-                while (try self.next()) |v| : (i += 1) if (i == index) return v else try v.skip();
-                return error.IndexOutOfBounds;
+                while (self.next() catch |err| return self.visitor.throw(err)) |v| : (i += 1) {
+                    if (i == index) {
+                        return v;
+                    } else {
+                        v.skip() catch |err| return self.visitor.throw(err);
+                    }
+                }
+                return self.visitor.throw(error.IndexOutOfBounds);
             }
 
             pub fn isEmpty(self: Array) Error!bool {
@@ -457,9 +460,15 @@ pub fn Parser(comptime options: Options) type {
                 return self.visitor.skip();
             }
 
-            pub fn at(self: Object, key: []const u8) Error!Visitor {
-                while (try self.next()) |field| if (std.mem.eql(u8, field.key, key)) return field.value else try field.skip();
-                return error.MissingField;
+            pub fn at(self: Object, key: []const u8) Visitor {
+                while (self.next() catch |err| return self.visitor.throw(err)) |field| {
+                    if (std.mem.eql(u8, field.key, key)) {
+                        return field.value;
+                    } else {
+                        field.skip() catch |err| return self.visitor.throw(err);
+                    }
+                }
+                return self.visitor.throw(error.MissingField);
             }
 
             pub fn isEmpty(self: Object) Error!bool {

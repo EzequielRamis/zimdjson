@@ -16,8 +16,8 @@ const string expected = "RT @shiawaseomamori: "
 struct simdjson_dom {
 
   padded_string json;
-  string_view result;
   dom::parser parser;
+  string_view result;
 
   void init(string_view path) {
     simdjson::error_code err;

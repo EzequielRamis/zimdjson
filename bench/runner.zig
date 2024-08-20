@@ -46,10 +46,10 @@ const perf_measurements = [_]PerfMeasurement{
 };
 
 const Events = struct {
-    init: *const fn ([]u8) void,
-    prerun: *const fn () void,
-    run: *const fn () void,
-    postrun: *const fn () void,
+    init: *const fn ([]u8) anyerror!void,
+    prerun: *const fn () anyerror!void,
+    run: *const fn () anyerror!void,
+    postrun: *const fn () anyerror!void,
     deinit: *const fn () void,
     memusage: *const fn () usize,
 };
@@ -177,7 +177,7 @@ pub fn main() !void {
     for (&commands, 1..) |*command, i| {
         const min_samples = 3;
 
-        command.events.init(path);
+        try command.events.init(path);
         defer command.events.deinit();
 
         const first_start = timer.read();
@@ -188,14 +188,14 @@ pub fn main() !void {
         {
             if (tty_conf != .no_color) try bar.render();
 
-            command.events.prerun();
+            try command.events.prerun();
 
             _ = std.os.linux.ioctl(perf_fds[0], PERF.EVENT_IOC.RESET, PERF.IOC_FLAG_GROUP);
             _ = std.os.linux.ioctl(perf_fds[0], PERF.EVENT_IOC.ENABLE, PERF.IOC_FLAG_GROUP);
 
             const start = timer.read();
 
-            command.events.run();
+            try command.events.run();
 
             const end = timer.read();
 
@@ -203,7 +203,7 @@ pub fn main() !void {
 
             const mem_required = command.events.memusage() -| file_size;
 
-            command.events.postrun();
+            try command.events.postrun();
 
             const format = readPerfFd(perf_fds[0]);
 

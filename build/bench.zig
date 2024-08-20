@@ -113,19 +113,19 @@ inline fn formatWrapper(comptime header: []const u8, comptime name: []const u8) 
     return std.fmt.comptimePrint(
         \\const c = @cImport({{ @cInclude("{[header]s}.h"); }});
         \\
-        \\pub fn init(slice: []u8) void {{
+        \\pub fn init(slice: []u8) !void {{
         \\    return c.{[id]s}__init(@ptrCast(slice.ptr), slice.len);
         \\}}
         \\
-        \\pub fn prerun() void {{
+        \\pub fn prerun() !void {{
         \\    return c.{[id]s}__prerun();
         \\}}
         \\
-        \\pub fn run() void {{
+        \\pub fn run() !void {{
         \\    return c.{[id]s}__run();
         \\}}
         \\
-        \\pub fn postrun() void {{
+        \\pub fn postrun() !void {{
         \\    return c.{[id]s}__postrun();
         \\}}
         \\

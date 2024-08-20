@@ -8,17 +8,17 @@ const allocator = traced.allocator();
 var json: zimdjson.io.Reader(.{}).slice = undefined;
 var parser = zimdjson.dom.Parser(.{}).init(allocator);
 
-pub fn init(path: []const u8) void {
-    json = zimdjson.io.Reader(.{}).readFileAlloc(allocator, path) catch @panic("file not found");
+pub fn init(path: []const u8) !void {
+    json = try zimdjson.io.Reader(.{}).readFileAlloc(allocator, path);
 }
 
-pub fn prerun() void {}
+pub fn prerun() !void {}
 
-pub fn run() void {
-    _ = parser.parse(json) catch unreachable;
+pub fn run() !void {
+    _ = try parser.parse(json);
 }
 
-pub fn postrun() void {}
+pub fn postrun() !void {}
 
 pub fn deinit() void {
     allocator.free(json);

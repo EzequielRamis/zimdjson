@@ -67,19 +67,19 @@ pub const tables = struct {
 
 pub inline fn isString(comptime T: type) bool {
     return switch (@typeInfo(T)) {
-        .Pointer => |info| switch (info.size) {
+        .pointer => |info| switch (info.size) {
             .One => isString(info.child),
             .Many, .C, .Slice => info.child == u8,
         },
-        .Array => |info| info.child == u8,
+        .array => |info| info.child == u8,
         else => false,
     };
 }
 
 pub inline fn isIndex(comptime T: type) bool {
     return switch (@typeInfo(T)) {
-        .Int => |info| info.signedness == .unsigned and info.bits <= 32,
-        .ComptimeInt => true,
+        .int => |info| info.signedness == .unsigned and info.bits <= 32,
+        .comptime_int => true,
         else => false,
     };
 }

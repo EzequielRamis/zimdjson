@@ -151,6 +151,7 @@ inline fn computeFloat(number: *FromString(.{})) Error!f64 {
 }
 
 const power_of_ten: [23]f64 = brk: {
+    @setEvalBranchQuota(10000);
     var res: [23]f64 = undefined;
     for (&res, 0..) |*r, i| {
         r.* = std.math.pow(f64, 10, i);

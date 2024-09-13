@@ -21,15 +21,6 @@ const State = enum {
     array_value,
     array_continue,
     scope_end,
-    end,
-    resume_object_begin,
-    resume_object_field_colon,
-    resume_object_field_value,
-    resume_object_continue_comma,
-    resume_object_continue_key,
-    resume_array_begin,
-    resume_array_value,
-    resume_array_continue,
 };
 
 pub const FitPtr = packed struct {
@@ -109,15 +100,15 @@ pub fn Tape(comptime options: Options) type {
             self.parsed.appendAssumeCapacity(.{ .root = .{ .ptr = 0, .len = 0 } });
             if (t.next(.unbounded)) |r| {
                 return switch (r) {
-                    '{' => self.analyze_object_begin(.unbounded),
-                    '[' => self.analyze_array_begin(.unbounded),
+                    '{' => self.dispatch(.unbounded, .object_begin),
+                    '[' => self.dispatch(.unbounded, .array_begin),
                     else => unreachable,
                 };
             }
             const r = t.next(.bounded).?;
             return switch (r) {
-                '{' => self.analyze_object_begin(.padded),
-                '[' => self.analyze_array_begin(.padded),
+                '{' => self.dispatch(.padded, .object_begin),
+                '[' => self.dispatch(.padded, .array_begin),
                 't', 'f', 'n' => {
                     t.ptr = t.padding[0..].ptr;
                     t.padding_ptr = @ptrFromInt(std.math.maxInt(usize));
@@ -127,361 +118,313 @@ pub fn Tape(comptime options: Options) type {
             };
         }
 
-        inline fn dispatch(self: *Self, comptime phase: Phase, next_state: State) Error!void {
-            const next_op = switch (next_state) {
-                .object_begin => analyze_object_begin,
-                .object_field => analyze_object_field,
-                .object_continue => analyze_object_continue,
-                .array_begin => analyze_array_begin,
-                .array_value => analyze_array_value,
-                .array_continue => analyze_array_continue,
-                .scope_end => analyze_scope_end,
-                .resume_object_begin => resume_object_begin,
-                .resume_object_field_colon => resume_object_field_colon,
-                .resume_object_field_value => resume_object_field_value,
-                .resume_object_continue_comma => resume_object_continue_comma,
-                .resume_object_continue_key => resume_object_continue_key,
-                .resume_array_begin => resume_array_begin,
-                .resume_array_value => resume_array_value,
-                .resume_array_continue => resume_array_continue,
-                else => unreachable,
-            };
-
-            return @call(.always_tail, next_op, .{ self, phase });
-        }
-
-        fn analyze_object_begin(self: *Self, comptime phase: Phase) Error!void {
+        fn dispatch(self: *Self, comptime phase: Phase, state: State) Error!void {
             assert(phase != .bounded);
-            // log.info("OBJ BEGIN", .{});
 
-            if (self.stack.len >= options.max_depth)
-                return error.ExceededDepth;
-            const word = Word{ .object_opening = .{ .ptr = @truncate(self.parsed.len), .len = 0 } };
-            self.parsed.appendAssumeCapacity(word);
-            self.stack.appendAssumeCapacity(word);
+            next: switch (state) {
+                .object_begin => {
+                    // log.info("OBJ BEGIN", .{});
 
-            if (self.tokens.next(phase)) |t| {
-                switch (t) {
-                    '"' => {
+                    if (self.stack.len >= options.max_depth)
+                        return error.ExceededDepth;
+                    const word = Word{ .object_opening = .{ .ptr = @truncate(self.parsed.len), .len = 0 } };
+                    self.parsed.appendAssumeCapacity(word);
+                    self.stack.appendAssumeCapacity(word);
+
+                    if (self.tokens.next(phase)) |t| {
+                        @branchHint(.likely);
+                        switch (t) {
+                            '"' => {
+                                self.increment_container_count();
+                                try self.visit_string(phase);
+                                continue :next .object_field;
+                            },
+                            '}' => {
+                                // log.info("OBJ END", .{});
+                                continue :next .scope_end;
+                            },
+                            else => return error.ExpectedObjectCommaOrEnd,
+                        }
+                    } else {
+                        if (phase == .unbounded) {
+                            switch (self.tokens.next(.bounded).?) {
+                                '"' => {
+                                    self.increment_container_count();
+                                    try self.visit_string(.padded);
+                                    return self.dispatch(.padded, .object_field);
+                                },
+                                '}' => {
+                                    // log.info("OBJ END", .{});
+                                    return self.dispatch(.padded, .scope_end);
+                                },
+                                else => return error.ExpectedObjectCommaOrEnd,
+                            }
+                        } else {
+                            return error.ExpectedObjectCommaOrEnd;
+                        }
+                    }
+                },
+                .object_field => {
+                    assert(phase != .bounded);
+                    if (self.tokens.next(phase)) |t| {
+                        @branchHint(.likely);
+                        if (t == ':') {
+                            @branchHint(.likely);
+                            if (self.tokens.next(phase)) |r| {
+                                switch (r) {
+                                    '{' => continue :next .object_begin,
+                                    '[' => continue :next .array_begin,
+                                    else => {
+                                        try self.visit_primitive(phase, r);
+                                        continue :next .object_continue;
+                                    },
+                                }
+                            } else {
+                                if (phase == .unbounded) {
+                                    switch (self.tokens.next(.bounded).?) {
+                                        '{' => return self.dispatch(.padded, .object_begin),
+                                        '[' => return self.dispatch(.padded, .array_begin),
+                                        else => |r| {
+                                            try self.visit_primitive(.padded, r);
+                                            return self.dispatch(.padded, .object_continue);
+                                        },
+                                    }
+                                } else {
+                                    return error.ExpectedValue;
+                                }
+                            }
+                        } else {
+                            return error.ExpectedColon;
+                        }
+                    } else {
+                        if (phase == .unbounded) {
+                            if (self.tokens.next(.bounded).? == ':') {
+                                @branchHint(.likely);
+                                if (self.tokens.next(.padded)) |t| {
+                                    switch (t) {
+                                        '{' => return self.dispatch(.padded, .object_begin),
+                                        '[' => return self.dispatch(.padded, .array_begin),
+                                        else => {
+                                            try self.visit_primitive(.padded, t);
+                                            return self.dispatch(.padded, .object_continue);
+                                        },
+                                    }
+                                } else {
+                                    return error.ExpectedValue;
+                                }
+                            } else {
+                                return error.ExpectedColon;
+                            }
+                        } else {
+                            return error.IncompleteObject;
+                        }
+                    }
+                },
+                .object_continue => {
+                    assert(phase != .bounded);
+                    if (self.tokens.next(phase)) |t| {
+                        @branchHint(.likely);
+                        switch (t) {
+                            ',' => {
+                                if (self.tokens.next(phase)) |r| {
+                                    @branchHint(.likely);
+                                    if (r == '"') {
+                                        @branchHint(.likely);
+                                        self.increment_container_count();
+                                        try self.visit_string(phase);
+                                        continue :next .object_field;
+                                    } else {
+                                        return error.ExpectedKeyAsString;
+                                    }
+                                } else {
+                                    if (phase == .unbounded) {
+                                        if (self.tokens.next(.bounded).? == '"') {
+                                            @branchHint(.likely);
+                                            self.increment_container_count();
+                                            try self.visit_string(.padded);
+                                            return self.dispatch(.padded, .object_field);
+                                        } else {
+                                            return error.ExpectedKeyAsString;
+                                        }
+                                    } else {
+                                        return error.IncompleteObject;
+                                    }
+                                }
+                            },
+                            '}' => {
+                                // log.info("OBJ END", .{});
+                                continue :next .scope_end;
+                            },
+                            else => return error.ExpectedObjectCommaOrEnd,
+                        }
+                    } else {
+                        if (phase == .unbounded) {
+                            switch (self.tokens.next(.bounded).?) {
+                                ',' => {
+                                    if (self.tokens.next(.padded)) |t| {
+                                        @branchHint(.likely);
+                                        if (t == '"') {
+                                            @branchHint(.likely);
+                                            self.increment_container_count();
+                                            try self.visit_string(.padded);
+                                            return self.dispatch(.padded, .object_field);
+                                        } else {
+                                            return error.ExpectedKeyAsString;
+                                        }
+                                    } else {
+                                        return error.IncompleteObject;
+                                    }
+                                },
+                                '}' => {
+                                    // log.info("OBJ END", .{});
+                                    return self.dispatch(.padded, .scope_end);
+                                },
+                                else => return error.ExpectedObjectCommaOrEnd,
+                            }
+                        } else {
+                            return error.ExpectedObjectCommaOrEnd;
+                        }
+                    }
+                },
+                .array_begin => {
+                    assert(phase != .bounded);
+                    // log.info("ARR BEGIN", .{});
+
+                    if (self.stack.len >= options.max_depth)
+                        return error.ExceededDepth;
+                    const word = Word{ .array_opening = .{ .ptr = @truncate(self.parsed.len), .len = 0 } };
+                    self.parsed.appendAssumeCapacity(word);
+                    self.stack.appendAssumeCapacity(word);
+
+                    if (self.tokens.next(phase)) |t| {
+                        @branchHint(.likely);
+                        if (t == ']') {
+                            @branchHint(.unlikely);
+                            // log.info("ARR END", .{});
+                            continue :next .scope_end;
+                        }
                         self.increment_container_count();
-                        try self.visit_string(phase);
-                        return self.dispatch(phase, .object_field);
-                    },
-                    '}' => {
-                        // log.info("OBJ END", .{});
-                        return self.dispatch(phase, .scope_end);
-                    },
-                    else => return error.ExpectedObjectCommaOrEnd,
-                }
-            } else {
-                if (phase == .unbounded) {
-                    return self.dispatch(.bounded, .resume_object_begin);
-                } else {
-                    return error.ExpectedObjectCommaOrEnd;
-                }
-            }
-        }
-
-        fn resume_object_begin(self: *Self, comptime phase: Phase) Error!void {
-            assert(phase == .bounded);
-            switch (self.tokens.next(phase).?) {
-                '"' => {
-                    self.increment_container_count();
-                    try self.visit_string(.padded);
-                    return self.dispatch(.padded, .object_field);
-                },
-                '}' => {
-                    // log.info("OBJ END", .{});
-                    return self.dispatch(.padded, .scope_end);
-                },
-                else => return error.ExpectedObjectCommaOrEnd,
-            }
-        }
-
-        fn analyze_object_field(self: *Self, comptime phase: Phase) Error!void {
-            assert(phase != .bounded);
-            if (self.tokens.next(phase)) |t| {
-                if (t == ':') {
-                    if (self.tokens.next(phase)) |r| {
-                        switch (r) {
-                            '{' => return self.dispatch(phase, .object_begin),
-                            '[' => return self.dispatch(phase, .array_begin),
+                        switch (t) {
+                            '{' => continue :next .object_begin,
+                            '[' => continue :next .array_begin,
                             else => {
-                                try self.visit_primitive(phase, r);
-                                return self.dispatch(phase, .object_continue);
+                                try self.visit_primitive(phase, t);
+                                continue :next .array_continue;
                             },
                         }
                     } else {
                         if (phase == .unbounded) {
-                            return self.dispatch(.bounded, .resume_object_field_value);
-                        } else {
-                            return error.ExpectedValue;
-                        }
-                    }
-                } else {
-                    return error.ExpectedColon;
-                }
-            } else {
-                if (phase == .unbounded) {
-                    return self.dispatch(.bounded, .resume_object_field_colon);
-                } else {
-                    return error.IncompleteObject;
-                }
-            }
-        }
-
-        fn resume_object_field_colon(self: *Self, comptime phase: Phase) Error!void {
-            assert(phase == .bounded);
-            if (self.tokens.next(phase).? == ':') {
-                if (self.tokens.next(.padded)) |t| {
-                    switch (t) {
-                        '{' => return self.dispatch(.padded, .object_begin),
-                        '[' => return self.dispatch(.padded, .array_begin),
-                        else => {
-                            try self.visit_primitive(.padded, t);
-                            return self.dispatch(.padded, .object_continue);
-                        },
-                    }
-                } else {
-                    return error.ExpectedValue;
-                }
-            } else {
-                return error.ExpectedColon;
-            }
-        }
-
-        fn resume_object_field_value(self: *Self, comptime phase: Phase) Error!void {
-            assert(phase == .bounded);
-            switch (self.tokens.next(phase).?) {
-                '{' => return self.dispatch(.padded, .object_begin),
-                '[' => return self.dispatch(.padded, .array_begin),
-                else => |t| {
-                    try self.visit_primitive(.padded, t);
-                    return self.dispatch(.padded, .object_continue);
-                },
-            }
-        }
-
-        fn analyze_object_continue(self: *Self, comptime phase: Phase) Error!void {
-            assert(phase != .bounded);
-            if (self.tokens.next(phase)) |t| {
-                switch (t) {
-                    ',' => {
-                        if (self.tokens.next(phase)) |r| {
-                            if (r == '"') {
-                                self.increment_container_count();
-                                try self.visit_string(phase);
-                                return self.dispatch(phase, .object_field);
-                            } else {
-                                return error.ExpectedKeyAsString;
+                            const t = self.tokens.next(.bounded).?;
+                            if (t == ']') {
+                                @branchHint(.unlikely);
+                                // log.info("ARR END", .{});
+                                return self.dispatch(.padded, .scope_end);
                             }
-                        } else {
-                            if (phase == .unbounded) {
-                                return self.dispatch(.bounded, .resume_object_continue_key);
-                            } else {
-                                return error.IncompleteObject;
-                            }
-                        }
-                    },
-                    '}' => {
-                        // log.info("OBJ END", .{});
-                        return self.dispatch(phase, .scope_end);
-                    },
-                    else => return error.ExpectedObjectCommaOrEnd,
-                }
-            } else {
-                if (phase == .unbounded) {
-                    return self.dispatch(.bounded, .resume_object_continue_comma);
-                } else {
-                    return error.ExpectedObjectCommaOrEnd;
-                }
-            }
-        }
-
-        fn resume_object_continue_comma(self: *Self, comptime phase: Phase) Error!void {
-            assert(phase == .bounded);
-            switch (self.tokens.next(phase).?) {
-                ',' => {
-                    if (self.tokens.next(.padded)) |t| {
-                        if (t == '"') {
                             self.increment_container_count();
-                            try self.visit_string(.padded);
-                            return self.dispatch(.padded, .object_field);
+                            switch (t) {
+                                '{' => return self.dispatch(.padded, .object_begin),
+                                '[' => return self.dispatch(.padded, .array_begin),
+                                else => {
+                                    try self.visit_primitive(.padded, t);
+                                    return self.dispatch(.padded, .array_continue);
+                                },
+                            }
                         } else {
-                            return error.ExpectedKeyAsString;
+                            return error.IncompleteArray;
+                        }
+                    }
+                },
+                .array_value => {
+                    assert(phase != .bounded);
+                    if (self.tokens.next(phase)) |t| {
+                        @branchHint(.likely);
+                        self.increment_container_count();
+                        switch (t) {
+                            '{' => continue :next .object_begin,
+                            '[' => continue :next .array_begin,
+                            else => {
+                                try self.visit_primitive(phase, t);
+                                continue :next .array_continue;
+                            },
                         }
                     } else {
-                        return error.IncompleteObject;
+                        if (phase == .unbounded) {
+                            self.increment_container_count();
+                            switch (self.tokens.next(.bounded).?) {
+                                '{' => return self.dispatch(.padded, .object_begin),
+                                '[' => return self.dispatch(.padded, .array_begin),
+                                else => |t| {
+                                    try self.visit_primitive(.padded, t);
+                                    return self.dispatch(.padded, .array_continue);
+                                },
+                            }
+                        } else {
+                            return error.IncompleteArray;
+                        }
                     }
                 },
-                '}' => {
-                    // log.info("OBJ END", .{});
-                    return self.dispatch(.padded, .scope_end);
+                .array_continue => {
+                    assert(phase != .bounded);
+                    if (self.tokens.next(phase)) |t| {
+                        @branchHint(.likely);
+                        switch (t) {
+                            ',' => {
+                                self.increment_container_count();
+                                continue :next .array_value;
+                            },
+                            ']' => {
+                                // log.info("ARR END", .{});
+                                continue :next .scope_end;
+                            },
+                            else => return error.ExpectedArrayCommaOrEnd,
+                        }
+                    } else {
+                        if (phase == .unbounded) {
+                            switch (self.tokens.next(.bounded).?) {
+                                ',' => {
+                                    return self.dispatch(.padded, .array_value);
+                                },
+                                ']' => {
+                                    // log.info("ARR END", .{});
+                                    return self.dispatch(.padded, .scope_end);
+                                },
+                                else => return error.ExpectedArrayCommaOrEnd,
+                            }
+                        } else {
+                            return error.IncompleteArray;
+                        }
+                    }
                 },
-                else => return error.ExpectedObjectCommaOrEnd,
-            }
-        }
-
-        fn resume_object_continue_key(self: *Self, comptime phase: Phase) Error!void {
-            assert(phase == .bounded);
-            if (self.tokens.next(phase).? == '"') {
-                self.increment_container_count();
-                try self.visit_string(.padded);
-                return self.dispatch(.padded, .object_field);
-            } else {
-                return error.ExpectedKeyAsString;
-            }
-        }
-
-        fn analyze_array_begin(self: *Self, comptime phase: Phase) Error!void {
-            assert(phase != .bounded);
-            // log.info("ARR BEGIN", .{});
-
-            if (self.stack.len >= options.max_depth)
-                return error.ExceededDepth;
-            const word = Word{ .array_opening = .{ .ptr = @truncate(self.parsed.len), .len = 0 } };
-            self.parsed.appendAssumeCapacity(word);
-            self.stack.appendAssumeCapacity(word);
-
-            if (self.tokens.next(phase)) |t| {
-                if (t == ']') {
-                    // log.info("ARR END", .{});
-                    return self.dispatch(phase, .scope_end);
-                }
-                self.increment_container_count();
-                switch (t) {
-                    '{' => return self.dispatch(phase, .object_begin),
-                    '[' => return self.dispatch(phase, .array_begin),
-                    else => {
-                        try self.visit_primitive(phase, t);
-                        return self.dispatch(phase, .array_continue);
-                    },
-                }
-            } else {
-                if (phase == .unbounded) {
-                    return self.dispatch(.bounded, .resume_array_begin);
-                } else {
-                    return error.IncompleteArray;
-                }
-            }
-        }
-
-        fn resume_array_begin(self: *Self, comptime phase: Phase) Error!void {
-            assert(phase == .bounded);
-            const t = self.tokens.next(phase).?;
-            if (t == ']') {
-                // log.info("ARR END", .{});
-                return self.dispatch(.padded, .scope_end);
-            }
-            self.increment_container_count();
-            switch (t) {
-                '{' => return self.dispatch(.padded, .object_begin),
-                '[' => return self.dispatch(.padded, .array_begin),
-                else => {
-                    try self.visit_primitive(.padded, t);
-                    return self.dispatch(.padded, .array_continue);
+                .scope_end => {
+                    assert(phase != .bounded);
+                    const scope = self.stack.pop();
+                    const scope_fit = switch (scope) {
+                        .array_opening, .object_opening => |s| s,
+                        else => unreachable,
+                    };
+                    const scope_root: *FitPtr = @ptrCast(&self.parsed.items(.data)[scope_fit.ptr]);
+                    switch (scope) {
+                        .array_opening => |s| self.parsed.appendAssumeCapacity(.{ .array_closing = s }),
+                        .object_opening => |s| self.parsed.appendAssumeCapacity(.{ .object_closing = s }),
+                        else => unreachable,
+                    }
+                    scope_root.len = scope_fit.len;
+                    scope_root.ptr = @truncate(self.parsed.len);
+                    const parent = self.stack.items(.tags)[self.stack.len - 1];
+                    switch (parent) {
+                        .array_opening => continue :next .array_continue,
+                        .object_opening => continue :next .object_continue,
+                        .root => {
+                            assert(phase == .padded);
+                            if (self.tokens.next(phase)) |_| return error.TrailingContent;
+                            _ = self.stack.pop();
+                            const root: *FitPtr = @ptrCast(&self.parsed.items(.data)[0]);
+                            root.ptr = @truncate(self.parsed.len);
+                            self.parsed.appendAssumeCapacity(.{ .root = .{ .ptr = 0, .len = 0 } });
+                        },
+                        else => unreachable,
+                    }
                 },
-            }
-        }
-
-        fn analyze_array_value(self: *Self, comptime phase: Phase) Error!void {
-            assert(phase != .bounded);
-            if (self.tokens.next(phase)) |t| {
-                self.increment_container_count();
-                switch (t) {
-                    '{' => return self.dispatch(phase, .object_begin),
-                    '[' => return self.dispatch(phase, .array_begin),
-                    else => {
-                        try self.visit_primitive(phase, t);
-                        return self.dispatch(phase, .array_continue);
-                    },
-                }
-            } else {
-                if (phase == .unbounded) {
-                    return self.dispatch(.bounded, .resume_array_value);
-                } else {
-                    return error.IncompleteArray;
-                }
-            }
-        }
-
-        fn resume_array_value(self: *Self, comptime phase: Phase) Error!void {
-            assert(phase == .bounded);
-            self.increment_container_count();
-            switch (self.tokens.next(phase).?) {
-                '{' => return self.dispatch(.padded, .object_begin),
-                '[' => return self.dispatch(.padded, .array_begin),
-                else => |t| {
-                    try self.visit_primitive(.padded, t);
-                    return self.dispatch(.padded, .array_continue);
-                },
-            }
-        }
-
-        fn analyze_array_continue(self: *Self, comptime phase: Phase) Error!void {
-            assert(phase != .bounded);
-            if (self.tokens.next(phase)) |t| {
-                switch (t) {
-                    ',' => {
-                        self.increment_container_count();
-                        return self.dispatch(phase, .array_value);
-                    },
-                    ']' => {
-                        // log.info("ARR END", .{});
-                        return self.dispatch(phase, .scope_end);
-                    },
-                    else => return error.ExpectedArrayCommaOrEnd,
-                }
-            } else {
-                if (phase == .unbounded) {
-                    return self.dispatch(.bounded, .resume_array_continue);
-                } else {
-                    return error.IncompleteArray;
-                }
-            }
-        }
-
-        fn resume_array_continue(self: *Self, comptime phase: Phase) Error!void {
-            assert(phase == .bounded);
-            switch (self.tokens.next(phase).?) {
-                ',' => {
-                    return self.dispatch(.padded, .array_value);
-                },
-                ']' => {
-                    // log.info("ARR END", .{});
-                    return self.dispatch(.padded, .scope_end);
-                },
-                else => return error.ExpectedArrayCommaOrEnd,
-            }
-        }
-
-        fn analyze_scope_end(self: *Self, comptime phase: Phase) Error!void {
-            assert(phase != .bounded);
-            const scope = self.stack.pop();
-            const scope_fit = switch (scope) {
-                .array_opening, .object_opening => |s| s,
-                else => unreachable,
-            };
-            const scope_root: *FitPtr = @ptrCast(&self.parsed.items(.data)[scope_fit.ptr]);
-            switch (scope) {
-                .array_opening => |s| self.parsed.appendAssumeCapacity(.{ .array_closing = s }),
-                .object_opening => |s| self.parsed.appendAssumeCapacity(.{ .object_closing = s }),
-                else => unreachable,
-            }
-            scope_root.len = scope_fit.len;
-            scope_root.ptr = @truncate(self.parsed.len);
-            const parent = self.stack.items(.tags)[self.stack.len - 1];
-            switch (parent) {
-                .array_opening => return self.dispatch(phase, .array_continue),
-                .object_opening => return self.dispatch(phase, .object_continue),
-                .root => {
-                    if (self.tokens.next(phase)) |_| return error.TrailingContent;
-                    _ = self.stack.pop();
-                    const root: *FitPtr = @ptrCast(&self.parsed.items(.data)[0]);
-                    root.ptr = @truncate(self.parsed.len);
-                    self.parsed.appendAssumeCapacity(.{ .root = .{ .ptr = 0, .len = 0 } });
-                },
-                else => unreachable,
             }
         }
 

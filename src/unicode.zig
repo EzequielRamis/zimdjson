@@ -52,6 +52,7 @@ pub fn Checker(comptime options: io.Options) type {
         }
 
         inline fn checkUTF8Bytes(self: *Self, vec: vector) void {
+            @setEvalBranchQuota(10000);
             const len = Vector.len_bytes;
             const prev1_mask: @Vector(len, i32) = [_]i32{len} ++ ([_]i32{0} ** (len - 1));
             const prev2_mask: @Vector(len, i32) = [_]i32{ len - 1, len } ++ ([_]i32{0} ** (len - 2));

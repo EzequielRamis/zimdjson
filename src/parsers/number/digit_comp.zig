@@ -8,8 +8,6 @@ const BiasedFp = common.BiasedFp;
 const assert = std.debug.assert;
 
 pub inline fn compute(parsed_number: FromString(.{}), bf: *BiasedFp) void {
-    @setCold(true);
-
     const sci_exp = scientificExponent(parsed_number);
 
     var bigman = BigInt.init();

@@ -13,8 +13,8 @@
             .lazy = true,
         },
         .simdjson = .{
-            .url = "git+https://github.com/simdjson/simdjson.git#v3.10.0",
-            .hash = "1220f1c87f0fc045224fbf1abb206679b416e9fc96048dc7557901fa989319083387",
+            .url = "git+https://github.com/simdjson/simdjson.git#v3.10.1",
+            .hash = "1220daa60a74b1d7d87c5baf3132af7aafd581c9599e105c2ef43f4e87c995d254fc",
             .lazy = true,
         },
         .yyjson = .{

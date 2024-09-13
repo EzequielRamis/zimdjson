@@ -178,7 +178,7 @@ pub fn order(self: Self, other: Self) std.math.Order {
 }
 
 pub fn len(self: Self) u8 {
-    return self.limbs.len;
+    return @intCast(self.limbs.len);
 }
 
 fn addScalarFrom(self: *Self, n: Limb, _i: usize) !void {

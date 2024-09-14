@@ -428,7 +428,7 @@ pub fn Tape(comptime options: Options) type {
             }
         }
 
-        fn increment_container_count(self: *Self) void {
+        inline fn increment_container_count(self: *Self) void {
             const scope: *FitPtr = @ptrCast(&self.stack.items(.data)[self.stack.len - 1]);
             scope.len += 1;
         }
@@ -456,7 +456,7 @@ pub fn Tape(comptime options: Options) type {
             self.parsed.appendAssumeCapacity(s);
         }
 
-        fn visit_primitive(self: *Self, comptime phase: Phase, token: u8) Error!void {
+        inline fn visit_primitive(self: *Self, comptime phase: Phase, token: u8) Error!void {
             if (token == '"') {
                 return self.visit_string(phase);
             } else if (token -% '0' < 10 or token == '-') {
@@ -470,7 +470,7 @@ pub fn Tape(comptime options: Options) type {
             };
         }
 
-        fn visit_string(self: *Self, comptime phase: Phase) Error!void {
+        inline fn visit_string(self: *Self, comptime phase: Phase) Error!void {
             const t = &self.tokens;
             _ = t.consume(1, phase);
             const chars = &self.chars;
@@ -482,7 +482,7 @@ pub fn Tape(comptime options: Options) type {
             // log.info("STR {s}", .{chars.items[next_str..][0..next_len]});
         }
 
-        fn visit_number(self: *Self, comptime phase: Phase) Error!void {
+        inline fn visit_number(self: *Self, comptime phase: Phase) Error!void {
             const t = &self.tokens;
             const parser = @import("parsers/number/parser.zig").Parser(token_options);
             const number = try parser.parse(phase, t);
@@ -502,7 +502,7 @@ pub fn Tape(comptime options: Options) type {
             }
         }
 
-        fn visit_true(self: *Self) Error!void {
+        inline fn visit_true(self: *Self) Error!void {
             const t = self.tokens;
             const check = @import("parsers/atoms.zig").checkTrue;
             try check(token_options, t);
@@ -510,7 +510,7 @@ pub fn Tape(comptime options: Options) type {
             // log.info("TRU", .{});
         }
 
-        fn visit_false(self: *Self) Error!void {
+        inline fn visit_false(self: *Self) Error!void {
             const t = self.tokens;
             const check = @import("parsers/atoms.zig").checkFalse;
             try check(token_options, t);
@@ -518,7 +518,7 @@ pub fn Tape(comptime options: Options) type {
             // log.info("FAL", .{});
         }
 
-        fn visit_null(self: *Self) Error!void {
+        inline fn visit_null(self: *Self) Error!void {
             const t = self.tokens;
             const check = @import("parsers/atoms.zig").checkNull;
             try check(token_options, t);

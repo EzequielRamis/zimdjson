@@ -29,7 +29,10 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
             src: *TokenIterator(topt),
         ) Error!FromString(sopt) {
             const is_negative = src.ptr[0] == '-';
-            if (is_negative and !sopt.can_be_signed) return error.InvalidNumberLiteral;
+            if (is_negative and !sopt.can_be_signed) {
+                @branchHint(.unlikely);
+                return error.InvalidNumberLiteral;
+            }
 
             _ = src.consume(@intFromBool(is_negative), phase);
             const first_digit = src.ptr[0];
@@ -49,7 +52,10 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
                 if (phase == .bounded) integer_len += 1;
             }
             if (phase != .bounded) integer_len = @intCast(@intFromPtr(src.ptr) - @intFromPtr(integer_ptr));
-            if ((first_digit == '0' and integer_len > 1) or integer_len == 0) return error.InvalidNumberLiteral;
+            if ((first_digit == '0' and integer_len > 1) or integer_len == 0) {
+                @branchHint(.unlikely);
+                return error.InvalidNumberLiteral;
+            }
 
             if (sopt.can_be_float) {
                 if (src.ptr[0] == '.') {
@@ -61,7 +67,10 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
                     else
                         @intCast(@intFromPtr(src.ptr) - @intFromPtr(decimal_ptr));
 
-                    if (decimal_len == 0) return error.InvalidNumberLiteral;
+                    if (decimal_len == 0) {
+                        @branchHint(.unlikely);
+                        return error.InvalidNumberLiteral;
+                    }
                     is_float = true;
                     exponent_10 -= @intCast(decimal_len);
                 }
@@ -73,7 +82,10 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
                 }
             }
 
-            if (common.tables.is_structural_or_whitespace_negated[src.ptr[0]]) return error.InvalidNumberLiteral;
+            if (common.tables.is_structural_or_whitespace_negated[src.ptr[0]]) {
+                @branchHint(.unlikely);
+                return error.InvalidNumberLiteral;
+            }
 
             return .{
                 .mantissa = mantissa_10,
@@ -130,7 +142,10 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
                 _ = src.consume(1, phase);
             }
 
-            if (start_exp == @intFromPtr(src.ptr)) return error.InvalidNumberLiteral;
+            if (start_exp == @intFromPtr(src.ptr)) {
+                @branchHint(.unlikely);
+                return error.InvalidNumberLiteral;
+            }
 
             var exp_signed: i64 = @intCast(exp_number);
             if (is_negative) exp_signed = -exp_signed;

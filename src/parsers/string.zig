@@ -21,37 +21,38 @@ pub inline fn writeString(
 ) Error!void {
     while (true) {
         const chunk = src.ptr[0..Vector.len_bytes];
+        @memcpy(dst.items[dst.items.len..].ptr, chunk);
         const slash = Predicate.pack(Vector.slash == chunk.*);
         const quote = Predicate.pack(Vector.quote == chunk.*);
-        const slash_index = @ctz(slash);
-        const quote_index = @ctz(quote);
-        // none of the characters are present in the buffer
-        if (quote_index == slash_index) {
-            dst.appendSliceAssumeCapacity(chunk);
-            _ = src.consume(Vector.len_bytes, phase);
-            continue;
-        }
-        // end of string
-        if (quote_index < slash_index) {
-            const new_len = dst.items.len + quote_index;
-            dst.appendSliceAssumeCapacity(chunk);
-            dst.items.len = new_len;
+
+        const has_quote_first = ((slash -% 1) & quote) != 0;
+        if (has_quote_first) {
+            const quote_index = @ctz(quote);
+            dst.items.len += quote_index;
             _ = src.consume(quote_index, phase);
             return;
         }
-        // escape sequence
-        const new_len = dst.items.len + slash_index;
-        dst.appendSliceAssumeCapacity(chunk);
-        dst.items.len = new_len;
-        _ = src.consume(slash_index + 1, phase);
-        const escape_char = src.consume(1, phase)[0];
-        if (escape_char == 'u') {
-            const codepoint = try handleUnicodeCodepoint(opt, src, phase);
-            try utf8Encode(codepoint, dst);
+
+        const has_slash = ((quote -% 1) & slash) != 0;
+        if (has_slash) {
+            // escape sequence
+            const slash_index = @ctz(slash);
+            dst.items.len += slash_index;
+            _ = src.consume(slash_index + 1, phase);
+            const escape_char = src.consume(1, phase)[0];
+            if (escape_char == 'u') {
+                const codepoint = try handleUnicodeCodepoint(opt, src, phase);
+                try utf8Encode(codepoint, dst);
+            } else {
+                const escaped = escape_map[escape_char];
+                if (escaped == 0) return error.InvalidEscape;
+                dst.appendAssumeCapacity(escaped);
+            }
         } else {
-            const escaped = escape_map[escape_char];
-            if (escaped == 0) return error.InvalidEscape;
-            dst.appendAssumeCapacity(escaped);
+            // none of the characters are present in the buffer
+            dst.items.len += Vector.len_bytes;
+            _ = src.consume(Vector.len_bytes, phase);
+            continue;
         }
     }
     return error.ExpectedStringEnd;

@@ -16,11 +16,11 @@ pub fn main() !void {
     var tracy_alloc = tracy.tracyAllocator(std.heap.c_allocator);
     const allocator = tracy_alloc.allocator();
 
-    const file = try Reader.readFileAlloc(allocator, std.fs.cwd(), args[1]);
+    const file = try Reader.readFileAlloc(allocator, args[1]);
     defer allocator.free(file);
 
-    // var parser = dom.Parser(.{ .aligned = true }).init(allocator);
-    var parser = ondemand.Parser(.{ .aligned = true }).init(allocator);
+    var parser = dom.Parser(.{}).init(allocator);
+    // var parser = ondemand.Parser(.{}).init(allocator);
     defer parser.deinit();
 
     const rand = std.crypto.random;

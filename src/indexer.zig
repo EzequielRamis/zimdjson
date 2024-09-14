@@ -75,10 +75,22 @@ pub fn Indexer(comptime options: Options) type {
                 self.step(block, self.reader.index -% Reader.BLOCK_SIZE);
             }
             self.extract(self.prev_structural, self.reader.index -% Mask.len_bits);
-            if (self.unescaped_error != 0) return error.FoundControlCharacter;
-            if (!self.utf8_checker.succeeded()) return error.InvalidEncoding;
-            if (self.prev_inside_string != 0) return error.ExpectedStringEnd;
-            if (self.indexes.items.len == 0) return error.Empty;
+            if (self.unescaped_error != 0) {
+                @branchHint(.unlikely);
+                return error.FoundControlCharacter;
+            }
+            if (!self.utf8_checker.succeeded()) {
+                @branchHint(.unlikely);
+                return error.InvalidEncoding;
+            }
+            if (self.prev_inside_string != 0) {
+                @branchHint(.unlikely);
+                return error.ExpectedStringEnd;
+            }
+            if (self.indexes.items.len == 0) {
+                @branchHint(.unlikely);
+                return error.Empty;
+            }
         }
 
         inline fn step(self: *Self, block: Reader.Block, i: u32) void {

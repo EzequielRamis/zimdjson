@@ -96,6 +96,7 @@ pub fn Iterator(comptime options: Options) type {
                 .none => return self.next(.unbounded) orelse self.next(.padded),
                 .unbounded => {
                     if (self.token < self.bounded_token) {
+                        @branchHint(.likely);
                         defer self.token += 1;
                         const i = ixs[self.token];
                         self.ptr = doc[i..].ptr;
@@ -111,6 +112,7 @@ pub fn Iterator(comptime options: Options) type {
                 },
                 .padded => {
                     if (self.token < ixs.len) {
+                        @branchHint(.likely);
                         defer self.token += 1;
                         const i = ixs[self.token];
                         const b = ixs[self.bounded_token];
@@ -156,6 +158,7 @@ pub fn Iterator(comptime options: Options) type {
             const b = ixs[self.bounded_token];
 
             if (index < self.bounded_token) {
+                @branchHint(.likely);
                 self.ptr = doc[i..].ptr;
             } else {
                 const index_ptr = @intFromPtr(doc[i..].ptr);

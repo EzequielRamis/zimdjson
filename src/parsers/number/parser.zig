@@ -25,12 +25,14 @@ pub fn Parser(comptime opt: TokenOptions) type {
             const integer = parsed_number.mantissa;
             const longest_digit_count: u32 = if (negative) max_digits - 1 else max_digits;
             if (digit_count < longest_digit_count) {
+                @branchHint(.likely);
                 if (std.math.cast(i64, integer)) |i| {
                     return .{ .signed = if (negative) -i else i };
                 }
                 return .{ .unsigned = integer };
             }
             if (digit_count == longest_digit_count) {
+                @branchHint(.likely);
                 if (negative) {
                     return .{ .signed = -(std.math.cast(i64, integer) orelse return error.NumberOutOfRange) };
                 }
@@ -50,12 +52,12 @@ pub fn Parser(comptime opt: TokenOptions) type {
 
             const longest_digit_count = max_digits - 1;
             if (digit_count <= longest_digit_count) {
+                @branchHint(.likely);
                 if (integer > std.math.maxInt(i64) + @intFromBool(negative)) return error.NumberOutOfRange;
 
                 const i: i64 = @intCast(integer);
                 return if (negative) -i else i;
             }
-
             return error.NumberOutOfRange;
         }
 
@@ -69,13 +71,16 @@ pub fn Parser(comptime opt: TokenOptions) type {
             const integer = parsed_number.mantissa;
 
             const longest_digit_count = max_digits;
-            if (digit_count < longest_digit_count) return integer;
+            if (digit_count < longest_digit_count) {
+                @branchHint(.likely);
+                return integer;
+            }
             if (digit_count == longest_digit_count) {
+                @branchHint(.likely);
                 if (parsed_number.integer[0] != '1' or
                     integer <= std.math.maxInt(i64)) return error.NumberOutOfRange;
                 return integer;
             }
-
             return error.NumberOutOfRange;
         }
 

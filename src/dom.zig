@@ -63,7 +63,7 @@ pub fn Parser(comptime options: Options) type {
             pub fn getObject(self: Visitor) Error!Object {
                 if (self.err) |err| return err;
 
-                const w = self.tape.parsed.get(self.index);
+                const w = self.tape.parsed.items(.tags)[self.index];
                 return switch (w) {
                     .object_opening => Object{ .tape = self.tape, .root = self.index },
                     else => error.IncorrectType,
@@ -73,7 +73,7 @@ pub fn Parser(comptime options: Options) type {
             pub fn getArray(self: Visitor) Error!Array {
                 if (self.err) |err| return err;
 
-                const w = self.tape.parsed.get(self.index);
+                const w = self.tape.parsed.items(.tags)[self.index];
                 return switch (w) {
                     .array_opening => Array{ .tape = self.tape, .root = self.index },
                     else => error.IncorrectType,
@@ -137,7 +137,7 @@ pub fn Parser(comptime options: Options) type {
             pub fn getBool(self: Visitor) Error!bool {
                 if (self.err) |err| return err;
 
-                const w = self.tape.parsed.get(self.index);
+                const w = self.tape.parsed.items(.tags)[self.index];
                 return switch (w) {
                     .true => true,
                     .false => false,
@@ -148,7 +148,7 @@ pub fn Parser(comptime options: Options) type {
             pub fn isNull(self: Visitor) Error!bool {
                 if (self.err) |err| return err;
 
-                const w = self.tape.parsed.get(self.index);
+                const w = self.tape.parsed.items(.tags)[self.index];
                 return w == .null;
             }
 

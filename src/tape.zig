@@ -136,7 +136,7 @@ pub fn Tape(comptime options: Options) type {
                         switch (t) {
                             '"' => {
                                 self.increment_container_count();
-                                try self.visit_string(phase);
+                                try self.visit_string(.unbounded);
                                 continue :next .object_field;
                             },
                             '}' => {
@@ -169,13 +169,12 @@ pub fn Tape(comptime options: Options) type {
                     if (self.tokens.next(phase)) |t| {
                         @branchHint(.likely);
                         if (t == ':') {
-                            @branchHint(.likely);
                             if (self.tokens.next(phase)) |r| {
                                 switch (r) {
                                     '{' => continue :next .object_begin,
                                     '[' => continue :next .array_begin,
                                     else => {
-                                        try self.visit_primitive(phase, r);
+                                        try self.visit_primitive(.unbounded, r);
                                         continue :next .object_continue;
                                     },
                                 }
@@ -199,7 +198,6 @@ pub fn Tape(comptime options: Options) type {
                     } else {
                         if (phase == .unbounded) {
                             if (self.tokens.next(.bounded).? == ':') {
-                                @branchHint(.likely);
                                 if (self.tokens.next(.padded)) |t| {
                                     switch (t) {
                                         '{' => return self.dispatch(.padded, .object_begin),
@@ -229,9 +227,8 @@ pub fn Tape(comptime options: Options) type {
                                 if (self.tokens.next(phase)) |r| {
                                     @branchHint(.likely);
                                     if (r == '"') {
-                                        @branchHint(.likely);
                                         self.increment_container_count();
-                                        try self.visit_string(phase);
+                                        try self.visit_string(.unbounded);
                                         continue :next .object_field;
                                     } else {
                                         return error.ExpectedKeyAsString;
@@ -239,7 +236,6 @@ pub fn Tape(comptime options: Options) type {
                                 } else {
                                     if (phase == .unbounded) {
                                         if (self.tokens.next(.bounded).? == '"') {
-                                            @branchHint(.likely);
                                             self.increment_container_count();
                                             try self.visit_string(.padded);
                                             return self.dispatch(.padded, .object_field);
@@ -262,9 +258,7 @@ pub fn Tape(comptime options: Options) type {
                             switch (self.tokens.next(.bounded).?) {
                                 ',' => {
                                     if (self.tokens.next(.padded)) |t| {
-                                        @branchHint(.likely);
                                         if (t == '"') {
-                                            @branchHint(.likely);
                                             self.increment_container_count();
                                             try self.visit_string(.padded);
                                             return self.dispatch(.padded, .object_field);
@@ -308,7 +302,7 @@ pub fn Tape(comptime options: Options) type {
                             '{' => continue :next .object_begin,
                             '[' => continue :next .array_begin,
                             else => {
-                                try self.visit_primitive(phase, t);
+                                try self.visit_primitive(.unbounded, t);
                                 continue :next .array_continue;
                             },
                         }
@@ -343,7 +337,7 @@ pub fn Tape(comptime options: Options) type {
                             '{' => continue :next .object_begin,
                             '[' => continue :next .array_begin,
                             else => {
-                                try self.visit_primitive(phase, t);
+                                try self.visit_primitive(.unbounded, t);
                                 continue :next .array_continue;
                             },
                         }
@@ -472,7 +466,7 @@ pub fn Tape(comptime options: Options) type {
 
         inline fn visit_string(self: *Self, comptime phase: Phase) Error!void {
             const t = &self.tokens;
-            _ = t.consume(1, phase);
+            t.consume(1, phase);
             const chars = &self.chars;
             const next_str = chars.items.len;
             const parse = @import("parsers/string.zig").writeString;

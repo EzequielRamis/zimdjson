@@ -30,11 +30,10 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
         ) Error!FromString(sopt) {
             const is_negative = src.ptr[0] == '-';
             if (is_negative and !sopt.can_be_signed) {
-                @branchHint(.unlikely);
                 return error.InvalidNumberLiteral;
             }
 
-            _ = src.consume(@intFromBool(is_negative), phase);
+            src.consume(@intFromBool(is_negative), phase);
             const first_digit = src.ptr[0];
 
             var mantissa_10: u64 = 0;
@@ -48,18 +47,17 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
 
             while (parseDigit(topt, src)) |d| {
                 mantissa_10 = mantissa_10 *% 10 +% d;
-                _ = src.consume(1, phase);
+                src.consume(1, phase);
                 if (phase == .bounded) integer_len += 1;
             }
             if (phase != .bounded) integer_len = @intCast(@intFromPtr(src.ptr) - @intFromPtr(integer_ptr));
             if ((first_digit == '0' and integer_len > 1) or integer_len == 0) {
-                @branchHint(.unlikely);
                 return error.InvalidNumberLiteral;
             }
 
             if (sopt.can_be_float) {
                 if (src.ptr[0] == '.') {
-                    _ = src.consume(1, phase);
+                    src.consume(1, phase);
                     decimal_ptr = src.ptr;
                     const parsed_decimal_len = parseDecimal(topt, phase, src, &mantissa_10);
                     decimal_len = if (phase == .bounded)
@@ -68,7 +66,6 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
                         @intCast(@intFromPtr(src.ptr) - @intFromPtr(decimal_ptr));
 
                     if (decimal_len == 0) {
-                        @branchHint(.unlikely);
                         return error.InvalidNumberLiteral;
                     }
                     is_float = true;
@@ -77,13 +74,12 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
 
                 if (src.ptr[0] | 0x20 == 'e') {
                     is_float = true;
-                    _ = src.consume(1, phase);
+                    src.consume(1, phase);
                     try parseExponent(topt, phase, src, &exponent_10);
                 }
             }
 
             if (common.tables.is_structural_or_whitespace_negated[src.ptr[0]]) {
-                @branchHint(.unlikely);
                 return error.InvalidNumberLiteral;
             }
 
@@ -111,13 +107,13 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
             var len: u32 = 0;
             while (number.isEightDigits(src.ptr[0..8].*)) {
                 man.* = man.* *% 100000000 +% number.parseEightDigits(src.ptr[0..8].*);
-                _ = src.consume(8, phase);
+                src.consume(8, phase);
                 len += 8;
             }
 
             while (parseDigit(topt, src)) |d| {
                 man.* = man.* *% 10 +% d;
-                _ = src.consume(1, phase);
+                src.consume(1, phase);
                 len += 1;
             }
             return len;
@@ -130,7 +126,7 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
             exp: *i64,
         ) Error!void {
             const is_negative = src.ptr[0] == '-';
-            _ = src.consume(@intFromBool(is_negative or src.ptr[0] == '+'), phase);
+            src.consume(@intFromBool(is_negative or src.ptr[0] == '+'), phase);
 
             const start_exp = @intFromPtr(src.ptr);
 
@@ -139,11 +135,10 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
                 if (exp_number < 0x10000000) {
                     exp_number = exp_number * 10 + d;
                 }
-                _ = src.consume(1, phase);
+                src.consume(1, phase);
             }
 
             if (start_exp == @intFromPtr(src.ptr)) {
-                @branchHint(.unlikely);
                 return error.InvalidNumberLiteral;
             }
 

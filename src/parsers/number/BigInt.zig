@@ -19,15 +19,15 @@ pub fn from(value: u64) Self {
     return self;
 }
 
-pub fn add(self: *Self, n: []const Limb) !void {
+pub inline fn add(self: *Self, n: []const Limb) !void {
     return self.addFrom(n, 0);
 }
 
-pub fn addScalar(self: *Self, n: Limb) !void {
+pub inline fn addScalar(self: *Self, n: Limb) !void {
     return self.addScalarFrom(n, 0);
 }
 
-pub fn mul(self: *Self, n: []const Limb) !void {
+pub inline fn mul(self: *Self, n: []const Limb) !void {
     const m = Limbs.fromSlice(self.limbs.slice()) catch unreachable;
 
     try self.mulScalar(n[0]);
@@ -47,7 +47,7 @@ pub fn mul(self: *Self, n: []const Limb) !void {
     }
 }
 
-pub fn mulScalar(self: *Self, n: Limb) !void {
+pub inline fn mulScalar(self: *Self, n: Limb) !void {
     var carry: Limb = 0;
     for (self.limbs.slice()) |*limb| {
         const wide = std.math.mulWide(Limb, limb.*, n) + carry;
@@ -59,14 +59,14 @@ pub fn mulScalar(self: *Self, n: Limb) !void {
     if (carry != 0) return self.limbs.append(carry);
 }
 
-pub fn pow2(self: *Self, n: u32) !void {
+pub inline fn pow2(self: *Self, n: u32) !void {
     const rem = n % limb_bits;
     const div = n / limb_bits;
     if (rem != 0) try self.shlBits(@intCast(rem));
     if (div != 0) try self.shlLimbs(@intCast(div));
 }
 
-fn shlBits(self: *Self, n: u8) !void {
+inline fn shlBits(self: *Self, n: u8) !void {
     assert(0 < n and n < limb_bits);
     const shl = n;
     const shr = limb_bits - shl;
@@ -80,7 +80,7 @@ fn shlBits(self: *Self, n: u8) !void {
     if (carry != 0) try self.limbs.append(carry);
 }
 
-fn shlLimbs(self: *Self, n: u8) !void {
+inline fn shlLimbs(self: *Self, n: u8) !void {
     assert(n > 0);
     if (n + self.len() > self.limbs.capacity()) return error.Overflow;
     if (self.len() != 0) {
@@ -94,7 +94,7 @@ fn shlLimbs(self: *Self, n: u8) !void {
     }
 }
 
-pub fn pow5(self: *Self, n: u32) !void {
+pub inline fn pow5(self: *Self, n: u32) !void {
     var exp = n;
     const large_step = 135;
     while (exp >= large_step) {
@@ -110,12 +110,12 @@ pub fn pow5(self: *Self, n: u32) !void {
     if (exp != 0) try self.mulScalar(power_of_five_smalls[exp]);
 }
 
-pub fn pow10(self: *Self, n: u32) !void {
+pub inline fn pow10(self: *Self, n: u32) !void {
     try self.pow5(n);
     try self.pow2(n);
 }
 
-pub fn high64(self: Self) struct { bits: u64, truncated: bool } {
+pub inline fn high64(self: Self) struct { bits: u64, truncated: bool } {
     if (self.len() == 0) return .{
         .bits = 0,
         .truncated = false,
@@ -155,16 +155,16 @@ pub fn high64(self: Self) struct { bits: u64, truncated: bool } {
     };
 }
 
-pub fn clz(self: Self) u6 {
+pub inline fn clz(self: Self) u6 {
     if (self.len() == 0) return 0;
     return @intCast(@clz(self.limbs.get(self.len() - 1)));
 }
 
-pub fn bitsLen(self: Self) u16 {
+pub inline fn bitsLen(self: Self) u16 {
     return std.math.mulWide(u8, limb_bits, self.len()) - self.clz();
 }
 
-pub fn order(self: Self, other: Self) std.math.Order {
+pub inline fn order(self: Self, other: Self) std.math.Order {
     if (self.len() > other.len()) return .gt;
     if (self.len() < other.len()) return .lt;
     var i = self.len();
@@ -177,11 +177,11 @@ pub fn order(self: Self, other: Self) std.math.Order {
     return .eq;
 }
 
-pub fn len(self: Self) u8 {
+pub inline fn len(self: Self) u8 {
     return @intCast(self.limbs.len);
 }
 
-fn addScalarFrom(self: *Self, n: Limb, _i: usize) !void {
+inline fn addScalarFrom(self: *Self, n: Limb, _i: usize) !void {
     var i: usize = _i;
     var carry: Limb = n;
     while (carry != 0 and i < self.len()) : (i += 1) {
@@ -193,7 +193,7 @@ fn addScalarFrom(self: *Self, n: Limb, _i: usize) !void {
     if (carry != 0) return self.limbs.append(carry);
 }
 
-fn addFrom(self: *Self, n: []const Limb, i: usize) !void {
+inline fn addFrom(self: *Self, n: []const Limb, i: usize) !void {
     if (self.len() < i or n.len > self.len() - i) {
         try self.resize(n.len + i, 0);
     }
@@ -213,7 +213,7 @@ fn addFrom(self: *Self, n: []const Limb, i: usize) !void {
     if (carry) return self.addScalarFrom(1, n.len + i);
 }
 
-fn resize(self: *Self, n: usize, v: Limb) !void {
+inline fn resize(self: *Self, n: usize, v: Limb) !void {
     const old_len = self.len();
     try self.limbs.resize(n);
     @memset(self.limbs.buffer[old_len..][0..n -| old_len], v);

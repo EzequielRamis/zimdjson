@@ -136,10 +136,9 @@ pub fn Iterator(comptime options: Options) type {
             }
         }
 
-        pub inline fn consume(self: *Self, n: u32, comptime phase: Phase) []const u8 {
+        pub inline fn consume(self: *Self, n: u32, comptime phase: Phase) void {
             if (!copy_bounded and phase == .bounded) self.shouldSwapSource();
-            defer self.ptr += n;
-            return self.ptr[0..n];
+            self.ptr += n;
         }
 
         pub inline fn peek(self: Self) u8 {

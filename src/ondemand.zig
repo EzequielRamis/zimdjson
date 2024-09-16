@@ -197,7 +197,7 @@ pub fn Parser(comptime options: Options) type {
 
                 const check = @import("parsers/atoms.zig").checkBool;
                 const is_true = try check(token_options, t.*);
-                _ = t.consume(if (is_true) 4 else 5, .none);
+                t.consume(if (is_true) 4 else 5, .none);
                 Logger.log(self.document.*, "bool  ", self.depth);
                 self.document.depth -= 1;
                 return is_true;
@@ -213,7 +213,7 @@ pub fn Parser(comptime options: Options) type {
 
                 const check = @import("parsers/atoms.zig").checkNull;
                 try check(token_options, t.*);
-                _ = t.consume(4, .none);
+                t.consume(4, .none);
                 Logger.log(self.document.*, "null  ", self.depth);
                 self.document.depth -= 1;
             }
@@ -329,7 +329,7 @@ pub fn Parser(comptime options: Options) type {
             fn getUnsafeString(self: Visitor) Error![]const u8 {
                 var t = &self.document.tokens;
 
-                _ = t.consume(1, .none);
+                t.consume(1, .none);
                 const chars = &self.document.chars;
                 const next_str = chars.items.len;
                 const write = @import("parsers/string.zig").writeString;

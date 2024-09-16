@@ -19,9 +19,8 @@ pub inline fn checkTrue(comptime opt: TokenOptions, src: TokenIterator(opt)) Err
     const dword_true = readInt(u32, "true", .little);
     const dword_atom = readInt(u32, chunk[0..4], .little);
     const not_struct_white = common.tables.is_structural_or_whitespace_negated;
-    if (dword_true != dword_atom or not_struct_white[chunk[4]]) {
+    if ((dword_true ^ dword_atom | @intFromBool(not_struct_white[chunk[4]])) != 0)
         return error.ExpectedValue;
-    }
 }
 
 pub inline fn checkFalse(comptime opt: TokenOptions, src: TokenIterator(opt)) Error!void {
@@ -29,9 +28,8 @@ pub inline fn checkFalse(comptime opt: TokenOptions, src: TokenIterator(opt)) Er
     const dword_alse = readInt(u32, "alse", .little);
     const dword_atom = readInt(u32, chunk[1..][0..4], .little);
     const not_struct_white = common.tables.is_structural_or_whitespace_negated;
-    if (dword_alse != dword_atom or not_struct_white[chunk[5]]) {
+    if ((dword_alse ^ dword_atom | @intFromBool(not_struct_white[chunk[5]])) != 0)
         return error.ExpectedValue;
-    }
 }
 
 pub inline fn checkNull(comptime opt: TokenOptions, src: TokenIterator(opt)) Error!void {
@@ -39,7 +37,6 @@ pub inline fn checkNull(comptime opt: TokenOptions, src: TokenIterator(opt)) Err
     const dword_null = readInt(u32, "null", .little);
     const dword_atom = readInt(u32, chunk[0..4], .little);
     const not_struct_white = common.tables.is_structural_or_whitespace_negated;
-    if (dword_null != dword_atom or not_struct_white[chunk[4]]) {
+    if ((dword_null ^ dword_atom | @intFromBool(not_struct_white[chunk[4]])) != 0)
         return error.ExpectedValue;
-    }
 }

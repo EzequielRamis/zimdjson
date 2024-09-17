@@ -99,6 +99,7 @@ pub fn Tape(comptime options: Options) type {
             self.stack.appendAssumeCapacity(.{ .root = .{ .ptr = 0, .len = 0 } });
             self.parsed.appendAssumeCapacity(.{ .root = .{ .ptr = 0, .len = 0 } });
             if (t.next(.unbounded)) |r| {
+                @branchHint(.likely);
                 return switch (r) {
                     '{' => self.dispatch(.unbounded, .object_begin),
                     '[' => self.dispatch(.unbounded, .array_begin),
@@ -165,7 +166,6 @@ pub fn Tape(comptime options: Options) type {
                     }
                 },
                 .object_field => {
-                    assert(phase != .bounded);
                     if (self.tokens.next(phase)) |t| {
                         @branchHint(.likely);
                         if (t == ':') {
@@ -219,7 +219,6 @@ pub fn Tape(comptime options: Options) type {
                     }
                 },
                 .object_continue => {
-                    assert(phase != .bounded);
                     if (self.tokens.next(phase)) |t| {
                         @branchHint(.likely);
                         switch (t) {
@@ -281,7 +280,6 @@ pub fn Tape(comptime options: Options) type {
                     }
                 },
                 .array_begin => {
-                    assert(phase != .bounded);
                     // log.info("ARR BEGIN", .{});
 
                     if (self.stack.len >= options.max_depth)
@@ -329,7 +327,6 @@ pub fn Tape(comptime options: Options) type {
                     }
                 },
                 .array_value => {
-                    assert(phase != .bounded);
                     if (self.tokens.next(phase)) |t| {
                         @branchHint(.likely);
                         self.increment_container_count();
@@ -358,7 +355,6 @@ pub fn Tape(comptime options: Options) type {
                     }
                 },
                 .array_continue => {
-                    assert(phase != .bounded);
                     if (self.tokens.next(phase)) |t| {
                         @branchHint(.likely);
                         switch (t) {
@@ -390,7 +386,6 @@ pub fn Tape(comptime options: Options) type {
                     }
                 },
                 .scope_end => {
-                    assert(phase != .bounded);
                     const scope = self.stack.pop();
                     const scope_fit = switch (scope) {
                         .array_opening, .object_opening => |s| s,
@@ -452,8 +447,10 @@ pub fn Tape(comptime options: Options) type {
 
         inline fn visit_primitive(self: *Self, comptime phase: Phase, token: u8) Error!void {
             if (token == '"') {
+                @branchHint(.likely);
                 return self.visit_string(phase);
             } else if (token -% '0' < 10 or token == '-') {
+                @branchHint(.likely);
                 return self.visit_number(phase);
             }
             return switch (token) {

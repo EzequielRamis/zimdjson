@@ -21,6 +21,6 @@
         };
       in {
         devShell =
-          pkgs.mkShell { buildInputs = with pkgs; [ zig tracy ccls ]; };
+          pkgs.mkShell { buildInputs = with pkgs; [ zig zls tracy ccls ]; };
       });
 }

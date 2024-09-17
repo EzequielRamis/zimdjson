@@ -225,8 +225,8 @@ pub fn Indexer(comptime options: Options) type {
             }
             self.utf8_checker.check(vecs);
             self.extract(self.prev_structural, i -% Mask.len_bits);
-            self.prev_structural = block.structural_start();
-            self.unescaped_error |= block.non_quote_inside_string(unescaped);
+            self.prev_structural = block.structuralStart();
+            self.unescaped_error |= block.nonQuoteInsideString(unescaped);
             if (debug.is_set) self.debug.expectIdentified(vecs, self.prev_structural);
         }
 
@@ -259,27 +259,27 @@ const JsonBlock = struct {
     chars: CharsBlock,
     follows_potential_nonquote_scalar: umask,
 
-    pub inline fn structural_start(self: JsonBlock) umask {
-        return self.potential_structural_start() & ~self.string.string_tail();
+    pub inline fn structuralStart(self: JsonBlock) umask {
+        return self.potentialStructuralStart() & ~self.string.stringTail();
     }
 
     pub inline fn whitespace(self: JsonBlock) umask {
-        return self.non_quote_outside_string(self.chars.whitespace);
+        return self.nonQuoteOutsideString(self.chars.whitespace);
     }
 
-    pub inline fn non_quote_inside_string(self: JsonBlock, mask: umask) umask {
-        return self.string.non_quote_inside_string(mask);
+    pub inline fn nonQuoteInsideString(self: JsonBlock, mask: umask) umask {
+        return self.string.nonQuoteInsideString(mask);
     }
 
-    pub inline fn non_quote_outside_string(self: JsonBlock, mask: umask) umask {
-        return self.string.non_quote_outside_string(mask);
+    pub inline fn nonQuoteOutsideString(self: JsonBlock, mask: umask) umask {
+        return self.string.nonQuoteOutsideString(mask);
     }
 
-    inline fn potential_structural_start(self: JsonBlock) umask {
-        return self.chars.structural | self.potential_scalar_start();
+    inline fn potentialStructuralStart(self: JsonBlock) umask {
+        return self.chars.structural | self.potentialScalarStart();
     }
 
-    inline fn potential_scalar_start(self: JsonBlock) umask {
+    inline fn potentialScalarStart(self: JsonBlock) umask {
         return self.chars.scalar() & ~self.follows_potential_nonquote_scalar;
     }
 };
@@ -288,19 +288,19 @@ const StringBlock = struct {
     quotes: umask,
     in_string: umask,
 
-    pub inline fn string_content(self: StringBlock) umask {
+    pub inline fn stringContent(self: StringBlock) umask {
         return self.in_string & ~self.quotes;
     }
 
-    pub inline fn non_quote_inside_string(self: StringBlock, mask: umask) umask {
+    pub inline fn nonQuoteInsideString(self: StringBlock, mask: umask) umask {
         return mask & self.in_string;
     }
 
-    pub inline fn non_quote_outside_string(self: StringBlock, mask: umask) umask {
+    pub inline fn nonQuoteOutsideString(self: StringBlock, mask: umask) umask {
         return mask & ~self.in_string;
     }
 
-    pub inline fn string_tail(self: StringBlock) umask {
+    pub inline fn stringTail(self: StringBlock) umask {
         return self.in_string ^ self.quotes;
     }
 };

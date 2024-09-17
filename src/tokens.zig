@@ -34,6 +34,7 @@ pub fn Iterator(comptime options: Options) type {
         indexer: Indexer,
         padding: if (copy_bounded) ArrayList(u8) else [Vector.len_bytes * 2]u8 = undefined,
         padding_ptr: if (copy_bounded) void else [*]const u8 = undefined,
+        padding_ptr2: if (copy_bounded) void else [*]const u8 = undefined,
         ptr: [*]const u8 = undefined,
         bounded_token: u32 = undefined,
         token: u32 = undefined,
@@ -60,7 +61,6 @@ pub fn Iterator(comptime options: Options) type {
             while (rev.next()) |t| : (bounded_token -|= 1) {
                 if (t <= padding_bound) break;
             }
-            const padding_ptr = doc[padding_bound..].ptr;
             self.token = 0;
             self.bounded_token = bounded_token;
             self.ptr = doc.ptr;
@@ -75,7 +75,8 @@ pub fn Iterator(comptime options: Options) type {
                     self.ptr = self.padding.items.ptr;
                 }
             } else {
-                self.padding_ptr = padding_ptr;
+                self.padding_ptr = doc[padding_bound..].ptr;
+                self.padding_ptr2 = doc[padding_bound..].ptr;
                 @memset(&self.padding, ' ');
                 @memcpy(self.padding[0 .. doc.len - padding_bound], doc[padding_bound..doc.len]);
             }
@@ -115,11 +116,10 @@ pub fn Iterator(comptime options: Options) type {
                         @branchHint(.likely);
                         defer self.token += 1;
                         const i = ixs[self.token];
-                        const b = ixs[self.bounded_token];
-
                         const index_ptr = @intFromPtr(doc[i..].ptr);
 
                         if (copy_bounded) {
+                            const b = ixs[self.bounded_token];
                             const padding_ptr = @intFromPtr(doc[b..].ptr);
                             const offset_ptr = index_ptr - padding_ptr;
                             self.ptr = self.padding.items[offset_ptr..].ptr;
@@ -171,11 +171,12 @@ pub fn Iterator(comptime options: Options) type {
             comptime assert(!copy_bounded);
 
             const index_ptr = @intFromPtr(self.ptr);
-            const padding_ptr = @intFromPtr(self.padding_ptr);
+            const padding_ptr = @intFromPtr(self.padding_ptr2);
             if (index_ptr >= padding_ptr) {
+                @branchHint(.unlikely);
                 const offset_ptr = index_ptr - padding_ptr;
                 self.ptr = self.padding[offset_ptr..].ptr;
-                self.padding_ptr = @ptrFromInt(std.math.maxInt(usize));
+                self.padding_ptr2 = @ptrFromInt(std.math.maxInt(usize));
             }
         }
     };

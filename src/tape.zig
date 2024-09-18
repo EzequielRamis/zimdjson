@@ -128,7 +128,7 @@ pub fn Tape(comptime options: Options) type {
 
                     if (self.stack.len >= options.max_depth)
                         return error.ExceededDepth;
-                    const word = Word{ .object_opening = .{ .ptr = @truncate(self.parsed.len), .len = 0 } };
+                    const word = Word{ .object_opening = .{ .ptr = @intCast(self.parsed.len), .len = 0 } };
                     self.parsed.appendAssumeCapacity(word);
                     self.stack.appendAssumeCapacity(word);
 
@@ -284,7 +284,7 @@ pub fn Tape(comptime options: Options) type {
 
                     if (self.stack.len >= options.max_depth)
                         return error.ExceededDepth;
-                    const word = Word{ .array_opening = .{ .ptr = @truncate(self.parsed.len), .len = 0 } };
+                    const word = Word{ .array_opening = .{ .ptr = @intCast(self.parsed.len), .len = 0 } };
                     self.parsed.appendAssumeCapacity(word);
                     self.stack.appendAssumeCapacity(word);
 
@@ -398,7 +398,7 @@ pub fn Tape(comptime options: Options) type {
                         else => unreachable,
                     }
                     scope_root.len = scope_fit.len;
-                    scope_root.ptr = @truncate(self.parsed.len);
+                    scope_root.ptr = @intCast(self.parsed.len);
                     const parent = self.stack.items(.tags)[self.stack.len - 1];
                     switch (parent) {
                         .array_opening => continue :next .array_continue,
@@ -408,7 +408,7 @@ pub fn Tape(comptime options: Options) type {
                             if (self.tokens.next(phase)) |_| return error.TrailingContent;
                             _ = self.stack.pop();
                             const root: *FitPtr = @ptrCast(&self.parsed.items(.data)[0]);
-                            root.ptr = @truncate(self.parsed.len);
+                            root.ptr = @intCast(self.parsed.len);
                             self.parsed.appendAssumeCapacity(.{ .root = .{ .ptr = 0, .len = 0 } });
                         },
                         else => unreachable,
@@ -441,7 +441,7 @@ pub fn Tape(comptime options: Options) type {
             }
             const s = self.stack.pop();
             const root: *FitPtr = @ptrCast(&self.parsed.items(.data)[0]);
-            root.ptr = @truncate(self.parsed.len);
+            root.ptr = @intCast(self.parsed.len);
             self.parsed.appendAssumeCapacity(s);
         }
 
@@ -469,7 +469,7 @@ pub fn Tape(comptime options: Options) type {
             const parse = @import("parsers/string.zig").writeString;
             try parse(token_options, phase, t, chars);
             const next_len = chars.items.len - next_str;
-            self.parsed.appendAssumeCapacity(.{ .string = .{ .ptr = @truncate(next_str), .len = @truncate(next_len) } });
+            self.parsed.appendAssumeCapacity(.{ .string = .{ .ptr = @intCast(next_str), .len = @intCast(next_len) } });
             // log.info("STR {s}", .{chars.items[next_str..][0..next_len]});
         }
 

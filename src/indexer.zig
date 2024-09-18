@@ -232,19 +232,37 @@ pub fn Indexer(comptime options: Options) type {
 
         inline fn extract(self: *Self, tokens: umask, i: u32) void {
             const steps = 4;
+            const steps_until = 24;
             const pop_count = @popCount(tokens);
             const new_len = self.indexes.items.len + pop_count;
-            var ptr = self.indexes.items[self.indexes.items.len..].ptr;
+            const ixs = self.indexes.items[self.indexes.items.len..];
             var s = if (cpu.arch.isARM()) @bitReverse(tokens) else tokens;
-            while (s != 0) : (ptr += steps) {
-                inline for (0..steps) |j| {
+            inline for (0..steps_until / steps) |u| {
+                if (u * steps < pop_count) {
+                    @branchHint(.unlikely);
+                    inline for (0..steps) |j| {
+                        if (cpu.arch.isARM()) {
+                            const lz = @clz(s);
+                            ixs[j + u * steps] = i + lz;
+                            s ^= std.math.shr(umask, 1 << 63, lz);
+                        } else {
+                            const tz = @ctz(s);
+                            ixs[j + u * steps] = i + tz;
+                            s &= s -% 1;
+                        }
+                    }
+                }
+            }
+            if (steps_until < pop_count) {
+                @branchHint(.unlikely);
+                for (steps_until..pop_count) |j| {
                     if (cpu.arch.isARM()) {
                         const lz = @clz(s);
-                        ptr[j] = i + lz;
+                        ixs[j] = i + lz;
                         s ^= std.math.shr(umask, 1 << 63, lz);
                     } else {
                         const tz = @ctz(s);
-                        ptr[j] = i + tz;
+                        ixs[j] = i + tz;
                         s &= s -% 1;
                     }
                 }

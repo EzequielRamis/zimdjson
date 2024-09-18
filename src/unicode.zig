@@ -25,6 +25,7 @@ pub fn Checker(comptime options: io.Options) type {
 
         pub inline fn check(self: *Self, vecs: types.vectors) void {
             if (isASCII(vecs)) {
+                @branchHint(.likely);
                 self.err |= self.prev_incomplete;
             } else {
                 inline for (0..Mask.computed_vectors) |i| {

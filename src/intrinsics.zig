@@ -7,7 +7,7 @@ const umask = types.umask;
 const vector = types.vector;
 const Vector = types.Vector;
 
-pub fn clmul(quotes_mask: umask) umask {
+pub inline fn clmul(quotes_mask: umask) umask {
     switch (builtin.cpu.arch) {
         .x86_64 => {
             const ones: @Vector(16, u8) = @bitCast(simd.repeat(128, [_]u1{1}));
@@ -22,7 +22,7 @@ pub fn clmul(quotes_mask: umask) umask {
     }
 }
 
-pub fn lookupTable(table: vector, nibbles: vector) vector {
+pub inline fn lookupTable(table: vector, nibbles: vector) vector {
     switch (cpu.arch) {
         .x86_64 => {
             return asm (
@@ -36,7 +36,7 @@ pub fn lookupTable(table: vector, nibbles: vector) vector {
     }
 }
 
-pub fn pack(vec1: @Vector(4, i32), vec2: @Vector(4, i32)) @Vector(8, u16) {
+pub inline fn pack(vec1: @Vector(4, i32), vec2: @Vector(4, i32)) @Vector(8, u16) {
     switch (cpu.arch) {
         .x86_64 => {
             return asm (
@@ -50,7 +50,7 @@ pub fn pack(vec1: @Vector(4, i32), vec2: @Vector(4, i32)) @Vector(8, u16) {
     }
 }
 
-pub fn mulSaturatingAdd(vec1: @Vector(16, u8), vec2: @Vector(16, u8)) @Vector(8, u16) {
+pub inline fn mulSaturatingAdd(vec1: @Vector(16, u8), vec2: @Vector(16, u8)) @Vector(8, u16) {
     switch (builtin.cpu.arch) {
         .x86_64 => {
             return asm (
@@ -64,7 +64,7 @@ pub fn mulSaturatingAdd(vec1: @Vector(16, u8), vec2: @Vector(16, u8)) @Vector(8,
     }
 }
 
-pub fn mulWrappingAdd(vec1: @Vector(8, i16), vec2: @Vector(8, i16)) @Vector(4, i32) {
+pub inline fn mulWrappingAdd(vec1: @Vector(8, i16), vec2: @Vector(8, i16)) @Vector(4, i32) {
     switch (builtin.cpu.arch) {
         .x86_64 => {
             return asm (

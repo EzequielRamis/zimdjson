@@ -18,7 +18,7 @@ pub fn Checker(comptime options: io.Options) type {
         prev_vec: vector = @splat(0),
         prev_incomplete: vector = @splat(0),
 
-        pub fn succeeded(self: Self) bool {
+        pub inline fn succeeded(self: Self) bool {
             const err = self.err | self.prev_incomplete;
             return simd.prefixScan(.Or, 1, err)[Vector.len_bytes - 1] == 0;
         }

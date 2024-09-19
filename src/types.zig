@@ -20,7 +20,13 @@ pub fn Aligned(comptime aligned: bool) type {
 
 pub const vectors = [Mask.computed_vectors]vector;
 
-pub const Number = union(enum) {
+const NumberTag = enum(u8) {
+    unsigned = 'u',
+    signed = 'i',
+    float = 'd',
+};
+
+pub const Number = union(NumberTag) {
     unsigned: u64,
     signed: i64,
     float: f64,
@@ -74,11 +80,11 @@ pub const Mask = struct {
     pub const zer: umask = 0;
     pub const one: umask = @bitCast(@as(imask, -1));
 
-    pub fn allSet(m: umask) bool {
+    pub inline fn allSet(m: umask) bool {
         return @as(imask, @bitCast(m)) == -1;
     }
 
-    pub fn allUnset(m: umask) bool {
+    pub inline fn allUnset(m: umask) bool {
         return m == 0;
     }
 };
@@ -91,11 +97,11 @@ pub const Predicate = struct {
     const @"packed" = meta.Int(unsigned, L);
     const unpacked = vector;
 
-    pub fn pack(p: predicate) @"packed" {
+    pub inline fn pack(p: predicate) @"packed" {
         return @bitCast(p);
     }
 
-    pub fn unpack(p: predicate) unpacked {
+    pub inline fn unpack(p: predicate) unpacked {
         return @as(@Vector(L, meta.Int(unsigned, E)), @bitCast(@as(
             @Vector(L, meta.Int(signed, E)),
             @intCast(@as(

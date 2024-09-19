@@ -235,7 +235,7 @@ pub fn Indexer(comptime options: Options) type {
             const steps_until = 24;
             const pop_count = @popCount(tokens);
             const new_len = self.indexes.items.len + pop_count;
-            const ixs = self.indexes.items[self.indexes.items.len..];
+            const ixs = self.indexes.items[self.indexes.items.len..].ptr;
             var s = if (cpu.arch.isARM()) @bitReverse(tokens) else tokens;
             inline for (0..steps_until / steps) |u| {
                 if (u * steps < pop_count) {

@@ -274,7 +274,7 @@ pub fn Parser(comptime options: Options) type {
                 Logger.logDepth(wanted_depth, actual_depth.*);
 
                 if (actual_depth.* <= wanted_depth) return;
-                switch (t.next(.none).?) {
+                switch (t.next(.none).?.*) {
                     '[', '{', ':' => {
                         Logger.logStart(self.document.*, "skip  ", actual_depth.*);
                     },
@@ -302,7 +302,7 @@ pub fn Parser(comptime options: Options) type {
                 }
 
                 while (t.next(.none)) |p| {
-                    switch (p) {
+                    switch (p.*) {
                         '[', '{' => {
                             Logger.logStart(self.document.*, "skip  ", actual_depth.*);
                             actual_depth.* += 1;
@@ -492,10 +492,10 @@ pub fn Parser(comptime options: Options) type {
                 const curr = t.token;
                 errdefer t.jumpBack(curr);
                 const quote = t.next(.none) orelse return error.IncompleteObject;
-                if (quote != '"') return error.ExpectedKeyAsString;
+                if (quote.* != '"') return error.ExpectedKeyAsString;
                 const key = try key_visitor.getUnsafeString();
                 const colon = t.next(.none) orelse return error.IncompleteObject;
-                if (colon != ':') return error.ExpectedColon;
+                if (colon.* != ':') return error.ExpectedColon;
                 self.visitor.document.depth += 1;
                 return .{
                     .key = key,

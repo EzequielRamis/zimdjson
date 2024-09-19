@@ -23,7 +23,7 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
         negative: bool,
         is_float: bool,
 
-        pub fn parse(
+        pub inline fn parse(
             comptime topt: TokenOptions,
             comptime phase: TokenPhase,
             src: *TokenIterator(topt),

@@ -90,7 +90,7 @@ pub fn Iterator(comptime options: Options) type {
             return self.indexer.reader.document;
         }
 
-        pub inline fn next(self: *Self, comptime phase: Phase) ?u8 {
+        pub inline fn next(self: *Self, comptime phase: Phase) ?*const u8 {
             const doc = self.document();
             const ixs = self.indexes();
             switch (phase) {
@@ -101,7 +101,7 @@ pub fn Iterator(comptime options: Options) type {
                         defer self.token += 1;
                         const i = ixs[self.token];
                         self.ptr = doc[i..].ptr;
-                        return doc[i];
+                        return &doc[i];
                     }
                     return null;
                 },
@@ -109,7 +109,7 @@ pub fn Iterator(comptime options: Options) type {
                     defer self.token += 1;
                     const i = ixs[self.token];
                     self.ptr = if (copy_bounded) self.padding.items else doc[i..].ptr;
-                    return doc[i];
+                    return &doc[i];
                 },
                 .padded => {
                     if (self.token < ixs.len) {
@@ -129,7 +129,7 @@ pub fn Iterator(comptime options: Options) type {
                             self.ptr = self.padding[offset_ptr..].ptr;
                         }
 
-                        return doc[i];
+                        return &doc[i];
                     }
                     return null;
                 },
@@ -167,7 +167,7 @@ pub fn Iterator(comptime options: Options) type {
             }
         }
 
-        fn shouldSwapSource(self: *Self) void {
+        inline fn shouldSwapSource(self: *Self) void {
             comptime assert(!copy_bounded);
 
             const index_ptr = @intFromPtr(self.ptr);

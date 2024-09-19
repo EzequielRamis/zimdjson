@@ -5,9 +5,7 @@ const types = @import("types.zig");
 const tokens = @import("tokens.zig");
 const ArrayList = std.ArrayList;
 const MultiArrayList = std.MultiArrayList;
-const BitStack = std.BitStack;
 const Phase = tokens.Phase;
-const log = std.log;
 const assert = std.debug.assert;
 
 const Allocator = std.mem.Allocator;
@@ -28,7 +26,22 @@ pub const FitPtr = packed struct {
     len: u32,
 };
 
-pub const Word = union(enum) {
+const WordTag = enum(u8) {
+    true = 't',
+    false = 'f',
+    null = 'n',
+    unsigned = @intFromEnum(types.Number.unsigned),
+    signed = @intFromEnum(types.Number.signed),
+    float = @intFromEnum(types.Number.float),
+    string = 's',
+    object_opening = '{',
+    object_closing = '}',
+    array_opening = '[',
+    array_closing = ']',
+    root = 'r',
+};
+
+pub const Word = union(WordTag) {
     true,
     false,
     null,
@@ -100,13 +113,13 @@ pub fn Tape(comptime options: Options) type {
             self.parsed.appendAssumeCapacity(.{ .root = .{ .ptr = 0, .len = 0 } });
             if (t.next(.unbounded)) |r| {
                 @branchHint(.likely);
-                return switch (r) {
+                return switch (r.*) {
                     '{' => self.dispatch(.unbounded, .object_begin),
                     '[' => self.dispatch(.unbounded, .array_begin),
                     else => unreachable,
                 };
             }
-            const r = t.next(.bounded).?;
+            const r = t.next(.bounded).?.*;
             return switch (r) {
                 '{' => self.dispatch(.padded, .object_begin),
                 '[' => self.dispatch(.padded, .array_begin),
@@ -124,39 +137,63 @@ pub fn Tape(comptime options: Options) type {
 
             next: switch (state) {
                 .object_begin => {
-                    // log.info("OBJ BEGIN", .{});
-
                     if (self.stack.len >= options.max_depth)
                         return error.ExceededDepth;
-                    const word = Word{ .object_opening = .{ .ptr = @intCast(self.parsed.len), .len = 0 } };
-                    self.parsed.appendAssumeCapacity(word);
-                    self.stack.appendAssumeCapacity(word);
 
                     if (self.tokens.next(phase)) |t| {
                         @branchHint(.likely);
-                        switch (t) {
+                        if (t.* == '}') {
+                            @branchHint(.unlikely);
+                            self.parsed.appendAssumeCapacity(.{ .object_opening = .{
+                                .ptr = @intCast(self.parsed.len + 2),
+                                .len = 0,
+                            } });
+                            self.parsed.appendAssumeCapacity(.{ .object_closing = .{
+                                .ptr = @intCast(self.parsed.len),
+                                .len = 0,
+                            } });
+                            continue :next .scope_end;
+                        }
+                        switch (t.*) {
                             '"' => {
+                                const word = Word{ .object_opening = .{
+                                    .ptr = @intCast(self.parsed.len),
+                                    .len = 0,
+                                } };
+                                self.parsed.appendAssumeCapacity(word);
+                                self.stack.appendAssumeCapacity(word);
                                 self.incrementContainerCount();
                                 try self.visitString(.unbounded);
                                 continue :next .object_field;
-                            },
-                            '}' => {
-                                // log.info("OBJ END", .{});
-                                continue :next .scope_end;
                             },
                             else => return error.ExpectedObjectCommaOrEnd,
                         }
                     } else {
                         if (phase == .unbounded) {
-                            switch (self.tokens.next(.bounded).?) {
+                            const t = self.tokens.next(.bounded).?;
+                            if (t.* == '}') {
+                                @branchHint(.unlikely);
+                                self.parsed.appendAssumeCapacity(.{ .object_opening = .{
+                                    .ptr = @intCast(self.parsed.len + 2),
+                                    .len = 0,
+                                } });
+                                self.parsed.appendAssumeCapacity(.{ .object_closing = .{
+                                    .ptr = @intCast(self.parsed.len),
+                                    .len = 0,
+                                } });
+                                return self.dispatch(.padded, .scope_end);
+                            }
+                            switch (t.*) {
                                 '"' => {
+                                    const word = Word{ .object_opening = .{
+                                        .ptr = @intCast(self.parsed.len),
+                                        .len = 0,
+                                    } };
+                                    self.parsed.appendAssumeCapacity(word);
+                                    self.stack.appendAssumeCapacity(word);
                                     self.incrementContainerCount();
                                     try self.visitString(.bounded);
                                     return self.dispatch(.padded, .object_field);
-                                },
-                                '}' => {
-                                    // log.info("OBJ END", .{});
-                                    return self.dispatch(.padded, .scope_end);
                                 },
                                 else => return error.ExpectedObjectCommaOrEnd,
                             }
@@ -168,19 +205,19 @@ pub fn Tape(comptime options: Options) type {
                 .object_field => {
                     if (self.tokens.next(phase)) |t| {
                         @branchHint(.likely);
-                        if (t == ':') {
+                        if (t.* == ':') {
                             if (self.tokens.next(phase)) |r| {
-                                switch (r) {
+                                switch (r.*) {
                                     '{' => continue :next .object_begin,
                                     '[' => continue :next .array_begin,
-                                    else => {
-                                        try self.visitPrimitive(.unbounded, r);
+                                    else => |u| {
+                                        try self.visitPrimitive(.unbounded, u);
                                         continue :next .object_continue;
                                     },
                                 }
                             } else {
                                 if (phase == .unbounded) {
-                                    switch (self.tokens.next(.bounded).?) {
+                                    switch (self.tokens.next(.bounded).?.*) {
                                         '{' => return self.dispatch(.padded, .object_begin),
                                         '[' => return self.dispatch(.padded, .array_begin),
                                         else => |r| {
@@ -197,13 +234,13 @@ pub fn Tape(comptime options: Options) type {
                         }
                     } else {
                         if (phase == .unbounded) {
-                            if (self.tokens.next(.bounded).? == ':') {
+                            if (self.tokens.next(.bounded).?.* == ':') {
                                 if (self.tokens.next(.padded)) |t| {
-                                    switch (t) {
+                                    switch (t.*) {
                                         '{' => return self.dispatch(.padded, .object_begin),
                                         '[' => return self.dispatch(.padded, .array_begin),
-                                        else => {
-                                            try self.visitPrimitive(.padded, t);
+                                        else => |r| {
+                                            try self.visitPrimitive(.padded, r);
                                             return self.dispatch(.padded, .object_continue);
                                         },
                                     }
@@ -221,11 +258,11 @@ pub fn Tape(comptime options: Options) type {
                 .object_continue => {
                     if (self.tokens.next(phase)) |t| {
                         @branchHint(.likely);
-                        switch (t) {
+                        switch (t.*) {
                             ',' => {
                                 if (self.tokens.next(phase)) |r| {
                                     @branchHint(.likely);
-                                    if (r == '"') {
+                                    if (r.* == '"') {
                                         self.incrementContainerCount();
                                         try self.visitString(.unbounded);
                                         continue :next .object_field;
@@ -234,7 +271,7 @@ pub fn Tape(comptime options: Options) type {
                                     }
                                 } else {
                                     if (phase == .unbounded) {
-                                        if (self.tokens.next(.bounded).? == '"') {
+                                        if (self.tokens.next(.bounded).?.* == '"') {
                                             self.incrementContainerCount();
                                             try self.visitString(.bounded);
                                             return self.dispatch(.padded, .object_field);
@@ -247,17 +284,26 @@ pub fn Tape(comptime options: Options) type {
                                 }
                             },
                             '}' => {
-                                // log.info("OBJ END", .{});
+                                const scope = self.stack.pop();
+                                const scope_fit = scope.object_opening;
+                                const scope_root: *FitPtr = brk: {
+                                    assert(self.parsed.capacity != 0);
+                                    const data = @call(.always_inline, MultiArrayList(Word).items, .{ self.parsed, .data });
+                                    break :brk @ptrCast(&data[scope_fit.ptr]);
+                                };
+                                self.parsed.appendAssumeCapacity(.{ .object_closing = scope_fit });
+                                scope_root.len = scope_fit.len;
+                                scope_root.ptr = @intCast(self.parsed.len);
                                 continue :next .scope_end;
                             },
                             else => return error.ExpectedObjectCommaOrEnd,
                         }
                     } else {
                         if (phase == .unbounded) {
-                            switch (self.tokens.next(.bounded).?) {
+                            switch (self.tokens.next(.bounded).?.*) {
                                 ',' => {
                                     if (self.tokens.next(.padded)) |t| {
-                                        if (t == '"') {
+                                        if (t.* == '"') {
                                             self.incrementContainerCount();
                                             try self.visitString(.padded);
                                             return self.dispatch(.padded, .object_field);
@@ -269,7 +315,16 @@ pub fn Tape(comptime options: Options) type {
                                     }
                                 },
                                 '}' => {
-                                    // log.info("OBJ END", .{});
+                                    const scope = self.stack.pop();
+                                    const scope_fit = scope.object_opening;
+                                    const scope_root: *FitPtr = brk: {
+                                        assert(self.parsed.capacity != 0);
+                                        const data = @call(.always_inline, MultiArrayList(Word).items, .{ self.parsed, .data });
+                                        break :brk @ptrCast(&data[scope_fit.ptr]);
+                                    };
+                                    self.parsed.appendAssumeCapacity(.{ .object_closing = scope_fit });
+                                    scope_root.len = scope_fit.len;
+                                    scope_root.ptr = @intCast(self.parsed.len);
                                     return self.dispatch(.padded, .scope_end);
                                 },
                                 else => return error.ExpectedObjectCommaOrEnd,
@@ -280,44 +335,58 @@ pub fn Tape(comptime options: Options) type {
                     }
                 },
                 .array_begin => {
-                    // log.info("ARR BEGIN", .{});
-
                     if (self.stack.len >= options.max_depth)
                         return error.ExceededDepth;
-                    const word = Word{ .array_opening = .{ .ptr = @intCast(self.parsed.len), .len = 0 } };
-                    self.parsed.appendAssumeCapacity(word);
-                    self.stack.appendAssumeCapacity(word);
-
                     if (self.tokens.next(phase)) |t| {
                         @branchHint(.likely);
-                        if (t == ']') {
+                        if (t.* == ']') {
                             @branchHint(.unlikely);
-                            // log.info("ARR END", .{});
+                            self.parsed.appendAssumeCapacity(.{ .array_opening = .{
+                                .ptr = @intCast(self.parsed.len + 2),
+                                .len = 0,
+                            } });
+                            self.parsed.appendAssumeCapacity(.{ .array_closing = .{
+                                .ptr = @intCast(self.parsed.len),
+                                .len = 0,
+                            } });
                             continue :next .scope_end;
                         }
+                        const word = Word{ .array_opening = .{ .ptr = @intCast(self.parsed.len), .len = 0 } };
+                        self.parsed.appendAssumeCapacity(word);
+                        self.stack.appendAssumeCapacity(word);
                         self.incrementContainerCount();
-                        switch (t) {
+                        switch (t.*) {
                             '{' => continue :next .object_begin,
                             '[' => continue :next .array_begin,
-                            else => {
-                                try self.visitPrimitive(.unbounded, t);
+                            else => |r| {
+                                try self.visitPrimitive(.unbounded, r);
                                 continue :next .array_continue;
                             },
                         }
                     } else {
                         if (phase == .unbounded) {
                             const t = self.tokens.next(.bounded).?;
-                            if (t == ']') {
+                            if (t.* == ']') {
                                 @branchHint(.unlikely);
-                                // log.info("ARR END", .{});
+                                self.parsed.appendAssumeCapacity(.{ .array_opening = .{
+                                    .ptr = @intCast(self.parsed.len + 2),
+                                    .len = 0,
+                                } });
+                                self.parsed.appendAssumeCapacity(.{ .array_closing = .{
+                                    .ptr = @intCast(self.parsed.len),
+                                    .len = 0,
+                                } });
                                 return self.dispatch(.padded, .scope_end);
                             }
+                            const word = Word{ .array_opening = .{ .ptr = @intCast(self.parsed.len), .len = 0 } };
+                            self.parsed.appendAssumeCapacity(word);
+                            self.stack.appendAssumeCapacity(word);
                             self.incrementContainerCount();
-                            switch (t) {
+                            switch (t.*) {
                                 '{' => return self.dispatch(.padded, .object_begin),
                                 '[' => return self.dispatch(.padded, .array_begin),
-                                else => {
-                                    try self.visitPrimitive(.bounded, t);
+                                else => |r| {
+                                    try self.visitPrimitive(.bounded, r);
                                     return self.dispatch(.padded, .array_continue);
                                 },
                             }
@@ -330,18 +399,18 @@ pub fn Tape(comptime options: Options) type {
                     if (self.tokens.next(phase)) |t| {
                         @branchHint(.likely);
                         self.incrementContainerCount();
-                        switch (t) {
+                        switch (t.*) {
                             '{' => continue :next .object_begin,
                             '[' => continue :next .array_begin,
-                            else => {
-                                try self.visitPrimitive(.unbounded, t);
+                            else => |r| {
+                                try self.visitPrimitive(.unbounded, r);
                                 continue :next .array_continue;
                             },
                         }
                     } else {
                         if (phase == .unbounded) {
                             self.incrementContainerCount();
-                            switch (self.tokens.next(.bounded).?) {
+                            switch (self.tokens.next(.bounded).?.*) {
                                 '{' => return self.dispatch(.padded, .object_begin),
                                 '[' => return self.dispatch(.padded, .array_begin),
                                 else => |t| {
@@ -357,25 +426,43 @@ pub fn Tape(comptime options: Options) type {
                 .array_continue => {
                     if (self.tokens.next(phase)) |t| {
                         @branchHint(.likely);
-                        switch (t) {
+                        switch (t.*) {
                             ',' => {
                                 self.incrementContainerCount();
                                 continue :next .array_value;
                             },
                             ']' => {
-                                // log.info("ARR END", .{});
+                                const scope = self.stack.pop();
+                                const scope_fit = scope.array_opening;
+                                const scope_root: *FitPtr = brk: {
+                                    assert(self.parsed.capacity != 0);
+                                    const data = @call(.always_inline, MultiArrayList(Word).items, .{ self.parsed, .data });
+                                    break :brk @ptrCast(&data[scope_fit.ptr]);
+                                };
+                                self.parsed.appendAssumeCapacity(.{ .array_closing = scope_fit });
+                                scope_root.len = scope_fit.len;
+                                scope_root.ptr = @intCast(self.parsed.len);
                                 continue :next .scope_end;
                             },
                             else => return error.ExpectedArrayCommaOrEnd,
                         }
                     } else {
                         if (phase == .unbounded) {
-                            switch (self.tokens.next(.bounded).?) {
+                            switch (self.tokens.next(.bounded).?.*) {
                                 ',' => {
                                     return self.dispatch(.padded, .array_value);
                                 },
                                 ']' => {
-                                    // log.info("ARR END", .{});
+                                    const scope = self.stack.pop();
+                                    const scope_fit = scope.array_opening;
+                                    const scope_root: *FitPtr = brk: {
+                                        assert(self.parsed.capacity != 0);
+                                        const data = @call(.always_inline, MultiArrayList(Word).items, .{ self.parsed, .data });
+                                        break :brk @ptrCast(&data[scope_fit.ptr]);
+                                    };
+                                    self.parsed.appendAssumeCapacity(.{ .array_closing = scope_fit });
+                                    scope_root.len = scope_fit.len;
+                                    scope_root.ptr = @intCast(self.parsed.len);
                                     return self.dispatch(.padded, .scope_end);
                                 },
                                 else => return error.ExpectedArrayCommaOrEnd,
@@ -386,31 +473,28 @@ pub fn Tape(comptime options: Options) type {
                     }
                 },
                 .scope_end => {
-                    const scope = self.stack.pop();
-                    const scope_fit = switch (scope) {
-                        .array_opening, .object_opening => |s| s,
-                        else => unreachable,
+                    const parent = brk: {
+                        assert(self.stack.capacity != 0);
+                        const tags = @call(.always_inline, MultiArrayList(Word).items, .{ self.stack, .tags });
+                        break :brk tags[self.stack.len - 1];
                     };
-                    const scope_root: *FitPtr = @ptrCast(&self.parsed.items(.data)[scope_fit.ptr]);
-                    switch (scope) {
-                        .array_opening => |s| self.parsed.appendAssumeCapacity(.{ .array_closing = s }),
-                        .object_opening => |s| self.parsed.appendAssumeCapacity(.{ .object_closing = s }),
-                        else => unreachable,
+                    if (parent == .root) {
+                        @branchHint(.unlikely);
+                        assert(phase == .padded);
+                        if (self.tokens.next(phase)) |_| return error.TrailingContent;
+                        _ = self.stack.pop();
+                        const root: *FitPtr = brk: {
+                            assert(self.parsed.capacity != 0);
+                            const data = @call(.always_inline, MultiArrayList(Word).items, .{ self.parsed, .data });
+                            break :brk @ptrCast(&data[0]);
+                        };
+                        root.ptr = @intCast(self.parsed.len);
+                        self.parsed.appendAssumeCapacity(.{ .root = .{ .ptr = 0, .len = 0 } });
+                        return;
                     }
-                    scope_root.len = scope_fit.len;
-                    scope_root.ptr = @intCast(self.parsed.len);
-                    const parent = self.stack.items(.tags)[self.stack.len - 1];
                     switch (parent) {
                         .array_opening => continue :next .array_continue,
                         .object_opening => continue :next .object_continue,
-                        .root => {
-                            assert(phase == .padded);
-                            if (self.tokens.next(phase)) |_| return error.TrailingContent;
-                            _ = self.stack.pop();
-                            const root: *FitPtr = @ptrCast(&self.parsed.items(.data)[0]);
-                            root.ptr = @intCast(self.parsed.len);
-                            self.parsed.appendAssumeCapacity(.{ .root = .{ .ptr = 0, .len = 0 } });
-                        },
                         else => unreachable,
                     }
                 },
@@ -418,7 +502,11 @@ pub fn Tape(comptime options: Options) type {
         }
 
         inline fn incrementContainerCount(self: *Self) void {
-            const scope: *FitPtr = @ptrCast(&self.stack.items(.data)[self.stack.len - 1]);
+            const scope: *FitPtr = brk: {
+                assert(self.stack.capacity != 0);
+                const data = @call(.always_inline, MultiArrayList(Word).items, .{ self.stack, .data });
+                break :brk @ptrCast(&data[self.stack.len - 1]);
+            };
             scope.len += 1;
         }
 
@@ -440,25 +528,29 @@ pub fn Tape(comptime options: Options) type {
                 };
             }
             const s = self.stack.pop();
-            const root: *FitPtr = @ptrCast(&self.parsed.items(.data)[0]);
-            root.ptr = @intCast(self.parsed.len);
             self.parsed.appendAssumeCapacity(s);
+            const root: *FitPtr = brk: {
+                assert(self.parsed.capacity != 0);
+                const data = @call(.always_inline, MultiArrayList(Word).items, .{ self.parsed, .data });
+                break :brk @ptrCast(&data[0]);
+            };
+            root.ptr = @intCast(self.parsed.len);
         }
 
         inline fn visitPrimitive(self: *Self, comptime phase: Phase, token: u8) Error!void {
             if (token == '"') {
-                @branchHint(.likely);
                 return self.visitString(phase);
             } else if (token -% '0' < 10 or token == '-') {
-                @branchHint(.likely);
                 return self.visitNumber(phase);
+            } else {
+                @branchHint(.unlikely);
+                return switch (token) {
+                    't' => self.visitTrue(),
+                    'f' => self.visitFalse(),
+                    'n' => self.visitNull(),
+                    else => error.ExpectedValue,
+                };
             }
-            return switch (token) {
-                't' => self.visitTrue(),
-                'f' => self.visitFalse(),
-                'n' => self.visitNull(),
-                else => error.ExpectedValue,
-            };
         }
 
         inline fn visitString(self: *Self, comptime phase: Phase) Error!void {
@@ -470,27 +562,18 @@ pub fn Tape(comptime options: Options) type {
             try parse(token_options, phase, t, chars);
             const next_len = chars.items.len - next_str;
             self.parsed.appendAssumeCapacity(.{ .string = .{ .ptr = @intCast(next_str), .len = @intCast(next_len) } });
-            // log.info("STR {s}", .{chars.items[next_str..][0..next_len]});
         }
 
         inline fn visitNumber(self: *Self, comptime phase: Phase) Error!void {
             const t = &self.tokens;
             const parser = @import("parsers/number/parser.zig").Parser(token_options);
             const number = try parser.parse(phase, t);
-            switch (number) {
-                .float => |n| {
-                    self.parsed.appendAssumeCapacity(.{ .float = n });
-                    // log.info("FLT {d}", .{n});
-                },
-                .signed => |n| {
-                    self.parsed.appendAssumeCapacity(.{ .signed = n });
-                    // log.info("INT {d}", .{n});
-                },
-                .unsigned => |n| {
-                    self.parsed.appendAssumeCapacity(.{ .unsigned = n });
-                    // log.info("UNT {d}", .{n});
-                },
-            }
+            const word: Word = switch (number) {
+                .unsigned => |n| .{ .unsigned = n },
+                .signed => |n| .{ .signed = n },
+                .float => |n| .{ .float = n },
+            };
+            self.parsed.appendAssumeCapacity(word);
         }
 
         inline fn visitTrue(self: *Self) Error!void {
@@ -498,7 +581,6 @@ pub fn Tape(comptime options: Options) type {
             const check = @import("parsers/atoms.zig").checkTrue;
             try check(token_options, t);
             self.parsed.appendAssumeCapacity(.true);
-            // log.info("TRU", .{});
         }
 
         inline fn visitFalse(self: *Self) Error!void {
@@ -506,7 +588,6 @@ pub fn Tape(comptime options: Options) type {
             const check = @import("parsers/atoms.zig").checkFalse;
             try check(token_options, t);
             self.parsed.appendAssumeCapacity(.false);
-            // log.info("FAL", .{});
         }
 
         inline fn visitNull(self: *Self) Error!void {
@@ -514,7 +595,6 @@ pub fn Tape(comptime options: Options) type {
             const check = @import("parsers/atoms.zig").checkNull;
             try check(token_options, t);
             self.parsed.appendAssumeCapacity(.null);
-            // log.info("NUL", .{});
         }
     };
 }

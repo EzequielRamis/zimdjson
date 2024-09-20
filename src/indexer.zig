@@ -59,7 +59,7 @@ pub fn Indexer(comptime options: Options) type {
             const tracer = tracy.traceNamed(@src(), "Indexer.index");
             defer tracer.end();
 
-            try self.indexes.ensureTotalCapacity(self.reader.document.len);
+            try self.indexes.ensureTotalCapacity(self.reader.document.len + 1);
             self.indexes.shrinkRetainingCapacity(0);
             self.prev_structural = 0;
             self.prev_scalar = 0;
@@ -79,6 +79,7 @@ pub fn Indexer(comptime options: Options) type {
             if (!self.utf8_checker.succeeded()) return error.InvalidEncoding;
             if (self.prev_inside_string != 0) return error.ExpectedStringEnd;
             if (self.indexes.items.len == 0) return error.Empty;
+            self.indexes.appendAssumeCapacity(@intCast(self.reader.document.len)); // Sentinel index at ' '
         }
 
         inline fn step(self: *Self, block: Reader.Block, i: u32) void {

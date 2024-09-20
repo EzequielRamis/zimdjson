@@ -21,10 +21,9 @@ pub const Options = struct {
 pub fn Parser(comptime options: Options) type {
     const token_options = tokens.Options{
         .aligned = options.aligned,
-        .copy_bounded = true,
     };
 
-    const NumberParser = @import("parsers/number/parser.zig").Parser(token_options);
+    const NumberParser = @import("parsers/number/parser.zig").Parser;
 
     return struct {
         const Self = @This();
@@ -122,9 +121,9 @@ pub fn Parser(comptime options: Options) type {
                 var t = &self.document.tokens;
                 const curr = t.token;
                 errdefer t.jumpBack(curr);
-                _ = t.next(.none) orelse return error.ExpectedValue;
+                _ = t.next();
 
-                const n = try NumberParser.parse(.none, t);
+                const n = try NumberParser.parse(t.ptr);
                 Logger.log(self.document.*, "number", self.depth);
                 self.document.depth -= 1;
                 return n;
@@ -136,9 +135,9 @@ pub fn Parser(comptime options: Options) type {
                 var t = &self.document.tokens;
                 const curr = t.token;
                 errdefer t.jumpBack(curr);
-                _ = t.next(.none) orelse return error.ExpectedValue;
+                _ = t.next();
 
-                const n = try NumberParser.parseUnsigned(.none, t);
+                const n = try NumberParser.parseUnsigned(t.ptr);
                 Logger.log(self.document.*, "u64   ", self.depth);
                 self.document.depth -= 1;
                 return n;
@@ -150,9 +149,9 @@ pub fn Parser(comptime options: Options) type {
                 var t = &self.document.tokens;
                 const curr = t.token;
                 errdefer t.jumpBack(curr);
-                _ = t.next(.none) orelse return error.ExpectedValue;
+                _ = t.next();
 
-                const n = try NumberParser.parseSigned(.none, t);
+                const n = try NumberParser.parseSigned(t.ptr);
                 Logger.log(self.document.*, "i64   ", self.depth);
                 self.document.depth -= 1;
                 return n;
@@ -164,9 +163,9 @@ pub fn Parser(comptime options: Options) type {
                 var t = &self.document.tokens;
                 const curr = t.token;
                 errdefer t.jumpBack(curr);
-                _ = t.next(.none) orelse return error.ExpectedValue;
+                _ = t.next();
 
-                const n = try NumberParser.parseFloat(.none, t);
+                const n = try NumberParser.parseFloat(t.ptr);
                 Logger.log(self.document.*, "f64   ", self.depth);
                 self.document.depth -= 1;
                 return n;
@@ -180,7 +179,7 @@ pub fn Parser(comptime options: Options) type {
                 errdefer t.jumpBack(curr);
 
                 if (self.document.tokens.peek() != '"') return error.IncorrectType;
-                _ = t.next(.none) orelse {};
+                _ = t.next();
 
                 const string = try self.getUnsafeString();
                 self.document.depth -= 1;
@@ -193,11 +192,10 @@ pub fn Parser(comptime options: Options) type {
                 var t = &self.document.tokens;
                 const curr = t.token;
                 errdefer t.jumpBack(curr);
-                _ = t.next(.none) orelse return error.ExpectedValue;
+                _ = t.next();
 
                 const check = @import("parsers/atoms.zig").checkBool;
-                const is_true = try check(token_options, t.*);
-                t.consume(if (is_true) 4 else 5, .none);
+                const is_true = try check(t.ptr);
                 Logger.log(self.document.*, "bool  ", self.depth);
                 self.document.depth -= 1;
                 return is_true;
@@ -209,11 +207,10 @@ pub fn Parser(comptime options: Options) type {
                 var t = &self.document.tokens;
                 const curr = t.token;
                 errdefer t.jumpBack(curr);
-                _ = t.next(.none) orelse return error.ExpectedValue;
+                _ = t.next();
 
                 const check = @import("parsers/atoms.zig").checkNull;
-                try check(token_options, t.*);
-                t.consume(4, .none);
+                try check(t.ptr);
                 Logger.log(self.document.*, "null  ", self.depth);
                 self.document.depth -= 1;
             }
@@ -274,7 +271,7 @@ pub fn Parser(comptime options: Options) type {
                 Logger.logDepth(wanted_depth, actual_depth.*);
 
                 if (actual_depth.* <= wanted_depth) return;
-                switch (t.next(.none).?.*) {
+                switch (t.next().?.*) {
                     '[', '{', ':' => {
                         Logger.logStart(self.document.*, "skip  ", actual_depth.*);
                     },
@@ -288,7 +285,7 @@ pub fn Parser(comptime options: Options) type {
                     },
                     '"' => if (t.peek() == ':') {
                         Logger.log(self.document.*, "key   ", actual_depth.*);
-                        _ = t.next(.none).?;
+                        _ = t.next();
                     } else {
                         Logger.log(self.document.*, "skip  ", actual_depth.*);
                         actual_depth.* -= 1;
@@ -301,7 +298,7 @@ pub fn Parser(comptime options: Options) type {
                     },
                 }
 
-                while (t.next(.none)) |p| {
+                while (t.next()) |p| {
                     switch (p.*) {
                         '[', '{' => {
                             Logger.logStart(self.document.*, "skip  ", actual_depth.*);
@@ -329,11 +326,10 @@ pub fn Parser(comptime options: Options) type {
             fn getUnsafeString(self: Visitor) Error![]const u8 {
                 var t = &self.document.tokens;
 
-                t.consume(1, .none);
                 const chars = &self.document.chars;
                 const next_str = chars.items.len;
                 const write = @import("parsers/string.zig").writeString;
-                try write(token_options, .none, t, chars);
+                try write(t.ptr, chars);
                 const next_len = chars.items.len - next_str;
                 if (t.peek() == ':') {
                     Logger.log(self.document.*, "key   ", self.depth);
@@ -360,9 +356,9 @@ pub fn Parser(comptime options: Options) type {
                 const doc = self.visitor.document;
                 const t = &doc.tokens;
                 if (self.visitor.token == t.token) {
-                    _ = t.next(.none) orelse return error.IncompleteArray;
+                    _ = t.next();
                     if (t.peek() == ']') {
-                        _ = t.next(.none) orelse {};
+                        _ = t.next();
                         self.visitor.document.depth -= 1;
                         return null;
                     }
@@ -370,11 +366,11 @@ pub fn Parser(comptime options: Options) type {
                 }
                 switch (t.peek()) {
                     ',' => {
-                        _ = t.next(.none) orelse return error.IncompleteArray;
+                        _ = t.next();
                         return self.getVisitor();
                     },
                     ']' => {
-                        _ = t.next(.none) orelse {};
+                        _ = t.next();
                         self.visitor.document.depth -= 1;
                         return null;
                     },
@@ -434,9 +430,9 @@ pub fn Parser(comptime options: Options) type {
                 const doc = self.visitor.document;
                 const t = &doc.tokens;
                 if (self.visitor.token == t.token) {
-                    _ = t.next(.none) orelse return error.IncompleteObject;
+                    _ = t.next();
                     if (t.peek() == '}') {
-                        _ = t.next(.none) orelse {};
+                        _ = t.next();
                         self.visitor.document.depth -= 1;
                         return null;
                     }
@@ -444,11 +440,11 @@ pub fn Parser(comptime options: Options) type {
                 }
                 switch (t.peek()) {
                     ',' => {
-                        _ = t.next(.none) orelse return error.IncompleteObject;
+                        _ = t.next();
                         return try self.getField();
                     },
                     '}' => {
-                        _ = t.next(.none) orelse {};
+                        _ = t.next();
                         self.visitor.document.depth -= 1;
                         return null;
                     },
@@ -491,10 +487,10 @@ pub fn Parser(comptime options: Options) type {
                 };
                 const curr = t.token;
                 errdefer t.jumpBack(curr);
-                const quote = t.next(.none) orelse return error.IncompleteObject;
+                const quote = t.next() orelse return error.IncompleteObject;
                 if (quote.* != '"') return error.ExpectedKeyAsString;
                 const key = try key_visitor.getUnsafeString();
-                const colon = t.next(.none) orelse return error.IncompleteObject;
+                const colon = t.next() orelse return error.IncompleteObject;
                 if (colon.* != ':') return error.ExpectedColon;
                 self.visitor.document.depth += 1;
                 return .{

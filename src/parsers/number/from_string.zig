@@ -5,7 +5,6 @@ const types = @import("../../types.zig");
 const tokens = @import("../../tokens.zig");
 const TokenOptions = tokens.Options;
 const TokenIterator = tokens.Iterator;
-const TokenPhase = tokens.Phase;
 const Error = types.Error;
 const max_digits = number.max_digits;
 
@@ -23,47 +22,40 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
         negative: bool,
         is_float: bool,
 
-        pub inline fn parse(
-            comptime topt: TokenOptions,
-            comptime phase: TokenPhase,
-            src: *TokenIterator(topt),
-        ) Error!FromString(sopt) {
-            const is_negative = src.ptr[0] == '-';
+        pub inline fn parse(src: [*]const u8) Error!FromString(sopt) {
+            var ptr = src;
+            const is_negative = ptr[0] == '-';
             if (is_negative and !sopt.can_be_signed) {
                 return error.InvalidNumberLiteral;
             }
 
-            src.consume(@intFromBool(is_negative), phase);
-            const first_digit = src.ptr[0];
+            ptr += @intFromBool(is_negative);
+            const first_digit = ptr[0];
 
             var mantissa_10: u64 = 0;
             var exponent_10: i64 = 0;
             var is_float = false;
 
-            var integer_ptr: [*]const u8 = src.ptr;
-            var decimal_ptr: [*]const u8 = src.ptr;
+            var integer_ptr: [*]const u8 = ptr;
+            var decimal_ptr: [*]const u8 = ptr;
             var integer_len: u32 = 0;
             var decimal_len: u32 = 0;
 
-            while (parseDigit(topt, src)) |d| {
+            while (parseDigit(ptr)) |d| {
                 mantissa_10 = mantissa_10 *% 10 +% d;
-                src.consume(1, phase);
-                if (phase == .bounded) integer_len += 1;
+                ptr += 1;
             }
-            if (phase != .bounded) integer_len = @intCast(@intFromPtr(src.ptr) - @intFromPtr(integer_ptr));
+            integer_len = @intCast(@intFromPtr(ptr) - @intFromPtr(integer_ptr));
             if ((first_digit == '0' and integer_len > 1) or integer_len == 0) {
                 return error.InvalidNumberLiteral;
             }
 
             if (sopt.can_be_float) {
-                if (src.ptr[0] == '.') {
-                    src.consume(1, phase);
-                    decimal_ptr = src.ptr;
-                    const parsed_decimal_len = parseDecimal(topt, phase, src, &mantissa_10);
-                    decimal_len = if (phase == .bounded)
-                        decimal_len + parsed_decimal_len
-                    else
-                        @intCast(@intFromPtr(src.ptr) - @intFromPtr(decimal_ptr));
+                if (ptr[0] == '.') {
+                    ptr += 1;
+                    decimal_ptr = ptr;
+                    parseDecimal(&ptr, &mantissa_10);
+                    decimal_len = @intCast(@intFromPtr(ptr) - @intFromPtr(decimal_ptr));
 
                     if (decimal_len == 0) {
                         return error.InvalidNumberLiteral;
@@ -72,14 +64,14 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
                     exponent_10 -= @intCast(decimal_len);
                 }
 
-                if (src.ptr[0] | 0x20 == 'e') {
+                if (ptr[0] | 0x20 == 'e') {
                     is_float = true;
-                    src.consume(1, phase);
-                    try parseExponent(topt, phase, src, &exponent_10);
+                    ptr += 1;
+                    try parseExponent(&ptr, &exponent_10);
                 }
             }
 
-            if (common.tables.is_structural_or_whitespace_negated[src.ptr[0]]) {
+            if (common.tables.is_structural_or_whitespace_negated[ptr[0]]) {
                 return error.InvalidNumberLiteral;
             }
 
@@ -93,52 +85,38 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
             };
         }
 
-        inline fn parseDigit(comptime topt: TokenOptions, src: *TokenIterator(topt)) ?u8 {
-            const digit = src.ptr[0] -% '0';
+        inline fn parseDigit(ptr: [*]const u8) ?u8 {
+            const digit = ptr[0] -% '0';
             return if (digit < 10) digit else null;
         }
 
-        inline fn parseDecimal(
-            comptime topt: TokenOptions,
-            comptime phase: TokenPhase,
-            src: *TokenIterator(topt),
-            man: *u64,
-        ) u32 {
-            var len: u32 = 0;
-            while (number.isEightDigits(src.ptr[0..8].*)) {
-                man.* = man.* *% 100000000 +% number.parseEightDigits(src.ptr[0..8].*);
-                src.consume(8, phase);
-                len += 8;
+        inline fn parseDecimal(ptr: *[*]const u8, man: *u64) void {
+            while (number.isEightDigits(ptr.*[0..8].*)) {
+                man.* = man.* *% 100000000 +% number.parseEightDigits(ptr.*[0..8].*);
+                ptr.* += 8;
             }
 
-            while (parseDigit(topt, src)) |d| {
+            while (parseDigit(ptr.*)) |d| {
                 man.* = man.* *% 10 +% d;
-                src.consume(1, phase);
-                len += 1;
+                ptr.* += 1;
             }
-            return len;
         }
 
-        inline fn parseExponent(
-            comptime topt: TokenOptions,
-            comptime phase: TokenPhase,
-            src: *TokenIterator(topt),
-            exp: *i64,
-        ) Error!void {
-            const is_negative = src.ptr[0] == '-';
-            src.consume(@intFromBool(is_negative or src.ptr[0] == '+'), phase);
+        inline fn parseExponent(ptr: *[*]const u8, exp: *i64) Error!void {
+            const is_negative = ptr.*[0] == '-';
+            ptr.* += @intFromBool(is_negative or ptr.*[0] == '+');
 
-            const start_exp = @intFromPtr(src.ptr);
+            const start_exp = @intFromPtr(ptr.*);
 
             var exp_number: u64 = 0;
-            while (parseDigit(topt, src)) |d| {
+            while (parseDigit(ptr.*)) |d| {
                 if (exp_number < 0x10000000) {
                     exp_number = exp_number * 10 + d;
                 }
-                src.consume(1, phase);
+                ptr.* += 1;
             }
 
-            if (start_exp == @intFromPtr(src.ptr)) {
+            if (start_exp == @intFromPtr(ptr.*)) {
                 return error.InvalidNumberLiteral;
             }
 

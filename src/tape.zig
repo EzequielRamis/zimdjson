@@ -5,7 +5,6 @@ const types = @import("types.zig");
 const tokens = @import("tokens.zig");
 const ArrayList = std.ArrayList;
 const MultiArrayList = std.MultiArrayList;
-const Phase = tokens.Phase;
 const assert = std.debug.assert;
 
 const Allocator = std.mem.Allocator;
@@ -64,7 +63,6 @@ pub const Options = struct {
 pub fn Tape(comptime options: Options) type {
     const token_options = tokens.Options{
         .aligned = options.aligned,
-        .copy_bounded = false,
     };
 
     return struct {
@@ -111,365 +109,155 @@ pub fn Tape(comptime options: Options) type {
 
             self.stack.appendAssumeCapacity(.{ .root = .{ .ptr = 0, .len = 0 } });
             self.parsed.appendAssumeCapacity(.{ .root = .{ .ptr = 0, .len = 0 } });
-            if (t.next(.unbounded)) |r| {
-                @branchHint(.likely);
-                return switch (r.*) {
-                    '{' => self.dispatch(.unbounded, .object_begin),
-                    '[' => self.dispatch(.unbounded, .array_begin),
-                    else => unreachable,
-                };
-            }
-            const r = t.next(.bounded).?.*;
-            return switch (r) {
-                '{' => self.dispatch(.padded, .object_begin),
-                '[' => self.dispatch(.padded, .array_begin),
-                't', 'f', 'n' => {
-                    t.ptr = t.padding[0..].ptr;
-                    t.padding_ptr = @ptrFromInt(std.math.maxInt(usize));
-                    return self.visitRootPrimitive(.padded, r);
-                },
-                else => self.visitRootPrimitive(.bounded, r),
+            const r = self.tokens.next();
+            return switch (r[0]) {
+                '{' => self.dispatch(.object_begin),
+                '[' => self.dispatch(.array_begin),
+                else => self.visitRootPrimitive(r),
             };
         }
 
-        fn dispatch(self: *Self, comptime phase: Phase, state: State) Error!void {
-            assert(phase != .bounded);
-
+        fn dispatch(self: *Self, state: State) Error!void {
             next: switch (state) {
                 .object_begin => {
                     if (self.stack.len >= options.max_depth)
                         return error.ExceededDepth;
 
-                    if (self.tokens.next(phase)) |t| {
-                        @branchHint(.likely);
-                        if (t.* == '}') {
-                            @branchHint(.unlikely);
-                            self.parsed.appendAssumeCapacity(.{ .object_opening = .{
-                                .ptr = @intCast(self.parsed.len + 2),
-                                .len = 0,
-                            } });
-                            self.parsed.appendAssumeCapacity(.{ .object_closing = .{
+                    const t = self.tokens.next();
+                    if (t[0] == '}') {
+                        @branchHint(.unlikely);
+                        self.parsed.appendAssumeCapacity(.{ .object_opening = .{
+                            .ptr = @intCast(self.parsed.len + 2),
+                            .len = 0,
+                        } });
+                        self.parsed.appendAssumeCapacity(.{ .object_closing = .{
+                            .ptr = @intCast(self.parsed.len),
+                            .len = 0,
+                        } });
+                        continue :next .scope_end;
+                    }
+                    switch (t[0]) {
+                        '"' => {
+                            const word = Word{ .object_opening = .{
                                 .ptr = @intCast(self.parsed.len),
                                 .len = 0,
-                            } });
-                            continue :next .scope_end;
-                        }
-                        switch (t.*) {
-                            '"' => {
-                                const word = Word{ .object_opening = .{
-                                    .ptr = @intCast(self.parsed.len),
-                                    .len = 0,
-                                } };
-                                self.parsed.appendAssumeCapacity(word);
-                                self.stack.appendAssumeCapacity(word);
-                                self.incrementContainerCount();
-                                try self.visitString(.unbounded);
-                                continue :next .object_field;
-                            },
-                            else => return error.ExpectedObjectCommaOrEnd,
-                        }
-                    } else {
-                        if (phase == .unbounded) {
-                            const t = self.tokens.next(.bounded).?;
-                            if (t.* == '}') {
-                                @branchHint(.unlikely);
-                                self.parsed.appendAssumeCapacity(.{ .object_opening = .{
-                                    .ptr = @intCast(self.parsed.len + 2),
-                                    .len = 0,
-                                } });
-                                self.parsed.appendAssumeCapacity(.{ .object_closing = .{
-                                    .ptr = @intCast(self.parsed.len),
-                                    .len = 0,
-                                } });
-                                return self.dispatch(.padded, .scope_end);
-                            }
-                            switch (t.*) {
-                                '"' => {
-                                    const word = Word{ .object_opening = .{
-                                        .ptr = @intCast(self.parsed.len),
-                                        .len = 0,
-                                    } };
-                                    self.parsed.appendAssumeCapacity(word);
-                                    self.stack.appendAssumeCapacity(word);
-                                    self.incrementContainerCount();
-                                    try self.visitString(.bounded);
-                                    return self.dispatch(.padded, .object_field);
-                                },
-                                else => return error.ExpectedObjectCommaOrEnd,
-                            }
-                        } else {
-                            return error.ExpectedObjectCommaOrEnd;
-                        }
+                            } };
+                            self.parsed.appendAssumeCapacity(word);
+                            self.stack.appendAssumeCapacity(word);
+                            self.incrementContainerCount();
+                            try self.visitString(t);
+                            continue :next .object_field;
+                        },
+                        else => return error.ExpectedObjectCommaOrEnd,
                     }
                 },
                 .object_field => {
-                    if (self.tokens.next(phase)) |t| {
-                        @branchHint(.likely);
-                        if (t.* == ':') {
-                            if (self.tokens.next(phase)) |r| {
-                                switch (r.*) {
-                                    '{' => continue :next .object_begin,
-                                    '[' => continue :next .array_begin,
-                                    else => |u| {
-                                        try self.visitPrimitive(.unbounded, u);
-                                        continue :next .object_continue;
-                                    },
-                                }
-                            } else {
-                                if (phase == .unbounded) {
-                                    switch (self.tokens.next(.bounded).?.*) {
-                                        '{' => return self.dispatch(.padded, .object_begin),
-                                        '[' => return self.dispatch(.padded, .array_begin),
-                                        else => |r| {
-                                            try self.visitPrimitive(.bounded, r);
-                                            return self.dispatch(.padded, .object_continue);
-                                        },
-                                    }
-                                } else {
-                                    return error.ExpectedValue;
-                                }
-                            }
-                        } else {
-                            return error.ExpectedColon;
+                    const t = self.tokens.next();
+                    if (t[0] == ':') {
+                        const r = self.tokens.next();
+                        switch (r[0]) {
+                            '{' => continue :next .object_begin,
+                            '[' => continue :next .array_begin,
+                            else => {
+                                try self.visitPrimitive(r);
+                                continue :next .object_continue;
+                            },
                         }
                     } else {
-                        if (phase == .unbounded) {
-                            if (self.tokens.next(.bounded).?.* == ':') {
-                                if (self.tokens.next(.padded)) |t| {
-                                    switch (t.*) {
-                                        '{' => return self.dispatch(.padded, .object_begin),
-                                        '[' => return self.dispatch(.padded, .array_begin),
-                                        else => |r| {
-                                            try self.visitPrimitive(.padded, r);
-                                            return self.dispatch(.padded, .object_continue);
-                                        },
-                                    }
-                                } else {
-                                    return error.ExpectedValue;
-                                }
-                            } else {
-                                return error.ExpectedColon;
-                            }
-                        } else {
-                            return error.IncompleteObject;
-                        }
+                        return error.ExpectedColon;
                     }
                 },
                 .object_continue => {
-                    if (self.tokens.next(phase)) |t| {
-                        @branchHint(.likely);
-                        switch (t.*) {
-                            ',' => {
-                                if (self.tokens.next(phase)) |r| {
-                                    @branchHint(.likely);
-                                    if (r.* == '"') {
-                                        self.incrementContainerCount();
-                                        try self.visitString(.unbounded);
-                                        continue :next .object_field;
-                                    } else {
-                                        return error.ExpectedKeyAsString;
-                                    }
-                                } else {
-                                    if (phase == .unbounded) {
-                                        if (self.tokens.next(.bounded).?.* == '"') {
-                                            self.incrementContainerCount();
-                                            try self.visitString(.bounded);
-                                            return self.dispatch(.padded, .object_field);
-                                        } else {
-                                            return error.ExpectedKeyAsString;
-                                        }
-                                    } else {
-                                        return error.IncompleteObject;
-                                    }
-                                }
-                            },
-                            '}' => {
-                                const scope = self.stack.pop();
-                                const scope_fit = scope.object_opening;
-                                const scope_root: *FitPtr = brk: {
-                                    assert(self.parsed.capacity != 0);
-                                    const data = @call(.always_inline, MultiArrayList(Word).items, .{ self.parsed, .data });
-                                    break :brk @ptrCast(&data[scope_fit.ptr]);
-                                };
-                                self.parsed.appendAssumeCapacity(.{ .object_closing = scope_fit });
-                                scope_root.len = scope_fit.len;
-                                scope_root.ptr = @intCast(self.parsed.len);
-                                continue :next .scope_end;
-                            },
-                            else => return error.ExpectedObjectCommaOrEnd,
-                        }
-                    } else {
-                        if (phase == .unbounded) {
-                            switch (self.tokens.next(.bounded).?.*) {
-                                ',' => {
-                                    if (self.tokens.next(.padded)) |t| {
-                                        if (t.* == '"') {
-                                            self.incrementContainerCount();
-                                            try self.visitString(.padded);
-                                            return self.dispatch(.padded, .object_field);
-                                        } else {
-                                            return error.ExpectedKeyAsString;
-                                        }
-                                    } else {
-                                        return error.IncompleteObject;
-                                    }
-                                },
-                                '}' => {
-                                    const scope = self.stack.pop();
-                                    const scope_fit = scope.object_opening;
-                                    const scope_root: *FitPtr = brk: {
-                                        assert(self.parsed.capacity != 0);
-                                        const data = @call(.always_inline, MultiArrayList(Word).items, .{ self.parsed, .data });
-                                        break :brk @ptrCast(&data[scope_fit.ptr]);
-                                    };
-                                    self.parsed.appendAssumeCapacity(.{ .object_closing = scope_fit });
-                                    scope_root.len = scope_fit.len;
-                                    scope_root.ptr = @intCast(self.parsed.len);
-                                    return self.dispatch(.padded, .scope_end);
-                                },
-                                else => return error.ExpectedObjectCommaOrEnd,
+                    const t = self.tokens.next();
+                    switch (t[0]) {
+                        ',' => {
+                            const r = self.tokens.next();
+                            if (r[0] == '"') {
+                                self.incrementContainerCount();
+                                try self.visitString(r);
+                                continue :next .object_field;
+                            } else {
+                                return error.ExpectedKeyAsString;
                             }
-                        } else {
-                            return error.ExpectedObjectCommaOrEnd;
-                        }
+                        },
+                        '}' => {
+                            const scope = self.stack.pop();
+                            const scope_fit = scope.object_opening;
+                            const scope_root: *FitPtr = brk: {
+                                assert(self.parsed.capacity != 0);
+                                const data = @call(.always_inline, MultiArrayList(Word).items, .{ self.parsed, .data });
+                                break :brk @ptrCast(&data[scope_fit.ptr]);
+                            };
+                            self.parsed.appendAssumeCapacity(.{ .object_closing = scope_fit });
+                            scope_root.len = scope_fit.len;
+                            scope_root.ptr = @intCast(self.parsed.len);
+                            continue :next .scope_end;
+                        },
+                        else => return error.ExpectedObjectCommaOrEnd,
                     }
                 },
                 .array_begin => {
                     if (self.stack.len >= options.max_depth)
                         return error.ExceededDepth;
-                    if (self.tokens.next(phase)) |t| {
-                        @branchHint(.likely);
-                        if (t.* == ']') {
-                            @branchHint(.unlikely);
-                            self.parsed.appendAssumeCapacity(.{ .array_opening = .{
-                                .ptr = @intCast(self.parsed.len + 2),
-                                .len = 0,
-                            } });
-                            self.parsed.appendAssumeCapacity(.{ .array_closing = .{
-                                .ptr = @intCast(self.parsed.len),
-                                .len = 0,
-                            } });
-                            continue :next .scope_end;
-                        }
-                        const word = Word{ .array_opening = .{ .ptr = @intCast(self.parsed.len), .len = 0 } };
-                        self.parsed.appendAssumeCapacity(word);
-                        self.stack.appendAssumeCapacity(word);
-                        self.incrementContainerCount();
-                        switch (t.*) {
-                            '{' => continue :next .object_begin,
-                            '[' => continue :next .array_begin,
-                            else => |r| {
-                                try self.visitPrimitive(.unbounded, r);
-                                continue :next .array_continue;
-                            },
-                        }
-                    } else {
-                        if (phase == .unbounded) {
-                            const t = self.tokens.next(.bounded).?;
-                            if (t.* == ']') {
-                                @branchHint(.unlikely);
-                                self.parsed.appendAssumeCapacity(.{ .array_opening = .{
-                                    .ptr = @intCast(self.parsed.len + 2),
-                                    .len = 0,
-                                } });
-                                self.parsed.appendAssumeCapacity(.{ .array_closing = .{
-                                    .ptr = @intCast(self.parsed.len),
-                                    .len = 0,
-                                } });
-                                return self.dispatch(.padded, .scope_end);
-                            }
-                            const word = Word{ .array_opening = .{ .ptr = @intCast(self.parsed.len), .len = 0 } };
-                            self.parsed.appendAssumeCapacity(word);
-                            self.stack.appendAssumeCapacity(word);
-                            self.incrementContainerCount();
-                            switch (t.*) {
-                                '{' => return self.dispatch(.padded, .object_begin),
-                                '[' => return self.dispatch(.padded, .array_begin),
-                                else => |r| {
-                                    try self.visitPrimitive(.bounded, r);
-                                    return self.dispatch(.padded, .array_continue);
-                                },
-                            }
-                        } else {
-                            return error.IncompleteArray;
-                        }
+                    const t = self.tokens.next();
+                    if (t[0] == ']') {
+                        @branchHint(.unlikely);
+                        self.parsed.appendAssumeCapacity(.{ .array_opening = .{
+                            .ptr = @intCast(self.parsed.len + 2),
+                            .len = 0,
+                        } });
+                        self.parsed.appendAssumeCapacity(.{ .array_closing = .{
+                            .ptr = @intCast(self.parsed.len),
+                            .len = 0,
+                        } });
+                        continue :next .scope_end;
+                    }
+                    const word = Word{ .array_opening = .{ .ptr = @intCast(self.parsed.len), .len = 0 } };
+                    self.parsed.appendAssumeCapacity(word);
+                    self.stack.appendAssumeCapacity(word);
+                    self.incrementContainerCount();
+                    switch (t[0]) {
+                        '{' => continue :next .object_begin,
+                        '[' => continue :next .array_begin,
+                        else => {
+                            try self.visitPrimitive(t);
+                            continue :next .array_continue;
+                        },
                     }
                 },
                 .array_value => {
-                    if (self.tokens.next(phase)) |t| {
-                        @branchHint(.likely);
-                        self.incrementContainerCount();
-                        switch (t.*) {
-                            '{' => continue :next .object_begin,
-                            '[' => continue :next .array_begin,
-                            else => |r| {
-                                try self.visitPrimitive(.unbounded, r);
-                                continue :next .array_continue;
-                            },
-                        }
-                    } else {
-                        if (phase == .unbounded) {
-                            self.incrementContainerCount();
-                            switch (self.tokens.next(.bounded).?.*) {
-                                '{' => return self.dispatch(.padded, .object_begin),
-                                '[' => return self.dispatch(.padded, .array_begin),
-                                else => |t| {
-                                    try self.visitPrimitive(.bounded, t);
-                                    return self.dispatch(.padded, .array_continue);
-                                },
-                            }
-                        } else {
-                            return error.IncompleteArray;
-                        }
+                    const t = self.tokens.next();
+                    self.incrementContainerCount();
+                    switch (t[0]) {
+                        '{' => continue :next .object_begin,
+                        '[' => continue :next .array_begin,
+                        else => {
+                            try self.visitPrimitive(t);
+                            continue :next .array_continue;
+                        },
                     }
                 },
                 .array_continue => {
-                    if (self.tokens.next(phase)) |t| {
-                        @branchHint(.likely);
-                        switch (t.*) {
-                            ',' => {
-                                self.incrementContainerCount();
-                                continue :next .array_value;
-                            },
-                            ']' => {
-                                const scope = self.stack.pop();
-                                const scope_fit = scope.array_opening;
-                                const scope_root: *FitPtr = brk: {
-                                    assert(self.parsed.capacity != 0);
-                                    const data = @call(.always_inline, MultiArrayList(Word).items, .{ self.parsed, .data });
-                                    break :brk @ptrCast(&data[scope_fit.ptr]);
-                                };
-                                self.parsed.appendAssumeCapacity(.{ .array_closing = scope_fit });
-                                scope_root.len = scope_fit.len;
-                                scope_root.ptr = @intCast(self.parsed.len);
-                                continue :next .scope_end;
-                            },
-                            else => return error.ExpectedArrayCommaOrEnd,
-                        }
-                    } else {
-                        if (phase == .unbounded) {
-                            switch (self.tokens.next(.bounded).?.*) {
-                                ',' => {
-                                    return self.dispatch(.padded, .array_value);
-                                },
-                                ']' => {
-                                    const scope = self.stack.pop();
-                                    const scope_fit = scope.array_opening;
-                                    const scope_root: *FitPtr = brk: {
-                                        assert(self.parsed.capacity != 0);
-                                        const data = @call(.always_inline, MultiArrayList(Word).items, .{ self.parsed, .data });
-                                        break :brk @ptrCast(&data[scope_fit.ptr]);
-                                    };
-                                    self.parsed.appendAssumeCapacity(.{ .array_closing = scope_fit });
-                                    scope_root.len = scope_fit.len;
-                                    scope_root.ptr = @intCast(self.parsed.len);
-                                    return self.dispatch(.padded, .scope_end);
-                                },
-                                else => return error.ExpectedArrayCommaOrEnd,
-                            }
-                        } else {
-                            return error.IncompleteArray;
-                        }
+                    const t = self.tokens.next();
+                    switch (t[0]) {
+                        ',' => {
+                            self.incrementContainerCount();
+                            continue :next .array_value;
+                        },
+                        ']' => {
+                            const scope = self.stack.pop();
+                            const scope_fit = scope.array_opening;
+                            const scope_root: *FitPtr = brk: {
+                                assert(self.parsed.capacity != 0);
+                                const data = @call(.always_inline, MultiArrayList(Word).items, .{ self.parsed, .data });
+                                break :brk @ptrCast(&data[scope_fit.ptr]);
+                            };
+                            self.parsed.appendAssumeCapacity(.{ .array_closing = scope_fit });
+                            scope_root.len = scope_fit.len;
+                            scope_root.ptr = @intCast(self.parsed.len);
+                            continue :next .scope_end;
+                        },
+                        else => return error.ExpectedArrayCommaOrEnd,
                     }
                 },
                 .scope_end => {
@@ -480,8 +268,8 @@ pub fn Tape(comptime options: Options) type {
                     };
                     if (parent == .root) {
                         @branchHint(.unlikely);
-                        assert(phase == .padded);
-                        if (self.tokens.next(phase)) |_| return error.TrailingContent;
+                        const tail = self.tokens.next();
+                        if (tail[0] != ' ') return error.TrailingContent;
                         _ = self.stack.pop();
                         const root: *FitPtr = brk: {
                             assert(self.parsed.capacity != 0);
@@ -510,21 +298,19 @@ pub fn Tape(comptime options: Options) type {
             scope.len += 1;
         }
 
-        fn visitRootPrimitive(self: *Self, comptime phase: Phase, token: u8) Error!void {
-            assert(phase != .unbounded);
-            if (self.tokens.indexer.indexes.items.len > 1) return error.TrailingContent;
-            if (phase == .bounded) {
-                if (token -% '0' < 10 or token == '-') {
-                    try self.visitNumber(phase);
-                } else if (token == '"') {
-                    try self.visitString(phase);
-                } else return error.ExpectedValue;
+        fn visitRootPrimitive(self: *Self, ptr: [*]const u8) Error!void {
+            if (self.tokens.indexer.indexes.items.len > 2) return error.TrailingContent;
+            if (ptr[0] == '"') {
+                try self.visitString(ptr);
+            } else if (ptr[0] -% '0' < 10 or ptr[0] == '-') {
+                try self.visitNumber(ptr);
             } else {
-                try switch (token) {
-                    't' => self.visitTrue(),
-                    'f' => self.visitFalse(),
-                    'n' => self.visitNull(),
-                    else => return error.ExpectedValue,
+                @branchHint(.unlikely);
+                try switch (ptr[0]) {
+                    't' => self.visitTrue(ptr),
+                    'f' => self.visitFalse(ptr),
+                    'n' => self.visitNull(ptr),
+                    else => error.ExpectedValue,
                 };
             }
             const s = self.stack.pop();
@@ -537,37 +323,36 @@ pub fn Tape(comptime options: Options) type {
             root.ptr = @intCast(self.parsed.len);
         }
 
-        inline fn visitPrimitive(self: *Self, comptime phase: Phase, token: u8) Error!void {
-            if (token == '"') {
-                return self.visitString(phase);
-            } else if (token -% '0' < 10 or token == '-') {
-                return self.visitNumber(phase);
+        inline fn visitPrimitive(self: *Self, src: [*]const u8) Error!void {
+            const t = src[0];
+            const ptr = self.tokens.challengePtr(src);
+            if (t == '"') {
+                return self.visitString(ptr);
+            } else if (t -% '0' < 10 or t == '-') {
+                return self.visitNumber(ptr);
             } else {
                 @branchHint(.unlikely);
-                return switch (token) {
-                    't' => self.visitTrue(),
-                    'f' => self.visitFalse(),
-                    'n' => self.visitNull(),
+                return switch (t) {
+                    't' => self.visitTrue(ptr),
+                    'f' => self.visitFalse(ptr),
+                    'n' => self.visitNull(ptr),
                     else => error.ExpectedValue,
                 };
             }
         }
 
-        inline fn visitString(self: *Self, comptime phase: Phase) Error!void {
-            const t = &self.tokens;
-            t.consume(1, phase);
+        inline fn visitString(self: *Self, ptr: [*]const u8) Error!void {
             const chars = &self.chars;
             const next_str = chars.items.len;
             const parse = @import("parsers/string.zig").writeString;
-            try parse(token_options, phase, t, chars);
+            try parse(ptr, chars);
             const next_len = chars.items.len - next_str;
             self.parsed.appendAssumeCapacity(.{ .string = .{ .ptr = @intCast(next_str), .len = @intCast(next_len) } });
         }
 
-        inline fn visitNumber(self: *Self, comptime phase: Phase) Error!void {
-            const t = &self.tokens;
-            const parser = @import("parsers/number/parser.zig").Parser(token_options);
-            const number = try parser.parse(phase, t);
+        inline fn visitNumber(self: *Self, ptr: [*]const u8) Error!void {
+            const parser = @import("parsers/number/parser.zig").Parser;
+            const number = try parser.parse(ptr);
             const word: Word = switch (number) {
                 .unsigned => |n| .{ .unsigned = n },
                 .signed => |n| .{ .signed = n },
@@ -576,24 +361,21 @@ pub fn Tape(comptime options: Options) type {
             self.parsed.appendAssumeCapacity(word);
         }
 
-        inline fn visitTrue(self: *Self) Error!void {
-            const t = self.tokens;
+        inline fn visitTrue(self: *Self, ptr: [*]const u8) Error!void {
             const check = @import("parsers/atoms.zig").checkTrue;
-            try check(token_options, t);
+            try check(ptr);
             self.parsed.appendAssumeCapacity(.true);
         }
 
-        inline fn visitFalse(self: *Self) Error!void {
-            const t = self.tokens;
+        inline fn visitFalse(self: *Self, ptr: [*]const u8) Error!void {
             const check = @import("parsers/atoms.zig").checkFalse;
-            try check(token_options, t);
+            try check(ptr);
             self.parsed.appendAssumeCapacity(.false);
         }
 
-        inline fn visitNull(self: *Self) Error!void {
-            const t = self.tokens;
+        inline fn visitNull(self: *Self, ptr: [*]const u8) Error!void {
             const check = @import("parsers/atoms.zig").checkNull;
-            try check(token_options, t);
+            try check(ptr);
             self.parsed.appendAssumeCapacity(.null);
         }
     };

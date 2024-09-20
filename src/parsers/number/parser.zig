@@ -5,91 +5,86 @@ const common = @import("common.zig");
 const eisel_lemire = @import("eisel_lemire.zig");
 const digit_comp = @import("digit_comp.zig");
 const FromString = @import("from_string.zig").FromString;
-const TokenOptions = tokens.Options;
-const TokenIterator = tokens.Iterator;
-const TokenPhase = tokens.Phase;
 const Error = types.Error;
 const Number = types.Number;
 const max_digits = common.max_digits;
 
-pub fn Parser(comptime opt: TokenOptions) type {
-    return struct {
-        pub fn parse(comptime phase: TokenPhase, src: *TokenIterator(opt)) Error!Number {
-            var parsed_number = try FromString(.{}).parse(opt, phase, src);
-            if (parsed_number.is_float) return .{
-                .float = try computeFloat(&parsed_number),
-            };
+pub const Parser = struct {
+    pub fn parse(src: [*]const u8) Error!Number {
+        var parsed_number = try FromString(.{}).parse(src);
+        if (parsed_number.is_float) return .{
+            .float = try computeFloat(&parsed_number),
+        };
 
-            const digit_count = parsed_number.integer.len;
-            const negative = parsed_number.negative;
-            const integer = parsed_number.mantissa;
-            const longest_digit_count: u32 = if (negative) max_digits - 1 else max_digits;
-            if (digit_count < longest_digit_count) {
-                @branchHint(.likely);
-                if (std.math.cast(i64, integer)) |i| {
-                    return .{ .signed = if (negative) -i else i };
-                }
-                return .{ .unsigned = integer };
+        const digit_count = parsed_number.integer.len;
+        const negative = parsed_number.negative;
+        const integer = parsed_number.mantissa;
+        const longest_digit_count: u32 = if (negative) max_digits - 1 else max_digits;
+        if (digit_count < longest_digit_count) {
+            @branchHint(.likely);
+            if (std.math.cast(i64, integer)) |i| {
+                return .{ .signed = if (negative) -i else i };
             }
-            if (digit_count == longest_digit_count) {
-                @branchHint(.likely);
-                if (negative) {
-                    return .{ .signed = -(std.math.cast(i64, integer) orelse return error.NumberOutOfRange) };
-                }
-                const max_int: u64 = std.math.maxInt(i64);
-                if (parsed_number.integer[0] != '1' or integer <= max_int) return error.NumberOutOfRange;
-                return .{ .unsigned = integer };
-            }
-            return error.NumberOutOfRange;
+            return .{ .unsigned = integer };
         }
-
-        pub fn parseSigned(comptime phase: TokenPhase, src: *TokenIterator(opt)) Error!i64 {
-            const parsed_number = try FromString(.{ .can_be_float = false }).parse(opt, phase, src);
-
-            const digit_count = parsed_number.integer.len;
-            const negative = parsed_number.negative;
-            const integer = parsed_number.mantissa;
-
-            const longest_digit_count = max_digits - 1;
-            if (digit_count <= longest_digit_count) {
-                @branchHint(.likely);
-                if (integer > std.math.maxInt(i64) + @intFromBool(negative)) return error.NumberOutOfRange;
-
-                const i: i64 = @intCast(integer);
-                return if (negative) -i else i;
+        if (digit_count == longest_digit_count) {
+            @branchHint(.likely);
+            if (negative) {
+                return .{ .signed = -(std.math.cast(i64, integer) orelse return error.NumberOutOfRange) };
             }
-            return error.NumberOutOfRange;
+            const max_int: u64 = std.math.maxInt(i64);
+            if (parsed_number.integer[0] != '1' or integer <= max_int) return error.NumberOutOfRange;
+            return .{ .unsigned = integer };
         }
+        return error.NumberOutOfRange;
+    }
 
-        pub fn parseUnsigned(comptime phase: TokenPhase, src: *TokenIterator(opt)) Error!u64 {
-            const parsed_number = try FromString(.{
-                .can_be_float = false,
-                .can_be_signed = false,
-            }).parse(opt, phase, src);
+    pub fn parseSigned(src: [*]const u8) Error!i64 {
+        const parsed_number = try FromString(.{ .can_be_float = false }).parse(src);
 
-            const digit_count = parsed_number.integer.len;
-            const integer = parsed_number.mantissa;
+        const digit_count = parsed_number.integer.len;
+        const negative = parsed_number.negative;
+        const integer = parsed_number.mantissa;
 
-            const longest_digit_count = max_digits;
-            if (digit_count < longest_digit_count) {
-                @branchHint(.likely);
-                return integer;
-            }
-            if (digit_count == longest_digit_count) {
-                @branchHint(.likely);
-                if (parsed_number.integer[0] != '1' or
-                    integer <= std.math.maxInt(i64)) return error.NumberOutOfRange;
-                return integer;
-            }
-            return error.NumberOutOfRange;
+        const longest_digit_count = max_digits - 1;
+        if (digit_count <= longest_digit_count) {
+            @branchHint(.likely);
+            if (integer > std.math.maxInt(i64) + @intFromBool(negative)) return error.NumberOutOfRange;
+
+            const i: i64 = @intCast(integer);
+            return if (negative) -i else i;
         }
+        return error.NumberOutOfRange;
+    }
 
-        pub fn parseFloat(comptime phase: TokenPhase, src: *TokenIterator(opt)) Error!f64 {
-            var parsed_number = try FromString(.{}).parse(opt, phase, src);
-            return computeFloat(&parsed_number);
+    pub fn parseUnsigned(src: [*]const u8) Error!u64 {
+        const parsed_number = try FromString(.{
+            .can_be_float = false,
+            .can_be_signed = false,
+        }).parse(src);
+
+        const digit_count = parsed_number.integer.len;
+        const integer = parsed_number.mantissa;
+
+        const longest_digit_count = max_digits;
+        if (digit_count < longest_digit_count) {
+            @branchHint(.likely);
+            return integer;
         }
-    };
-}
+        if (digit_count == longest_digit_count) {
+            @branchHint(.likely);
+            if (parsed_number.integer[0] != '1' or
+                integer <= std.math.maxInt(i64)) return error.NumberOutOfRange;
+            return integer;
+        }
+        return error.NumberOutOfRange;
+    }
+
+    pub fn parseFloat(src: [*]const u8) Error!f64 {
+        var parsed_number = try FromString(.{}).parse(src);
+        return computeFloat(&parsed_number);
+    }
+};
 
 inline fn computeFloat(number: *FromString(.{})) Error!f64 {
     @setFloatMode(.strict);

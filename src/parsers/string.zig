@@ -3,7 +3,6 @@ const common = @import("../common.zig");
 const types = @import("../types.zig");
 const tokens = @import("../tokens.zig");
 const TokenIterator = tokens.Iterator;
-const TokenPhase = tokens.Phase;
 const TokenOptions = tokens.Options;
 const unicode = std.unicode;
 const vector = types.vector;
@@ -13,14 +12,10 @@ const ArrayList = std.ArrayList;
 const Error = types.Error;
 const readInt = std.mem.readInt;
 
-pub inline fn writeString(
-    comptime opt: TokenOptions,
-    comptime phase: TokenPhase,
-    src: *TokenIterator(opt),
-    dst: *ArrayList(u8),
-) Error!void {
+pub inline fn writeString(src: [*]const u8, dst: *ArrayList(u8)) Error!void {
+    var ptr = src + 1;
     while (true) {
-        const chunk = src.ptr[0..Vector.len_bytes];
+        const chunk = ptr[0..Vector.len_bytes];
         @memcpy(dst.items[dst.items.len..].ptr, chunk);
         const slash = Predicate.pack(Vector.slash == chunk.*);
         const quote = Predicate.pack(Vector.quote == chunk.*);
@@ -35,41 +30,37 @@ pub inline fn writeString(
         const has_any_slash = ((quote -% 1) & slash) != 0;
         if (has_any_slash) {
             const slash_index = @ctz(slash);
-            const escape_char = src.ptr[slash_index + 1];
+            const escape_char = ptr[slash_index + 1];
             if (escape_char == 'u') {
-                src.consume(slash_index, phase);
-                const codepoint = try handleUnicodeCodepoint(opt, src, phase);
+                ptr += slash_index;
+                const codepoint = try handleUnicodeCodepoint(&ptr);
                 dst.items.len += slash_index;
                 try utf8Encode(codepoint, dst);
             } else {
                 const escaped = escape_map[escape_char];
                 if (escaped == 0) return error.InvalidEscape;
-                src.consume(slash_index + 2, phase);
+                ptr += slash_index + 2;
                 dst.items.len += slash_index;
                 dst.appendAssumeCapacity(escaped);
             }
         } else {
             @branchHint(.likely);
             dst.items.len += Vector.len_bytes;
-            src.consume(Vector.len_bytes, phase);
+            ptr += Vector.len_bytes;
         }
     }
 }
 
-inline fn handleUnicodeCodepoint(
-    comptime opt: TokenOptions,
-    src: *TokenIterator(opt),
-    comptime phase: TokenPhase,
-) Error!u32 {
-    const first_literal = src.ptr[2..][0..4].*;
+inline fn handleUnicodeCodepoint(ptr: *[*]const u8) Error!u32 {
+    const first_literal = ptr.*[2..][0..4].*;
     const first_codepoint = parseHexDword(first_literal);
     if (utf16IsHighSurrogate(first_codepoint)) {
-        if (readInt(u16, src.ptr[2..][4..][0..2], .little) == readInt(u16, "\\u", .little)) {
+        if (readInt(u16, ptr.*[2..][4..][0..2], .little) == readInt(u16, "\\u", .little)) {
             const high_surrogate = first_codepoint;
-            const second_literal = src.ptr[2..][4..][2..][0..4].*;
+            const second_literal = ptr.*[2..][4..][2..][0..4].*;
             const low_surrogate = parseHexDword(second_literal);
             if (!utf16IsLowSurrogate(low_surrogate)) return error.InvalidUnicodeCodePoint;
-            src.consume(12, phase);
+            ptr.* += 12;
             const h = high_surrogate;
             const l = low_surrogate;
             return 0x10000 + ((h & 0x03ff) << 10) | (l & 0x03ff);
@@ -79,7 +70,7 @@ inline fn handleUnicodeCodepoint(
     } else if (utf16IsLowSurrogate(first_codepoint)) {
         return error.InvalidUnicodeCodePoint;
     }
-    src.consume(6, phase);
+    ptr.* += 6;
     return first_codepoint;
 }
 

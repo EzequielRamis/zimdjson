@@ -148,22 +148,24 @@ pub fn build(b: *std.Build) !void {
             const file_path = try getProvidedPath(com, &path_buf, use_cwd);
 
             if (parsers) |p| {
-                var suite = bench.Suite("indexer"){
-                    .zimdjson = zimdjson,
-                    .simdjson = p.simdjson,
-                    .target = target,
-                    .optimize = optimize,
-                };
-                const runner = suite.create(
+                var suite_ondemand = bench.Suite("indexer"){ .zimdjson = zimdjson, .simdjson = p.simdjson, .target = target, .optimize = optimize };
+                const runner_ondemand = suite_ondemand.create(
                     &.{
-                        suite.addZigBenchmark("zimdjson_ondemand"),
-                        suite.addCppBenchmark("simdjson_ondemand", p.simdjson),
-                        suite.addZigBenchmark("zimdjson_dom"),
-                        suite.addCppBenchmark("simdjson_dom", p.simdjson),
+                        suite_ondemand.addZigBenchmark("zimdjson_ondemand"),
+                        suite_ondemand.addCppBenchmark("simdjson_ondemand", p.simdjson),
                     },
                     file_path,
                 );
-                com.dependOn(&runner.step);
+                var suite_dom = bench.Suite("indexer"){ .zimdjson = zimdjson, .simdjson = p.simdjson, .target = target, .optimize = optimize };
+                const runner_dom = suite_dom.create(
+                    &.{
+                        suite_dom.addZigBenchmark("zimdjson_dom"),
+                        suite_dom.addCppBenchmark("simdjson_dom", p.simdjson),
+                    },
+                    file_path,
+                );
+                runner_dom.step.dependOn(&runner_ondemand.step);
+                com.dependOn(&runner_dom.step);
             }
         }
 

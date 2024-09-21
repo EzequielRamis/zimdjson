@@ -10,7 +10,7 @@ const Number = types.Number;
 const max_digits = common.max_digits;
 
 pub const Parser = struct {
-    pub fn parse(src: [*]const u8) Error!Number {
+    pub inline fn parse(src: [*]const u8) Error!Number {
         var parsed_number = try FromString(.{}).parse(src);
         if (parsed_number.is_float) return .{
             .float = try computeFloat(&parsed_number),
@@ -140,10 +140,14 @@ inline fn computeFloat(number: *FromString(.{})) Error!f64 {
     var bf = eisel_lemire.compute(number.mantissa, number.exponent);
     if (many_digits and bf.e >= 0) {
         if (!bf.eql(eisel_lemire.compute(number.mantissa + 1, number.exponent))) {
+            @branchHint(.unlikely);
             bf = eisel_lemire.computeError(number.mantissa, number.exponent);
         }
     }
-    if (bf.e < 0) digit_comp.compute(number.*, &bf);
+    if (bf.e < 0) {
+        @branchHint(.unlikely);
+        digit_comp.compute(number.*, &bf);
+    }
 
     if (bf.e == common.inf_exp) return error.NumberOutOfRange;
 

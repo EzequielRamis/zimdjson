@@ -7,7 +7,7 @@ const Limb = BigInt.Limb;
 const BiasedFp = common.BiasedFp;
 const assert = std.debug.assert;
 
-pub inline fn compute(parsed_number: FromString(.{}), bf: *BiasedFp) void {
+pub fn compute(parsed_number: FromString(.{}), bf: *BiasedFp) void {
     const sci_exp = scientificExponent(parsed_number);
 
     var bigman = BigInt.init();
@@ -22,7 +22,7 @@ pub inline fn compute(parsed_number: FromString(.{}), bf: *BiasedFp) void {
     }
 }
 
-inline fn positiveDigitComp(bigman: *BigInt, exp: u32, bf: *BiasedFp) void {
+fn positiveDigitComp(bigman: *BigInt, exp: u32, bf: *BiasedFp) void {
     assert(if (bigman.pow10(exp)) true else |_| false);
 
     const high = bigman.high64();
@@ -35,7 +35,7 @@ inline fn positiveDigitComp(bigman: *BigInt, exp: u32, bf: *BiasedFp) void {
     round(bf, positiveRound1, .{ .truncated = high.truncated });
 }
 
-inline fn negativeDigitComp(real_digits: *BigInt, real_exp: i32, bf: *BiasedFp) void {
+fn negativeDigitComp(real_digits: *BigInt, real_exp: i32, bf: *BiasedFp) void {
     var bf2 = bf.*;
     round(&bf2, negativeRound1, {});
     const b2 = bf2.toFloat(false);
@@ -58,7 +58,7 @@ inline fn negativeDigitComp(real_digits: *BigInt, real_exp: i32, bf: *BiasedFp) 
     round(bf, negativeRound2, .{ .order = order });
 }
 
-inline fn toExtendedHalfway(value: f64) BiasedFp {
+fn toExtendedHalfway(value: f64) BiasedFp {
     var bf = toExtended(value);
     bf.m <<= 1;
     bf.m += 1;
@@ -66,7 +66,7 @@ inline fn toExtendedHalfway(value: f64) BiasedFp {
     return bf;
 }
 
-inline fn toExtended(value: f64) BiasedFp {
+fn toExtended(value: f64) BiasedFp {
     const mask_exp = 0x7FF0000000000000;
     const mask_man = 0x000FFFFFFFFFFFFF;
     const mask_hid = 0x0010000000000000;
@@ -120,7 +120,7 @@ inline fn negativeRound3(is_odd: bool, _: bool, _: bool, args: anytype) bool {
     };
 }
 
-inline fn scientificExponent(parsed_number: FromString(.{})) i32 {
+fn scientificExponent(parsed_number: FromString(.{})) i32 {
     var man = parsed_number.mantissa;
     var exp: i32 = @truncate(parsed_number.exponent);
     while (man >= 10000) {
@@ -138,7 +138,7 @@ inline fn scientificExponent(parsed_number: FromString(.{})) i32 {
     return exp;
 }
 
-inline fn parseBigMantissa(bigint: *BigInt, number: FromString(.{})) i32 {
+fn parseBigMantissa(bigint: *BigInt, number: FromString(.{})) i32 {
     const max_digits = common.max_big_digits + 1;
     const step = common.max_digits - 1;
     var counter: u32 = 0;
@@ -227,7 +227,7 @@ inline fn parseBigMantissa(bigint: *BigInt, number: FromString(.{})) i32 {
     return digits;
 }
 
-inline fn skipZeroes(slice: *[]const u8) void {
+fn skipZeroes(slice: *[]const u8) void {
     const zer: types.vector = @splat('0');
     const len = types.Vector.len_bytes;
     while (slice.len >= len) {
@@ -241,7 +241,7 @@ inline fn skipZeroes(slice: *[]const u8) void {
     }
 }
 
-inline fn isTruncated(src: []const u8) bool {
+fn isTruncated(src: []const u8) bool {
     var slice = src;
     const zer: types.vector = @splat('0');
     const len = types.Vector.len_bytes;
@@ -254,12 +254,12 @@ inline fn isTruncated(src: []const u8) bool {
     return false;
 }
 
-inline fn roundUpBigInt(bigint: *BigInt, digits: *i32) void {
+fn roundUpBigInt(bigint: *BigInt, digits: *i32) void {
     addNative(bigint, 10, 1);
     digits.* += 1;
 }
 
-inline fn addNative(bigint: *BigInt, power: Limb, value: Limb) void {
+fn addNative(bigint: *BigInt, power: Limb, value: Limb) void {
     bigint.mulScalar(power) catch unreachable;
     bigint.addScalar(value) catch unreachable;
 }

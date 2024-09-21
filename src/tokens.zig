@@ -99,7 +99,7 @@ pub fn Iterator(comptime options: Options) type {
             // }
         }
 
-        pub inline fn challengePtr(self: *Self, ptr: [*]const u8) [*]const u8 {
+        pub inline fn challengeSource(self: *Self, ptr: [*]const u8) [*]const u8 {
             if (self.padding_token <= self.token - 1) {
                 @branchHint(.unlikely);
                 if (self.padding_token == 0) return ptr;

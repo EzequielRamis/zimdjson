@@ -157,9 +157,9 @@ pub fn build(b: *std.Build) !void {
                 const runner = suite.create(
                     &.{
                         suite.addZigBenchmark("zimdjson_ondemand"),
-                        // suite.addCppBenchmark("simdjson_ondemand", p.simdjson),
+                        suite.addCppBenchmark("simdjson_ondemand", p.simdjson),
                         suite.addZigBenchmark("zimdjson_dom"),
-                        // suite.addCppBenchmark("simdjson_dom", p.simdjson),
+                        suite.addCppBenchmark("simdjson_dom", p.simdjson),
                     },
                     file_path,
                 );
@@ -185,10 +185,10 @@ pub fn build(b: *std.Build) !void {
                 };
                 const runner = suite.create(
                     &.{
-                        suite.addZigBenchmark("zimdjson_ondemand"),
+                        // suite.addZigBenchmark("zimdjson_ondemand"),
                         // suite.addCppBenchmark("simdjson_ondemand", p.simdjson),
                         suite.addZigBenchmark("zimdjson_dom"),
-                        // suite.addCppBenchmark("simdjson_dom", p.simdjson),
+                        suite.addCppBenchmark("simdjson_dom", p.simdjson),
                     },
                     file_path,
                 );

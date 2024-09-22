@@ -21,7 +21,7 @@ const State = enum {
     scope_end,
 };
 
-pub const FitPtr = packed struct {
+pub const FitPtr = struct {
     ptr: u32,
     len: u32,
 };
@@ -182,12 +182,10 @@ pub fn Tape(comptime options: Options) type {
                             }
                         },
                         '}' => {
+                            assert(self.stack.capacity != 0);
                             const scope = self.stack.pop().object_opening;
-                            const scope_root: *FitPtr = brk: {
-                                assert(self.parsed.capacity != 0);
-                                const data = @call(.always_inline, MultiArrayList(Word).items, .{ self.parsed, .data });
-                                break :brk @ptrCast(&data[scope.ptr]);
-                            };
+                            assert(self.parsed.capacity != 0);
+                            const scope_root: *FitPtr = @ptrCast(&self.parsed.items(.data)[scope.ptr]);
                             self.parsed.appendAssumeCapacity(.{ .object_closing = scope });
                             scope_root.len = scope.len;
                             scope_root.ptr = @intCast(self.parsed.len);
@@ -243,12 +241,10 @@ pub fn Tape(comptime options: Options) type {
                     switch (t[0]) {
                         ',' => continue :state .array_value,
                         ']' => {
+                            assert(self.stack.capacity != 0);
                             const scope = self.stack.pop().array_opening;
-                            const scope_root: *FitPtr = brk: {
-                                assert(self.parsed.capacity != 0);
-                                const data = @call(.always_inline, MultiArrayList(Word).items, .{ self.parsed, .data });
-                                break :brk @ptrCast(&data[scope.ptr]);
-                            };
+                            assert(self.parsed.capacity != 0);
+                            const scope_root: *FitPtr = @ptrCast(&self.parsed.items(.data)[scope.ptr]);
                             self.parsed.appendAssumeCapacity(.{ .array_closing = scope });
                             scope_root.len = scope.len;
                             scope_root.ptr = @intCast(self.parsed.len);
@@ -258,21 +254,15 @@ pub fn Tape(comptime options: Options) type {
                     }
                 },
                 .scope_end => {
-                    const parent = brk: {
-                        assert(self.stack.capacity != 0);
-                        const tags = @call(.always_inline, MultiArrayList(Word).items, .{ self.stack, .tags });
-                        break :brk tags[self.stack.len - 1];
-                    };
+                    assert(self.stack.capacity != 0);
+                    const parent = self.stack.items(.tags)[self.stack.len - 1];
                     if (parent == .root) {
                         @branchHint(.unlikely);
                         const tail = self.tokens.next();
                         if (tail[0] != ' ') return error.TrailingContent;
-                        _ = self.stack.pop();
-                        const root: *FitPtr = brk: {
-                            assert(self.parsed.capacity != 0);
-                            const data = @call(.always_inline, MultiArrayList(Word).items, .{ self.parsed, .data });
-                            break :brk @ptrCast(&data[0]);
-                        };
+                        self.stack.len -= 1;
+                        assert(self.parsed.capacity != 0);
+                        const root: *FitPtr = @ptrCast(&self.parsed.items(.data)[0]);
                         root.ptr = @intCast(self.parsed.len);
                         self.parsed.appendAssumeCapacity(.{ .root = .{ .ptr = 0, .len = 0 } });
                         return;
@@ -287,11 +277,8 @@ pub fn Tape(comptime options: Options) type {
         }
 
         inline fn incrementContainerCount(self: *Self) void {
-            const scope: *FitPtr = brk: {
-                assert(self.stack.capacity != 0);
-                const data = @call(.always_inline, MultiArrayList(Word).items, .{ self.stack, .data });
-                break :brk @ptrCast(&data[self.stack.len - 1]);
-            };
+            assert(self.stack.capacity != 0);
+            const scope: *FitPtr = @ptrCast(&self.stack.items(.data)[self.stack.len - 1]);
             scope.len += 1;
         }
 
@@ -310,13 +297,11 @@ pub fn Tape(comptime options: Options) type {
                     else => error.ExpectedValue,
                 };
             }
+            assert(self.stack.capacity != 0);
             const s = self.stack.pop();
             self.parsed.appendAssumeCapacity(s);
-            const root: *FitPtr = brk: {
-                assert(self.parsed.capacity != 0);
-                const data = @call(.always_inline, MultiArrayList(Word).items, .{ self.parsed, .data });
-                break :brk @ptrCast(&data[0]);
-            };
+            assert(self.parsed.capacity != 0);
+            const root: *FitPtr = @ptrCast(&self.parsed.items(.data)[0]);
             root.ptr = @intCast(self.parsed.len);
         }
 

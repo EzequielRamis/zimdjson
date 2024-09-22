@@ -63,8 +63,9 @@ pub fn Parser(comptime options: Options) type {
             pub fn getObject(self: Visitor) Error!Object {
                 if (self.err) |err| return err;
 
-                const w = self.tape.parsed.items(.tags)[self.index];
-                return switch (w) {
+                assert(self.tape.parsed.capacity != 0);
+                const tag = self.tape.parsed.items(.tags)[self.index];
+                return switch (tag) {
                     .object_opening => Object{ .tape = self.tape, .root = self.index },
                     else => error.IncorrectType,
                 };
@@ -73,8 +74,9 @@ pub fn Parser(comptime options: Options) type {
             pub fn getArray(self: Visitor) Error!Array {
                 if (self.err) |err| return err;
 
-                const w = self.tape.parsed.items(.tags)[self.index];
-                return switch (w) {
+                assert(self.tape.parsed.capacity != 0);
+                const tag = self.tape.parsed.items(.tags)[self.index];
+                return switch (tag) {
                     .array_opening => Array{ .tape = self.tape, .root = self.index },
                     else => error.IncorrectType,
                 };
@@ -83,6 +85,7 @@ pub fn Parser(comptime options: Options) type {
             pub fn getString(self: Visitor) Error![]const u8 {
                 if (self.err) |err| return err;
 
+                assert(self.tape.parsed.capacity != 0);
                 const w = self.tape.parsed.get(self.index);
                 return switch (w) {
                     .string => |fit| self.tape.chars.items[fit.ptr..][0..fit.len],
@@ -93,6 +96,7 @@ pub fn Parser(comptime options: Options) type {
             pub fn getNumber(self: Visitor) Error!Number {
                 if (self.err) |err| return err;
 
+                assert(self.tape.parsed.capacity != 0);
                 const w = self.tape.parsed.get(self.index);
                 return switch (w) {
                     .unsigned => |n| .{ .unsigned = n },
@@ -105,6 +109,7 @@ pub fn Parser(comptime options: Options) type {
             pub fn getUnsigned(self: Visitor) Error!u64 {
                 if (self.err) |err| return err;
 
+                assert(self.tape.parsed.capacity != 0);
                 const w = self.tape.parsed.get(self.index);
                 return switch (w) {
                     .unsigned => |n| n,
@@ -116,6 +121,7 @@ pub fn Parser(comptime options: Options) type {
             pub fn getSigned(self: Visitor) Error!i64 {
                 if (self.err) |err| return err;
 
+                assert(self.tape.parsed.capacity != 0);
                 const w = self.tape.parsed.get(self.index);
                 return switch (w) {
                     .signed => |n| n,
@@ -127,6 +133,7 @@ pub fn Parser(comptime options: Options) type {
             pub fn getFloat(self: Visitor) Error!f64 {
                 if (self.err) |err| return err;
 
+                assert(self.tape.parsed.capacity != 0);
                 const w = self.tape.parsed.get(self.index);
                 return switch (w) {
                     .float => |n| n,
@@ -137,8 +144,9 @@ pub fn Parser(comptime options: Options) type {
             pub fn getBool(self: Visitor) Error!bool {
                 if (self.err) |err| return err;
 
-                const w = self.tape.parsed.items(.tags)[self.index];
-                return switch (w) {
+                assert(self.tape.parsed.capacity != 0);
+                const tag = self.tape.parsed.items(.tags)[self.index];
+                return switch (tag) {
                     .true => true,
                     .false => false,
                     else => error.IncorrectType,
@@ -148,13 +156,15 @@ pub fn Parser(comptime options: Options) type {
             pub fn isNull(self: Visitor) Error!bool {
                 if (self.err) |err| return err;
 
-                const w = self.tape.parsed.items(.tags)[self.index];
-                return w == .null;
+                assert(self.tape.parsed.capacity != 0);
+                const tag = self.tape.parsed.items(.tags)[self.index];
+                return tag == .null;
             }
 
             pub fn getAny(self: Visitor) Error!Element {
                 if (self.err) |err| return err;
 
+                assert(self.tape.parsed.capacity != 0);
                 const w = self.tape.parsed.get(self.index);
                 return switch (w) {
                     .true => .{ .bool = true },
@@ -217,10 +227,14 @@ pub fn Parser(comptime options: Options) type {
                 curr: u32,
 
                 pub fn next(self: *Iterator) ?Visitor {
-                    const word = self.tape.parsed.get(self.curr);
-                    if (word == .array_closing) return null;
-                    defer self.curr = switch (word) {
-                        .array_opening, .object_opening => |fit| fit.ptr,
+                    assert(self.tape.parsed.capacity != 0);
+                    const tag = self.tape.parsed.items(.tags)[self.curr];
+                    if (tag == .array_closing) return null;
+                    defer self.curr = brk: switch (tag) {
+                        .array_opening, .object_opening => {
+                            const fit: *tape.FitPtr = @ptrCast(&self.tape.parsed.items(.data)[self.curr]);
+                            break :brk fit.ptr;
+                        },
                         else => self.curr + 1,
                     };
                     return .{ .tape = self.tape, .index = self.curr };
@@ -246,9 +260,10 @@ pub fn Parser(comptime options: Options) type {
             }
 
             pub fn getSize(self: Array) u32 {
-                const w = self.tape.parsed.get(self.root);
-                assert(w == .array_opening);
-                return w.array_opening.len;
+                assert(self.tape.parsed.capacity != 0);
+                assert(self.tape.parsed.items(.tags)[self.root] == .array_opening);
+                const fit: *tape.FitPtr = @ptrCast(&self.tape.parsed.items(.data)[self.root]);
+                return fit.len;
             }
         };
 
@@ -266,13 +281,16 @@ pub fn Parser(comptime options: Options) type {
                 curr: u32,
 
                 pub fn next(self: *Iterator) ?Field {
-                    const word = self.tape.parsed.get(self.curr);
-                    if (word == .object_closing) return null;
+                    assert(self.tape.parsed.capacity != 0);
+                    const tags = self.tape.parsed.items(.tags);
+                    if (tags[self.curr] == .object_closing) return null;
                     const field = Visitor{ .tape = self.tape, .index = self.curr };
                     const value = Visitor{ .tape = self.tape, .index = self.curr + 1 };
-                    const value_word = self.tape.parsed.get(self.curr + 1);
-                    defer self.curr = switch (value_word) {
-                        .array_opening, .object_opening => |fit| fit.ptr,
+                    defer self.curr = brk: switch (tags[self.curr + 1]) {
+                        .array_opening, .object_opening => {
+                            const fit: *tape.FitPtr = @ptrCast(&self.tape.parsed.items(.data)[self.curr + 1]);
+                            break :brk fit.ptr;
+                        },
                         else => self.curr + 2,
                     };
                     return .{
@@ -300,9 +318,10 @@ pub fn Parser(comptime options: Options) type {
             }
 
             pub fn getSize(self: Object) u32 {
-                const w = self.tape.parsed.get(self.root);
-                assert(w == .object_opening);
-                return w.object_opening.len;
+                assert(self.tape.parsed.capacity != 0);
+                assert(self.tape.parsed.items(.tags)[self.root] == .object_opening);
+                const fit: *tape.FitPtr = @ptrCast(&self.tape.parsed.items(.data)[self.root]);
+                return fit.len;
             }
         };
     };

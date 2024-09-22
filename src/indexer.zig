@@ -83,31 +83,15 @@ pub fn Indexer(comptime options: Options) type {
         }
 
         inline fn step(self: *Self, block: Reader.Block, i: u32) void {
-            switch (Reader.MASKS_PER_ITER) {
-                1 => {
-                    const chunk: Aligned.chunk = @alignCast(block[0..Mask.len_bits]);
-                    var vecs: types.vectors = undefined;
-                    inline for (0..Mask.computed_vectors) |j| {
-                        vecs[j] = @as(Aligned.vector, @alignCast(chunk[j * Vector.len_bytes ..][0..Vector.len_bytes])).*;
-                    }
-                    const tokens = self.identify(vecs);
-                    self.next(vecs, tokens, i);
-                },
-                2 => {
-                    const chunk1: Aligned.chunk = @alignCast(block[0..Mask.len_bits]);
-                    const chunk2: Aligned.chunk = @alignCast(block[Mask.len_bits..][0..Mask.len_bits]);
-                    var vecs1: types.vectors = undefined;
-                    var vecs2: types.vectors = undefined;
-                    inline for (0..Mask.computed_vectors) |j| {
-                        vecs1[j] = @as(Aligned.vector, @alignCast(chunk1[j * Vector.len_bytes ..][0..Vector.len_bytes])).*;
-                        vecs2[j] = @as(Aligned.vector, @alignCast(chunk2[j * Vector.len_bytes ..][0..Vector.len_bytes])).*;
-                    }
-                    const tokens1 = self.identify(vecs1);
-                    const tokens2 = self.identify(vecs2);
-                    self.next(vecs1, tokens1, i);
-                    self.next(vecs2, tokens2, i + Mask.len_bits);
-                },
-                else => unreachable,
+            inline for (0..Reader.MASKS_PER_ITER) |m| {
+                const offset = @as(comptime_int, m) * Mask.len_bits;
+                const chunk: Aligned.chunk = @alignCast(block[offset..][0..Mask.len_bits]);
+                var vecs: types.vectors = undefined;
+                inline for (0..Mask.computed_vectors) |j| {
+                    vecs[j] = @as(Aligned.vector, @alignCast(chunk[j * Vector.len_bytes ..][0..Vector.len_bytes])).*;
+                }
+                const tokens = self.identify(vecs);
+                self.next(vecs, tokens, i + offset);
             }
         }
 
@@ -234,20 +218,20 @@ pub fn Indexer(comptime options: Options) type {
         inline fn extract(self: *Self, tokens: umask, i: u32) void {
             const steps = 4;
             const steps_until = 24;
-            const pop_count = @popCount(tokens);
-            const new_len = self.indexes.items.len + pop_count;
+            const pop_count: u32 = @popCount(tokens);
             const ixs = self.indexes.items[self.indexes.items.len..].ptr;
+            self.indexes.items.len += pop_count;
             var s = if (cpu.arch.isARM()) @bitReverse(tokens) else tokens;
             inline for (0..steps_until / steps) |u| {
                 if (u * steps < pop_count) {
                     @branchHint(.unlikely);
                     inline for (0..steps) |j| {
                         if (cpu.arch.isARM()) {
-                            const lz = @clz(s);
+                            const lz: u32 = @clz(s);
                             ixs[j + u * steps] = i + lz;
                             s ^= std.math.shr(umask, 1 << 63, lz);
                         } else {
-                            const tz = @ctz(s);
+                            const tz: u32 = @ctz(s);
                             ixs[j + u * steps] = i + tz;
                             s &= s -% 1;
                         }
@@ -258,17 +242,16 @@ pub fn Indexer(comptime options: Options) type {
                 @branchHint(.unlikely);
                 for (steps_until..pop_count) |j| {
                     if (cpu.arch.isARM()) {
-                        const lz = @clz(s);
+                        const lz: u32 = @clz(s);
                         ixs[j] = i + lz;
                         s ^= std.math.shr(umask, 1 << 63, lz);
                     } else {
-                        const tz = @ctz(s);
+                        const tz: u32 = @ctz(s);
                         ixs[j] = i + tz;
                         s &= s -% 1;
                     }
                 }
             }
-            self.indexes.items.len = new_len;
         }
     };
 }

@@ -75,7 +75,7 @@ pub fn Parser(comptime options: Options) type {
 
         const Visitor = struct {
             document: *Self,
-            token: u32,
+            token: [*]const u32,
             depth: u32,
             err: ?Error = null,
 
@@ -83,8 +83,7 @@ pub fn Parser(comptime options: Options) type {
                 if (self.err) |err| return err;
 
                 const document = self.document.tokens.document();
-                const indexes = self.document.tokens.indexes();
-                const token = document[indexes[self.token]];
+                const token = document[self.token[0]];
 
                 if (token == '{') {
                     Logger.logStart(self.document.*, "object", self.depth);
@@ -101,8 +100,7 @@ pub fn Parser(comptime options: Options) type {
                 if (self.err) |err| return err;
 
                 const document = self.document.tokens.document();
-                const indexes = self.document.tokens.indexes();
-                const token = document[indexes[self.token]];
+                const token = document[self.token[0]];
 
                 if (token == '[') {
                     Logger.logStart(self.document.*, "array ", self.depth);
@@ -315,8 +313,7 @@ pub fn Parser(comptime options: Options) type {
                     }
                 }
                 const document = self.document.tokens.document();
-                const indexes = self.document.tokens.indexes();
-                const token = document[indexes[self.token]];
+                const token = document[self.token[0]];
                 return if (token == '{')
                     error.IncompleteObject
                 else

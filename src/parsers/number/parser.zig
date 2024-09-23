@@ -11,9 +11,9 @@ const max_digits = common.max_digits;
 
 pub const Parser = struct {
     pub inline fn parse(src: [*]const u8) Error!Number {
-        var parsed_number = try FromString(.{}).parse(src);
+        const parsed_number = try FromString(.{}).parse(src);
         if (parsed_number.is_float) return .{
-            .float = try computeFloat(&parsed_number),
+            .float = try computeFloat(parsed_number),
         };
 
         const digit_count = parsed_number.integer.len;
@@ -21,14 +21,12 @@ pub const Parser = struct {
         const integer = parsed_number.mantissa;
         const longest_digit_count: u32 = if (negative) max_digits - 1 else max_digits;
         if (digit_count < longest_digit_count) {
-            @branchHint(.likely);
             if (std.math.cast(i64, integer)) |i| {
                 return .{ .signed = if (negative) -i else i };
             }
             return .{ .unsigned = integer };
         }
         if (digit_count == longest_digit_count) {
-            @branchHint(.likely);
             if (negative) {
                 return .{ .signed = -(std.math.cast(i64, integer) orelse return error.NumberOutOfRange) };
             }
@@ -48,7 +46,6 @@ pub const Parser = struct {
 
         const longest_digit_count = max_digits - 1;
         if (digit_count <= longest_digit_count) {
-            @branchHint(.likely);
             if (integer > std.math.maxInt(i64) + @intFromBool(negative)) return error.NumberOutOfRange;
 
             const i: i64 = @intCast(integer);
@@ -68,11 +65,9 @@ pub const Parser = struct {
 
         const longest_digit_count = max_digits;
         if (digit_count < longest_digit_count) {
-            @branchHint(.likely);
             return integer;
         }
         if (digit_count == longest_digit_count) {
-            @branchHint(.likely);
             if (parsed_number.integer[0] != '1' or
                 integer <= std.math.maxInt(i64)) return error.NumberOutOfRange;
             return integer;
@@ -81,13 +76,14 @@ pub const Parser = struct {
     }
 
     pub fn parseFloat(src: [*]const u8) Error!f64 {
-        var parsed_number = try FromString(.{}).parse(src);
-        return computeFloat(&parsed_number);
+        const parsed_number = try FromString(.{}).parse(src);
+        return computeFloat(parsed_number);
     }
 };
 
-inline fn computeFloat(number: *FromString(.{})) Error!f64 {
+inline fn computeFloat(_number: FromString(.{})) Error!f64 {
     @setFloatMode(.strict);
+    var number = _number;
 
     var many_digits = false;
     if (number.integer.len + number.decimal.len >= max_digits) {
@@ -140,13 +136,11 @@ inline fn computeFloat(number: *FromString(.{})) Error!f64 {
     var bf = eisel_lemire.compute(number.mantissa, number.exponent);
     if (many_digits and bf.e >= 0) {
         if (!bf.eql(eisel_lemire.compute(number.mantissa + 1, number.exponent))) {
-            @branchHint(.unlikely);
             bf = eisel_lemire.computeError(number.mantissa, number.exponent);
         }
     }
     if (bf.e < 0) {
-        @branchHint(.unlikely);
-        digit_comp.compute(number.*, &bf);
+        digit_comp.compute(number, &bf);
     }
 
     if (bf.e == common.inf_exp) return error.NumberOutOfRange;

@@ -18,7 +18,7 @@ pub inline fn writeString(src: [*]const u8, dst: *ArrayList(u8)) Error!void {
         const chunk = ptr[0..Vector.len_bytes];
         const slash = Predicate.pack(Vector.slash == chunk.*);
         const quote = Predicate.pack(Vector.quote == chunk.*);
-        @memcpy(dst.items[dst.items.len..][0..Vector.len_bytes], chunk);
+        @memcpy(dst.items.ptr[dst.items.len..][0..Vector.len_bytes], chunk);
 
         const has_quote_first = ((slash -% 1) & quote) != 0;
         if (has_quote_first) {

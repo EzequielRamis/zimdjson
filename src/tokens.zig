@@ -79,25 +79,24 @@ pub fn Iterator(comptime options: Options) type {
             return @ptrCast(&self.ptr[self.token[0]]);
         }
 
-        pub fn jumpBack(self: *Self, index: u32) void {
-            assert(index <= self.token);
+        pub fn jumpBack(self: *Self, token: [*]const u32) void {
+            assert(@intFromPtr(token) <= @intFromPtr(self.token));
 
-            // const doc = self.document();
-            // const ixs = self.indexes();
+            const doc = self.document();
 
-            // defer self.token = index;
-            // const i = ixs[index];
-            // const b = ixs[self.padding_token];
+            defer self.token = token;
+            const i = token[0];
+            const b = self.padding_token[0];
 
-            // if (index < self.padding_token) {
-            //     @branchHint(.likely);
-            //     self.ptr = doc[i..].ptr;
-            // } else {
-            //     const index_ptr = @intFromPtr(doc[i..].ptr);
-            //     const padding_ptr = @intFromPtr(doc[b..].ptr);
-            //     const offset_ptr = index_ptr - padding_ptr;
-            //     self.ptr = self.padding.items[offset_ptr..].ptr;
-            // }
+            if (@intFromPtr(token) < @intFromPtr(self.padding_token)) {
+                @branchHint(.likely);
+                self.ptr = doc[i..].ptr;
+            } else {
+                const index_ptr = @intFromPtr(doc[i..].ptr);
+                const padding_ptr = @intFromPtr(doc[b..].ptr);
+                const offset_ptr = index_ptr - padding_ptr;
+                self.ptr = self.padding.items[offset_ptr..].ptr;
+            }
         }
 
         inline fn challengeSource(self: *Self, ptr: [*]const u8) [*]const u8 {

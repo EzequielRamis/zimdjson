@@ -79,7 +79,6 @@ pub fn Indexer(comptime options: Options) type {
             if (!self.utf8_checker.succeeded()) return error.InvalidEncoding;
             if (self.prev_inside_string != 0) return error.ExpectedStringEnd;
             if (self.indexes.items.len == 0) return error.Empty;
-            self.indexes.appendAssumeCapacity(@intCast(self.reader.document.len)); // Sentinel index at ' '
         }
 
         inline fn step(self: *Self, block: Reader.Block, i: u32) void {

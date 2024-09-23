@@ -27,7 +27,7 @@ pub fn main() !void {
     while (true) {
         const index = rand.uintLessThan(u8, 100);
         const document = try parser.parse(file);
-        const created_at = try document.at("statuses").at(index).at("created_at").getString();
+        const created_at = try document.at(index).at("reportedOn").getString();
         tracy.messageCopy(created_at);
     }
 }

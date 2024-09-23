@@ -44,7 +44,7 @@ pub const Error = error{
     ExpectedValue,
     ExpectedColon,
     ExpectedStringEnd,
-    ExpectedKeyAsString,
+    ExpectedKey,
     ExpectedArrayCommaOrEnd,
     ExpectedObjectCommaOrEnd,
     IncompleteArray,

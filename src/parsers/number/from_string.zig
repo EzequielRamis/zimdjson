@@ -46,7 +46,7 @@ pub fn FromString(comptime sopt: FromStringOptions) type {
                 ptr += 1;
             }
             integer_len = @intCast(@intFromPtr(ptr) - @intFromPtr(integer_ptr));
-            if ((first_digit == '0' and integer_len > 1) or integer_len == 0) {
+            if (integer_len == 0 or (first_digit == '0' and integer_len > 1)) {
                 return error.InvalidNumberLiteral;
             }
 

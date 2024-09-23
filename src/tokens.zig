@@ -24,8 +24,8 @@ pub fn Iterator(comptime options: Options) type {
         indexer: Indexer,
         ptr: [*]const u8 = undefined,
         padding: ArrayList(u8),
-        padding_token: u32 = undefined,
-        token: u32 = undefined,
+        padding_token: [*]const u32 = undefined,
+        token: [*]const u32 = undefined,
 
         pub fn init(allocator: Allocator) Self {
             return .{
@@ -42,7 +42,8 @@ pub fn Iterator(comptime options: Options) type {
         pub fn build(self: *Self, doc: Aligned.slice) !void {
             try self.indexer.index(doc);
 
-            const ixs = self.indexes()[0 .. self.indexes().len - 1];
+            const ixs = self.indexes();
+            self.indexer.indexes.appendAssumeCapacity(@intCast(self.indexer.reader.document.len)); // Sentinel index at ' '
             const padding_bound = doc.len -| Vector.len_bytes;
             var padding_token: u32 = @intCast(ixs.len - 1);
             var rev = std.mem.reverseIterator(ixs);
@@ -50,14 +51,14 @@ pub fn Iterator(comptime options: Options) type {
                 if (t <= padding_bound) break;
             }
             if (self.document()[ixs[padding_token]] == '"') padding_token -|= 1;
-            self.token = 0;
-            self.padding_token = padding_token;
+            self.token = @ptrCast(&ixs[0]);
+            self.padding_token = @ptrCast(&ixs[padding_token]);
             const padding_index = if (padding_token == 0) 0 else ixs[padding_token];
             const padding_len = doc.len - padding_index;
             try self.padding.ensureTotalCapacity(padding_len + Vector.len_bytes);
             self.padding.items.len = padding_len + Vector.len_bytes;
-            @memset(self.padding.items, ' ');
             @memcpy(self.padding.items[0..padding_len], doc[padding_index..]);
+            self.padding.items[padding_len] = ' ';
             self.ptr = if (padding_token == 0) self.padding.items.ptr else doc.ptr;
         }
 
@@ -71,11 +72,11 @@ pub fn Iterator(comptime options: Options) type {
 
         pub inline fn next(self: *Self) [*]const u8 {
             defer self.token += 1;
-            return self.peek();
+            return self.challengeSource(self.peek());
         }
 
         pub inline fn peek(self: Self) [*]const u8 {
-            return @ptrCast(&self.ptr[self.indexes()[self.token]]);
+            return @ptrCast(&self.ptr[self.token[0]]);
         }
 
         pub fn jumpBack(self: *Self, index: u32) void {
@@ -99,14 +100,13 @@ pub fn Iterator(comptime options: Options) type {
             // }
         }
 
-        pub inline fn challengeSource(self: *Self, ptr: [*]const u8) [*]const u8 {
-            if (self.padding_token <= self.token - 1) {
+        inline fn challengeSource(self: *Self, ptr: [*]const u8) [*]const u8 {
+            if (@intFromPtr(self.padding_token) <= @intFromPtr(self.token)) {
                 @branchHint(.unlikely);
-                if (self.padding_token == 0) return ptr;
+                if (self.padding_token == @as([*]const u32, @ptrCast(&self.indexes()[0]))) return ptr;
                 const pad = @intFromPtr(self.padding.items.ptr);
-                self.ptr = @ptrFromInt(pad -% self.indexes()[self.padding_token]);
-                const i = self.indexes()[self.token - 1];
-                return @ptrCast(&self.ptr[i]);
+                self.ptr = @ptrFromInt(pad -% self.padding_token[0]);
+                return @ptrCast(&self.ptr[self.token[0]]);
             } else {
                 return ptr;
             }

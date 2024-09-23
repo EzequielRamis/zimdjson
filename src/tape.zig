@@ -148,10 +148,10 @@ pub fn Tape(comptime options: Options) type {
                                 .len = 1,
                             } });
                             self.parsed.appendAssumeCapacity(.{ .object_opening = undefined });
-                            try self.visitString(self.tokens.challengeSource(t));
+                            try self.visitString(t);
                             continue :state .object_field;
                         },
-                        else => return error.ExpectedKeyAsString,
+                        else => return error.ExpectedKey,
                     }
                 },
                 .object_field => {
@@ -175,18 +175,20 @@ pub fn Tape(comptime options: Options) type {
                             const t = self.tokens.next();
                             if (t[0] == '"') {
                                 self.incrementContainerCount();
-                                try self.visitString(self.tokens.challengeSource(t));
+                                try self.visitString(t);
                                 continue :state .object_field;
                             } else {
-                                return error.ExpectedKeyAsString;
+                                return error.ExpectedKey;
                             }
                         },
                         '}' => {
                             assert(self.stack.capacity != 0);
-                            const scope = self.stack.pop().object_opening;
+                            self.stack.len -= 1;
+                            assert(self.stack.items(.tags).ptr[self.stack.len] == .object_opening);
+                            const scope: *FitPtr = @ptrCast(&self.stack.items(.data).ptr[self.stack.len]);
                             assert(self.parsed.capacity != 0);
                             const scope_root: *FitPtr = @ptrCast(&self.parsed.items(.data)[scope.ptr]);
-                            self.parsed.appendAssumeCapacity(.{ .object_closing = scope });
+                            self.parsed.appendAssumeCapacity(.{ .object_closing = scope.* });
                             scope_root.len = scope.len;
                             scope_root.ptr = @intCast(self.parsed.len);
                             continue :state .scope_end;
@@ -242,10 +244,12 @@ pub fn Tape(comptime options: Options) type {
                         ',' => continue :state .array_value,
                         ']' => {
                             assert(self.stack.capacity != 0);
-                            const scope = self.stack.pop().array_opening;
+                            self.stack.len -= 1;
+                            assert(self.stack.items(.tags).ptr[self.stack.len] == .array_opening);
+                            const scope: *FitPtr = @ptrCast(&self.stack.items(.data).ptr[self.stack.len]);
                             assert(self.parsed.capacity != 0);
                             const scope_root: *FitPtr = @ptrCast(&self.parsed.items(.data)[scope.ptr]);
-                            self.parsed.appendAssumeCapacity(.{ .array_closing = scope });
+                            self.parsed.appendAssumeCapacity(.{ .array_closing = scope.* });
                             scope_root.len = scope.len;
                             scope_root.ptr = @intCast(self.parsed.len);
                             continue :state .scope_end;
@@ -305,9 +309,8 @@ pub fn Tape(comptime options: Options) type {
             root.ptr = @intCast(self.parsed.len);
         }
 
-        inline fn visitPrimitive(self: *Self, src: [*]const u8) Error!void {
-            const t = src[0];
-            const ptr = self.tokens.challengeSource(src);
+        inline fn visitPrimitive(self: *Self, ptr: [*]const u8) Error!void {
+            const t = ptr[0];
             if (t == '"') {
                 return self.visitString(ptr);
             } else if (t -% '0' < 10 or t == '-') {

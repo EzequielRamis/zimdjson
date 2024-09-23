@@ -16,9 +16,9 @@ pub inline fn writeString(src: [*]const u8, dst: *ArrayList(u8)) Error!void {
     var ptr = src + 1;
     while (true) {
         const chunk = ptr[0..Vector.len_bytes];
-        @memcpy(dst.items[dst.items.len..].ptr, chunk);
         const slash = Predicate.pack(Vector.slash == chunk.*);
         const quote = Predicate.pack(Vector.quote == chunk.*);
+        @memcpy(dst.items[dst.items.len..][0..Vector.len_bytes], chunk);
 
         const has_quote_first = ((slash -% 1) & quote) != 0;
         if (has_quote_first) {
@@ -44,7 +44,6 @@ pub inline fn writeString(src: [*]const u8, dst: *ArrayList(u8)) Error!void {
                 dst.appendAssumeCapacity(escaped);
             }
         } else {
-            @branchHint(.likely);
             dst.items.len += Vector.len_bytes;
             ptr += Vector.len_bytes;
         }

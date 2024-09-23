@@ -488,7 +488,7 @@ pub fn Parser(comptime options: Options) type {
                 const curr = t.token;
                 errdefer t.jumpBack(curr);
                 const quote = t.next() orelse return error.IncompleteObject;
-                if (quote.* != '"') return error.ExpectedKeyAsString;
+                if (quote.* != '"') return error.ExpectedKey;
                 const key = try key_visitor.getUnsafeString();
                 const colon = t.next() orelse return error.IncompleteObject;
                 if (colon.* != ':') return error.ExpectedColon;

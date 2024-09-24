@@ -1,5 +1,5 @@
 const std = @import("std");
-const tracy = @import("tracy");
+// const tracy = @import("tracy");
 const common = @import("common.zig");
 const types = @import("types.zig");
 const tokens = @import("tokens.zig");
@@ -98,8 +98,8 @@ pub fn Tape(comptime options: Options) type {
             const t = &self.tokens;
             try t.build(doc);
 
-            const tracer = tracy.traceNamed(@src(), "Tape");
-            defer tracer.end();
+            // const tracer = tracy.traceNamed(@src(), "Tape");
+            // defer tracer.end();
 
             try self.chars.ensureTotalCapacity(t.indexer.reader.document.len + types.Vector.len_bytes);
             try self.stack.ensureTotalCapacity(self.allocator, options.max_depth);

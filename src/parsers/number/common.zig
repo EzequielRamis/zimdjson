@@ -15,6 +15,14 @@ pub const max_big_digits = 0x300;
 pub const inf_exp: i32 = 0x7FF;
 pub const man_bits = std.math.floatMantissaBits(f64);
 
+pub const FromString = struct {
+    integer: []const u8,
+    decimal: []const u8,
+    mantissa: u64,
+    exponent: i64,
+    negative: bool,
+};
+
 /// A custom 64-bit floating point type, representing `f * 2^e`.
 /// e is biased, so it be directly shifted into the exponent bits.
 /// Negative exponent indicates an invalid result.

@@ -1,6 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const tracy = @import("tracy");
+// const tracy = @import("tracy");
 const debug = @import("debug");
 const common = @import("common.zig");
 const types = @import("types.zig");
@@ -56,8 +56,8 @@ pub fn Indexer(comptime options: Options) type {
 
         pub fn index(self: *Self, document: Aligned.slice) !void {
             self.reader.read(document);
-            const tracer = tracy.traceNamed(@src(), "Indexer.index");
-            defer tracer.end();
+            // const tracer = tracy.traceNamed(@src(), "Indexer.index");
+            // defer tracer.end();
 
             try self.indexes.ensureTotalCapacity(self.reader.document.len + 1);
             self.indexes.shrinkRetainingCapacity(0);

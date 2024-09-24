@@ -176,7 +176,7 @@ pub fn Parser(comptime options: Options) type {
                 const curr = t.token;
                 errdefer t.jumpBack(curr);
 
-                if (self.document.tokens.peek() != '"') return error.IncorrectType;
+                if (self.document.tokens.peek()[0] != '"') return error.IncorrectType;
                 _ = t.next();
 
                 const string = try self.getUnsafeString();
@@ -217,7 +217,7 @@ pub fn Parser(comptime options: Options) type {
                 if (self.err) |err| return err;
 
                 var t = &self.document.tokens;
-                return switch (t.peek()) {
+                return switch (t.peek()[0]) {
                     't', 'f' => .{ .bool = try self.getBool() },
                     'n' => .{ .null = try self.isNull() },
                     '"' => .{ .string = try self.getString() },
@@ -269,7 +269,7 @@ pub fn Parser(comptime options: Options) type {
                 Logger.logDepth(wanted_depth, actual_depth.*);
 
                 if (actual_depth.* <= wanted_depth) return;
-                switch (t.next().?.*) {
+                switch (t.next()[0]) {
                     '[', '{', ':' => {
                         Logger.logStart(self.document.*, "skip  ", actual_depth.*);
                     },
@@ -281,7 +281,7 @@ pub fn Parser(comptime options: Options) type {
                         actual_depth.* -= 1;
                         if (actual_depth.* <= wanted_depth) return;
                     },
-                    '"' => if (t.peek() == ':') {
+                    '"' => if (t.peek()[0] == ':') {
                         Logger.log(self.document.*, "key   ", actual_depth.*);
                         _ = t.next();
                     } else {
@@ -296,8 +296,8 @@ pub fn Parser(comptime options: Options) type {
                     },
                 }
 
-                while (t.next()) |p| {
-                    switch (p.*) {
+                brk: while (true) {
+                    switch (t.next()[0]) {
                         '[', '{' => {
                             Logger.logStart(self.document.*, "skip  ", actual_depth.*);
                             actual_depth.* += 1;
@@ -306,6 +306,10 @@ pub fn Parser(comptime options: Options) type {
                             Logger.logEnd(self.document.*, "skip  ", actual_depth.*);
                             actual_depth.* -= 1;
                             if (actual_depth.* <= wanted_depth) return;
+                        },
+                        ' ' => {
+                            @branchHint(.unlikely);
+                            break :brk;
                         },
                         else => {
                             Logger.log(self.document.*, "skip  ", actual_depth.*);
@@ -328,7 +332,7 @@ pub fn Parser(comptime options: Options) type {
                 const write = @import("parsers/string.zig").writeString;
                 try write(t.ptr, chars);
                 const next_len = chars.items.len - next_str;
-                if (t.peek() == ':') {
+                if (t.peek()[0] == ':') {
                     Logger.log(self.document.*, "key   ", self.depth);
                 } else {
                     Logger.log(self.document.*, "string", self.depth);
@@ -354,14 +358,14 @@ pub fn Parser(comptime options: Options) type {
                 const t = &doc.tokens;
                 if (self.visitor.token == t.token) {
                     _ = t.next();
-                    if (t.peek() == ']') {
+                    if (t.peek()[0] == ']') {
                         _ = t.next();
                         self.visitor.document.depth -= 1;
                         return null;
                     }
                     return self.getVisitor();
                 }
-                switch (t.peek()) {
+                switch (t.peek()[0]) {
                     ',' => {
                         _ = t.next();
                         return self.getVisitor();
@@ -428,14 +432,14 @@ pub fn Parser(comptime options: Options) type {
                 const t = &doc.tokens;
                 if (self.visitor.token == t.token) {
                     _ = t.next();
-                    if (t.peek() == '}') {
+                    if (t.peek()[0] == '}') {
                         _ = t.next();
                         self.visitor.document.depth -= 1;
                         return null;
                     }
                     return try self.getField();
                 }
-                switch (t.peek()) {
+                switch (t.peek()[0]) {
                     ',' => {
                         _ = t.next();
                         return try self.getField();
@@ -484,11 +488,11 @@ pub fn Parser(comptime options: Options) type {
                 };
                 const curr = t.token;
                 errdefer t.jumpBack(curr);
-                const quote = t.next() orelse return error.IncompleteObject;
-                if (quote.* != '"') return error.ExpectedKey;
+                const quote = t.next();
+                if (quote[0] != '"') return error.ExpectedKey;
                 const key = try key_visitor.getUnsafeString();
-                const colon = t.next() orelse return error.IncompleteObject;
-                if (colon.* != ':') return error.ExpectedColon;
+                const colon = t.next();
+                if (colon[0] != ':') return error.ExpectedColon;
                 self.visitor.document.depth += 1;
                 return .{
                     .key = key,
@@ -516,7 +520,7 @@ pub fn Parser(comptime options: Options) type {
                     if (b.* == '\t') b.* = ' ';
                     if (b.* > 127) b.* = '*';
                 }
-                std.log.info("+{s} | {s} | depth: {} | next: {c}", .{ label, buffer, depth, t.peek() });
+                std.log.info("+{s} | {s} | depth: {} | next: {c}", .{ label, buffer, depth, t.peek()[0] });
             }
             pub fn log(parser: Self, label: []const u8, depth: u32) void {
                 if (true) return;
@@ -527,7 +531,7 @@ pub fn Parser(comptime options: Options) type {
                     if (b.* == '\t') b.* = ' ';
                     if (b.* > 127) b.* = '*';
                 }
-                std.log.info(" {s} | {s} | depth: {} | next: {c}", .{ label, buffer, depth, t.peek() });
+                std.log.info(" {s} | {s} | depth: {} | next: {c}", .{ label, buffer, depth, t.peek()[0] });
             }
             pub fn logEnd(parser: Self, label: []const u8, depth: u32) void {
                 if (true) return;
@@ -538,7 +542,7 @@ pub fn Parser(comptime options: Options) type {
                     if (b.* == '\t') b.* = ' ';
                     if (b.* > 127) b.* = '*';
                 }
-                std.log.info("-{s} | {s} | depth: {} | next: {c}", .{ label, buffer, depth, t.peek() });
+                std.log.info("-{s} | {s} | depth: {} | next: {c}", .{ label, buffer, depth, t.peek()[0] });
             }
         };
     };

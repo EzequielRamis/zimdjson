@@ -2,12 +2,12 @@ const std = @import("std");
 const common = @import("common.zig");
 const types = @import("../../types.zig");
 const BigInt = @import("BigInt.zig");
-const FromString = @import("from_string.zig").FromString;
 const Limb = BigInt.Limb;
+const FromString = common.FromString;
 const BiasedFp = common.BiasedFp;
 const assert = std.debug.assert;
 
-pub fn compute(parsed_number: FromString(.{}), bf: *BiasedFp) void {
+pub fn compute(parsed_number: FromString, bf: *BiasedFp) void {
     const sci_exp = scientificExponent(parsed_number);
 
     var bigman = BigInt.init();
@@ -120,7 +120,7 @@ inline fn negativeRound3(is_odd: bool, _: bool, _: bool, args: anytype) bool {
     };
 }
 
-fn scientificExponent(parsed_number: FromString(.{})) i32 {
+fn scientificExponent(parsed_number: FromString) i32 {
     var man = parsed_number.mantissa;
     var exp: i32 = @truncate(parsed_number.exponent);
     while (man >= 10000) {
@@ -138,7 +138,7 @@ fn scientificExponent(parsed_number: FromString(.{})) i32 {
     return exp;
 }
 
-fn parseBigMantissa(bigint: *BigInt, number: FromString(.{})) i32 {
+fn parseBigMantissa(bigint: *BigInt, number: FromString) i32 {
     const max_digits = common.max_big_digits + 1;
     const step = common.max_digits - 1;
     var counter: u32 = 0;

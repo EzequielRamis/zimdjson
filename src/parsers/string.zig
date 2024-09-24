@@ -22,14 +22,14 @@ pub inline fn writeString(src: [*]const u8, dst: *ArrayList(u8)) Error!void {
 
         const has_quote_first = ((slash -% 1) & quote) != 0;
         if (has_quote_first) {
-            const quote_index: u32 = @ctz(quote);
+            const quote_index: u8 = @ctz(quote);
             dst.items.len += quote_index;
             return;
         }
 
         const has_any_slash = ((quote -% 1) & slash) != 0;
         if (has_any_slash) {
-            const slash_index: u32 = @ctz(slash);
+            const slash_index: u8 = @ctz(slash);
             const escape_char = ptr[slash_index + 1];
             if (escape_char == 'u') {
                 ptr += slash_index;

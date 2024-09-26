@@ -2,8 +2,6 @@ const std = @import("std");
 const common = @import("../common.zig");
 const types = @import("../types.zig");
 const tokens = @import("../tokens.zig");
-const TokenIterator = tokens.Iterator;
-const TokenOptions = tokens.Options;
 const Error = types.Error;
 const readInt = std.mem.readInt;
 

@@ -84,7 +84,7 @@ pub const Parser = struct {
         return error.NumberOutOfRange;
     }
 
-    pub fn parseSigned(src: [*]const u8) Error!i64 {
+    pub inline fn parseSigned(src: [*]const u8) Error!i64 {
         var ptr = src;
         const is_negative = ptr[0] == '-';
 
@@ -116,7 +116,7 @@ pub const Parser = struct {
         return error.NumberOutOfRange;
     }
 
-    pub fn parseUnsigned(src: [*]const u8) Error!u64 {
+    pub inline fn parseUnsigned(src: [*]const u8) Error!u64 {
         var ptr = src;
         const is_negative = ptr[0] == '-';
         if (is_negative) return error.InvalidNumberLiteral;
@@ -149,7 +149,7 @@ pub const Parser = struct {
         return error.NumberOutOfRange;
     }
 
-    pub fn parseFloat(src: [*]const u8) Error!f64 {
+    pub inline fn parseFloat(src: [*]const u8) Error!f64 {
         var ptr = src;
         const is_negative = ptr[0] == '-';
 
@@ -262,6 +262,7 @@ inline fn computeFloat(_number: number_common.FromString) Error!f64 {
         }
     }
     if (bf.e < 0) {
+        @branchHint(.unlikely);
         digit_comp.compute(number, &bf);
     }
 

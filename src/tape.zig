@@ -1,5 +1,5 @@
 const std = @import("std");
-// const tracy = @import("tracy");
+const tracy = @import("tracy");
 const common = @import("common.zig");
 const types = @import("types.zig");
 const tokens = @import("tokens.zig");
@@ -98,8 +98,8 @@ pub fn Tape(comptime options: Options) type {
             const t = &self.tokens;
             try t.build(doc);
 
-            // const tracer = tracy.traceNamed(@src(), "Tape");
-            // defer tracer.end();
+            const tracer = tracy.traceNamed(@src(), "Tape");
+            defer tracer.end();
 
             try self.chars.ensureTotalCapacity(t.indexer.reader.document.len + types.Vector.len_bytes);
             try self.stack.ensureTotalCapacity(self.allocator, options.max_depth);
@@ -172,9 +172,9 @@ pub fn Tape(comptime options: Options) type {
                 .object_continue => {
                     switch (self.tokens.next()[0]) {
                         ',' => {
+                            self.incrementContainerCount();
                             const t = self.tokens.next();
                             if (t[0] == '"') {
-                                self.incrementContainerCount();
                                 try self.visitString(t);
                                 continue :state .object_field;
                             } else {
@@ -228,7 +228,6 @@ pub fn Tape(comptime options: Options) type {
                 },
                 .array_value => {
                     const t = self.tokens.next();
-                    self.incrementContainerCount();
                     switch (t[0]) {
                         '{' => continue :state .object_begin,
                         '[' => continue :state .array_begin,
@@ -241,7 +240,10 @@ pub fn Tape(comptime options: Options) type {
                 .array_continue => {
                     const t = self.tokens.next();
                     switch (t[0]) {
-                        ',' => continue :state .array_value,
+                        ',' => {
+                            self.incrementContainerCount();
+                            continue :state .array_value;
+                        },
                         ']' => {
                             assert(self.stack.capacity != 0);
                             self.stack.len -= 1;
@@ -262,8 +264,8 @@ pub fn Tape(comptime options: Options) type {
                     const parent = self.stack.items(.tags)[self.stack.len - 1];
                     if (parent == .root) {
                         @branchHint(.unlikely);
-                        const tail = self.tokens.next();
-                        if (tail[0] != ' ') return error.TrailingContent;
+                        const trail = self.tokens.next();
+                        if (trail[0] != ' ') return error.TrailingContent;
                         self.stack.len -= 1;
                         assert(self.parsed.capacity != 0);
                         const root: *FitPtr = @ptrCast(&self.parsed.items(.data)[0]);
@@ -288,13 +290,14 @@ pub fn Tape(comptime options: Options) type {
 
         fn visitRootPrimitive(self: *Self, ptr: [*]const u8) Error!void {
             if (self.tokens.indexer.indexes.items.len > 2) return error.TrailingContent;
-            if (ptr[0] == '"') {
+            const t = ptr[0];
+            if (t == '"') {
                 try self.visitString(ptr);
-            } else if (ptr[0] -% '0' < 10 or ptr[0] == '-') {
+            } else if (t -% '0' < 10 or t == '-') {
                 try self.visitNumber(ptr);
             } else {
                 @branchHint(.unlikely);
-                try switch (ptr[0]) {
+                try switch (t) {
                     't' => self.visitTrue(ptr),
                     'f' => self.visitFalse(ptr),
                     'n' => self.visitNull(ptr),

@@ -287,7 +287,7 @@ inline fn parseDigit(ptr: [*]const u8) ?u8 {
 
 inline fn parseDecimal(ptr: *[*]const u8, man: *u64) void {
     while (number_common.isEightDigits(ptr.*[0..8].*)) {
-        man.* = man.* *% 100000000 +% number_common.parseEightDigits(ptr.*[0..8].*);
+        man.* = man.* *% 100000000 +% number_common.parseEightDigits(ptr.*);
         ptr.* += 8;
     }
 

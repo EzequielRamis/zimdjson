@@ -19,6 +19,7 @@ const State = enum {
     array_value,
     array_continue,
     scope_end,
+    end,
 };
 
 pub const FitPtr = struct {
@@ -119,47 +120,67 @@ pub fn Tape(comptime options: Options) type {
                 .start => {
                     const t = self.tokens.next();
                     switch (t[0]) {
-                        '{' => continue :state .object_begin,
-                        '[' => continue :state .array_begin,
-                        else => return self.visitRootPrimitive(t),
+                        '{' => {
+                            if (self.tokens.peek()[0] == '}') {
+                                @branchHint(.unlikely);
+                                try self.visitEmptyObject();
+                                continue :state .end;
+                            }
+                            continue :state .object_begin;
+                        },
+                        '[' => {
+                            if (self.tokens.peek()[0] == ']') {
+                                @branchHint(.unlikely);
+                                try self.visitEmptyArray();
+                                continue :state .end;
+                            }
+                            continue :state .array_begin;
+                        },
+                        else => {
+                            try self.visitPrimitive(t);
+                            continue :state .end;
+                        },
                     }
                 },
                 .object_begin => {
-                    const t = self.tokens.next();
-                    if (t[0] == '}') {
-                        @branchHint(.unlikely);
-                        self.parsed.appendAssumeCapacity(.{ .object_opening = .{
-                            .ptr = @intCast(self.parsed.len + 2),
-                            .len = 0,
-                        } });
-                        self.parsed.appendAssumeCapacity(.{ .object_closing = .{
-                            .ptr = @intCast(self.parsed.len),
-                            .len = 0,
-                        } });
-                        continue :state .scope_end;
-                    }
-                    switch (t[0]) {
-                        '"' => {
-                            if (self.stack.len >= options.max_depth)
-                                return error.ExceededDepth;
+                    if (self.stack.len >= options.max_depth)
+                        return error.ExceededDepth;
 
-                            self.stack.appendAssumeCapacity(.{ .object_opening = .{
-                                .ptr = @intCast(self.parsed.len),
-                                .len = 1,
-                            } });
-                            self.parsed.appendAssumeCapacity(.{ .object_opening = undefined });
-                            try self.visitString(t);
-                            continue :state .object_field;
-                        },
-                        else => return error.ExpectedKey,
-                    }
+                    self.stack.appendAssumeCapacity(.{ .object_opening = .{
+                        .ptr = @intCast(self.parsed.len),
+                        .len = 1,
+                    } });
+                    self.parsed.appendAssumeCapacity(.{ .object_opening = undefined });
+                    continue :state .object_field;
                 },
                 .object_field => {
+                    {
+                        const t = self.tokens.next();
+                        if (t[0] == '"') {
+                            try self.visitString(t);
+                        } else {
+                            return error.ExpectedKey;
+                        }
+                    }
                     if (self.tokens.next()[0] == ':') {
                         const t = self.tokens.next();
                         switch (t[0]) {
-                            '{' => continue :state .object_begin,
-                            '[' => continue :state .array_begin,
+                            '{' => {
+                                if (self.tokens.peek()[0] == '}') {
+                                    @branchHint(.unlikely);
+                                    try self.visitEmptyObject();
+                                    continue :state .object_continue;
+                                }
+                                continue :state .object_begin;
+                            },
+                            '[' => {
+                                if (self.tokens.peek()[0] == ']') {
+                                    @branchHint(.unlikely);
+                                    try self.visitEmptyArray();
+                                    continue :state .object_continue;
+                                }
+                                continue :state .array_begin;
+                            },
                             else => {
                                 try self.visitPrimitive(t);
                                 continue :state .object_continue;
@@ -173,13 +194,7 @@ pub fn Tape(comptime options: Options) type {
                     switch (self.tokens.next()[0]) {
                         ',' => {
                             self.incrementContainerCount();
-                            const t = self.tokens.next();
-                            if (t[0] == '"') {
-                                try self.visitString(t);
-                                continue :state .object_field;
-                            } else {
-                                return error.ExpectedKey;
-                            }
+                            continue :state .object_field;
                         },
                         '}' => {
                             assert(self.stack.capacity != 0);
@@ -197,19 +212,6 @@ pub fn Tape(comptime options: Options) type {
                     }
                 },
                 .array_begin => {
-                    const t = self.tokens.next();
-                    if (t[0] == ']') {
-                        @branchHint(.unlikely);
-                        self.parsed.appendAssumeCapacity(.{ .array_opening = .{
-                            .ptr = @intCast(self.parsed.len + 2),
-                            .len = 0,
-                        } });
-                        self.parsed.appendAssumeCapacity(.{ .array_closing = .{
-                            .ptr = @intCast(self.parsed.len),
-                            .len = 0,
-                        } });
-                        continue :state .scope_end;
-                    }
                     if (self.stack.len >= options.max_depth)
                         return error.ExceededDepth;
                     self.stack.appendAssumeCapacity(.{ .array_opening = .{
@@ -217,20 +219,27 @@ pub fn Tape(comptime options: Options) type {
                         .len = 1,
                     } });
                     self.parsed.appendAssumeCapacity(.{ .array_opening = undefined });
-                    switch (t[0]) {
-                        '{' => continue :state .object_begin,
-                        '[' => continue :state .array_begin,
-                        else => {
-                            try self.visitPrimitive(t);
-                            continue :state .array_continue;
-                        },
-                    }
+                    continue :state .array_value;
                 },
                 .array_value => {
                     const t = self.tokens.next();
                     switch (t[0]) {
-                        '{' => continue :state .object_begin,
-                        '[' => continue :state .array_begin,
+                        '{' => {
+                            if (self.tokens.peek()[0] == '}') {
+                                @branchHint(.unlikely);
+                                try self.visitEmptyObject();
+                                continue :state .array_continue;
+                            }
+                            continue :state .object_begin;
+                        },
+                        '[' => {
+                            if (self.tokens.peek()[0] == ']') {
+                                @branchHint(.unlikely);
+                                try self.visitEmptyArray();
+                                continue :state .array_continue;
+                            }
+                            continue :state .array_begin;
+                        },
                         else => {
                             try self.visitPrimitive(t);
                             continue :state .array_continue;
@@ -262,22 +271,23 @@ pub fn Tape(comptime options: Options) type {
                 .scope_end => {
                     assert(self.stack.capacity != 0);
                     const parent = self.stack.items(.tags)[self.stack.len - 1];
-                    if (parent == .root) {
-                        @branchHint(.unlikely);
-                        const trail = self.tokens.next();
-                        if (trail[0] != ' ') return error.TrailingContent;
-                        self.stack.len -= 1;
-                        assert(self.parsed.capacity != 0);
-                        const root: *FitPtr = @ptrCast(&self.parsed.items(.data)[0]);
-                        root.ptr = @intCast(self.parsed.len);
-                        self.parsed.appendAssumeCapacity(.{ .root = .{ .ptr = 0, .len = 0 } });
-                        return;
-                    }
                     switch (parent) {
                         .array_opening => continue :state .array_continue,
                         .object_opening => continue :state .object_continue,
+                        .root => {
+                            @branchHint(.unlikely);
+                            continue :state .end;
+                        },
                         else => unreachable,
                     }
+                },
+                .end => {
+                    const trail = self.tokens.next();
+                    if (trail[0] != ' ') return error.TrailingContent;
+                    assert(self.parsed.capacity != 0);
+                    const root: *FitPtr = @ptrCast(&self.parsed.items(.data)[0]);
+                    root.ptr = @intCast(self.parsed.len);
+                    self.parsed.appendAssumeCapacity(.{ .root = .{ .ptr = 0, .len = 0 } });
                 },
             }
         }
@@ -288,45 +298,54 @@ pub fn Tape(comptime options: Options) type {
             scope.len += 1;
         }
 
-        fn visitRootPrimitive(self: *Self, ptr: [*]const u8) Error!void {
-            if (self.tokens.indexer.indexes.items.len > 2) return error.TrailingContent;
-            const t = ptr[0];
-            if (t == '"') {
-                try self.visitString(ptr);
-            } else if (t -% '0' < 10 or t == '-') {
-                try self.visitNumber(ptr);
-            } else {
-                @branchHint(.unlikely);
-                try switch (t) {
-                    't' => self.visitTrue(ptr),
-                    'f' => self.visitFalse(ptr),
-                    'n' => self.visitNull(ptr),
-                    else => error.ExpectedValue,
-                };
-            }
-            assert(self.stack.capacity != 0);
-            const s = self.stack.pop();
-            self.parsed.appendAssumeCapacity(s);
-            assert(self.parsed.capacity != 0);
-            const root: *FitPtr = @ptrCast(&self.parsed.items(.data)[0]);
-            root.ptr = @intCast(self.parsed.len);
-        }
-
         inline fn visitPrimitive(self: *Self, ptr: [*]const u8) Error!void {
             const t = ptr[0];
-            if (t == '"') {
-                return self.visitString(ptr);
-            } else if (t -% '0' < 10 or t == '-') {
-                return self.visitNumber(ptr);
-            } else {
-                @branchHint(.unlikely);
-                return switch (t) {
-                    't' => self.visitTrue(ptr),
-                    'f' => self.visitFalse(ptr),
-                    'n' => self.visitNull(ptr),
-                    else => error.ExpectedValue,
-                };
+            switch (t) {
+                '"' => {
+                    @branchHint(.likely);
+                    return self.visitString(ptr);
+                },
+                't' => {
+                    @branchHint(.unlikely);
+                    return self.visitTrue(ptr);
+                },
+                'f' => {
+                    @branchHint(.unlikely);
+                    return self.visitFalse(ptr);
+                },
+                'n' => {
+                    @branchHint(.unlikely);
+                    return self.visitNull(ptr);
+                },
+                else => {
+                    @branchHint(.likely);
+                    return self.visitNumber(ptr);
+                },
             }
+        }
+
+        inline fn visitEmptyObject(self: *Self) Error!void {
+            self.parsed.appendAssumeCapacity(.{ .object_opening = .{
+                .ptr = @intCast(self.parsed.len + 2),
+                .len = 0,
+            } });
+            self.parsed.appendAssumeCapacity(.{ .object_closing = .{
+                .ptr = @intCast(self.parsed.len),
+                .len = 0,
+            } });
+            _ = self.tokens.next();
+        }
+
+        inline fn visitEmptyArray(self: *Self) Error!void {
+            self.parsed.appendAssumeCapacity(.{ .array_opening = .{
+                .ptr = @intCast(self.parsed.len + 2),
+                .len = 0,
+            } });
+            self.parsed.appendAssumeCapacity(.{ .array_closing = .{
+                .ptr = @intCast(self.parsed.len),
+                .len = 0,
+            } });
+            _ = self.tokens.next();
         }
 
         inline fn visitString(self: *Self, ptr: [*]const u8) Error!void {

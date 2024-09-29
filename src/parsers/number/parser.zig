@@ -28,11 +28,13 @@ pub const Parser = struct {
         }
         const integer_len: usize = @intFromPtr(ptr) - @intFromPtr(integer_ptr);
         if (integer_len == 0 or (integer_ptr[0] == '0' and integer_len > 1)) {
-            return error.InvalidNumberLiteral;
+            @branchHint(.unlikely);
+            if (integer_ptr[0] -% '0' < 10) return error.InvalidNumberLiteral;
+            return error.ExpectedValue;
         }
 
-        var decimal_ptr: [*]const u8 = undefined;
-        var decimal_len: usize = undefined;
+        var decimal_ptr: [*]const u8 = ptr;
+        var decimal_len: usize = 0;
         if (ptr[0] == '.') {
             ptr += 1;
             decimal_ptr = ptr;
@@ -99,7 +101,9 @@ pub const Parser = struct {
         }
         const integer_len: usize = @intFromPtr(ptr) - @intFromPtr(integer_ptr);
         if (integer_len == 0 or (integer_ptr[0] == '0' and integer_len > 1)) {
-            return error.InvalidNumberLiteral;
+            @branchHint(.unlikely);
+            if (integer_ptr[0] -% '0' < 10) return error.InvalidNumberLiteral;
+            return error.ExpectedValue;
         }
 
         if (common.tables.is_structural_or_whitespace_negated[ptr[0]]) {
@@ -130,7 +134,9 @@ pub const Parser = struct {
         }
         const integer_len: usize = @intFromPtr(ptr) - @intFromPtr(integer_ptr);
         if (integer_len == 0 or (integer_ptr[0] == '0' and integer_len > 1)) {
-            return error.InvalidNumberLiteral;
+            @branchHint(.unlikely);
+            if (integer_ptr[0] -% '0' < 10) return error.InvalidNumberLiteral;
+            return error.ExpectedValue;
         }
 
         if (common.tables.is_structural_or_whitespace_negated[ptr[0]]) {
@@ -154,7 +160,6 @@ pub const Parser = struct {
         const is_negative = ptr[0] == '-';
 
         ptr += @intFromBool(is_negative);
-        const first_digit = ptr[0];
 
         var mantissa_10: u64 = 0;
         var exponent_10: i64 = 0;
@@ -165,8 +170,10 @@ pub const Parser = struct {
             ptr += 1;
         }
         const integer_len: usize = @intFromPtr(ptr) - @intFromPtr(integer_ptr);
-        if (integer_len == 0 or (first_digit == '0' and integer_len > 1)) {
-            return error.InvalidNumberLiteral;
+        if (integer_len == 0 or (integer_ptr[0] == '0' and integer_len > 1)) {
+            @branchHint(.unlikely);
+            if (integer_ptr[0] -% '0' < 10) return error.InvalidNumberLiteral;
+            return error.ExpectedValue;
         }
 
         var decimal_ptr: [*]const u8 = ptr;

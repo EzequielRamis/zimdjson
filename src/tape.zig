@@ -353,7 +353,10 @@ pub fn Tape(comptime options: Options) type {
             const parse = @import("parsers/string.zig").writeString;
             try parse(ptr, chars);
             const next_len = chars.items.len - next_str;
-            self.parsed.appendAssumeCapacity(.{ .string = .{ .ptr = @intCast(next_str), .len = @intCast(next_len) } });
+            self.parsed.appendAssumeCapacity(.{ .string = .{
+                .ptr = @intCast(next_str),
+                .len = @intCast(next_len),
+            } });
         }
 
         inline fn visitNumber(self: *Self, ptr: [*]const u8) Error!void {
@@ -370,19 +373,25 @@ pub fn Tape(comptime options: Options) type {
         inline fn visitTrue(self: *Self, ptr: [*]const u8) Error!void {
             const check = @import("parsers/atoms.zig").checkTrue;
             try check(ptr);
-            self.parsed.appendAssumeCapacity(.true);
+            self.parsed.len += 1;
+            assert(self.parsed.capacity != 0);
+            self.parsed.items(.tags)[self.parsed.len - 1] = .true;
         }
 
         inline fn visitFalse(self: *Self, ptr: [*]const u8) Error!void {
             const check = @import("parsers/atoms.zig").checkFalse;
             try check(ptr);
-            self.parsed.appendAssumeCapacity(.false);
+            self.parsed.len += 1;
+            assert(self.parsed.capacity != 0);
+            self.parsed.items(.tags)[self.parsed.len - 1] = .false;
         }
 
         inline fn visitNull(self: *Self, ptr: [*]const u8) Error!void {
             const check = @import("parsers/atoms.zig").checkNull;
             try check(ptr);
-            self.parsed.appendAssumeCapacity(.null);
+            self.parsed.len += 1;
+            assert(self.parsed.capacity != 0);
+            self.parsed.items(.tags)[self.parsed.len - 1] = .null;
         }
     };
 }

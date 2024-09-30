@@ -12,14 +12,10 @@ const max_digits = number_common.max_digits;
 
 pub const Parser = struct {
     pub inline fn parse(src: [*]const u8) Error!Number {
-        var ptr = src;
-        const is_negative = ptr[0] == '-';
-
-        ptr += @intFromBool(is_negative);
+        const is_negative = src[0] == '-';
+        var ptr = src + @intFromBool(is_negative);
 
         var mantissa_10: u64 = 0;
-        var exponent_10: i64 = 0;
-        var is_float = false;
 
         const integer_ptr: [*]const u8 = ptr;
         while (parseDigit(ptr)) |d| {
@@ -27,13 +23,12 @@ pub const Parser = struct {
             ptr += 1;
         }
         const integer_len: usize = @intFromPtr(ptr) - @intFromPtr(integer_ptr);
-        if (integer_len == 0 or (integer_ptr[0] == '0' and integer_len > 1)) {
-            @branchHint(.unlikely);
-            if (integer_ptr[0] -% '0' < 10) return error.InvalidNumberLiteral;
-            return error.ExpectedValue;
-        }
+        if (integer_len == 0) return error.ExpectedValue;
+        if (integer_ptr[0] == '0' and integer_len > 1) return error.InvalidNumberLiteral;
 
-        var decimal_ptr: [*]const u8 = ptr;
+        var exponent_10: i64 = 0;
+        var is_float = false;
+        var decimal_ptr: [*]const u8 = undefined;
         var decimal_len: usize = 0;
         if (ptr[0] == '.') {
             ptr += 1;
@@ -87,10 +82,8 @@ pub const Parser = struct {
     }
 
     pub inline fn parseSigned(src: [*]const u8) Error!i64 {
-        var ptr = src;
-        const is_negative = ptr[0] == '-';
-
-        ptr += @intFromBool(is_negative);
+        const is_negative = src[0] == '-';
+        var ptr = src + @intFromBool(is_negative);
 
         var mantissa_10: u64 = 0;
 
@@ -100,11 +93,8 @@ pub const Parser = struct {
             ptr += 1;
         }
         const integer_len: usize = @intFromPtr(ptr) - @intFromPtr(integer_ptr);
-        if (integer_len == 0 or (integer_ptr[0] == '0' and integer_len > 1)) {
-            @branchHint(.unlikely);
-            if (integer_ptr[0] -% '0' < 10) return error.InvalidNumberLiteral;
-            return error.ExpectedValue;
-        }
+        if (integer_len == 0) return error.ExpectedValue;
+        if (integer_ptr[0] == '0' and integer_len > 1) return error.InvalidNumberLiteral;
 
         if (common.tables.is_structural_or_whitespace_negated[ptr[0]]) {
             return error.InvalidNumberLiteral;
@@ -121,9 +111,9 @@ pub const Parser = struct {
     }
 
     pub inline fn parseUnsigned(src: [*]const u8) Error!u64 {
-        var ptr = src;
-        const is_negative = ptr[0] == '-';
+        const is_negative = src[0] == '-';
         if (is_negative) return error.InvalidNumberLiteral;
+        var ptr = src + @intFromBool(is_negative);
 
         var mantissa_10: u64 = 0;
 
@@ -133,11 +123,8 @@ pub const Parser = struct {
             ptr += 1;
         }
         const integer_len: usize = @intFromPtr(ptr) - @intFromPtr(integer_ptr);
-        if (integer_len == 0 or (integer_ptr[0] == '0' and integer_len > 1)) {
-            @branchHint(.unlikely);
-            if (integer_ptr[0] -% '0' < 10) return error.InvalidNumberLiteral;
-            return error.ExpectedValue;
-        }
+        if (integer_len == 0) return error.ExpectedValue;
+        if (integer_ptr[0] == '0' and integer_len > 1) return error.InvalidNumberLiteral;
 
         if (common.tables.is_structural_or_whitespace_negated[ptr[0]]) {
             return error.InvalidNumberLiteral;
@@ -156,13 +143,10 @@ pub const Parser = struct {
     }
 
     pub inline fn parseFloat(src: [*]const u8) Error!f64 {
-        var ptr = src;
-        const is_negative = ptr[0] == '-';
-
-        ptr += @intFromBool(is_negative);
+        const is_negative = src[0] == '-';
+        var ptr = src + @intFromBool(is_negative);
 
         var mantissa_10: u64 = 0;
-        var exponent_10: i64 = 0;
 
         const integer_ptr: [*]const u8 = ptr;
         while (parseDigit(ptr)) |d| {
@@ -170,13 +154,15 @@ pub const Parser = struct {
             ptr += 1;
         }
         const integer_len: usize = @intFromPtr(ptr) - @intFromPtr(integer_ptr);
-        if (integer_len == 0 or (integer_ptr[0] == '0' and integer_len > 1)) {
-            @branchHint(.unlikely);
-            if (integer_ptr[0] -% '0' < 10) return error.InvalidNumberLiteral;
+        if (integer_len == 0) {
             return error.ExpectedValue;
         }
+        if (integer_ptr[0] == '0' and integer_len > 1) {
+            return error.InvalidNumberLiteral;
+        }
 
-        var decimal_ptr: [*]const u8 = ptr;
+        var exponent_10: i64 = 0;
+        var decimal_ptr: [*]const u8 = undefined;
         var decimal_len: usize = 0;
         if (ptr[0] == '.') {
             ptr += 1;

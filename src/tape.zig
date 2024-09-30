@@ -107,10 +107,7 @@ pub fn Tape(comptime options: Options) type {
             try self.parsed.ensureTotalCapacity(self.allocator, t.indexer.indexes.items.len + 2);
             self.chars.shrinkRetainingCapacity(0);
             self.stack.shrinkRetainingCapacity(0);
-            self.parsed.shrinkRetainingCapacity(0);
-
-            self.stack.appendAssumeCapacity(.{ .root = .{ .ptr = 0, .len = 0 } });
-            self.parsed.appendAssumeCapacity(.{ .root = .{ .ptr = 0, .len = 0 } });
+            self.parsed.shrinkRetainingCapacity(1);
 
             return self.dispatch();
         }
@@ -150,7 +147,7 @@ pub fn Tape(comptime options: Options) type {
                         .ptr = @intCast(self.parsed.len),
                         .len = 1,
                     } });
-                    self.parsed.appendAssumeCapacity(.{ .object_opening = undefined });
+                    self.parsed.len += 1;
                     continue :state .object_field;
                 },
                 .object_field => {
@@ -202,10 +199,11 @@ pub fn Tape(comptime options: Options) type {
                             assert(self.stack.items(.tags).ptr[self.stack.len] == .object_opening);
                             const scope: *FitPtr = @ptrCast(&self.stack.items(.data).ptr[self.stack.len]);
                             assert(self.parsed.capacity != 0);
-                            const scope_root: *FitPtr = @ptrCast(&self.parsed.items(.data)[scope.ptr]);
+                            self.parsed.set(scope.ptr, .{ .object_opening = .{
+                                .ptr = @intCast(self.parsed.len),
+                                .len = scope.len,
+                            } });
                             self.parsed.appendAssumeCapacity(.{ .object_closing = scope.* });
-                            scope_root.len = scope.len;
-                            scope_root.ptr = @intCast(self.parsed.len);
                             continue :state .scope_end;
                         },
                         else => return error.ExpectedObjectCommaOrEnd,
@@ -218,7 +216,7 @@ pub fn Tape(comptime options: Options) type {
                         .ptr = @intCast(self.parsed.len),
                         .len = 1,
                     } });
-                    self.parsed.appendAssumeCapacity(.{ .array_opening = undefined });
+                    self.parsed.len += 1;
                     continue :state .array_value;
                 },
                 .array_value => {
@@ -259,10 +257,11 @@ pub fn Tape(comptime options: Options) type {
                             assert(self.stack.items(.tags).ptr[self.stack.len] == .array_opening);
                             const scope: *FitPtr = @ptrCast(&self.stack.items(.data).ptr[self.stack.len]);
                             assert(self.parsed.capacity != 0);
-                            const scope_root: *FitPtr = @ptrCast(&self.parsed.items(.data)[scope.ptr]);
+                            self.parsed.set(scope.ptr, .{ .array_opening = .{
+                                .ptr = @intCast(self.parsed.len),
+                                .len = scope.len,
+                            } });
                             self.parsed.appendAssumeCapacity(.{ .array_closing = scope.* });
-                            scope_root.len = scope.len;
-                            scope_root.ptr = @intCast(self.parsed.len);
                             continue :state .scope_end;
                         },
                         else => return error.ExpectedArrayCommaOrEnd,
@@ -270,14 +269,14 @@ pub fn Tape(comptime options: Options) type {
                 },
                 .scope_end => {
                     assert(self.stack.capacity != 0);
+                    if (self.stack.len == 0) {
+                        @branchHint(.unlikely);
+                        continue :state .end;
+                    }
                     const parent = self.stack.items(.tags)[self.stack.len - 1];
                     switch (parent) {
                         .array_opening => continue :state .array_continue,
                         .object_opening => continue :state .object_continue,
-                        .root => {
-                            @branchHint(.unlikely);
-                            continue :state .end;
-                        },
                         else => unreachable,
                     }
                 },
@@ -287,7 +286,7 @@ pub fn Tape(comptime options: Options) type {
                     assert(self.parsed.capacity != 0);
                     const root: *FitPtr = @ptrCast(&self.parsed.items(.data)[0]);
                     root.ptr = @intCast(self.parsed.len);
-                    self.parsed.appendAssumeCapacity(.{ .root = .{ .ptr = 0, .len = 0 } });
+                    self.parsed.appendAssumeCapacity(.{ .root = undefined });
                 },
             }
         }

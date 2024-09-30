@@ -304,21 +304,14 @@ pub fn Tape(comptime options: Options) type {
                     @branchHint(.likely);
                     return self.visitString(ptr);
                 },
-                't' => {
-                    @branchHint(.unlikely);
-                    return self.visitTrue(ptr);
-                },
-                'f' => {
-                    @branchHint(.unlikely);
-                    return self.visitFalse(ptr);
-                },
-                'n' => {
-                    @branchHint(.unlikely);
-                    return self.visitNull(ptr);
-                },
-                else => {
-                    @branchHint(.likely);
-                    return self.visitNumber(ptr);
+                else => switch (t) {
+                    't' => return self.visitTrue(ptr),
+                    'f' => return self.visitFalse(ptr),
+                    'n' => return self.visitNull(ptr),
+                    else => {
+                        @branchHint(.likely);
+                        return self.visitNumber(ptr);
+                    },
                 },
             }
         }

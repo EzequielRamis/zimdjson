@@ -106,6 +106,7 @@ pub fn Tape(comptime options: Options) type {
             try self.chars_buf.ensureTotalCapacity(t.indexer.reader.document.len + types.Vector.len_bytes);
             try self.stack.ensureTotalCapacity(self.allocator, options.max_depth);
             try self.parsed.ensureTotalCapacity(self.allocator, t.indexer.indexes.items.len + 2);
+
             self.chars_ptr = self.chars_buf.items.ptr;
             self.stack.shrinkRetainingCapacity(0);
             self.parsed.shrinkRetainingCapacity(1);

@@ -31,8 +31,7 @@ pub inline fn writeString(src: [*]const u8, _dst: [*]u8) Error![*]u8 {
             if (escape_char == 'u') {
                 ptr += slash_index;
                 const codepoint = try handleUnicodeCodepoint(&ptr);
-                dst += slash_index;
-                try utf8Encode(codepoint, &dst);
+                dst += slash_index + try utf8Encode(codepoint, dst);
             } else {
                 const escaped = escape_map[escape_char];
                 if (escaped == 0) return error.InvalidEscape;
@@ -70,32 +69,28 @@ inline fn handleUnicodeCodepoint(ptr: *[*]const u8) Error!u32 {
     return first_codepoint;
 }
 
-inline fn utf8Encode(c: u32, dst: *[*]u8) Error!void {
+inline fn utf8Encode(c: u32, dst: [*]u8) Error!u8 {
     if (c < 0x80) {
-        dst.*[0] = @intCast(c);
-        dst.* += 1;
-        return;
+        dst[0] = @intCast(c);
+        return 1;
     }
     if (c < 0x800) {
-        dst.*[0] = @as(u8, @intCast(0b11000000 | (c >> 6)));
-        dst.*[1] = @as(u8, @intCast(0b10000000 | (c & 0b111111)));
-        dst.* += 2;
-        return;
+        dst[0] = @as(u8, @intCast(0b11000000 | (c >> 6)));
+        dst[1] = @as(u8, @intCast(0b10000000 | (c & 0b111111)));
+        return 2;
     }
     if (c < 0x10000) {
-        dst.*[0] = @as(u8, @intCast(0b11100000 | (c >> 12)));
-        dst.*[1] = @as(u8, @intCast(0b10000000 | ((c >> 6) & 0b111111)));
-        dst.*[2] = @as(u8, @intCast(0b10000000 | (c & 0b111111)));
-        dst.* += 3;
-        return;
+        dst[0] = @as(u8, @intCast(0b11100000 | (c >> 12)));
+        dst[1] = @as(u8, @intCast(0b10000000 | ((c >> 6) & 0b111111)));
+        dst[2] = @as(u8, @intCast(0b10000000 | (c & 0b111111)));
+        return 3;
     }
     if (c < 0x110000) {
-        dst.*[0] = @as(u8, @intCast(0b11110000 | (c >> 18)));
-        dst.*[1] = @as(u8, @intCast(0b10000000 | ((c >> 12) & 0b111111)));
-        dst.*[2] = @as(u8, @intCast(0b10000000 | ((c >> 6) & 0b111111)));
-        dst.*[3] = @as(u8, @intCast(0b10000000 | (c & 0b111111)));
-        dst.* += 4;
-        return;
+        dst[0] = @as(u8, @intCast(0b11110000 | (c >> 18)));
+        dst[1] = @as(u8, @intCast(0b10000000 | ((c >> 12) & 0b111111)));
+        dst[2] = @as(u8, @intCast(0b10000000 | ((c >> 6) & 0b111111)));
+        dst[3] = @as(u8, @intCast(0b10000000 | (c & 0b111111)));
+        return 4;
     }
     return error.InvalidUnicodeCodePoint;
 }

@@ -119,7 +119,6 @@ pub fn Tape(comptime options: Options) type {
                     switch (t[0]) {
                         '{' => {
                             if (self.tokens.peek()[0] == '}') {
-                                @branchHint(.unlikely);
                                 try self.visitEmptyObject();
                                 continue :state .end;
                             }
@@ -127,7 +126,6 @@ pub fn Tape(comptime options: Options) type {
                         },
                         '[' => {
                             if (self.tokens.peek()[0] == ']') {
-                                @branchHint(.unlikely);
                                 try self.visitEmptyArray();
                                 continue :state .end;
                             }
@@ -164,7 +162,6 @@ pub fn Tape(comptime options: Options) type {
                         switch (t[0]) {
                             '{' => {
                                 if (self.tokens.peek()[0] == '}') {
-                                    @branchHint(.unlikely);
                                     try self.visitEmptyObject();
                                     continue :state .object_continue;
                                 }
@@ -172,7 +169,6 @@ pub fn Tape(comptime options: Options) type {
                             },
                             '[' => {
                                 if (self.tokens.peek()[0] == ']') {
-                                    @branchHint(.unlikely);
                                     try self.visitEmptyArray();
                                     continue :state .object_continue;
                                 }
@@ -195,9 +191,8 @@ pub fn Tape(comptime options: Options) type {
                         },
                         '}' => {
                             assert(self.stack.capacity != 0);
-                            self.stack.len -= 1;
-                            assert(self.stack.items(.tags).ptr[self.stack.len] == .object_opening);
-                            const scope: *FitPtr = @ptrCast(&self.stack.items(.data).ptr[self.stack.len]);
+                            assert(self.stack.items(.tags)[self.stack.len - 1] == .object_opening);
+                            const scope: *FitPtr = @ptrCast(&self.stack.items(.data)[self.stack.len - 1]);
                             assert(self.parsed.capacity != 0);
                             self.parsed.set(scope.ptr, .{ .object_opening = .{
                                 .ptr = @intCast(self.parsed.len),
@@ -224,7 +219,6 @@ pub fn Tape(comptime options: Options) type {
                     switch (t[0]) {
                         '{' => {
                             if (self.tokens.peek()[0] == '}') {
-                                @branchHint(.unlikely);
                                 try self.visitEmptyObject();
                                 continue :state .array_continue;
                             }
@@ -232,7 +226,6 @@ pub fn Tape(comptime options: Options) type {
                         },
                         '[' => {
                             if (self.tokens.peek()[0] == ']') {
-                                @branchHint(.unlikely);
                                 try self.visitEmptyArray();
                                 continue :state .array_continue;
                             }
@@ -253,9 +246,8 @@ pub fn Tape(comptime options: Options) type {
                         },
                         ']' => {
                             assert(self.stack.capacity != 0);
-                            self.stack.len -= 1;
-                            assert(self.stack.items(.tags).ptr[self.stack.len] == .array_opening);
-                            const scope: *FitPtr = @ptrCast(&self.stack.items(.data).ptr[self.stack.len]);
+                            assert(self.stack.items(.tags)[self.stack.len - 1] == .array_opening);
+                            const scope: *FitPtr = @ptrCast(&self.stack.items(.data)[self.stack.len - 1]);
                             assert(self.parsed.capacity != 0);
                             self.parsed.set(scope.ptr, .{ .array_opening = .{
                                 .ptr = @intCast(self.parsed.len),
@@ -269,6 +261,7 @@ pub fn Tape(comptime options: Options) type {
                 },
                 .scope_end => {
                     assert(self.stack.capacity != 0);
+                    self.stack.len -= 1;
                     if (self.stack.len == 0) {
                         @branchHint(.unlikely);
                         continue :state .end;
@@ -286,7 +279,10 @@ pub fn Tape(comptime options: Options) type {
                     assert(self.parsed.capacity != 0);
                     const root: *FitPtr = @ptrCast(&self.parsed.items(.data)[0]);
                     root.ptr = @intCast(self.parsed.len);
-                    self.parsed.appendAssumeCapacity(.{ .root = undefined });
+                    self.parsed.appendAssumeCapacity(.{ .root = .{
+                        .ptr = 0,
+                        .len = undefined,
+                    } });
                 },
             }
         }
@@ -366,24 +362,24 @@ pub fn Tape(comptime options: Options) type {
         inline fn visitTrue(self: *Self, ptr: [*]const u8) Error!void {
             const check = @import("parsers/atoms.zig").checkTrue;
             try check(ptr);
-            self.parsed.len += 1;
             assert(self.parsed.capacity != 0);
+            self.parsed.len += 1;
             self.parsed.items(.tags)[self.parsed.len - 1] = .true;
         }
 
         inline fn visitFalse(self: *Self, ptr: [*]const u8) Error!void {
             const check = @import("parsers/atoms.zig").checkFalse;
             try check(ptr);
-            self.parsed.len += 1;
             assert(self.parsed.capacity != 0);
+            self.parsed.len += 1;
             self.parsed.items(.tags)[self.parsed.len - 1] = .false;
         }
 
         inline fn visitNull(self: *Self, ptr: [*]const u8) Error!void {
             const check = @import("parsers/atoms.zig").checkNull;
             try check(ptr);
-            self.parsed.len += 1;
             assert(self.parsed.capacity != 0);
+            self.parsed.len += 1;
             self.parsed.items(.tags)[self.parsed.len - 1] = .null;
         }
     };

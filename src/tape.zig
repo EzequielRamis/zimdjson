@@ -75,7 +75,8 @@ pub fn Tape(comptime options: Options) type {
         parsed: MultiArrayList(Word),
         stack: MultiArrayList(Word),
         tokens: Tokens,
-        chars: ArrayList(u8),
+        chars_buf: ArrayList(u8),
+        chars_ptr: [*]u8 = undefined,
         allocator: Allocator,
 
         pub fn init(allocator: Allocator) Self {
@@ -83,7 +84,7 @@ pub fn Tape(comptime options: Options) type {
                 .parsed = MultiArrayList(Word){},
                 .stack = MultiArrayList(Word){},
                 .tokens = Tokens.init(allocator),
-                .chars = ArrayList(u8).init(allocator),
+                .chars_buf = ArrayList(u8).init(allocator),
                 .allocator = allocator,
             };
         }
@@ -92,7 +93,7 @@ pub fn Tape(comptime options: Options) type {
             self.parsed.deinit(self.allocator);
             self.stack.deinit(self.allocator);
             self.tokens.deinit();
-            self.chars.deinit();
+            self.chars_buf.deinit();
         }
 
         pub fn build(self: *Self, doc: Aligned.slice) !void {
@@ -102,10 +103,10 @@ pub fn Tape(comptime options: Options) type {
             const tracer = tracy.traceNamed(@src(), "Tape");
             defer tracer.end();
 
-            try self.chars.ensureTotalCapacity(t.indexer.reader.document.len + types.Vector.len_bytes);
+            try self.chars_buf.ensureTotalCapacity(t.indexer.reader.document.len + types.Vector.len_bytes);
             try self.stack.ensureTotalCapacity(self.allocator, options.max_depth);
             try self.parsed.ensureTotalCapacity(self.allocator, t.indexer.indexes.items.len + 2);
-            self.chars.shrinkRetainingCapacity(0);
+            self.chars_ptr = self.chars_buf.items.ptr;
             self.stack.shrinkRetainingCapacity(0);
             self.parsed.shrinkRetainingCapacity(1);
 
@@ -283,6 +284,7 @@ pub fn Tape(comptime options: Options) type {
                         .ptr = 0,
                         .len = undefined,
                     } });
+                    self.chars_buf.items.len = @intFromPtr(self.chars_ptr) - @intFromPtr(self.chars_buf.items.ptr);
                 },
             }
         }
@@ -337,15 +339,15 @@ pub fn Tape(comptime options: Options) type {
         }
 
         inline fn visitString(self: *Self, ptr: [*]const u8) Error!void {
-            const chars = &self.chars;
-            const next_str = chars.items.len;
+            const next_str = self.chars_ptr;
             const parse = @import("parsers/string.zig").writeString;
-            try parse(ptr, chars);
-            const next_len = chars.items.len - next_str;
+            const sentinel = try parse(ptr, next_str);
+            const next_len = @intFromPtr(sentinel) - @intFromPtr(next_str);
             self.parsed.appendAssumeCapacity(.{ .string = .{
-                .ptr = @intCast(next_str),
+                .ptr = @intCast(@intFromPtr(next_str) - @intFromPtr(self.chars_buf.items.ptr)),
                 .len = @intCast(next_len),
             } });
+            self.chars_ptr = sentinel;
         }
 
         inline fn visitNumber(self: *Self, ptr: [*]const u8) Error!void {

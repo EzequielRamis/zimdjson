@@ -6,23 +6,22 @@ const unicode = std.unicode;
 const vector = types.vector;
 const Vector = types.Vector;
 const Predicate = types.Predicate;
-const ArrayList = std.ArrayList;
 const Error = types.Error;
 const readInt = std.mem.readInt;
 
-pub inline fn writeString(src: [*]const u8, dst: *ArrayList(u8)) Error!void {
+pub inline fn writeString(src: [*]const u8, _dst: [*]u8) Error![*]u8 {
     var ptr = src + 1;
+    var dst = _dst;
     while (true) {
         const chunk = ptr[0..Vector.len_bytes];
         const slash = Predicate.pack(Vector.slash == chunk.*);
         const quote = Predicate.pack(Vector.quote == chunk.*);
-        @memcpy(dst.items.ptr[dst.items.len..][0..Vector.len_bytes], chunk);
+        @memcpy(dst[0..Vector.len_bytes], chunk);
 
         const has_quote_first = ((slash -% 1) & quote) != 0;
         if (has_quote_first) {
             const quote_index: u8 = @ctz(quote);
-            dst.items.len += quote_index;
-            return;
+            return dst + quote_index;
         }
 
         const has_any_slash = ((quote -% 1) & slash) != 0;
@@ -32,17 +31,17 @@ pub inline fn writeString(src: [*]const u8, dst: *ArrayList(u8)) Error!void {
             if (escape_char == 'u') {
                 ptr += slash_index;
                 const codepoint = try handleUnicodeCodepoint(&ptr);
-                dst.items.len += slash_index;
-                try utf8Encode(codepoint, dst);
+                dst += slash_index;
+                try utf8Encode(codepoint, &dst);
             } else {
                 const escaped = escape_map[escape_char];
                 if (escaped == 0) return error.InvalidEscape;
+                dst[slash_index] = escaped;
                 ptr += slash_index + 2;
-                dst.items.len += slash_index;
-                dst.appendAssumeCapacity(escaped);
+                dst += slash_index + 1;
             }
         } else {
-            dst.items.len += Vector.len_bytes;
+            dst += Vector.len_bytes;
             ptr += Vector.len_bytes;
         }
     }
@@ -71,30 +70,31 @@ inline fn handleUnicodeCodepoint(ptr: *[*]const u8) Error!u32 {
     return first_codepoint;
 }
 
-inline fn utf8Encode(c: u32, dst: *ArrayList(u8)) Error!void {
+inline fn utf8Encode(c: u32, dst: *[*]u8) Error!void {
     if (c < 0x80) {
-        dst.appendAssumeCapacity(@as(u8, @intCast(c)));
+        dst.*[0] = @intCast(c);
+        dst.* += 1;
         return;
     }
     if (c < 0x800) {
-        const buf = dst.addManyAsArrayAssumeCapacity(2);
-        buf[0] = @as(u8, @intCast(0b11000000 | (c >> 6)));
-        buf[1] = @as(u8, @intCast(0b10000000 | (c & 0b111111)));
+        dst.*[0] = @as(u8, @intCast(0b11000000 | (c >> 6)));
+        dst.*[1] = @as(u8, @intCast(0b10000000 | (c & 0b111111)));
+        dst.* += 2;
         return;
     }
     if (c < 0x10000) {
-        const buf = dst.addManyAsArrayAssumeCapacity(3);
-        buf[0] = @as(u8, @intCast(0b11100000 | (c >> 12)));
-        buf[1] = @as(u8, @intCast(0b10000000 | ((c >> 6) & 0b111111)));
-        buf[2] = @as(u8, @intCast(0b10000000 | (c & 0b111111)));
+        dst.*[0] = @as(u8, @intCast(0b11100000 | (c >> 12)));
+        dst.*[1] = @as(u8, @intCast(0b10000000 | ((c >> 6) & 0b111111)));
+        dst.*[2] = @as(u8, @intCast(0b10000000 | (c & 0b111111)));
+        dst.* += 3;
         return;
     }
     if (c < 0x110000) {
-        const buf = dst.addManyAsArrayAssumeCapacity(4);
-        buf[0] = @as(u8, @intCast(0b11110000 | (c >> 18)));
-        buf[1] = @as(u8, @intCast(0b10000000 | ((c >> 12) & 0b111111)));
-        buf[2] = @as(u8, @intCast(0b10000000 | ((c >> 6) & 0b111111)));
-        buf[3] = @as(u8, @intCast(0b10000000 | (c & 0b111111)));
+        dst.*[0] = @as(u8, @intCast(0b11110000 | (c >> 18)));
+        dst.*[1] = @as(u8, @intCast(0b10000000 | ((c >> 12) & 0b111111)));
+        dst.*[2] = @as(u8, @intCast(0b10000000 | ((c >> 6) & 0b111111)));
+        dst.*[3] = @as(u8, @intCast(0b10000000 | (c & 0b111111)));
+        dst.* += 4;
         return;
     }
     return error.InvalidUnicodeCodePoint;

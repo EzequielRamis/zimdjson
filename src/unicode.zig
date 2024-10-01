@@ -1,5 +1,4 @@
 const std = @import("std");
-const tracy = @import("tracy");
 const types = @import("types.zig");
 const intr = @import("intrinsics.zig");
 const io = @import("io.zig");

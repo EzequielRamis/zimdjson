@@ -15,19 +15,22 @@ pub fn build(b: *std.Build) !void {
     var center = try CommandCenter.init(allocator, b);
     defer center.deinit();
 
-    const zimdjson = b.addModule("zimdjson", .{ .root_source_file = b.path("src/root.zig") });
+    const zimdjson = getZimdjsonModule(b, .{
+        .target = target,
+        .optimize = optimize,
+    });
+    b.modules.put(b.dupe("zimdjson"), zimdjson) catch @panic("OOM");
 
     // -- Testing
     {
         var com = center.command("test", "Run all test suites");
         const com_generate = try com.sub("generate", "Generate automated tests", .{ .propagate = false });
 
-        const debug_module = getDebugModule(b, .{
+        const debugged_zimdjson = getZimdjsonModule(b, .{
             .target = target,
             .optimize = optimize,
-            .enable = com.isExecuted(),
+            .enable_debug = true,
         });
-        zimdjson.addImport("debug", debug_module);
 
         {
             const com_float_parsing = try com.sub("float-parsing", "Run 'float parsing' test suite", .{});
@@ -39,7 +42,7 @@ pub fn build(b: *std.Build) !void {
             if (com_float_parsing.with("parse_number_fxx")) |dep| {
                 addEmbeddedPath(b, float_parsing, dep, "parse_number_fxx");
             }
-            float_parsing.root_module.addImport("zimdjson", zimdjson);
+            float_parsing.root_module.addImport("zimdjson", debugged_zimdjson);
 
             const run_float_parsing = b.addRunArtifact(float_parsing);
             com_float_parsing.dependOn(&run_float_parsing.step);
@@ -67,7 +70,7 @@ pub fn build(b: *std.Build) !void {
             if (com_generate.with("simdjson-data")) |dep| {
                 addEmbeddedPath(b, minefield_gen, dep, "simdjson-data");
             }
-            minefield.root_module.addImport("zimdjson", zimdjson);
+            minefield.root_module.addImport("zimdjson", debugged_zimdjson);
 
             const run_minefield = b.addRunArtifact(minefield);
             com_minefield.dependOn(&run_minefield.step);
@@ -96,7 +99,7 @@ pub fn build(b: *std.Build) !void {
             if (com_generate.with("simdjson-data")) |dep| {
                 addEmbeddedPath(b, adversarial_gen, dep, "simdjson-data");
             }
-            adversarial.root_module.addImport("zimdjson", zimdjson);
+            adversarial.root_module.addImport("zimdjson", debugged_zimdjson);
 
             const run_adversarial = b.addRunArtifact(adversarial);
             com_adversarial.dependOn(&run_adversarial.step);
@@ -125,7 +128,7 @@ pub fn build(b: *std.Build) !void {
             if (com_generate.with("simdjson-data")) |dep| {
                 addEmbeddedPath(b, examples_gen, dep, "simdjson-data");
             }
-            examples.root_module.addImport("zimdjson", zimdjson);
+            examples.root_module.addImport("zimdjson", debugged_zimdjson);
 
             const run_examples = b.addRunArtifact(examples);
             com_examples.dependOn(&run_examples.step);
@@ -205,10 +208,10 @@ pub fn build(b: *std.Build) !void {
         var com = center.command("profile", "Profile with Tracy");
         const file_path = try getProvidedPath(com, &path_buf, use_cwd);
 
-        const tracy_module = getTracyModule(b, .{
+        const traced_zimdjson = getZimdjsonModule(b, .{
             .target = target,
             .optimize = optimize,
-            .enable = com.isExecuted(),
+            .enable_tracy = true,
         });
 
         const profile = b.addExecutable(.{
@@ -218,9 +221,8 @@ pub fn build(b: *std.Build) !void {
             .optimize = optimize,
         });
 
-        zimdjson.addImport("tracy", tracy_module);
-        profile.root_module.addImport("zimdjson", zimdjson);
-        profile.root_module.addImport("tracy", tracy_module);
+        profile.root_module.addImport("zimdjson", traced_zimdjson);
+        profile.root_module.addImport("tracy", traced_zimdjson.import_table.get("tracy").?);
 
         const run_profile = b.addRunArtifact(profile);
         run_profile.addArg(file_path);
@@ -245,6 +247,31 @@ fn getProvidedPath(com: cc.Command, buf: []u8, use_cwd: bool) ![]const u8 {
     } else return "";
 }
 
+fn getZimdjsonModule(
+    b: *std.Build,
+    options: struct {
+        target: std.Build.ResolvedTarget,
+        optimize: std.builtin.OptimizeMode,
+        enable_tracy: bool = false,
+        enable_debug: bool = false,
+    },
+) *std.Build.Module {
+    const module = b.createModule(.{
+        .root_source_file = b.path("src/root.zig"),
+    });
+    module.addImport("debug", getDebugModule(b, .{
+        .target = options.target,
+        .optimize = options.optimize,
+        .enable = options.enable_debug,
+    }));
+    module.addImport("tracy", getTracyModule(b, .{
+        .target = options.target,
+        .optimize = options.optimize,
+        .enable = options.enable_tracy,
+    }));
+    return module;
+}
+
 fn getDebugModule(
     b: *std.Build,
     options: struct {
@@ -262,7 +289,6 @@ fn getDebugModule(
         .optimize = options.optimize,
     });
     debug_module.addImport("build_options", debug_options.createModule());
-    if (!options.enable) return debug_module;
 
     return debug_module;
 }

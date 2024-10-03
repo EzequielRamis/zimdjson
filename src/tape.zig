@@ -190,8 +190,8 @@ pub fn Tape(comptime options: Options) type {
                             continue :state .object_field;
                         },
                         '}' => {
-                            assert(self.stack.capacity != 0);
                             assert(self.stack.items(.tags)[self.stack.len - 1] == .object_opening);
+                            assert(self.stack.capacity != 0);
                             const scope: *FitPtr = @ptrCast(&self.stack.items(.data)[self.stack.len - 1]);
                             assert(self.parsed.capacity != 0);
                             self.parsed.appendAssumeCapacity(.{ .object_closing = scope.* });
@@ -245,8 +245,8 @@ pub fn Tape(comptime options: Options) type {
                             continue :state .array_value;
                         },
                         ']' => {
-                            assert(self.stack.capacity != 0);
                             assert(self.stack.items(.tags)[self.stack.len - 1] == .array_opening);
+                            assert(self.stack.capacity != 0);
                             const scope: *FitPtr = @ptrCast(&self.stack.items(.data)[self.stack.len - 1]);
                             assert(self.parsed.capacity != 0);
                             self.parsed.appendAssumeCapacity(.{ .array_closing = scope.* });
@@ -260,12 +260,12 @@ pub fn Tape(comptime options: Options) type {
                     }
                 },
                 .scope_end => {
-                    assert(self.stack.capacity != 0);
                     self.stack.len -= 1;
                     if (self.stack.len == 0) {
                         @branchHint(.unlikely);
                         continue :state .end;
                     }
+                    assert(self.stack.capacity != 0);
                     const parent = self.stack.items(.tags)[self.stack.len - 1];
                     switch (parent) {
                         .array_opening => continue :state .array_continue,

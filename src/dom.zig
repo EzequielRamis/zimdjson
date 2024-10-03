@@ -40,11 +40,11 @@ pub fn Parser(comptime options: Options) type {
             try self.tape.build(document);
             return Visitor{
                 .tape = &self.tape,
-                .index = 1,
+                .index = 0,
             };
         }
 
-        const Element = union(enum) {
+        pub const Element = union(enum) {
             null,
             bool: bool,
             unsigned: u64,
@@ -55,7 +55,7 @@ pub fn Parser(comptime options: Options) type {
             array: Array,
         };
 
-        const Visitor = struct {
+        pub const Visitor = struct {
             tape: *const Tape,
             index: u32,
             err: ?Error = null,
@@ -88,7 +88,7 @@ pub fn Parser(comptime options: Options) type {
                 assert(self.tape.parsed.capacity != 0);
                 const w = self.tape.parsed.get(self.index);
                 return switch (w) {
-                    .string => |fit| self.tape.chars.items[fit.ptr..][0..fit.len],
+                    .string => |fit| self.tape.chars_buf.items[fit.ptr..][0..fit.len],
                     else => error.IncorrectType,
                 };
             }
@@ -169,11 +169,11 @@ pub fn Parser(comptime options: Options) type {
                 return switch (w) {
                     .true => .{ .bool = true },
                     .false => .{ .bool = false },
-                    .null => .{.null},
+                    .null => .null,
                     .unsigned => |n| .{ .unsigned = n },
                     .signed => |n| .{ .signed = n },
                     .float => |n| .{ .float = n },
-                    .string => |fit| .{ .string = self.tape.chars.items[fit.ptr..][0..fit.len] },
+                    .string => |fit| .{ .string = self.tape.chars_buf.items[fit.ptr..][0..fit.len] },
                     .object_opening => .{ .object = .{ .tape = self.tape, .root = self.index } },
                     .array_opening => .{ .array = .{ .tape = self.tape, .root = self.index } },
                     else => unreachable,
@@ -218,7 +218,7 @@ pub fn Parser(comptime options: Options) type {
             }
         };
 
-        const Array = struct {
+        pub const Array = struct {
             tape: *const Tape,
             root: u32,
 
@@ -267,7 +267,7 @@ pub fn Parser(comptime options: Options) type {
             }
         };
 
-        const Object = struct {
+        pub const Object = struct {
             tape: *const Tape,
             root: u32,
 

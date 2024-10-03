@@ -229,6 +229,44 @@ pub fn build(b: *std.Build) !void {
         com.dependOn(&run_profile.step);
     }
     // --
+
+    // -- Tools - JSON statistics
+    {
+        var com = center.command("tools/stats", "Print statistics of a JSON file");
+        const file_path = try getProvidedPath(com, &path_buf, use_cwd);
+
+        const exe = b.addExecutable(.{
+            .name = "stats",
+            .root_source_file = b.path("tools/stats.zig"),
+            .target = target,
+            .optimize = optimize,
+        });
+
+        exe.root_module.addImport("zimdjson", zimdjson);
+
+        const run_profile = b.addRunArtifact(exe);
+        run_profile.addArg(file_path);
+        com.dependOn(&run_profile.step);
+    }
+    // -- Tools - Print tape
+    {
+        var com = center.command("tools/print", "Print DOM tape of a JSON file");
+        const file_path = try getProvidedPath(com, &path_buf, use_cwd);
+
+        const exe = b.addExecutable(.{
+            .name = "print",
+            .root_source_file = b.path("tools/print.zig"),
+            .target = target,
+            .optimize = optimize,
+        });
+
+        exe.root_module.addImport("zimdjson", zimdjson);
+
+        const run_profile = b.addRunArtifact(exe);
+        run_profile.addArg(file_path);
+        com.dependOn(&run_profile.step);
+    }
+    // --
 }
 
 fn addEmbeddedPath(b: *std.Build, compile: *std.Build.Step.Compile, dep: *std.Build.Dependency, alias: []const u8) void {

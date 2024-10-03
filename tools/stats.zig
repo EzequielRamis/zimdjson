@@ -70,23 +70,40 @@ pub fn main() !void {
     try walk(json);
 
     std.debug.print(
-        \\Number of total bytes      : {[json_size]}
-        \\Number of tokens           : {[token_count]}
-        \\Number of objects          : {[object_count]}
-        \\Number of arrays           : {[array_count]}
-        \\Number of keys             : {[key_count]}
-        \\Number of strings          : {[string_count]}
-        \\Number of unsigned integers: {[unsigned_count]}
-        \\Number of signed integers  : {[signed_count]}
-        \\Number of floats           : {[float_count]}
-        \\Number of true atoms       : {[true_count]}
-        \\Number of false atoms      : {[false_count]}
-        \\Number of null atoms       : {[null_count]}
+        \\Total bytes                : {[json_size]}
+        \\Tokens                     : {[token_count]}
+        \\Objects                    : {[object_count]}
+        \\Arrays                     : {[array_count]}
+        \\Keys                       : {[key_count]}
+        \\Strings                    : {[string_count]}
+        \\Unsigned integers          : {[unsigned_count]}
+        \\Signed integers            : {[signed_count]}
+        \\Floats                     : {[float_count]}
+        \\True atoms                 : {[true_count]}
+        \\False atoms                : {[false_count]}
+        \\Null atoms                 : {[null_count]}
         \\
     , stats);
 
     std.debug.print(
         \\Tokens/total bytes         : {d:.3}%
         \\
-    , .{@as(f64, @floatFromInt(stats.token_count)) / @as(f64, @floatFromInt(stats.json_size)) * 100});
+    , .{@as(f64, @floatFromInt(stats.token_count)) /
+        @as(f64, @floatFromInt(stats.json_size)) * 100});
+
+    const tape_words = stats.object_count * 2 +
+        stats.array_count * 2 +
+        (stats.float_count + stats.unsigned_count + stats.signed_count) * 2 +
+        stats.true_count + stats.false_count + stats.null_count + stats.string_count;
+    const tape_size = tape_words * 8;
+    std.debug.print(
+        \\Tape words                 : {}
+        \\Tape byte size             : {}
+        \\Tape byte size/total bytes : {d:.3}%
+        \\
+    , .{
+        tape_words, tape_size,
+        @as(f64, @floatFromInt(tape_size)) /
+            @as(f64, @floatFromInt(stats.json_size)) * 100,
+    });
 }

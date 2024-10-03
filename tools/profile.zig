@@ -23,11 +23,11 @@ pub fn main() !void {
     // var parser = ondemand.Parser(.{}).init(allocator);
     defer parser.deinit();
 
-    const rand = std.crypto.random;
+    // const rand = std.crypto.random;
     while (true) {
-        const index = rand.uintLessThan(u8, 100);
-        const document = try parser.parse(file);
-        const created_at = try document.at(index).at("reportedOn").getString();
-        tracy.messageCopy(created_at);
+        // const index = rand.uintLessThan(u8, 100);
+        _ = try parser.parse(file);
+        // const created_at = try document.at(index).at("reportedOn").getString();
+        // tracy.messageCopy(created_at);
     }
 }

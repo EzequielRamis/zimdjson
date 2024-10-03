@@ -203,9 +203,9 @@ pub fn build(b: *std.Build) !void {
     }
     // --
 
-    // -- Profiling
+    // -- Tools - Profiling
     {
-        var com = center.command("profile", "Profile with Tracy");
+        var com = center.command("tools/profile", "Profile with Tracy");
         const file_path = try getProvidedPath(com, &path_buf, use_cwd);
 
         const traced_zimdjson = getZimdjsonModule(b, .{
@@ -216,7 +216,7 @@ pub fn build(b: *std.Build) !void {
 
         const profile = b.addExecutable(.{
             .name = "profile",
-            .root_source_file = b.path("profile/main.zig"),
+            .root_source_file = b.path("tools/profile.zig"),
             .target = target,
             .optimize = optimize,
         });
@@ -228,8 +228,6 @@ pub fn build(b: *std.Build) !void {
         run_profile.addArg(file_path);
         com.dependOn(&run_profile.step);
     }
-    // --
-
     // -- Tools - JSON statistics
     {
         var com = center.command("tools/stats", "Print statistics of a JSON file");

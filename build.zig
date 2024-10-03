@@ -224,6 +224,34 @@ pub fn build(b: *std.Build) !void {
                 com.dependOn(&runner.step);
             }
         }
+        {
+            const com = center.command("bench/partial-tweets", "Run 'partial tweets' benchmark");
+            const parsers = Parsers.get(com, target, optimize);
+            const file_path = path: {
+                if (com.with("simdjson-data")) |dep| {
+                    break :path dep.path("jsonexamples/twitter.json").getPath(b);
+                } else break :path "";
+            };
+
+            if (parsers) |p| {
+                var suite = bench.Suite("partial_tweets"){
+                    .zimdjson = zimdjson,
+                    .simdjson = p.simdjson,
+                    .target = target,
+                    .optimize = optimize,
+                };
+                const runner = suite.create(
+                    &.{
+                        // suite.addZigBenchmark("zimdjson_ondemand"),
+                        // suite.addCppBenchmark("simdjson_ondemand", p.simdjson),
+                        suite.addZigBenchmark("zimdjson_dom"),
+                        suite.addCppBenchmark("simdjson_dom", p.simdjson),
+                    },
+                    file_path,
+                );
+                com.dependOn(&runner.step);
+            }
+        }
     }
     // --
 

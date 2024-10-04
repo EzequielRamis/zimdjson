@@ -72,7 +72,8 @@ pub fn Iterator(comptime options: Options) type {
 
         pub inline fn next(self: *Self) [*]const u8 {
             defer self.token += 1;
-            return self.challengeSource(self.peek());
+            // return self.challengeSource(self.peek());
+            return self.peek();
         }
 
         pub inline fn peek(self: Self) [*]const u8 {

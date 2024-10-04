@@ -46,8 +46,10 @@ const Word = packed struct {
 
 const Context = struct {
     tag: Tag,
-    len: u32,
-    ptr: u32,
+    data: struct {
+        len: u32,
+        ptr: u32,
+    },
 };
 
 pub const Options = struct {
@@ -68,6 +70,7 @@ pub fn Tape(comptime options: Options) type {
         const Stack = MultiArrayList(Context);
 
         parsed: Words,
+        parsed_ptr: [*]u64 = undefined,
         stack: Stack,
         tokens: Tokens,
         chars_buf: ArrayList(u8),
@@ -98,15 +101,21 @@ pub fn Tape(comptime options: Options) type {
             const tracer = tracy.traceNamed(@src(), "Tape");
             defer tracer.end();
 
-            try self.chars_buf.ensureTotalCapacity(t.indexer.reader.document.len + types.Vector.len_bytes);
+            try self.chars_buf.ensureTotalCapacity(t.indexer.reader.document.len * 2 + types.Vector.len_bytes);
             try self.stack.ensureTotalCapacity(self.allocator, options.max_depth);
-            try self.parsed.ensureTotalCapacity(t.indexer.indexes.items.len);
+            try self.parsed.ensureTotalCapacity(t.indexer.reader.document.len);
 
             self.chars_ptr = self.chars_buf.items.ptr;
             self.stack.shrinkRetainingCapacity(0);
             self.parsed.shrinkRetainingCapacity(0);
 
+            self.parsed_ptr = self.parsed.items.ptr;
+
             return self.dispatch();
+        }
+
+        pub fn get(self: Self, index: u32) Word {
+            return @bitCast(self.parsed.items[index]);
         }
 
         fn dispatch(self: *Self) Error!void {
@@ -140,10 +149,12 @@ pub fn Tape(comptime options: Options) type {
 
                     self.stack.appendAssumeCapacity(.{
                         .tag = .object_opening,
-                        .ptr = @intCast(self.parsed.items.len),
-                        .len = 1,
+                        .data = .{
+                            .ptr = self.currentIndex(),
+                            .len = 1,
+                        },
                     });
-                    self.parsed.items.len += 1;
+                    self.parsed_ptr += 1;
                     continue :state .object_field;
                 },
                 .object_field => {
@@ -190,21 +201,20 @@ pub fn Tape(comptime options: Options) type {
                         '}' => {
                             assert(self.stack.items(.tag)[self.stack.len - 1] == .object_opening);
                             assert(self.stack.capacity != 0);
-                            const scope_ptr = self.stack.items(.ptr)[self.stack.len - 1];
-                            assert(self.stack.capacity != 0);
-                            const scope_len = self.stack.items(.len)[self.stack.len - 1];
-                            self.parsed.appendAssumeCapacity(@bitCast(Word{
+                            const scope = self.stack.items(.data)[self.stack.len - 1];
+                            self.parsed_ptr[0] = @bitCast(Word{
                                 .tag = .object_closing,
                                 .data = .{
-                                    .ptr = scope_ptr,
+                                    .ptr = scope.ptr,
                                     .len = undefined,
                                 },
-                            }));
-                            self.parsed.items[scope_ptr] = @bitCast(Word{
+                            });
+                            self.parsed_ptr += 1;
+                            self.parsed.items.ptr[scope.ptr] = @bitCast(Word{
                                 .tag = .object_opening,
                                 .data = .{
-                                    .ptr = @intCast(self.parsed.items.len),
-                                    .len = @intCast(@min(scope_len, std.math.maxInt(u24))),
+                                    .ptr = self.currentIndex(),
+                                    .len = @intCast(@min(scope.len, std.math.maxInt(u24))),
                                 },
                             });
                             continue :state .scope_end;
@@ -217,10 +227,12 @@ pub fn Tape(comptime options: Options) type {
                         return error.ExceededDepth;
                     self.stack.appendAssumeCapacity(.{
                         .tag = .array_opening,
-                        .ptr = @intCast(self.parsed.items.len),
-                        .len = 1,
+                        .data = .{
+                            .ptr = self.currentIndex(),
+                            .len = 1,
+                        },
                     });
-                    self.parsed.items.len += 1;
+                    self.parsed_ptr += 1;
                     continue :state .array_value;
                 },
                 .array_value => {
@@ -256,21 +268,20 @@ pub fn Tape(comptime options: Options) type {
                         ']' => {
                             assert(self.stack.items(.tag)[self.stack.len - 1] == .array_opening);
                             assert(self.stack.capacity != 0);
-                            const scope_ptr = self.stack.items(.ptr)[self.stack.len - 1];
-                            assert(self.stack.capacity != 0);
-                            const scope_len = self.stack.items(.len)[self.stack.len - 1];
-                            self.parsed.appendAssumeCapacity(@bitCast(Word{
+                            const scope = self.stack.items(.data)[self.stack.len - 1];
+                            self.parsed_ptr[0] = @bitCast(Word{
                                 .tag = .array_closing,
                                 .data = .{
-                                    .ptr = scope_ptr,
+                                    .ptr = scope.ptr,
                                     .len = undefined,
                                 },
-                            }));
-                            self.parsed.items[scope_ptr] = @bitCast(Word{
+                            });
+                            self.parsed_ptr += 1;
+                            self.parsed.items.ptr[scope.ptr] = @bitCast(Word{
                                 .tag = .array_opening,
                                 .data = .{
-                                    .ptr = @intCast(self.parsed.items.len),
-                                    .len = @intCast(@min(scope_len, std.math.maxInt(u24))),
+                                    .ptr = self.currentIndex(),
+                                    .len = @intCast(@min(scope.len, std.math.maxInt(u24))),
                                 },
                             });
                             continue :state .scope_end;
@@ -281,7 +292,7 @@ pub fn Tape(comptime options: Options) type {
                 .scope_end => {
                     self.stack.len -= 1;
                     if (self.stack.len == 0) {
-                        @branchHint(.unlikely);
+                        // @branchHint(.unlikely);
                         continue :state .end;
                     }
                     assert(self.stack.capacity != 0);
@@ -296,126 +307,131 @@ pub fn Tape(comptime options: Options) type {
                     // const trail = self.tokens.next();
                     // if (trail[0] != ' ') return error.TrailingContent;
                     self.chars_buf.items.len = @intFromPtr(self.chars_ptr) - @intFromPtr(self.chars_buf.items.ptr);
+                    self.parsed.items.len = self.currentIndex();
                 },
             }
         }
 
         inline fn incrementContainerCount(self: *Self) void {
             assert(self.stack.capacity != 0);
-            const scope: *u32 = @ptrCast(&self.stack.items(.len)[self.stack.len - 1]);
-            scope.* += 1;
+            const scope = &self.stack.items(.data)[self.stack.len - 1];
+            scope.len += 1;
+        }
+
+        inline fn currentIndex(self: Self) u32 {
+            return @intCast((@intFromPtr(self.parsed_ptr) -
+                @intFromPtr(self.parsed.items.ptr)) / @sizeOf(u64));
         }
 
         inline fn visitPrimitive(self: *Self, ptr: [*]const u8) Error!void {
             const t = ptr[0];
             switch (t) {
-                '"' => {
-                    @branchHint(.likely);
-                    return self.visitString(ptr);
-                },
-                else => switch (t) {
-                    't' => return self.visitTrue(ptr),
-                    'f' => return self.visitFalse(ptr),
-                    'n' => return self.visitNull(ptr),
-                    else => {
-                        @branchHint(.likely);
-                        return self.visitNumber(ptr);
-                    },
-                },
+                '"' => return self.visitString(ptr),
+                't' => return self.visitTrue(ptr),
+                'f' => return self.visitFalse(ptr),
+                'n' => return self.visitNull(ptr),
+                else => return self.visitNumber(ptr),
             }
         }
 
         inline fn visitEmptyObject(self: *Self) void {
-            self.parsed.appendAssumeCapacity(@bitCast(Word{
+            self.parsed_ptr[0] = @bitCast(Word{
                 .tag = .object_opening,
                 .data = .{
-                    .ptr = @intCast(self.parsed.items.len + 2),
+                    .ptr = self.currentIndex() + 2,
                     .len = 0,
                 },
-            }));
-            self.parsed.appendAssumeCapacity(@bitCast(Word{
+            });
+            self.parsed_ptr[1] = @bitCast(Word{
                 .tag = .object_closing,
                 .data = .{
-                    .ptr = @intCast(self.parsed.items.len),
+                    .ptr = self.currentIndex(),
                     .len = undefined,
                 },
-            }));
+            });
+            self.parsed_ptr += 2;
             _ = self.tokens.next();
         }
 
         inline fn visitEmptyArray(self: *Self) void {
-            self.parsed.appendAssumeCapacity(@bitCast(Word{
+            self.parsed_ptr[0] = @bitCast(Word{
                 .tag = .array_opening,
                 .data = .{
-                    .ptr = @intCast(self.parsed.items.len + 2),
+                    .ptr = self.currentIndex() + 2,
                     .len = 0,
                 },
-            }));
-            self.parsed.appendAssumeCapacity(@bitCast(Word{
+            });
+            self.parsed_ptr[1] = @bitCast(Word{
                 .tag = .array_closing,
                 .data = .{
-                    .ptr = @intCast(self.parsed.items.len),
+                    .ptr = self.currentIndex(),
                     .len = undefined,
                 },
-            }));
+            });
+            self.parsed_ptr += 2;
             _ = self.tokens.next();
         }
 
         inline fn visitString(self: *Self, ptr: [*]const u8) Error!void {
             const parse = @import("parsers/string.zig").writeString;
-            const next_len = self.chars_buf.addManyAsArrayAssumeCapacity(4);
-            const next_str = self.chars_ptr + 4;
+            const next_len: *align(1) u32 = @ptrCast(self.chars_ptr);
+            const next_str = self.chars_ptr + @sizeOf(u32);
             const sentinel = try parse(ptr, next_str);
-            next_len.* = @bitCast(@as(u32, @intCast(@intFromPtr(sentinel) - @intFromPtr(next_str))));
-            self.parsed.appendAssumeCapacity(@bitCast(Word{
+            next_len.* = @intCast(@intFromPtr(sentinel) - @intFromPtr(next_str));
+            self.parsed_ptr[0] = @bitCast(Word{
                 .tag = .string,
                 .data = .{
-                    .ptr = @intCast(@intFromPtr(next_str) - @intFromPtr(self.chars_buf.items.ptr)),
+                    .ptr = @intCast(@intFromPtr(self.chars_ptr) - @intFromPtr(self.chars_buf.items.ptr)),
                     .len = undefined,
                 },
-            }));
+            });
+            self.parsed_ptr += 1;
             self.chars_ptr = sentinel;
         }
 
         inline fn visitNumber(self: *Self, ptr: [*]const u8) Error!void {
             const parser = @import("parsers/number/parser.zig").Parser;
             const number = try parser.parse(ptr);
-            self.parsed.appendAssumeCapacity(@bitCast(Word{
+            self.parsed_ptr[0] = @bitCast(Word{
                 .tag = @enumFromInt(@intFromEnum(number)),
                 .data = undefined,
-            }));
-            self.parsed.appendAssumeCapacity(switch (number) {
+            });
+            self.parsed_ptr[1] = switch (number) {
                 .unsigned => |n| @bitCast(n),
                 .signed => |n| @bitCast(n),
                 .float => |n| @bitCast(n),
-            });
+            };
+            self.parsed_ptr += 2;
         }
 
         inline fn visitTrue(self: *Self, ptr: [*]const u8) Error!void {
             const check = @import("parsers/atoms.zig").checkTrue;
             try check(ptr);
-            self.parsed.appendAssumeCapacity(@bitCast(Word{
+            self.parsed_ptr[0] = @bitCast(Word{
                 .tag = .true,
                 .data = undefined,
-            }));
+            });
+            self.parsed_ptr += 1;
         }
 
         inline fn visitFalse(self: *Self, ptr: [*]const u8) Error!void {
             const check = @import("parsers/atoms.zig").checkFalse;
             try check(ptr);
-            self.parsed.appendAssumeCapacity(@bitCast(Word{
+            self.parsed_ptr[0] = @bitCast(Word{
                 .tag = .false,
                 .data = undefined,
-            }));
+            });
+            self.parsed_ptr += 1;
         }
 
         inline fn visitNull(self: *Self, ptr: [*]const u8) Error!void {
             const check = @import("parsers/atoms.zig").checkNull;
             try check(ptr);
-            self.parsed.appendAssumeCapacity(@bitCast(Word{
+            self.parsed_ptr[0] = @bitCast(Word{
                 .tag = .null,
                 .data = undefined,
-            }));
+            });
+            self.parsed_ptr += 1;
         }
     };
 }

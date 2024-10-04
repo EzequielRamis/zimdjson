@@ -63,9 +63,7 @@ pub fn Parser(comptime options: Options) type {
             pub fn getObject(self: Visitor) Error!Object {
                 if (self.err) |err| return err;
 
-                assert(self.tape.parsed.capacity != 0);
-                const tag = self.tape.parsed.items(.tags)[self.index];
-                return switch (tag) {
+                return switch (self.tape.get(self.index).tag) {
                     .object_opening => Object{ .tape = self.tape, .root = self.index },
                     else => error.IncorrectType,
                 };
@@ -74,9 +72,7 @@ pub fn Parser(comptime options: Options) type {
             pub fn getArray(self: Visitor) Error!Array {
                 if (self.err) |err| return err;
 
-                assert(self.tape.parsed.capacity != 0);
-                const tag = self.tape.parsed.items(.tags)[self.index];
-                return switch (tag) {
+                return switch (self.tape.get(self.index).tag) {
                     .array_opening => Array{ .tape = self.tape, .root = self.index },
                     else => error.IncorrectType,
                 };
@@ -85,10 +81,13 @@ pub fn Parser(comptime options: Options) type {
             pub fn getString(self: Visitor) Error![]const u8 {
                 if (self.err) |err| return err;
 
-                assert(self.tape.parsed.capacity != 0);
-                const w = self.tape.parsed.get(self.index);
-                return switch (w) {
-                    .string => |fit| self.tape.chars_buf.items[fit.ptr..][0..fit.len],
+                const w = self.tape.get(self.index);
+                return switch (w.tag) {
+                    .string => brk: {
+                        const len: u32 = @bitCast(self.tape.chars_buf.items[w.data.ptr..][0..4].*);
+                        const ptr = self.tape.chars_buf.items[w.data.ptr + 4 ..];
+                        break :brk ptr[0..len];
+                    },
                     else => error.IncorrectType,
                 };
             }
@@ -96,12 +95,11 @@ pub fn Parser(comptime options: Options) type {
             pub fn getNumber(self: Visitor) Error!Number {
                 if (self.err) |err| return err;
 
-                assert(self.tape.parsed.capacity != 0);
-                const w = self.tape.parsed.get(self.index);
-                return switch (w) {
-                    .unsigned => |n| .{ .unsigned = n },
-                    .signed => |n| .{ .signed = n },
-                    .float => |n| .{ .float = n },
+                const number = self.tape.get(self.index + 1);
+                return switch (self.tape.get(self.index).tag) {
+                    .unsigned => .{ .unsigned = @bitCast(number) },
+                    .signed => .{ .signed = @bitCast(number) },
+                    .float => .{ .float = @bitCast(number) },
                     else => error.IncorrectType,
                 };
             }
@@ -109,11 +107,10 @@ pub fn Parser(comptime options: Options) type {
             pub fn getUnsigned(self: Visitor) Error!u64 {
                 if (self.err) |err| return err;
 
-                assert(self.tape.parsed.capacity != 0);
-                const w = self.tape.parsed.get(self.index);
-                return switch (w) {
-                    .unsigned => |n| n,
-                    .signed => |n| std.math.cast(u64, n) orelse error.NumberOutOfRange,
+                const number = self.tape.get(self.index + 1);
+                return switch (self.tape.get(self.index).tag) {
+                    .unsigned => @bitCast(number),
+                    .signed => std.math.cast(u64, @as(i64, @bitCast(number))) orelse error.NumberOutOfRange,
                     else => error.IncorrectType,
                 };
             }
@@ -121,11 +118,10 @@ pub fn Parser(comptime options: Options) type {
             pub fn getSigned(self: Visitor) Error!i64 {
                 if (self.err) |err| return err;
 
-                assert(self.tape.parsed.capacity != 0);
-                const w = self.tape.parsed.get(self.index);
-                return switch (w) {
-                    .signed => |n| n,
-                    .unsigned => |n| std.math.cast(i64, n) orelse error.NumberOutOfRange,
+                const number = self.tape.get(self.index + 1);
+                return switch (self.tape.get(self.index).tag) {
+                    .signed => @bitCast(number),
+                    .unsigned => std.math.cast(i64, @as(u64, @bitCast(number))) orelse error.NumberOutOfRange,
                     else => error.IncorrectType,
                 };
             }
@@ -133,10 +129,9 @@ pub fn Parser(comptime options: Options) type {
             pub fn getFloat(self: Visitor) Error!f64 {
                 if (self.err) |err| return err;
 
-                assert(self.tape.parsed.capacity != 0);
-                const w = self.tape.parsed.get(self.index);
-                return switch (w) {
-                    .float => |n| n,
+                const number = self.tape.get(self.index + 1);
+                return switch (self.tape.get(self.index).tag) {
+                    .float => @bitCast(number),
                     else => error.IncorrectType,
                 };
             }
@@ -144,9 +139,7 @@ pub fn Parser(comptime options: Options) type {
             pub fn getBool(self: Visitor) Error!bool {
                 if (self.err) |err| return err;
 
-                assert(self.tape.parsed.capacity != 0);
-                const tag = self.tape.parsed.items(.tags)[self.index];
-                return switch (tag) {
+                return switch (self.tape.get(self.index).tag) {
                     .true => true,
                     .false => false,
                     else => error.IncorrectType,
@@ -156,24 +149,21 @@ pub fn Parser(comptime options: Options) type {
             pub fn isNull(self: Visitor) Error!bool {
                 if (self.err) |err| return err;
 
-                assert(self.tape.parsed.capacity != 0);
-                const tag = self.tape.parsed.items(.tags)[self.index];
-                return tag == .null;
+                return self.tape.get(self.index).tag == .null;
             }
 
             pub fn getAny(self: Visitor) Error!Element {
                 if (self.err) |err| return err;
 
-                assert(self.tape.parsed.capacity != 0);
-                const w = self.tape.parsed.get(self.index);
-                return switch (w) {
+                const w = self.tape.get(self.index);
+                return switch (w.tag) {
                     .true => .{ .bool = true },
                     .false => .{ .bool = false },
                     .null => .null,
-                    .unsigned => |n| .{ .unsigned = n },
-                    .signed => |n| .{ .signed = n },
-                    .float => |n| .{ .float = n },
-                    .string => |fit| .{ .string = self.tape.chars_buf.items[fit.ptr..][0..fit.len] },
+                    .unsigned => .{ .unsigned = (self.getNumber() catch unreachable).unsigned },
+                    .signed => .{ .signed = (self.getNumber() catch unreachable).signed },
+                    .float => .{ .float = (self.getNumber() catch unreachable).float },
+                    .string => .{ .string = self.getString() catch unreachable },
                     .object_opening => .{ .object = .{ .tape = self.tape, .root = self.index } },
                     .array_opening => .{ .array = .{ .tape = self.tape, .root = self.index } },
                     else => unreachable,
@@ -227,14 +217,11 @@ pub fn Parser(comptime options: Options) type {
                 curr: u32,
 
                 pub fn next(self: *Iterator) ?Visitor {
-                    assert(self.tape.parsed.capacity != 0);
-                    const tag = self.tape.parsed.items(.tags)[self.curr];
-                    if (tag == .array_closing) return null;
-                    defer self.curr = brk: switch (tag) {
-                        .array_opening, .object_opening => {
-                            const fit: *tape.FitPtr = @ptrCast(&self.tape.parsed.items(.data)[self.curr]);
-                            break :brk fit.ptr;
-                        },
+                    const curr = self.tape.get(self.curr);
+                    if (curr.tag == .array_closing) return null;
+                    defer self.curr = switch (curr.tag) {
+                        .array_opening, .object_opening => curr.data.ptr,
+                        .unsigned, .signed, .float => self.curr + 2,
                         else => self.curr + 1,
                     };
                     return .{ .tape = self.tape, .index = self.curr };
@@ -259,11 +246,9 @@ pub fn Parser(comptime options: Options) type {
                 return self.getSize() == 0;
             }
 
-            pub fn getSize(self: Array) u32 {
-                assert(self.tape.parsed.capacity != 0);
-                assert(self.tape.parsed.items(.tags)[self.root] == .array_opening);
-                const fit: *tape.FitPtr = @ptrCast(&self.tape.parsed.items(.data)[self.root]);
-                return fit.len;
+            pub fn getSize(self: Array) u24 {
+                assert(self.tape.get(self.root).tag == .array_opening);
+                return self.tape.get(self.root).data.len;
             }
         };
 
@@ -281,16 +266,13 @@ pub fn Parser(comptime options: Options) type {
                 curr: u32,
 
                 pub fn next(self: *Iterator) ?Field {
-                    assert(self.tape.parsed.capacity != 0);
-                    const tags = self.tape.parsed.items(.tags);
-                    if (tags[self.curr] == .object_closing) return null;
+                    if (self.tape.get(self.curr).tag == .object_closing) return null;
                     const field = Visitor{ .tape = self.tape, .index = self.curr };
                     const value = Visitor{ .tape = self.tape, .index = self.curr + 1 };
-                    defer self.curr = brk: switch (tags[self.curr + 1]) {
-                        .array_opening, .object_opening => {
-                            const fit: *tape.FitPtr = @ptrCast(&self.tape.parsed.items(.data)[self.curr + 1]);
-                            break :brk fit.ptr;
-                        },
+                    const curr = self.tape.get(self.curr + 1);
+                    defer self.curr = switch (curr.tag) {
+                        .array_opening, .object_opening => curr.data.ptr,
+                        .unsigned, .signed, .float => self.curr + 3,
                         else => self.curr + 2,
                     };
                     return .{
@@ -317,11 +299,9 @@ pub fn Parser(comptime options: Options) type {
                 return self.getSize() == 0;
             }
 
-            pub fn getSize(self: Object) u32 {
-                assert(self.tape.parsed.capacity != 0);
-                assert(self.tape.parsed.items(.tags)[self.root] == .object_opening);
-                const fit: *tape.FitPtr = @ptrCast(&self.tape.parsed.items(.data)[self.root]);
-                return fit.len;
+            pub fn getSize(self: Object) u24 {
+                assert(self.tape.get(self.root).tag == .object_opening);
+                return self.tape.get(self.root).data.len;
             }
         };
     };

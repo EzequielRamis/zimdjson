@@ -95,20 +95,18 @@ pub fn Tape(comptime options: Options) type {
         }
 
         pub fn build(self: *Self, doc: Aligned.slice) !void {
-            const t = &self.tokens;
-            try t.build(doc);
+            try self.tokens.build(doc);
 
             const tracer = tracy.traceNamed(@src(), "Tape");
             defer tracer.end();
 
-            try self.chars_buf.ensureTotalCapacity(t.indexer.reader.document.len * 2 + types.Vector.len_bytes);
+            try self.chars_buf.ensureTotalCapacity(doc.len * 2 + types.Vector.len_bytes);
             try self.stack.ensureTotalCapacity(self.allocator, options.max_depth);
-            try self.parsed.ensureTotalCapacity(t.indexer.reader.document.len);
+            try self.parsed.ensureTotalCapacity(doc.len);
 
             self.chars_ptr = self.chars_buf.items.ptr;
             self.stack.shrinkRetainingCapacity(0);
             self.parsed.shrinkRetainingCapacity(0);
-
             self.parsed_ptr = self.parsed.items.ptr;
 
             return self.dispatch();
@@ -292,7 +290,7 @@ pub fn Tape(comptime options: Options) type {
                 .scope_end => {
                     self.stack.len -= 1;
                     if (self.stack.len == 0) {
-                        // @branchHint(.unlikely);
+                        @branchHint(.unlikely);
                         continue :state .end;
                     }
                     assert(self.stack.capacity != 0);

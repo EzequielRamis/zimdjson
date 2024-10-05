@@ -4,12 +4,14 @@ const dom = zimdjson.dom;
 const Reader = zimdjson.io.Reader(.{});
 const Parser = dom.Parser(.{});
 
+const stdout = std.io.getStdOut().writer();
+
 var depth: usize = 0;
 
-fn printDepth() void {
-    std.debug.print("\n", .{});
+fn printDepth() !void {
+    try stdout.print("\n", .{});
     for (0..depth) |_| {
-        std.debug.print("  ", .{});
+        try stdout.print("  ", .{});
     }
 }
 
@@ -17,36 +19,36 @@ fn walk(v: Parser.Visitor) !void {
     const any = try v.getAny();
     switch (any) {
         .object => |c| {
-            std.debug.print("{{", .{});
+            try stdout.print("{{", .{});
             depth += 1;
             var it = c.iterator();
             while (it.next()) |field| {
-                printDepth();
-                std.debug.print("{s}: ", .{field.key});
+                try printDepth();
+                try stdout.print("{s}: ", .{field.key});
                 try walk(field.value);
             }
             depth -= 1;
-            if (c.getSize() != 0) printDepth();
-            std.debug.print("}}", .{});
+            if (c.getSize() != 0) try printDepth();
+            try stdout.print("}}", .{});
         },
         .array => |c| {
-            std.debug.print("[", .{});
+            try stdout.print("[", .{});
             depth += 1;
             var it = c.iterator();
             while (it.next()) |value| {
-                printDepth();
+                try printDepth();
                 try walk(value);
             }
             depth -= 1;
-            if (c.getSize() != 0) printDepth();
-            std.debug.print("]", .{});
+            if (c.getSize() != 0) try printDepth();
+            try stdout.print("]", .{});
         },
-        .string => |s| std.debug.print("\"{s}\"", .{s}),
-        .unsigned => |u| std.debug.print("{}", .{u}),
-        .signed => |i| std.debug.print("{}", .{i}),
-        .float => |f| std.debug.print("{}", .{f}),
-        .bool => |b| std.debug.print("{}", .{b}),
-        .null => std.debug.print("null", .{}),
+        .string => |s| try stdout.print("\"{s}\"", .{s}),
+        .unsigned => |u| try stdout.print("{}", .{u}),
+        .signed => |i| try stdout.print("{}", .{i}),
+        .float => |f| try stdout.print("{}", .{f}),
+        .bool => |b| try stdout.print("{}", .{b}),
+        .null => try stdout.print("null", .{}),
     }
 }
 

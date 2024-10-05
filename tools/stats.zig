@@ -4,6 +4,8 @@ const dom = zimdjson.dom;
 const Reader = zimdjson.io.Reader(.{});
 const Parser = dom.Parser(.{});
 
+const stdout = std.io.getStdOut().writer();
+
 const Stats = struct {
     json_size: usize,
     token_count: usize,
@@ -69,7 +71,7 @@ pub fn main() !void {
     const json = try parser.parse(file);
     try walk(json);
 
-    std.debug.print(
+    try stdout.print(
         \\Total bytes                : {[json_size]}
         \\Tokens                     : {[token_count]}
         \\Objects                    : {[object_count]}
@@ -85,7 +87,7 @@ pub fn main() !void {
         \\
     , stats);
 
-    std.debug.print(
+    try stdout.print(
         \\Tokens/total bytes         : {d:.3}%
         \\
     , .{@as(f64, @floatFromInt(stats.token_count)) /
@@ -96,7 +98,7 @@ pub fn main() !void {
         (stats.float_count + stats.unsigned_count + stats.signed_count) * 2 +
         stats.true_count + stats.false_count + stats.null_count + stats.string_count;
     const tape_size = tape_words * 8;
-    std.debug.print(
+    try stdout.print(
         \\Tape words                 : {}
         \\Tape byte size             : {}
         \\Tape byte size/total bytes : {d:.3}%

@@ -177,8 +177,8 @@ pub fn main() !void {
     for (&commands, 1..) |*command, i| {
         const min_samples = 3;
 
-        try command.events.init(path);
-        defer command.events.deinit();
+        try @call(.never_inline, command.events.init, .{path});
+        defer @call(.never_inline, command.events.deinit, .{});
 
         const first_start = timer.read();
         var sample_index: usize = 0;
@@ -188,14 +188,14 @@ pub fn main() !void {
         {
             if (tty_conf != .no_color) try bar.render();
 
-            try command.events.prerun();
+            try @call(.never_inline, command.events.prerun, .{});
 
             _ = std.os.linux.ioctl(perf_fds[0], PERF.EVENT_IOC.RESET, PERF.IOC_FLAG_GROUP);
             _ = std.os.linux.ioctl(perf_fds[0], PERF.EVENT_IOC.ENABLE, PERF.IOC_FLAG_GROUP);
 
             const start = timer.read();
 
-            try command.events.run();
+            try @call(.never_inline, command.events.run, .{});
 
             const end = timer.read();
 
@@ -203,7 +203,7 @@ pub fn main() !void {
 
             const mem_required = command.events.memusage() -| file_size;
 
-            try command.events.postrun();
+            try @call(.never_inline, command.events.postrun, .{});
 
             const format = readPerfFd(perf_fds[0]);
 

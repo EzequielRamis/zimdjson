@@ -19,6 +19,8 @@ const Stats = struct {
     true_count: usize,
     false_count: usize,
     null_count: usize,
+    empty_object_count: usize,
+    empty_array_count: usize,
 };
 
 var stats = std.mem.zeroes(Stats);
@@ -33,12 +35,14 @@ fn walk(v: Parser.Visitor) !void {
             stats.key_count += c.getSize();
             var it = c.iterator();
             while (it.next()) |field| try walk(field.value);
+            if (c.getSize() == 0) stats.empty_object_count += 1;
         },
         .array => |c| {
             stats.array_count += 1;
             stats.token_count += @max(1, c.getSize());
             var it = c.iterator();
             while (it.next()) |value| try walk(value);
+            if (c.getSize() == 0) stats.empty_array_count += 1;
         },
         .string => stats.string_count += 1,
         .unsigned => stats.unsigned_count += 1,
@@ -84,6 +88,8 @@ pub fn main() !void {
         \\True atoms                 : {[true_count]}
         \\False atoms                : {[false_count]}
         \\Null atoms                 : {[null_count]}
+        \\Empty objects              : {[empty_object_count]}
+        \\Empty arrays               : {[empty_array_count]}
         \\
     , stats);
 

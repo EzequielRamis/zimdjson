@@ -73,7 +73,7 @@ pub fn Tape(comptime options: Options) type {
         parsed_ptr: [*]u64 = undefined,
         stack: Stack,
         tokens: Tokens,
-        chars_buf: ArrayList(u8),
+        chars: ArrayList(u8),
         chars_ptr: [*]u8 = undefined,
         allocator: Allocator,
 
@@ -82,7 +82,7 @@ pub fn Tape(comptime options: Options) type {
                 .parsed = Words.init(allocator),
                 .stack = Stack{},
                 .tokens = Tokens.init(allocator),
-                .chars_buf = ArrayList(u8).init(allocator),
+                .chars = ArrayList(u8).init(allocator),
                 .allocator = allocator,
             };
         }
@@ -91,7 +91,7 @@ pub fn Tape(comptime options: Options) type {
             self.parsed.deinit();
             self.stack.deinit(self.allocator);
             self.tokens.deinit();
-            self.chars_buf.deinit();
+            self.chars.deinit();
         }
 
         pub fn build(self: *Self, doc: Aligned.slice) !void {
@@ -100,11 +100,11 @@ pub fn Tape(comptime options: Options) type {
             const tracer = tracy.traceNamed(@src(), "Tape");
             defer tracer.end();
 
-            try self.chars_buf.ensureTotalCapacity(doc.len * 2 + types.Vector.len_bytes);
+            try self.chars.ensureTotalCapacity(doc.len * 2 + types.Vector.len_bytes);
             try self.stack.ensureTotalCapacity(self.allocator, options.max_depth);
             try self.parsed.ensureTotalCapacity(doc.len);
 
-            self.chars_ptr = self.chars_buf.items.ptr;
+            self.chars_ptr = self.chars.items.ptr;
             self.stack.shrinkRetainingCapacity(0);
             self.parsed.shrinkRetainingCapacity(0);
             self.parsed_ptr = self.parsed.items.ptr;
@@ -302,9 +302,9 @@ pub fn Tape(comptime options: Options) type {
                     }
                 },
                 .end => {
-                    // const trail = self.tokens.next();
-                    // if (trail[0] != ' ') return error.TrailingContent;
-                    self.chars_buf.items.len = @intFromPtr(self.chars_ptr) - @intFromPtr(self.chars_buf.items.ptr);
+                    const trail = self.tokens.next();
+                    if (trail[0] != ' ') return error.TrailingContent;
+                    self.chars.items.len = @intFromPtr(self.chars_ptr) - @intFromPtr(self.chars.items.ptr);
                     self.parsed.items.len = self.currentIndex();
                 },
             }
@@ -324,11 +324,17 @@ pub fn Tape(comptime options: Options) type {
         inline fn visitPrimitive(self: *Self, ptr: [*]const u8) Error!void {
             const t = ptr[0];
             switch (t) {
-                '"' => return self.visitString(ptr),
+                '"' => {
+                    @branchHint(.likely);
+                    return self.visitString(ptr);
+                },
                 't' => return self.visitTrue(ptr),
                 'f' => return self.visitFalse(ptr),
                 'n' => return self.visitNull(ptr),
-                else => return self.visitNumber(ptr),
+                else => {
+                    @branchHint(.likely);
+                    return self.visitNumber(ptr);
+                },
             }
         }
 
@@ -379,7 +385,7 @@ pub fn Tape(comptime options: Options) type {
             self.parsed_ptr[0] = @bitCast(Word{
                 .tag = .string,
                 .data = .{
-                    .ptr = @intCast(@intFromPtr(self.chars_ptr) - @intFromPtr(self.chars_buf.items.ptr)),
+                    .ptr = @intCast(@intFromPtr(self.chars_ptr) - @intFromPtr(self.chars.items.ptr)),
                     .len = undefined,
                 },
             });

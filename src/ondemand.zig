@@ -32,6 +32,7 @@ pub fn Parser(comptime options: Options) type {
 
         tokens: Tokens,
         chars: ArrayList(u8),
+        chars_ptr: [*]u8 = undefined,
         depth: u32 = 1,
 
         pub fn init(allocator: Allocator) Self {
@@ -51,8 +52,9 @@ pub fn Parser(comptime options: Options) type {
             const t = &self.tokens;
             try t.build(document);
 
-            try self.chars.ensureTotalCapacity(t.indexer.reader.document.len + Vector.len_bytes);
+            try self.chars.ensureTotalCapacity(document.len + Vector.len_bytes);
             self.chars.shrinkRetainingCapacity(0);
+            self.chars_ptr = self.chars.items.ptr;
             self.depth = 1;
 
             return Visitor{
@@ -85,15 +87,13 @@ pub fn Parser(comptime options: Options) type {
                 const document = self.document.tokens.document();
                 const token = document[self.token[0]];
 
-                if (token == '{') {
-                    Logger.logStart(self.document.*, "object", self.depth);
-                    return .{ .visitor = .{
-                        .document = self.document,
-                        .token = self.token,
-                        .depth = self.depth,
-                    } };
-                }
-                return error.IncorrectType;
+                if (token != '{') return error.IncorrectType;
+                Logger.logStart(self.document.*, "object", self.depth);
+                return .{ .visitor = .{
+                    .document = self.document,
+                    .token = self.token,
+                    .depth = self.depth,
+                } };
             }
 
             pub fn getArray(self: Visitor) Error!Array {
@@ -102,15 +102,13 @@ pub fn Parser(comptime options: Options) type {
                 const document = self.document.tokens.document();
                 const token = document[self.token[0]];
 
-                if (token == '[') {
-                    Logger.logStart(self.document.*, "array ", self.depth);
-                    return .{ .visitor = .{
-                        .document = self.document,
-                        .token = self.token,
-                        .depth = self.depth,
-                    } };
-                }
-                return error.IncorrectType;
+                if (token != '[') return error.IncorrectType;
+                Logger.logStart(self.document.*, "array ", self.depth);
+                return .{ .visitor = .{
+                    .document = self.document,
+                    .token = self.token,
+                    .depth = self.depth,
+                } };
             }
 
             pub fn getNumber(self: Visitor) Error!Number {
@@ -119,9 +117,9 @@ pub fn Parser(comptime options: Options) type {
                 var t = &self.document.tokens;
                 const curr = t.token;
                 errdefer t.jumpBack(curr);
-                _ = t.next();
+                const ptr = t.next();
 
-                const n = try NumberParser.parse(t.ptr);
+                const n = try NumberParser.parse(ptr);
                 Logger.log(self.document.*, "number", self.depth);
                 self.document.depth -= 1;
                 return n;
@@ -133,9 +131,9 @@ pub fn Parser(comptime options: Options) type {
                 var t = &self.document.tokens;
                 const curr = t.token;
                 errdefer t.jumpBack(curr);
-                _ = t.next();
+                const ptr = t.next();
 
-                const n = try NumberParser.parseUnsigned(t.ptr);
+                const n = try NumberParser.parseUnsigned(ptr);
                 Logger.log(self.document.*, "u64   ", self.depth);
                 self.document.depth -= 1;
                 return n;
@@ -147,9 +145,9 @@ pub fn Parser(comptime options: Options) type {
                 var t = &self.document.tokens;
                 const curr = t.token;
                 errdefer t.jumpBack(curr);
-                _ = t.next();
+                const ptr = t.next();
 
-                const n = try NumberParser.parseSigned(t.ptr);
+                const n = try NumberParser.parseSigned(ptr);
                 Logger.log(self.document.*, "i64   ", self.depth);
                 self.document.depth -= 1;
                 return n;
@@ -161,9 +159,9 @@ pub fn Parser(comptime options: Options) type {
                 var t = &self.document.tokens;
                 const curr = t.token;
                 errdefer t.jumpBack(curr);
-                _ = t.next();
+                const ptr = t.next();
 
-                const n = try NumberParser.parseFloat(t.ptr);
+                const n = try NumberParser.parseFloat(ptr);
                 Logger.log(self.document.*, "f64   ", self.depth);
                 self.document.depth -= 1;
                 return n;
@@ -176,10 +174,9 @@ pub fn Parser(comptime options: Options) type {
                 const curr = t.token;
                 errdefer t.jumpBack(curr);
 
-                if (self.document.tokens.peek()[0] != '"') return error.IncorrectType;
-                _ = t.next();
-
-                const string = try self.getUnsafeString();
+                const quote = t.next();
+                if (quote[0] != '"') return error.IncorrectType;
+                const string = try self.getUnsafeString(quote);
                 self.document.depth -= 1;
                 return string;
             }
@@ -190,10 +187,10 @@ pub fn Parser(comptime options: Options) type {
                 var t = &self.document.tokens;
                 const curr = t.token;
                 errdefer t.jumpBack(curr);
-                _ = t.next();
+                const ptr = t.next();
 
                 const check = @import("parsers/atoms.zig").checkBool;
-                const is_true = try check(t.ptr);
+                const is_true = try check(ptr);
                 Logger.log(self.document.*, "bool  ", self.depth);
                 self.document.depth -= 1;
                 return is_true;
@@ -205,10 +202,10 @@ pub fn Parser(comptime options: Options) type {
                 var t = &self.document.tokens;
                 const curr = t.token;
                 errdefer t.jumpBack(curr);
-                _ = t.next();
+                const ptr = t.next();
 
                 const check = @import("parsers/atoms.zig").checkNull;
-                try check(t.ptr);
+                try check(ptr);
                 Logger.log(self.document.*, "null  ", self.depth);
                 self.document.depth -= 1;
             }
@@ -324,20 +321,20 @@ pub fn Parser(comptime options: Options) type {
                     error.IncompleteArray;
             }
 
-            fn getUnsafeString(self: Visitor) Error![]const u8 {
+            fn getUnsafeString(self: Visitor, ptr: [*]const u8) Error![]const u8 {
                 var t = &self.document.tokens;
 
-                const chars = &self.document.chars;
-                const next_str = chars.items.len;
+                const next_str = self.document.chars_ptr;
                 const write = @import("parsers/string.zig").writeString;
-                try write(t.ptr, chars);
-                const next_len = chars.items.len - next_str;
+                const sentinel = try write(ptr, next_str);
+                const next_len = @intFromPtr(sentinel) - @intFromPtr(next_str);
                 if (t.peek()[0] == ':') {
                     Logger.log(self.document.*, "key   ", self.depth);
                 } else {
                     Logger.log(self.document.*, "string", self.depth);
                 }
-                return chars.items[next_str..][0..next_len];
+                self.document.chars_ptr = sentinel;
+                return next_str[0..next_len];
             }
 
             fn throw(self: Visitor, err: Error) Visitor {
@@ -490,7 +487,7 @@ pub fn Parser(comptime options: Options) type {
                 errdefer t.jumpBack(curr);
                 const quote = t.next();
                 if (quote[0] != '"') return error.ExpectedKey;
-                const key = try key_visitor.getUnsafeString();
+                const key = try key_visitor.getUnsafeString(quote);
                 const colon = t.next();
                 if (colon[0] != ':') return error.ExpectedColon;
                 self.visitor.document.depth += 1;

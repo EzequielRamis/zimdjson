@@ -84,8 +84,8 @@ pub fn Parser(comptime options: Options) type {
                 const w = self.tape.get(self.index);
                 return switch (w.tag) {
                     .string => brk: {
-                        const len: u32 = @bitCast(self.tape.chars_buf.items[w.data.ptr..][0..4].*);
-                        const ptr = self.tape.chars_buf.items[w.data.ptr + 4 ..];
+                        const len: u32 = @bitCast(self.tape.chars.items[w.data.ptr..][0..4].*);
+                        const ptr = self.tape.chars.items[w.data.ptr + 4 ..];
                         break :brk ptr[0..len];
                     },
                     else => error.IncorrectType,

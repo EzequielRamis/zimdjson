@@ -4,7 +4,7 @@ const common = @import("common.zig");
 const types = @import("types.zig");
 const tokens = @import("tokens.zig");
 const ArrayList = std.ArrayList;
-const MultiArrayList = @import("multi_array_list.zig").MultiArrayList;
+const MultiArrayList = std.MultiArrayList;
 const assert = std.debug.assert;
 
 const Allocator = std.mem.Allocator;

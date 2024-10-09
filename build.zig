@@ -186,8 +186,8 @@ pub fn build(b: *std.Build) !void {
                 };
                 const runner = suite.create(
                     &.{
-                        suite.addZigBenchmark("zimdjson_ondemand"),
-                        suite.addCppBenchmark("simdjson_ondemand", p.simdjson),
+                        // suite.addZigBenchmark("zimdjson_ondemand"),
+                        // suite.addCppBenchmark("simdjson_ondemand", p.simdjson),
                         suite.addZigBenchmark("zimdjson_dom"),
                         suite.addCppBenchmark("simdjson_dom", p.simdjson),
                     },
@@ -305,8 +305,13 @@ pub fn build(b: *std.Build) !void {
             profile.root_module.addImport("zimdjson", traced_zimdjson);
             profile.root_module.addImport("tracy", traced_zimdjson.import_table.get("tracy").?);
 
+            // const tracy = try b.findProgram(&.{"tracy"}, &.{});
+            // const run_tracy = b.addSystemCommand(&.{tracy});
+
             const run_profile = b.addRunArtifact(profile);
             run_profile.addArg(file_path);
+            // run_profile.step.dependOn(&run_tracy.step);
+            // com.dependOn(&run_tracy.step);
             com.dependOn(&run_profile.step);
         }
         {

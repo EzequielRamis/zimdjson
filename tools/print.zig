@@ -9,17 +9,15 @@ const stdout = std.io.getStdOut().writer();
 var depth: usize = 0;
 
 fn printDepth() !void {
-    try stdout.print("\n", .{});
-    for (0..depth) |_| {
-        try stdout.print("  ", .{});
-    }
+    try stdout.writeByte('\n');
+    try stdout.writeBytesNTimes("  ", depth);
 }
 
-fn walk(v: Parser.Visitor) !void {
-    const any = try v.getAny();
+fn walk(visitor: Parser.Visitor) !void {
+    const any = try visitor.getAny();
     switch (any) {
         .object => |c| {
-            try stdout.print("{{", .{});
+            try stdout.writeByte('{');
             depth += 1;
             var it = c.iterator();
             while (it.next()) |field| {
@@ -29,10 +27,10 @@ fn walk(v: Parser.Visitor) !void {
             }
             depth -= 1;
             if (c.getSize() != 0) try printDepth();
-            try stdout.print("}}", .{});
+            try stdout.writeByte('}');
         },
         .array => |c| {
-            try stdout.print("[", .{});
+            try stdout.writeByte('[');
             depth += 1;
             var it = c.iterator();
             while (it.next()) |value| {
@@ -41,13 +39,13 @@ fn walk(v: Parser.Visitor) !void {
             }
             depth -= 1;
             if (c.getSize() != 0) try printDepth();
-            try stdout.print("]", .{});
+            try stdout.writeByte(']');
         },
-        .string => |s| try stdout.print("\"{s}\"", .{s}),
-        .unsigned => |u| try stdout.print("{}", .{u}),
-        .signed => |i| try stdout.print("{}", .{i}),
-        .float => |f| try stdout.print("{}", .{f}),
-        .bool => |b| try stdout.print("{}", .{b}),
+        .string => |value| try stdout.print("\"{s}\"", .{value}),
+        .unsigned => |value| try stdout.print("{}", .{value}),
+        .signed => |value| try stdout.print("{}", .{value}),
+        .float => |value| try stdout.print("{}", .{value}),
+        .bool => |value| try stdout.print("{}", .{value}),
         .null => try stdout.print("null", .{}),
     }
 }

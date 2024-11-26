@@ -64,7 +64,7 @@ pub fn Parser(comptime options: Options) type {
             };
         }
 
-        const Element = union(enum) {
+        pub const Element = union(enum) {
             null,
             bool: bool,
             unsigned: u64,
@@ -75,7 +75,7 @@ pub fn Parser(comptime options: Options) type {
             array: Array,
         };
 
-        const Visitor = struct {
+        pub const Visitor = struct {
             document: *Self,
             token: [*]const u32,
             depth: u32,

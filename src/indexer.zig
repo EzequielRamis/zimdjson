@@ -1,7 +1,7 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const tracy = @import("tracy");
-const debug = @import("debug");
+// const tracy = @import("tracy");
+// const debug = @import("debug");
 const common = @import("common.zig");
 const types = @import("types.zig");
 const intr = @import("intrinsics.zig");
@@ -12,7 +12,7 @@ const vector = types.vector;
 const Vector = types.Vector;
 const umask = types.umask;
 const imask = types.imask;
-const assert = debug.assert;
+const assert = std.debug.assert;
 const cpu = builtin.cpu;
 const Mask = types.Mask;
 const Predicate = types.Predicate;
@@ -33,7 +33,7 @@ pub fn Indexer(comptime options: Options) type {
         const Reader = reader.Reader(.{ .aligned = options.aligned });
         const Checker = unicode.Checker(.{ .aligned = options.aligned });
 
-        debug: if (debug.is_set) Debug else void = if (debug.is_set) .{} else {},
+        // debug: if (debug.is_set) Debug else void = if (debug.is_set) .{} else {},
 
         prev_structural: umask = undefined,
         prev_scalar: umask = undefined,
@@ -56,8 +56,8 @@ pub fn Indexer(comptime options: Options) type {
 
         pub fn index(self: *Self, document: Aligned.slice) !void {
             self.reader.read(document);
-            const tracer = tracy.traceNamed(@src(), "Indexer.index");
-            defer tracer.end();
+            // const tracer = tracy.traceNamed(@src(), "Indexer.index");
+            // defer tracer.end();
 
             try self.indexes.ensureTotalCapacity(self.reader.document.len + 1);
             self.indexes.shrinkRetainingCapacity(0);
@@ -211,7 +211,7 @@ pub fn Indexer(comptime options: Options) type {
             self.extract(self.prev_structural, i -% Mask.len_bits);
             self.prev_structural = block.structuralStart();
             self.unescaped_error |= block.nonQuoteInsideString(unescaped);
-            if (debug.is_set) self.debug.expectIdentified(vecs, self.prev_structural);
+            // if (debug.is_set) self.debug.expectIdentified(vecs, self.prev_structural);
         }
 
         inline fn extract(self: *Self, tokens: umask, i: u32) void {
@@ -391,7 +391,7 @@ const Debug = struct {
                 c.* = '*';
             }
         }
-        debug.assert(
+        assert(
             expected == actual,
             \\Misindexed chunk at line {}
             \\

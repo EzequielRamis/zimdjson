@@ -1,8 +1,9 @@
 const std = @import("std");
 const builtin = @import("builtin");
 const types = @import("types.zig");
-const OnDemand = @import("OnDemand.zig");
-const Visitor = OnDemand.Visitor;
+const OnDemand = @import("ondemand.zig");
+const Parser = OnDemand.Parser(.{});
+const Visitor = Parser.Visitor;
 const Error = types.Error;
 const wyhash = std.hash.Wyhash.hash;
 const assert = std.debug.assert;
@@ -12,20 +13,20 @@ fn Common(comptime T: type) type {
         pub fn dispatch(v: *Visitor) Error!T {
             const info = @typeInfo(T);
             return switch (info) {
-                .Int => if (info.Int.signedness == .unsigned) unsigned(v) else signed(v),
-                .Float => float(v),
-                .Bool => boolean(v),
-                .Optional => if (v.isNull()) null else |_| Common(info.Optional.child).dispatch(v),
+                .int => if (info.int.signedness == .unsigned) unsigned(v) else signed(v),
+                .float => float(v),
+                .bool => boolean(v),
+                .optional => if (v.isNull()) null else |_| Common(info.optional.child).dispatch(v),
                 else => unreachable,
             };
         }
 
         fn unsigned(v: *Visitor) Error!T {
-            return std.math.cast(T, try v.getUnsigned()) orelse error.InvalidValue;
+            return std.math.cast(T, try v.getUnsigned()) orelse error.NumberOutOfRange;
         }
 
         fn signed(v: *Visitor) Error!T {
-            return std.math.cast(T, try v.getSigned()) orelse error.InvalidValue;
+            return std.math.cast(T, try v.getSigned()) orelse error.NumberOutOfRange;
         }
 
         fn float(v: *Visitor) Error!T {
@@ -40,7 +41,7 @@ fn Common(comptime T: type) type {
 
 fn Writer(comptime T: type, comptime opt: Options) type {
     const info = @typeInfo(T);
-    assert(info == .Struct);
+    assert(info == .@"struct");
     return struct {
         const Self = @This();
         const VTable = PHTable(T, opt);
@@ -48,32 +49,34 @@ fn Writer(comptime T: type, comptime opt: Options) type {
         table: VTable = VTable{},
         written: VTable.Size = 0,
 
-        pub fn write(self: *Self, to: *T, field: []const u8, v: *Visitor) Error!void {
-            const h = self.table.hash(field);
-            const i = PHTable(T, opt).location(h);
+        pub fn write(self: *Self, to: *T, v: *Visitor) Error!void {
+            const object = try v.getObject();
+            while (try object.next()) |field| {
+                const h = self.table.hash(field.key);
+                const i = VTable.location(h);
+                const value: PHCaller = brk: {
+                    const p = self.table.callers[i];
+                    if (opt.hash_comparison) {
+                        if (self.table.hashes[i] == h) break :brk p;
+                    } else {
+                        if (std.mem.eql(u8, self.table.aliases[i], field.key)) break :brk p;
+                    }
+                    return if (opt.handle_unknown_field) error.UnknownField else {};
+                };
 
-            const value: PHCaller = brk: {
-                const p = self.table.callers[i];
-                if (opt.hash_comparison) {
-                    if (self.table.hashes[i] == h) break :brk p;
-                } else {
-                    if (std.mem.eql(u8, self.table.aliases[i], field)) break :brk p;
-                }
-                return if (opt.handle_unknown_field) error.UnknownField else {};
-            };
+                if (self.table.visited[i]) switch (opt.handle_duplicate_field) {
+                    .Error => return error.DuplicateField,
+                    .First => return,
+                    .Last => {},
+                } else self.written += 1;
 
-            if (self.table.visited[i]) switch (opt.handle_duplicate_field) {
-                .Error => return error.DuplicateField,
-                .First => return,
-                .Last => {},
-            } else self.written += 1;
-
-            try value.dispatch.?(v, to);
-            self.table.visited[i] = true;
+                try value.dispatch.?(v, to);
+                self.table.visited[i] = true;
+            }
         }
 
         pub fn isMissingField(self: Self) bool {
-            return self.written < info.Struct.fields.len;
+            return self.written < info.@"struct".fields.len;
         }
     };
 }
@@ -112,14 +115,14 @@ fn pow(n: comptime_int, k: comptime_int) comptime_int {
 fn PHTable(comptime T: type, comptime opt: Options) type {
     @setEvalBranchQuota(opt.comptime_quota);
     const info = @typeInfo(T);
-    assert(info == .Struct);
-    const schema = if (@hasDecl(T, "schema")) T.schema else .{};
+    assert(info == .@"struct");
+    const schema = if (@hasDecl(T, "zimdjson_schema")) T.schema else .{};
     const schema_ty = @TypeOf(schema);
 
     for (std.meta.fieldNames(schema_ty)) |field| {
         assert(@hasField(T, field));
     }
-    const fields = @typeInfo(T).Struct.fields;
+    const fields = @typeInfo(T).@"struct".fields;
     var aliases_len: usize = 0;
     for (fields) |field| {
         aliases_len += 1;
@@ -158,7 +161,7 @@ fn PHTable(comptime T: type, comptime opt: Options) type {
                 schema_field = @field(schema, field.name);
             }
             const field_aliases = [_][]const u8{schema_field.rename orelse field.name} ++ schema_field.aliases;
-            const parse_with = schema_field.parse_with;
+            const parse_with = schema_field.dispatch;
             for (field_aliases) |alias| {
                 const h = wyhash(seed, alias);
                 const i: index = @truncate(h);
@@ -214,15 +217,30 @@ fn Field(comptime T: type) type {
 }
 
 test "schema" {
+    var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);
+    defer arena.deinit();
+    const allocator = arena.allocator();
+
+    const text =
+        \\{
+        \\  "foo": 4,
+        \\  "bar": 1
+        \\}
+    ;
     const S = packed struct {
         bar: u8,
         foo: u16,
     };
     var s: S = undefined;
     var w = Writer(S, .{}){};
-    try w.write(&s, "FOO", .{ .unsigned = 4 });
-    try w.write(&s, "bar", .{ .unsigned = 1 });
-    assert(s.foo == 5);
+
+    var parser = Parser.init(allocator);
+    defer parser.deinit();
+
+    var v = try parser.parse(text);
+
+    try w.write(&s, &v);
+    assert(s.foo == 4);
     assert(s.bar == 1);
     assert(!w.isMissingField());
 }

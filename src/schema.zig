@@ -17,6 +17,12 @@ fn Common(comptime T: type) type {
                 .float => float(v),
                 .bool => boolean(v),
                 .optional => if (v.isNull()) null else |_| Common(info.optional.child).dispatch(v),
+                .@"struct" => {
+                    var w = Writer(T, .{}){};
+                    var s: T = undefined;
+                    try w.write(&s, v);
+                    return s;
+                },
                 else => unreachable,
             };
         }
@@ -61,12 +67,18 @@ fn Writer(comptime T: type, comptime opt: Options) type {
                     } else {
                         if (std.mem.eql(u8, self.table.aliases[i], field.key)) break :brk p;
                     }
-                    return if (opt.handle_unknown_field) error.UnknownField else {};
+                    if (opt.handle_unknown_field) return error.UnknownField else {
+                        try field.skip();
+                        continue;
+                    }
                 };
 
                 if (self.table.visited[i]) switch (opt.handle_duplicate_field) {
                     .Error => return error.DuplicateField,
-                    .First => return,
+                    .First => {
+                        try field.skip();
+                        continue;
+                    },
                     .Last => {},
                 } else self.written += 1;
 
@@ -116,11 +128,13 @@ fn PHTable(comptime T: type, comptime opt: Options) type {
     @setEvalBranchQuota(opt.comptime_quota);
     const info = @typeInfo(T);
     assert(info == .@"struct");
-    const schema = if (@hasDecl(T, "zimdjson_schema")) T.schema else .{};
+    const schema = if (@hasDecl(T, "zimdjson_schema")) T.zimdjson_schema else .{};
     const schema_ty = @TypeOf(schema);
+    const schema_fields = @typeInfo(schema.fields).@"struct".fields;
 
-    for (std.meta.fieldNames(schema_ty)) |field| {
-        assert(@hasField(T, field));
+    for (schema_fields) |field| {
+        @compileLog(field);
+        assert(@hasField(T, field.name));
     }
     const fields = @typeInfo(T).@"struct".fields;
     var aliases_len: usize = 0;
@@ -223,13 +237,23 @@ test "schema" {
 
     const text =
         \\{
-        \\  "foo": 4,
+        \\  "foo": {
+        \\    "baz": 4
+        \\  },
         \\  "bar": 1
         \\}
     ;
-    const S = packed struct {
+    const S = struct {
+        pub const zimdjson_schema = .{
+            .fields = .{
+                .bar = .{ .rename = "baz" },
+            },
+        };
+
         bar: u8,
-        foo: u16,
+        foo: struct {
+            baz: u8,
+        },
     };
     var s: S = undefined;
     var w = Writer(S, .{}){};
@@ -240,7 +264,7 @@ test "schema" {
     var v = try parser.parse(text);
 
     try w.write(&s, &v);
-    assert(s.foo == 4);
+    assert(s.foo.baz == 4);
     assert(s.bar == 1);
     assert(!w.isMissingField());
 }

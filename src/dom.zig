@@ -1,7 +1,6 @@
 const std = @import("std");
 const common = @import("common.zig");
 const types = @import("types.zig");
-const indexer = @import("indexer.zig");
 const tape = @import("tape.zig");
 const Allocator = std.mem.Allocator;
 const Error = types.Error;
@@ -9,7 +8,7 @@ const Number = types.Number;
 const assert = std.debug.assert;
 
 pub const Options = struct {
-    max_capacity: u32 = common.default_max_capacity,
+    length_hint: usize = common.default_length_hint,
     max_depth: u32 = common.default_max_depth,
     aligned: bool = false,
 };
@@ -37,7 +36,7 @@ pub fn Parser(comptime options: Options) type {
 
         pub fn parse(self: *Self, document: Aligned.slice) !Visitor {
             if (document.len >= options.max_capacity) return error.ExceededCapacity;
-            try self.tape.build(document);
+            try self.tape.build(document, document.len);
             return Visitor{
                 .tape = &self.tape,
                 .index = 0,

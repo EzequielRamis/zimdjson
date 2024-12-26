@@ -29,60 +29,36 @@ pub fn Indexer(comptime options: Options) type {
         const Aligned = types.Aligned(options.aligned);
 
         const Self = @This();
-        const Indexes = std.ArrayList(u32);
-        const Reader = reader.Reader(.{ .aligned = options.aligned });
         const Checker = unicode.Checker(.{ .aligned = options.aligned });
 
         // debug: if (debug.is_set) Debug else void = if (debug.is_set) .{} else {},
 
-        prev_structural: umask = undefined,
-        prev_scalar: umask = undefined,
-        prev_inside_string: umask = undefined,
-        next_is_escaped: umask = undefined,
-        unescaped_error: umask = undefined,
-        reader: Reader = .{},
-        utf8_checker: Checker = .{},
-        indexes: Indexes,
+        prev_structural: umask,
+        prev_scalar: umask,
+        prev_inside_string: umask,
+        prev_offset: i64,
+        next_is_escaped: umask,
+        unescaped_error: umask,
+        utf8_checker: Checker = .init,
 
-        pub fn init(allocator: Allocator) Self {
-            return Self{
-                .indexes = Indexes.init(allocator),
-            };
-        }
+        pub const init = std.mem.zeroInit(Self, .{});
 
-        pub fn deinit(self: *Self) void {
-            self.indexes.deinit();
-        }
-
-        pub fn index(self: *Self, document: Aligned.slice) !void {
-            self.reader.read(document);
-            // const tracer = tracy.traceNamed(@src(), "Indexer.index");
-            // defer tracer.end();
-
-            try self.indexes.ensureTotalCapacity(self.reader.document.len + 1);
-            self.indexes.shrinkRetainingCapacity(0);
-            self.prev_structural = 0;
-            self.prev_scalar = 0;
-            self.prev_inside_string = 0;
-            self.next_is_escaped = 0;
-            self.unescaped_error = 0;
-            self.utf8_checker = .{};
-
-            while (self.reader.next()) |block| {
-                self.step(block, self.reader.index -% Reader.BLOCK_SIZE);
+        pub fn index(self: *Self, chunk: Aligned.slice, dest: [*]u32) !u32 {
+            var written: u32 = 0;
+            for (0..chunk.len / reader.BLOCK_SIZE) |i| {
+                const block: *align(Aligned.alignment) const reader.Block = @alignCast(chunk[i * reader.BLOCK_SIZE ..][0..reader.BLOCK_SIZE]);
+                written += self.step(block.*, dest);
             }
-            if (self.reader.last()) |block| {
-                self.step(block, self.reader.index -% Reader.BLOCK_SIZE);
-            }
-            self.extract(self.prev_structural, self.reader.index -% Mask.len_bits);
             if (self.unescaped_error != 0) return error.FoundControlCharacter;
             if (!self.utf8_checker.succeeded()) return error.InvalidEncoding;
             if (self.prev_inside_string != 0) return error.ExpectedStringEnd;
             if (self.indexes.items.len == 0) return error.Empty;
+            return written;
         }
 
-        inline fn step(self: *Self, block: Reader.Block, i: u32) void {
-            inline for (0..Reader.MASKS_PER_ITER) |m| {
+        inline fn step(self: *Self, block: reader.Block, dest: [*]u32) u32 {
+            var written: u32 = 0;
+            inline for (0..reader.MASKS_PER_ITER) |m| {
                 const offset = @as(comptime_int, m) * Mask.len_bits;
                 const chunk: Aligned.chunk = @alignCast(block[offset..][0..Mask.len_bits]);
                 var vecs: types.vectors = undefined;
@@ -90,8 +66,9 @@ pub fn Indexer(comptime options: Options) type {
                     vecs[j] = @as(Aligned.vector, @alignCast(chunk[j * Vector.len_bytes ..][0..Vector.len_bytes])).*;
                 }
                 const tokens = self.identify(vecs);
-                self.next(vecs, tokens, i + offset);
+                written += self.next(vecs, tokens, dest);
             }
+            return written;
         }
 
         inline fn identify(self: *Self, vecs: types.vectors) JsonBlock {
@@ -198,7 +175,7 @@ pub fn Indexer(comptime options: Options) type {
             return escaped;
         }
 
-        inline fn next(self: *Self, vecs: types.vectors, block: JsonBlock, i: u32) void {
+        inline fn next(self: *Self, vecs: types.vectors, block: JsonBlock, dest: [*]u32) u32 {
             const vec = vecs[0];
             var unescaped: umask = Predicate.pack(vec <= @as(vector, @splat(0x1F)));
             inline for (1..Mask.computed_vectors) |j| {
@@ -208,30 +185,31 @@ pub fn Indexer(comptime options: Options) type {
                 unescaped |= @as(umask, u) << @truncate(offset);
             }
             self.utf8_checker.check(vecs);
-            self.extract(self.prev_structural, i -% Mask.len_bits);
+            const written = self.extract(self.prev_structural, dest);
             self.prev_structural = block.structuralStart();
             self.unescaped_error |= block.nonQuoteInsideString(unescaped);
+            return written;
             // if (debug.is_set) self.debug.expectIdentified(vecs, self.prev_structural);
         }
 
-        inline fn extract(self: *Self, tokens: umask, i: u32) void {
+        inline fn extract(self: *Self, tokens: umask, dest: [*]u32) u32 {
             const steps = 4;
             const steps_until = 24;
             const pop_count: u32 = @popCount(tokens);
-            const ixs = self.indexes.items[self.indexes.items.len..].ptr;
-            self.indexes.items.len += pop_count;
             var s = if (cpu.arch.isARM()) @bitReverse(tokens) else tokens;
             inline for (0..steps_until / steps) |u| {
                 if (u * steps < pop_count) {
                     @branchHint(.unlikely);
                     inline for (0..steps) |j| {
                         if (cpu.arch.isARM()) {
-                            const lz: u32 = @clz(s);
-                            ixs[j + u * steps] = i + lz;
+                            const lz: i64 = @clz(s);
+                            dest[j + u * steps] = @intCast(lz - self.prev_offset);
+                            self.prev_offset = lz;
                             s ^= std.math.shr(umask, 1 << 63, lz);
                         } else {
-                            const tz: u32 = @ctz(s);
-                            ixs[j + u * steps] = i + tz;
+                            const tz: i64 = @ctz(s);
+                            dest[j + u * steps] = @intCast(tz - self.prev_offset);
+                            self.prev_offset = tz;
                             s &= s -% 1;
                         }
                     }
@@ -241,16 +219,20 @@ pub fn Indexer(comptime options: Options) type {
                 @branchHint(.unlikely);
                 for (steps_until..pop_count) |j| {
                     if (cpu.arch.isARM()) {
-                        const lz: u32 = @clz(s);
-                        ixs[j] = i + lz;
+                        const lz: i64 = @clz(s);
+                        dest[j] = @intCast(lz - self.prev_offset);
+                        self.prev_offset = lz;
                         s ^= std.math.shr(umask, 1 << 63, lz);
                     } else {
-                        const tz: u32 = @ctz(s);
-                        ixs[j] = i + tz;
+                        const tz: i64 = @ctz(s);
+                        dest[j] = @intCast(tz - self.prev_offset);
+                        self.prev_offset = tz;
                         s &= s -% 1;
                     }
                 }
             }
+            self.prev_offset -= Mask.len_bits;
+            return pop_count;
         }
     };
 }

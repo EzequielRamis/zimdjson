@@ -8,6 +8,10 @@ const Options = struct {
     aligned: bool,
 };
 
+pub const MASKS_PER_ITER = if (arch.isX86()) 2 else 1;
+pub const BLOCK_SIZE = Mask.len_bits * MASKS_PER_ITER;
+pub const Block = [BLOCK_SIZE]u8;
+
 pub fn Reader(comptime options: Options) type {
     return struct {
         const Aligned = types.Aligned(options.aligned);

@@ -4,7 +4,7 @@ const simd = std.simd;
 const testing = std.testing;
 
 pub const default_max_depth = 1024;
-pub const default_max_capacity = std.math.maxInt(u32);
+pub const default_length_hint = 1024 * 1024;
 
 pub const tables = struct {
     pub const is_structural: [256]bool = init: {

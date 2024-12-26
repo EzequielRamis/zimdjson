@@ -3,7 +3,7 @@ A Zig version of [simdjson](https://github.com/simdjson/simdjson), a JSON parser
 
 ## Features
 `zimdjson` covers the basic features `simdjson` provides like a DOM/OnDemand parser plus some that are, at the time being, unsolved:
-- [No 4GB document limit (OnDemand only)](https://github.com/simdjson/simdjson/issues/670)
+- [No 4GB document limit](https://github.com/simdjson/simdjson/issues/670)
 - [No padding requirement](https://github.com/simdjson/simdjson/issues/174)
 
 ## Future work

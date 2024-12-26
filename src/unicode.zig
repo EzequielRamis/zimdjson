@@ -13,9 +13,11 @@ pub fn Checker(comptime options: io.Options) type {
         const Self = @This();
         const Aligned = types.Aligned(options.aligned);
 
-        err: vector = @splat(0),
-        prev_vec: vector = @splat(0),
-        prev_incomplete: vector = @splat(0),
+        err: vector,
+        prev_vec: vector,
+        prev_incomplete: vector,
+
+        pub const init = std.mem.zeroInit(Self, .{});
 
         pub inline fn succeeded(self: Self) bool {
             const err = self.err | self.prev_incomplete;

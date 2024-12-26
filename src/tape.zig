@@ -2,6 +2,7 @@ const std = @import("std");
 const tracy = @import("tracy");
 const common = @import("common.zig");
 const types = @import("types.zig");
+const stream = @import("stream.zig");
 const tokens = @import("tokens.zig");
 const ArrayList = std.ArrayList;
 const MultiArrayList = std.MultiArrayList;
@@ -64,6 +65,7 @@ pub fn Tape(comptime options: Options) type {
 
     return struct {
         const Self = @This();
+        const Stream = stream.Stream(.{ .aligned = options.aligned, .chunk_len = 1024 * 4 });
         const Tokens = tokens.Iterator(token_options);
         const Aligned = types.Aligned(options.aligned);
         const Words = ArrayList(u64);
@@ -72,7 +74,7 @@ pub fn Tape(comptime options: Options) type {
         parsed: Words,
         parsed_ptr: [*]u64 = undefined,
         stack: Stack,
-        tokens: Tokens,
+        stream: Stream,
         chars: ArrayList(u8),
         chars_ptr: [*]u8 = undefined,
         allocator: Allocator,
@@ -80,8 +82,8 @@ pub fn Tape(comptime options: Options) type {
         pub fn init(allocator: Allocator) Self {
             return Self{
                 .parsed = Words.init(allocator),
-                .stack = Stack{},
-                .tokens = Tokens.init(allocator),
+                .stack = .{},
+                .stream = .{},
                 .chars = ArrayList(u8).init(allocator),
                 .allocator = allocator,
             };
@@ -90,19 +92,19 @@ pub fn Tape(comptime options: Options) type {
         pub fn deinit(self: *Self) void {
             self.parsed.deinit();
             self.stack.deinit(self.allocator);
-            self.tokens.deinit();
+            self.stream.deinit();
             self.chars.deinit();
         }
 
-        pub fn build(self: *Self, doc: Aligned.slice) !void {
-            try self.tokens.build(doc);
+        pub fn build(self: *Self, path: []const u8, len_hint: usize) !void {
+            self.stream = try self.stream.init(path);
 
             const tracer = tracy.traceNamed(@src(), "Tape");
             defer tracer.end();
 
-            try self.chars.ensureTotalCapacity(doc.len * 2 + types.Vector.len_bytes);
+            try self.chars.ensureTotalCapacity(len_hint * 2 + types.Vector.len_bytes);
             try self.stack.ensureTotalCapacity(self.allocator, options.max_depth);
-            try self.parsed.ensureTotalCapacity(doc.len);
+            try self.parsed.ensureTotalCapacity(len_hint);
 
             self.chars_ptr = self.chars.items.ptr;
             self.stack.shrinkRetainingCapacity(0);
@@ -119,18 +121,18 @@ pub fn Tape(comptime options: Options) type {
         fn dispatch(self: *Self) Error!void {
             state: switch (State.start) {
                 .start => {
-                    const t = self.tokens.next();
+                    const t = try self.stream.next();
                     switch (t[0]) {
                         '{' => {
-                            if (self.tokens.peek()[0] == '}') {
-                                self.visitEmptyObject();
+                            if (self.stream.peek()[0] == '}') {
+                                try self.visitEmptyObject();
                                 continue :state .end;
                             }
                             continue :state .object_begin;
                         },
                         '[' => {
-                            if (self.tokens.peek()[0] == ']') {
-                                self.visitEmptyArray();
+                            if (self.stream.peek()[0] == ']') {
+                                try self.visitEmptyArray();
                                 continue :state .end;
                             }
                             continue :state .array_begin;
@@ -157,26 +159,26 @@ pub fn Tape(comptime options: Options) type {
                 },
                 .object_field => {
                     {
-                        const t = self.tokens.next();
+                        const t = try self.stream.next();
                         if (t[0] == '"') {
                             try self.visitString(t);
                         } else {
                             return error.ExpectedKey;
                         }
                     }
-                    if (self.tokens.next()[0] == ':') {
-                        const t = self.tokens.next();
+                    if (try self.stream.next()[0] == ':') {
+                        const t = try self.stream.next();
                         switch (t[0]) {
                             '{' => {
-                                if (self.tokens.peek()[0] == '}') {
-                                    self.visitEmptyObject();
+                                if (self.stream.peek()[0] == '}') {
+                                    try self.visitEmptyObject();
                                     continue :state .object_continue;
                                 }
                                 continue :state .object_begin;
                             },
                             '[' => {
-                                if (self.tokens.peek()[0] == ']') {
-                                    self.visitEmptyArray();
+                                if (self.stream.peek()[0] == ']') {
+                                    try self.visitEmptyArray();
                                     continue :state .object_continue;
                                 }
                                 continue :state .array_begin;
@@ -191,7 +193,7 @@ pub fn Tape(comptime options: Options) type {
                     }
                 },
                 .object_continue => {
-                    switch (self.tokens.next()[0]) {
+                    switch (try self.stream.next()[0]) {
                         ',' => {
                             self.incrementContainerCount();
                             continue :state .object_field;
@@ -234,18 +236,18 @@ pub fn Tape(comptime options: Options) type {
                     continue :state .array_value;
                 },
                 .array_value => {
-                    const t = self.tokens.next();
+                    const t = try self.stream.next();
                     switch (t[0]) {
                         '{' => {
-                            if (self.tokens.peek()[0] == '}') {
-                                self.visitEmptyObject();
+                            if (self.stream.peek()[0] == '}') {
+                                try self.visitEmptyObject();
                                 continue :state .array_continue;
                             }
                             continue :state .object_begin;
                         },
                         '[' => {
-                            if (self.tokens.peek()[0] == ']') {
-                                self.visitEmptyArray();
+                            if (self.stream.peek()[0] == ']') {
+                                try self.visitEmptyArray();
                                 continue :state .array_continue;
                             }
                             continue :state .array_begin;
@@ -257,7 +259,7 @@ pub fn Tape(comptime options: Options) type {
                     }
                 },
                 .array_continue => {
-                    const t = self.tokens.next();
+                    const t = try self.stream.next();
                     switch (t[0]) {
                         ',' => {
                             self.incrementContainerCount();
@@ -302,7 +304,7 @@ pub fn Tape(comptime options: Options) type {
                     }
                 },
                 .end => {
-                    const trail = self.tokens.next();
+                    const trail = try self.stream.next();
                     if (trail[0] != ' ') return error.TrailingContent;
                     self.chars.items.len = @intFromPtr(self.chars_ptr) - @intFromPtr(self.chars.items.ptr);
                     self.parsed.items.len = self.currentIndex();
@@ -338,7 +340,7 @@ pub fn Tape(comptime options: Options) type {
             }
         }
 
-        inline fn visitEmptyObject(self: *Self) void {
+        inline fn visitEmptyObject(self: *Self) !void {
             self.parsed_ptr[0] = @bitCast(Word{
                 .tag = .object_opening,
                 .data = .{
@@ -354,10 +356,10 @@ pub fn Tape(comptime options: Options) type {
                 },
             });
             self.parsed_ptr += 2;
-            _ = self.tokens.next();
+            _ = try self.stream.next();
         }
 
-        inline fn visitEmptyArray(self: *Self) void {
+        inline fn visitEmptyArray(self: *Self) !void {
             self.parsed_ptr[0] = @bitCast(Word{
                 .tag = .array_opening,
                 .data = .{
@@ -373,7 +375,7 @@ pub fn Tape(comptime options: Options) type {
                 },
             });
             self.parsed_ptr += 2;
-            _ = self.tokens.next();
+            _ = try self.stream.next();
         }
 
         inline fn visitString(self: *Self, ptr: [*]const u8) Error!void {

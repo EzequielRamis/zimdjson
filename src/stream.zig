@@ -1,4 +1,6 @@
 const std = @import("std");
+const common = @import("common.zig");
+const reader = @import("reader.zig");
 const types = @import("types.zig");
 const indexer = @import("indexer.zig");
 const assert = std.debug.assert;
@@ -27,21 +29,22 @@ pub fn Stream(comptime options: Options) type {
         indexes_stream: IndexesStream,
         indexer: Indexer,
 
-        pub fn init(path: []const u8) !Self {
-            const fd = try std.posix.open(path, .{}, @intFromEnum(std.posix.ACCMODE.RDONLY));
+        pub fn init(path: []const u8) Error!Self {
+            const fd = std.posix.open(path, .{}, @intFromEnum(std.posix.ACCMODE.RDONLY)) catch return error.StreamError;
             return .{
                 .visited_last_chunk = false,
                 .fd = fd,
-                .document = try DocumentStream.init(),
-                .indexes = try IndexesStream.init(),
+                .document_stream = DocumentStream.init() catch return error.StreamError,
+                .indexes_stream = IndexesStream.init() catch return error.StreamError,
+                .indexer = .init,
             };
         }
 
         pub fn initFromFd(fd: std.posix.fd_t) !Self {
             return .{
                 .fd = fd,
-                .document = try DocumentStream.init(),
-                .indexes = try IndexesStream.init(),
+                .document = DocumentStream.init() catch return error.StreamError,
+                .indexes = IndexesStream.init() catch return error.StreamError,
             };
         }
 
@@ -53,20 +56,26 @@ pub fn Stream(comptime options: Options) type {
 
         pub fn next(self: *Self) ![*]const u8 {
             if (self.nextLocal()) |ptr| return ptr;
-            if (!self.indexes_stream.isEmpty()) {
-                const written = try self.indexNextChunk();
-                if (written == 0 or self.indexes_stream.unsafeSlice()[1] > chunk_len) return error.StreamChunkOverflow;
-                const index = self.indexes_stream.readAssumeLength();
-                self.document_stream.consumeAssumeLength(index);
-                return self.document_stream.unsafeSlice().ptr;
-            } else while (self.indexes_stream.isEmpty()) {
-                if (self.visited_last_chunk) break;
+            if (!self.visited_last_chunk) {
+                @branchHint(.likely);
                 _ = try self.indexNextChunk();
+                // if (!self.indexes_stream.isEmpty()) {
+                //     _ = try self.indexNextChunk();
+                //     // const written = try self.indexNextChunk();
+                //     // if (written == 0 //or self.indexes_stream.unsafeSlice()[0] > chunk_len
+                //     // ) return error.StreamChunkOverflow;
+                //     const index = self.indexes_stream.readAssumeLength();
+                //     self.document_stream.consumeAssumeLength(index);
+                //     return self.document_stream.unsafeSlice();
+                // } else while (self.indexes_stream.isEmpty()) {
+                //     if (self.visited_last_chunk) break;
+                //     _ = try self.indexNextChunk();
+                // }
             }
 
             const index = self.indexes_stream.readAssumeLength();
             self.document_stream.consumeAssumeLength(index);
-            return self.document_stream.unsafeSlice().ptr;
+            return self.document_stream.unsafeSlice();
         }
 
         pub fn nextLocal(self: *Self) ?[*]const u8 {
@@ -84,22 +93,22 @@ pub fn Stream(comptime options: Options) type {
 
         fn indexNextChunk(self: *Self) !u32 {
             const buf = self.document_stream.reserveAssumeCapacity(chunk_len);
-            const read = try std.posix.read(self.fd, buf);
+            const read: u32 = @intCast(std.posix.read(self.fd, buf) catch return error.StreamRead);
             if (read < chunk_len) {
                 @branchHint(.unlikely);
                 self.visited_last_chunk = true;
                 self.document_stream.shrinkAssumeLength(chunk_len - read);
-                self.document_stream.writeSliceAssumeCapacity(" " ** Vector.len_bytes);
+                self.document_stream.writeSliceAssumeCapacity(" " ** reader.BLOCK_SIZE);
             }
-            const chunk = self.document_stream.unsafeSlice()[0..chunk_len];
+            const chunk = self.document_stream.unsafeSlice()[0..common.roundUp(u32, read, reader.BLOCK_SIZE)];
             const indexes = self.indexes_stream.reserveAll();
             const written = try self.indexer.index(chunk, indexes.ptr);
             self.indexes_stream.shrinkAssumeLength(indexes.len - written);
             if (read < chunk_len) {
                 @branchHint(.unlikely);
-                const bogus_slice = self.indexes_stream.slice();
-                const bogus_index = bogus_slice[bogus_slice.len - 1];
-                self.indexes_stream.writeAssumeCapacity(bogus_index - self.indexer.prev_offset);
+                try self.indexer.validate();
+                self.indexes_stream.writeAssumeCapacity(@intCast(@as(i64, @intCast(read)) - (self.indexer.prev_offset + reader.BLOCK_SIZE)));
+                std.debug.print("indexes: {any}\n", .{self.indexes_stream.slice()});
             }
             return written;
         }

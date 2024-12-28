@@ -84,9 +84,7 @@ pub fn main() !void {
             \\    defer parser.deinit();
             \\    const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonexamples/{[path]s}");
             \\    defer allocator.free(path);
-            \\    const file = try Reader.readFileAlloc(allocator, path);
-            \\    defer allocator.free(file);
-            \\    _ = try parser.parse(file);
+            \\    _ = try parser.parse(path);
             \\}}
             \\
             \\

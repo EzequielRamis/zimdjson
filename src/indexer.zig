@@ -33,7 +33,6 @@ pub fn Indexer(comptime options: Options) type {
 
         // debug: if (debug.is_set) Debug else void = if (debug.is_set) .{} else {},
 
-        prev_structural: umask,
         prev_scalar: umask,
         prev_inside_string: umask,
         prev_offset: i64,
@@ -47,13 +46,15 @@ pub fn Indexer(comptime options: Options) type {
             var written: u32 = 0;
             for (0..chunk.len / reader.BLOCK_SIZE) |i| {
                 const block: *align(Aligned.alignment) const reader.Block = @alignCast(chunk[i * reader.BLOCK_SIZE ..][0..reader.BLOCK_SIZE]);
-                written += self.step(block.*, dest);
+                written += self.step(block.*, dest + i * reader.BLOCK_SIZE);
             }
+            return written;
+        }
+
+        pub fn validate(self: Self) !void {
             if (self.unescaped_error != 0) return error.FoundControlCharacter;
             if (!self.utf8_checker.succeeded()) return error.InvalidEncoding;
             if (self.prev_inside_string != 0) return error.ExpectedStringEnd;
-            if (self.indexes.items.len == 0) return error.Empty;
-            return written;
         }
 
         inline fn step(self: *Self, block: reader.Block, dest: [*]u32) u32 {
@@ -66,7 +67,7 @@ pub fn Indexer(comptime options: Options) type {
                     vecs[j] = @as(Aligned.vector, @alignCast(chunk[j * Vector.len_bytes ..][0..Vector.len_bytes])).*;
                 }
                 const tokens = self.identify(vecs);
-                written += self.next(vecs, tokens, dest);
+                written += self.next(vecs, tokens, dest + offset);
             }
             return written;
         }
@@ -185,31 +186,32 @@ pub fn Indexer(comptime options: Options) type {
                 unescaped |= @as(umask, u) << @truncate(offset);
             }
             self.utf8_checker.check(vecs);
-            const written = self.extract(self.prev_structural, dest);
-            self.prev_structural = block.structuralStart();
+            const written = self.extract(block.structuralStart(), dest);
             self.unescaped_error |= block.nonQuoteInsideString(unescaped);
             return written;
-            // if (debug.is_set) self.debug.expectIdentified(vecs, self.prev_structural);
         }
 
         inline fn extract(self: *Self, tokens: umask, dest: [*]u32) u32 {
             const steps = 4;
             const steps_until = 24;
             const pop_count: u32 = @popCount(tokens);
+            var offsets: [Mask.len_bits + 1]u8 = undefined;
+            offsets[0] = 0;
+
             var s = if (cpu.arch.isARM()) @bitReverse(tokens) else tokens;
             inline for (0..steps_until / steps) |u| {
                 if (u * steps < pop_count) {
                     @branchHint(.unlikely);
                     inline for (0..steps) |j| {
                         if (cpu.arch.isARM()) {
-                            const lz: i64 = @clz(s);
-                            dest[j + u * steps] = @intCast(lz - self.prev_offset);
-                            self.prev_offset = lz;
+                            const lz: u8 = @clz(s);
+                            dest[j + u * steps] = @intCast(lz - offsets[j + u * steps]);
+                            offsets[j + u * steps + 1] = lz;
                             s ^= std.math.shr(umask, 1 << 63, lz);
                         } else {
-                            const tz: i64 = @ctz(s);
-                            dest[j + u * steps] = @intCast(tz - self.prev_offset);
-                            self.prev_offset = tz;
+                            const tz: u8 = @ctz(s);
+                            dest[j + u * steps] = @intCast(tz - offsets[j + u * steps]);
+                            offsets[j + u * steps + 1] = tz;
                             s &= s -% 1;
                         }
                     }
@@ -219,18 +221,20 @@ pub fn Indexer(comptime options: Options) type {
                 @branchHint(.unlikely);
                 for (steps_until..pop_count) |j| {
                     if (cpu.arch.isARM()) {
-                        const lz: i64 = @clz(s);
-                        dest[j] = @intCast(lz - self.prev_offset);
-                        self.prev_offset = lz;
+                        const lz: u8 = @clz(s);
+                        dest[j] = @intCast(lz - offsets[j]);
+                        offsets[j + 1] = lz;
                         s ^= std.math.shr(umask, 1 << 63, lz);
                     } else {
-                        const tz: i64 = @ctz(s);
-                        dest[j] = @intCast(tz - self.prev_offset);
-                        self.prev_offset = tz;
+                        const tz: u8 = @ctz(s);
+                        dest[j] = @intCast(tz - offsets[j]);
+                        offsets[j + 1] = tz;
                         s &= s -% 1;
                     }
                 }
             }
+            dest[0] = @intCast(@as(i64, @intCast(dest[0])) - self.prev_offset);
+            if (pop_count != 0) self.prev_offset = offsets[pop_count];
             self.prev_offset -= Mask.len_bits;
             return pop_count;
         }

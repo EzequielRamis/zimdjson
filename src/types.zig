@@ -37,6 +37,7 @@ pub const Error = error{
     ExceededDepth,
     ExceededCapacity,
     StreamError,
+    StreamRead,
     StreamChunkOverflow,
     FoundControlCharacter,
     InvalidEncoding,

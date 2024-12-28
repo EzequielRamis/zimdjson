@@ -34,9 +34,8 @@ pub fn Parser(comptime options: Options) type {
             self.tape.deinit();
         }
 
-        pub fn parse(self: *Self, document: Aligned.slice) !Visitor {
-            if (document.len >= options.max_capacity) return error.ExceededCapacity;
-            try self.tape.build(document, document.len);
+        pub fn parse(self: *Self, path: Aligned.slice) !Visitor {
+            try self.tape.build(path, options.length_hint);
             return Visitor{
                 .tape = &self.tape,
                 .index = 0,

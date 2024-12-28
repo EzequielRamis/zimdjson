@@ -6,6 +6,14 @@ const testing = std.testing;
 pub const default_max_depth = 1024;
 pub const default_length_hint = 1024 * 1024;
 
+pub fn roundUp(comptime T: type, value: T, alignment: T) T {
+    return (value + (alignment - 1)) & ~(alignment - 1);
+}
+
+pub fn roundDown(comptime T: type, value: T, alignment: T) T {
+    return value & ~(alignment - 1);
+}
+
 pub const tables = struct {
     pub const is_structural: [256]bool = init: {
         var res: [256]bool = undefined;

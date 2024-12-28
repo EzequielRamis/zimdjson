@@ -11,7 +11,7 @@ pub fn RingBuffer(comptime T: type, comptime length: usize) type {
         const Self = @This();
         pub const capacity = length;
 
-        buffer: []align(std.mem.page_size) T,
+        buffer: []align(std.mem.page_size) u8,
         fd: posix.fd_t,
         head: usize,
         tail: usize,
@@ -19,7 +19,7 @@ pub fn RingBuffer(comptime T: type, comptime length: usize) type {
         pub fn init() !Self {
             const fd = try posix.memfd_create("zimdjson_ringbuffer", posix.FD_CLOEXEC);
             errdefer posix.close(fd);
-            try posix.ftruncate(fd, length);
+            try posix.ftruncate(fd, byte_len);
 
             const buffer = try posix.mmap(
                 null,
@@ -48,7 +48,7 @@ pub fn RingBuffer(comptime T: type, comptime length: usize) type {
             if (mirror1.ptr != buffer.ptr) return error.Mirror;
 
             const mirror2 = try posix.mmap(
-                @alignCast(buffer.ptr + length),
+                @alignCast(buffer.ptr + byte_len),
                 byte_len,
                 posix.PROT.READ | posix.PROT.WRITE,
                 .{
@@ -61,7 +61,7 @@ pub fn RingBuffer(comptime T: type, comptime length: usize) type {
             if (mirror2.ptr != buffer.ptr + byte_len) return error.Mirror;
 
             return .{
-                .buffer = @ptrCast(buffer),
+                .buffer = buffer,
                 .fd = fd,
                 .head = 0,
                 .tail = 0,
@@ -71,6 +71,10 @@ pub fn RingBuffer(comptime T: type, comptime length: usize) type {
         pub fn deinit(self: Self) void {
             posix.munmap(self.buffer);
             posix.close(self.fd);
+        }
+
+        fn ptr(self: Self) [*]T {
+            return @ptrCast(self.buffer.ptr);
         }
 
         pub fn len(self: Self) usize {
@@ -92,11 +96,11 @@ pub fn RingBuffer(comptime T: type, comptime length: usize) type {
         }
 
         pub fn slice(self: Self) []T {
-            return self.buffer[self.tail % length ..][0..self.len()];
+            return self.ptr()[self.tail % length ..][0..self.len()];
         }
 
-        pub fn unsafeSlice(self: Self) []T {
-            return self.buffer[self.tail % length ..];
+        pub fn unsafeSlice(self: Self) [*]T {
+            return self.ptr()[self.tail % length ..];
         }
 
         pub fn read(self: *Self) ?T {
@@ -107,7 +111,7 @@ pub fn RingBuffer(comptime T: type, comptime length: usize) type {
         pub fn readAssumeLength(self: *Self) T {
             assert(!self.isEmpty());
             defer self.tail = (self.tail + 1) % (length * 2);
-            return self.buffer[self.tail];
+            return self.ptr()[self.tail];
         }
 
         pub fn readAll(self: *Self) []const T {
@@ -123,7 +127,7 @@ pub fn RingBuffer(comptime T: type, comptime length: usize) type {
         pub fn readFirstAssumeLength(self: *Self, count: usize) []const T {
             assert(count <= self.len());
             defer self.tail = (self.tail + count) % (length * 2);
-            return self.buffer[self.tail..][0..count];
+            return self.ptr()[self.tail..][0..count];
         }
 
         pub fn write(self: *Self, el: T) !void {
@@ -134,7 +138,7 @@ pub fn RingBuffer(comptime T: type, comptime length: usize) type {
         pub fn writeAssumeCapacity(self: *Self, el: T) void {
             assert(!self.isFull());
             defer self.head = (self.head + 1) % (length * 2);
-            self.buffer[self.head] = el;
+            self.ptr()[self.head] = el;
         }
 
         pub fn writeSlice(self: *Self, data: []const T) !void {
@@ -145,7 +149,7 @@ pub fn RingBuffer(comptime T: type, comptime length: usize) type {
         pub fn writeSliceAssumeCapacity(self: *Self, data: []const T) void {
             assert(data.len <= self.unused());
             defer self.head = (self.head + data.len) % (length * 2);
-            @memcpy(self.buffer[self.head..][0..data.len], data);
+            @memcpy(self.ptr()[self.head..][0..data.len], data);
         }
 
         pub fn reserve(self: *Self, count: usize) ![]T {
@@ -156,7 +160,7 @@ pub fn RingBuffer(comptime T: type, comptime length: usize) type {
         pub fn reserveAssumeCapacity(self: *Self, count: usize) []T {
             assert(count <= self.unused());
             defer self.head = (self.head + count) % (length * 2);
-            return self.buffer[self.head..][0..count];
+            return self.ptr()[self.head..][0..count];
         }
 
         pub fn reserveAll(self: *Self) []T {

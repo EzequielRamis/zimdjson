@@ -65,7 +65,7 @@ pub fn Tape(comptime options: Options) type {
 
     return struct {
         const Self = @This();
-        const Stream = stream.Stream(.{ .aligned = options.aligned, .chunk_len = 1024 * 4 });
+        const Stream = stream.Stream(.{ .aligned = options.aligned, .chunk_len = std.mem.page_size });
         const Tokens = tokens.Iterator(token_options);
         const Aligned = types.Aligned(options.aligned);
         const Words = ArrayList(u64);
@@ -83,7 +83,7 @@ pub fn Tape(comptime options: Options) type {
             return Self{
                 .parsed = Words.init(allocator),
                 .stack = .{},
-                .stream = .{},
+                .stream = undefined,
                 .chars = ArrayList(u8).init(allocator),
                 .allocator = allocator,
             };
@@ -97,7 +97,7 @@ pub fn Tape(comptime options: Options) type {
         }
 
         pub fn build(self: *Self, path: []const u8, len_hint: usize) !void {
-            self.stream = try self.stream.init(path);
+            self.stream = try Stream.init(path);
 
             const tracer = tracy.traceNamed(@src(), "Tape");
             defer tracer.end();
@@ -166,7 +166,7 @@ pub fn Tape(comptime options: Options) type {
                             return error.ExpectedKey;
                         }
                     }
-                    if (try self.stream.next()[0] == ':') {
+                    if ((try self.stream.next())[0] == ':') {
                         const t = try self.stream.next();
                         switch (t[0]) {
                             '{' => {
@@ -193,7 +193,7 @@ pub fn Tape(comptime options: Options) type {
                     }
                 },
                 .object_continue => {
-                    switch (try self.stream.next()[0]) {
+                    switch ((try self.stream.next())[0]) {
                         ',' => {
                             self.incrementContainerCount();
                             continue :state .object_field;
@@ -305,9 +305,10 @@ pub fn Tape(comptime options: Options) type {
                 },
                 .end => {
                     const trail = try self.stream.next();
-                    if (trail[0] != ' ') return error.TrailingContent;
+                    if (!common.tables.is_whitespace[trail[0]]) return error.TrailingContent;
                     self.chars.items.len = @intFromPtr(self.chars_ptr) - @intFromPtr(self.chars.items.ptr);
                     self.parsed.items.len = self.currentIndex();
+                    if (self.parsed.items.len == 0) return error.Empty;
                 },
             }
         }

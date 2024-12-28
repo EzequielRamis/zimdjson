@@ -84,9 +84,7 @@ pub fn main() !void {
                 try checker_zig_content.appendSlice(
                     \\");
                     \\    defer allocator.free(path);
-                    \\    const file = try Reader.readFileAlloc(allocator, path);
-                    \\    defer allocator.free(file);
-                    \\    _ = try parser.parse(file);
+                    \\    _ = try parser.parse(path);
                 );
             } else {
                 try checker_zig_content.appendSlice(
@@ -97,9 +95,7 @@ pub fn main() !void {
                 try checker_zig_content.appendSlice(
                     \\");
                     \\    defer allocator.free(path);
-                    \\    const file = try Reader.readFileAlloc(allocator, path);
-                    \\    defer allocator.free(file);
-                    \\    _ = parser.parse(file) catch return;
+                    \\    _ = parser.parse(path) catch return;
                     \\    return error.MustHaveFailed;
                 );
             }

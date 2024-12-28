@@ -60,12 +60,9 @@ pub fn main() !void {
 
     const allocator = arena.allocator();
 
-    const file = try Reader.readFileAlloc(allocator, args[1]);
-    defer allocator.free(file);
-
     var parser = dom.Parser(.{}).init(allocator);
     defer parser.deinit();
 
-    const json = try parser.parse(file);
+    const json = try parser.parse(args[1]);
     try walk(json);
 }

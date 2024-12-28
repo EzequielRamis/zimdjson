@@ -46,7 +46,7 @@ pub fn Indexer(comptime options: Options) type {
             var written: u32 = 0;
             for (0..chunk.len / reader.BLOCK_SIZE) |i| {
                 const block: *align(Aligned.alignment) const reader.Block = @alignCast(chunk[i * reader.BLOCK_SIZE ..][0..reader.BLOCK_SIZE]);
-                written += self.step(block.*, dest + i * reader.BLOCK_SIZE);
+                written += self.step(block.*, dest + written);
             }
             return written;
         }
@@ -67,7 +67,7 @@ pub fn Indexer(comptime options: Options) type {
                     vecs[j] = @as(Aligned.vector, @alignCast(chunk[j * Vector.len_bytes ..][0..Vector.len_bytes])).*;
                 }
                 const tokens = self.identify(vecs);
-                written += self.next(vecs, tokens, dest + offset);
+                written += self.next(vecs, tokens, dest + written);
             }
             return written;
         }

@@ -100,8 +100,8 @@ pub fn Tape(comptime options: Options) type {
         pub fn build(self: *Self, path: []const u8, len_hint: usize) !void {
             self.stream = try Stream.init(path);
 
-            const tracer = tracy.traceNamed(@src(), "Tape");
-            defer tracer.end();
+            // const tracer = tracy.traceNamed(@src(), "Tape");
+            // defer tracer.end();
 
             try self.chars.ensureTotalCapacity(len_hint * 2 + types.Vector.len_bytes);
             try self.stack.ensureTotalCapacity(self.allocator, options.max_depth);

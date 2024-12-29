@@ -3,7 +3,7 @@ const posix = std.posix;
 const Allocator = std.mem.Allocator;
 const assert = std.debug.assert;
 
-pub fn RingBuffer(comptime T: type, comptime length: usize) type {
+pub fn RingBuffer(comptime T: type, comptime length: u32) type {
     const byte_len = @sizeOf(T) * length;
     assert(byte_len % std.mem.page_size == 0);
 
@@ -13,8 +13,8 @@ pub fn RingBuffer(comptime T: type, comptime length: usize) type {
 
         buffer: []align(std.mem.page_size) u8,
         fd: posix.fd_t,
-        head: usize,
-        tail: usize,
+        head: u32,
+        tail: u32,
 
         pub fn init() !Self {
             const fd = try posix.memfd_create("zimdjson_ringbuffer", posix.FD_CLOEXEC);
@@ -73,122 +73,122 @@ pub fn RingBuffer(comptime T: type, comptime length: usize) type {
             posix.close(self.fd);
         }
 
-        fn ptr(self: Self) [*]T {
+        inline fn ptr(self: Self) [*]T {
             return @ptrCast(self.buffer.ptr);
         }
 
-        pub fn len(self: Self) usize {
+        pub fn len(self: Self) u32 {
             const wrap_offset = length * 2 * @intFromBool(self.head < self.tail);
             const head = self.head +% wrap_offset;
             return head -% self.tail;
         }
 
-        pub fn unused(self: Self) usize {
+        pub inline fn unused(self: Self) u32 {
             return length - self.len();
         }
 
-        pub fn isEmpty(self: Self) bool {
+        pub inline fn isEmpty(self: Self) bool {
             return self.head == self.tail;
         }
 
-        pub fn isFull(self: Self) bool {
-            return (self.head +% length) % (length * 2) == self.tail;
+        pub inline fn isFull(self: Self) bool {
+            return self.len() == length;
         }
 
-        pub fn slice(self: Self) []T {
+        pub inline fn slice(self: Self) []T {
             return self.ptr()[self.tail % length ..][0..self.len()];
         }
 
-        pub fn unsafeSlice(self: Self) [*]T {
+        pub inline fn unsafeSlice(self: Self) [*]T {
             return self.ptr()[self.tail % length ..];
         }
 
-        pub fn read(self: *Self) ?T {
+        pub inline fn read(self: *Self) ?T {
             if (self.isEmpty()) return null;
             return self.readAssumeLength();
         }
 
-        pub fn readAssumeLength(self: *Self) T {
+        pub inline fn readAssumeLength(self: *Self) T {
             assert(!self.isEmpty());
-            defer self.tail = (self.tail +% 1) % (length * 2);
-            return self.ptr()[self.tail];
+            defer self.tail +%= 1;
+            return self.ptr()[self.tail % length];
         }
 
-        pub fn readAll(self: *Self) []const T {
+        pub inline fn readAll(self: *Self) []const T {
             defer self.tail = self.head;
             return self.slice();
         }
 
-        pub fn readFirst(self: *Self, count: usize) ![]const T {
+        pub inline fn readFirst(self: *Self, count: u32) ![]const T {
             if (count > self.len()) return error.ReadLengthInvalid;
             return self.readFirstAssumeLength(count);
         }
 
-        pub fn readFirstAssumeLength(self: *Self, count: usize) []const T {
+        pub inline fn readFirstAssumeLength(self: *Self, count: u32) []const T {
             assert(count <= self.len());
-            defer self.tail = (self.tail +% count) % (length * 2);
-            return self.ptr()[self.tail..][0..count];
+            defer self.tail +%= count;
+            return self.ptr()[self.tail % length ..][0..count];
         }
 
-        pub fn write(self: *Self, el: T) !void {
+        pub inline fn write(self: *Self, el: T) !void {
             if (self.isFull()) return error.Full;
             self.writeAssumeCapacity(el);
         }
 
-        pub fn writeAssumeCapacity(self: *Self, el: T) void {
+        pub inline fn writeAssumeCapacity(self: *Self, el: T) void {
             assert(!self.isFull());
-            defer self.head = (self.head +% 1) % (length * 2);
-            self.ptr()[self.head] = el;
+            defer self.head +%= 1;
+            self.ptr()[self.head % length] = el;
         }
 
-        pub fn writeSlice(self: *Self, data: []const T) !void {
+        pub inline fn writeSlice(self: *Self, data: []const T) !void {
             if (data.len > self.unused()) return error.Full;
             self.writeSliceAssumeCapacity(data);
         }
 
-        pub fn writeSliceAssumeCapacity(self: *Self, data: []const T) void {
+        pub inline fn writeSliceAssumeCapacity(self: *Self, data: []const T) void {
             assert(data.len <= self.unused());
-            defer self.head = (self.head +% data.len) % (length * 2);
-            @memcpy(self.ptr()[self.head..][0..data.len], data);
+            defer self.head +%= data.len;
+            @memcpy(self.ptr()[self.head % length ..][0..data.len], data);
         }
 
-        pub fn reserve(self: *Self, count: usize) ![]T {
+        pub inline fn reserve(self: *Self, count: u32) ![]T {
             if (count > self.unused()) return error.Full;
             return self.reserveAssumeCapacity(count);
         }
 
-        pub fn reserveAssumeCapacity(self: *Self, count: usize) []T {
+        pub inline fn reserveAssumeCapacity(self: *Self, count: u32) []T {
             assert(count <= self.unused());
-            defer self.head = (self.head +% count) % (length * 2);
-            return self.ptr()[self.head..][0..count];
+            defer self.head +%= count;
+            return self.ptr()[self.head % length ..][0..count];
         }
 
-        pub fn reserveAll(self: *Self) []T {
+        pub inline fn reserveAll(self: *Self) []T {
             return self.reserveAssumeCapacity(self.unused());
         }
 
-        pub fn consume(self: *Self, count: usize) !void {
+        pub inline fn consume(self: *Self, count: u32) !void {
             if (count > self.len()) return error.ReadLengthInvalid;
             self.consumeAssumeLength(count);
         }
 
-        pub fn consumeAssumeLength(self: *Self, count: usize) void {
+        pub inline fn consumeAssumeLength(self: *Self, count: u32) void {
             assert(count <= self.len());
-            self.tail = (self.tail +% count) % (length * 2);
+            self.tail +%= count;
         }
 
-        pub fn consumeAll(self: *Self) void {
+        pub inline fn consumeAll(self: *Self) void {
             self.consumeAssumeLength(self.len());
         }
 
-        pub fn shrink(self: *Self, count: usize) !void {
+        pub inline fn shrink(self: *Self, count: u32) !void {
             if (count > self.len()) return error.ReadLengthInvalid;
             self.shrinkAssumeLength(count);
         }
 
-        pub fn shrinkAssumeLength(self: *Self, count: usize) void {
+        pub inline fn shrinkAssumeLength(self: *Self, count: u32) void {
             assert(count <= self.len());
-            self.head = (self.head -% count) % (length * 2);
+            self.head -%= count;
         }
     };
 }

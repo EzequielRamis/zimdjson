@@ -16,17 +16,15 @@ pub fn main() !void {
     var tracy_alloc = tracy.tracyAllocator(std.heap.c_allocator);
     const allocator = tracy_alloc.allocator();
 
-    const file = try Reader.readFileAlloc(allocator, args[1]);
-    defer allocator.free(file);
-
-    var parser = dom.Parser(.{}).init(allocator);
+    const path = args[1];
+    var parser = dom.Parser(.{ .length_hint = 1024 * 1024 * 1024 * 2 }).init(allocator);
     // var parser = ondemand.Parser(.{}).init(allocator);
     defer parser.deinit();
 
     // const rand = std.crypto.random;
     while (true) {
         // const index = rand.uintLessThan(u8, 100);
-        _ = try parser.parse(file);
+        _ = try parser.parse(path);
         // const created_at = try document.at(index).at("reportedOn").getString();
         // tracy.messageCopy(created_at);
     }

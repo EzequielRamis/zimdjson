@@ -56,7 +56,9 @@ pub fn main() !void {
         try checker_zig_content.appendSlice(try std.fmt.bufPrint(&buf,
             \\test "{[id]s}" {{
             \\    const allocator = std.testing.allocator;
-            \\    var parser = dom.Parser(.{{}}).init(allocator);
+            \\    var parser = dom.Parser(.{{
+            \\        .chunk_length = std.mem.page_size * 10,
+            \\    }}).init(allocator);
             \\    defer parser.deinit();
             \\    const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonchecker/adversarial/issue150/{[path]s}");
             \\    defer allocator.free(path);

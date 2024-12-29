@@ -56,6 +56,7 @@ const Context = struct {
 pub const Options = struct {
     max_depth: u32,
     aligned: bool,
+    chunk_len: u32,
 };
 
 pub fn Tape(comptime options: Options) type {
@@ -65,7 +66,7 @@ pub fn Tape(comptime options: Options) type {
 
     return struct {
         const Self = @This();
-        const Stream = stream.Stream(.{ .aligned = options.aligned, .chunk_len = std.mem.page_size });
+        const Stream = stream.Stream(.{ .aligned = options.aligned, .chunk_len = options.chunk_len });
         const Tokens = tokens.Iterator(token_options);
         const Aligned = types.Aligned(options.aligned);
         const Words = ArrayList(u64);

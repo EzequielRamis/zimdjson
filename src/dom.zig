@@ -11,6 +11,7 @@ pub const Options = struct {
     length_hint: usize = common.default_length_hint,
     max_depth: u32 = common.default_max_depth,
     aligned: bool = false,
+    chunk_length: u32 = std.mem.page_size,
 };
 
 pub fn Parser(comptime options: Options) type {
@@ -19,6 +20,7 @@ pub fn Parser(comptime options: Options) type {
         const Tape = tape.Tape(.{
             .max_depth = options.max_depth,
             .aligned = options.aligned,
+            .chunk_len = options.chunk_length,
         });
         const Aligned = types.Aligned(options.aligned);
 

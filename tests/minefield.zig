@@ -3762,3 +3762,4 @@ test "y_structure_whitespace_array" {
     defer allocator.free(path);
     _ = try parser.parse(path);
 }
+

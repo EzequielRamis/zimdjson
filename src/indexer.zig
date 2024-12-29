@@ -236,6 +236,7 @@ pub fn Indexer(comptime options: Options) type {
             dest[0] = @intCast(@as(i64, @intCast(dest[0])) - self.prev_offset);
             if (pop_count != 0) self.prev_offset = offsets[pop_count];
             self.prev_offset -= Mask.len_bits;
+            std.debug.print("indexes: {any}\n", .{dest[0..pop_count]});
             return pop_count;
         }
     };

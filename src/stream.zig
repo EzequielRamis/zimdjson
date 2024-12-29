@@ -96,6 +96,7 @@ pub fn Stream(comptime options: Options) type {
         }
 
         fn indexNextChunk(self: *Self) !u32 {
+            std.debug.print("indexNextChunk\n", .{});
             const buf = self.document_stream.reserveAssumeCapacity(chunk_len);
             const read = std.posix.read(self.fd, buf) catch return error.StreamRead;
             if (read < chunk_len) {
@@ -107,20 +108,18 @@ pub fn Stream(comptime options: Options) type {
                 const padding = bogus_token ++ (" " ** (reader.BLOCK_SIZE - bogus_token.len));
                 self.document_stream.writeSliceAssumeCapacity(padding);
 
-                const chunk = self.document_stream.unsafeSlice()[0..common.roundUp(usize, read + bogus_token.len, reader.BLOCK_SIZE)];
+                const chunk = buf[0..common.roundUp(usize, read + bogus_token.len, reader.BLOCK_SIZE)];
                 const indexes = self.indexes_stream.reserveAll();
                 const written = try self.indexer.index(chunk, indexes.ptr);
                 self.indexes_stream.shrinkAssumeLength(indexes.len - written);
                 try self.indexer.validate();
-                self.document_stream.unsafeSlice()[read + bogus_token.len - 1] = ' '; // remove bogus token
-                std.debug.print("indexes: {any}\n", .{self.indexes_stream.slice()});
+                buf[read + bogus_token.len - 1] = ' '; // remove bogus token
                 return written;
             } else {
-                const chunk = self.document_stream.unsafeSlice()[0..common.roundUp(usize, read, reader.BLOCK_SIZE)];
+                const chunk = buf[0..common.roundUp(usize, read, reader.BLOCK_SIZE)];
                 const indexes = self.indexes_stream.reserveAll();
                 const written = try self.indexer.index(chunk, indexes.ptr);
                 self.indexes_stream.shrinkAssumeLength(indexes.len - written);
-                std.debug.print("indexes: {any}\n", .{self.indexes_stream.slice()});
                 return written;
             }
         }

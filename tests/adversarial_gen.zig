@@ -57,7 +57,7 @@ pub fn main() !void {
             \\test "{[id]s}" {{
             \\    const allocator = std.testing.allocator;
             \\    var parser = dom.Parser(.{{
-            \\        .chunk_length = std.mem.page_size * 10,
+            \\        .chunk_length = std.mem.page_size * 8,
             \\    }}).init(allocator);
             \\    defer parser.deinit();
             \\    const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonchecker/adversarial/issue150/{[path]s}");

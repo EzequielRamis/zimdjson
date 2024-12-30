@@ -81,8 +81,8 @@ pub fn main() !void {
             \\test "{[id]s}" {{
             \\    const allocator = std.testing.allocator;
             \\    var parser = dom.Parser(.{{
-            \\        .chunk_length = std.mem.page_size * 1,
-            \\        .length_hint = 1024 * 1024 * 10,
+            \\        .chunk_length = std.mem.page_size * 4,
+            \\        .length_hint = 1024 * 1024 * 16,
             \\    }}).init(allocator);
             \\    defer parser.deinit();
             \\    const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonexamples/{[path]s}");

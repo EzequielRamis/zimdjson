@@ -8,8 +8,8 @@ const simdjson_data = @embedFile("simdjson-data");
 test "apache_builds" {
     const allocator = std.testing.allocator;
     var parser = dom.Parser(.{
-        .chunk_length = std.mem.page_size * 1,
-        .length_hint = 1024 * 1024 * 10,
+        .chunk_length = std.mem.page_size * 4,
+        .length_hint = 1024 * 1024 * 16,
     }).init(allocator);
     defer parser.deinit();
     const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonexamples/apache_builds.json");
@@ -20,8 +20,8 @@ test "apache_builds" {
 test "canada" {
     const allocator = std.testing.allocator;
     var parser = dom.Parser(.{
-        .chunk_length = std.mem.page_size * 1,
-        .length_hint = 1024 * 1024 * 10,
+        .chunk_length = std.mem.page_size * 4,
+        .length_hint = 1024 * 1024 * 16,
     }).init(allocator);
     defer parser.deinit();
     const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonexamples/canada.json");
@@ -32,8 +32,8 @@ test "canada" {
 test "citm_catalog" {
     const allocator = std.testing.allocator;
     var parser = dom.Parser(.{
-        .chunk_length = std.mem.page_size * 1,
-        .length_hint = 1024 * 1024 * 10,
+        .chunk_length = std.mem.page_size * 4,
+        .length_hint = 1024 * 1024 * 16,
     }).init(allocator);
     defer parser.deinit();
     const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonexamples/citm_catalog.json");
@@ -44,8 +44,8 @@ test "citm_catalog" {
 test "github_events" {
     const allocator = std.testing.allocator;
     var parser = dom.Parser(.{
-        .chunk_length = std.mem.page_size * 1,
-        .length_hint = 1024 * 1024 * 10,
+        .chunk_length = std.mem.page_size * 4,
+        .length_hint = 1024 * 1024 * 16,
     }).init(allocator);
     defer parser.deinit();
     const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonexamples/github_events.json");
@@ -56,8 +56,8 @@ test "github_events" {
 test "google_maps_api_compact_response" {
     const allocator = std.testing.allocator;
     var parser = dom.Parser(.{
-        .chunk_length = std.mem.page_size * 1,
-        .length_hint = 1024 * 1024 * 10,
+        .chunk_length = std.mem.page_size * 4,
+        .length_hint = 1024 * 1024 * 16,
     }).init(allocator);
     defer parser.deinit();
     const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonexamples/google_maps_api_compact_response.json");
@@ -68,8 +68,8 @@ test "google_maps_api_compact_response" {
 test "google_maps_api_response" {
     const allocator = std.testing.allocator;
     var parser = dom.Parser(.{
-        .chunk_length = std.mem.page_size * 1,
-        .length_hint = 1024 * 1024 * 10,
+        .chunk_length = std.mem.page_size * 4,
+        .length_hint = 1024 * 1024 * 16,
     }).init(allocator);
     defer parser.deinit();
     const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonexamples/google_maps_api_response.json");
@@ -80,8 +80,8 @@ test "google_maps_api_response" {
 test "gsoc-2018" {
     const allocator = std.testing.allocator;
     var parser = dom.Parser(.{
-        .chunk_length = std.mem.page_size * 1,
-        .length_hint = 1024 * 1024 * 10,
+        .chunk_length = std.mem.page_size * 4,
+        .length_hint = 1024 * 1024 * 16,
     }).init(allocator);
     defer parser.deinit();
     const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonexamples/gsoc-2018.json");
@@ -92,8 +92,8 @@ test "gsoc-2018" {
 test "instruments" {
     const allocator = std.testing.allocator;
     var parser = dom.Parser(.{
-        .chunk_length = std.mem.page_size * 1,
-        .length_hint = 1024 * 1024 * 10,
+        .chunk_length = std.mem.page_size * 4,
+        .length_hint = 1024 * 1024 * 16,
     }).init(allocator);
     defer parser.deinit();
     const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonexamples/instruments.json");
@@ -104,8 +104,8 @@ test "instruments" {
 test "marine_ik" {
     const allocator = std.testing.allocator;
     var parser = dom.Parser(.{
-        .chunk_length = std.mem.page_size * 1,
-        .length_hint = 1024 * 1024 * 10,
+        .chunk_length = std.mem.page_size * 4,
+        .length_hint = 1024 * 1024 * 16,
     }).init(allocator);
     defer parser.deinit();
     const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonexamples/marine_ik.json");
@@ -116,8 +116,8 @@ test "marine_ik" {
 test "mesh" {
     const allocator = std.testing.allocator;
     var parser = dom.Parser(.{
-        .chunk_length = std.mem.page_size * 1,
-        .length_hint = 1024 * 1024 * 10,
+        .chunk_length = std.mem.page_size * 4,
+        .length_hint = 1024 * 1024 * 16,
     }).init(allocator);
     defer parser.deinit();
     const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonexamples/mesh.json");
@@ -128,8 +128,8 @@ test "mesh" {
 test "mesh.pretty" {
     const allocator = std.testing.allocator;
     var parser = dom.Parser(.{
-        .chunk_length = std.mem.page_size * 1,
-        .length_hint = 1024 * 1024 * 10,
+        .chunk_length = std.mem.page_size * 4,
+        .length_hint = 1024 * 1024 * 16,
     }).init(allocator);
     defer parser.deinit();
     const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonexamples/mesh.pretty.json");
@@ -140,8 +140,8 @@ test "mesh.pretty" {
 test "numbers" {
     const allocator = std.testing.allocator;
     var parser = dom.Parser(.{
-        .chunk_length = std.mem.page_size * 1,
-        .length_hint = 1024 * 1024 * 10,
+        .chunk_length = std.mem.page_size * 4,
+        .length_hint = 1024 * 1024 * 16,
     }).init(allocator);
     defer parser.deinit();
     const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonexamples/numbers.json");
@@ -152,8 +152,8 @@ test "numbers" {
 test "random" {
     const allocator = std.testing.allocator;
     var parser = dom.Parser(.{
-        .chunk_length = std.mem.page_size * 1,
-        .length_hint = 1024 * 1024 * 10,
+        .chunk_length = std.mem.page_size * 4,
+        .length_hint = 1024 * 1024 * 16,
     }).init(allocator);
     defer parser.deinit();
     const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonexamples/random.json");
@@ -164,8 +164,8 @@ test "random" {
 test "repeat" {
     const allocator = std.testing.allocator;
     var parser = dom.Parser(.{
-        .chunk_length = std.mem.page_size * 1,
-        .length_hint = 1024 * 1024 * 10,
+        .chunk_length = std.mem.page_size * 4,
+        .length_hint = 1024 * 1024 * 16,
     }).init(allocator);
     defer parser.deinit();
     const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonexamples/repeat.json");
@@ -173,23 +173,23 @@ test "repeat" {
     _ = try parser.parse(path);
 }
 
-// test "semanticscholar-corpus" {
-//     const allocator = std.testing.allocator;
-//     var parser = dom.Parser(.{
-//         .chunk_length = std.mem.page_size * 1,
-//         .length_hint = 1024 * 1024 * 10,
-//     }).init(allocator);
-//     defer parser.deinit();
-//     const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonexamples/semanticscholar-corpus.json");
-//     defer allocator.free(path);
-//     _ = try parser.parse(path);
-// }
+test "semanticscholar-corpus" {
+    const allocator = std.testing.allocator;
+    var parser = dom.Parser(.{
+        .chunk_length = std.mem.page_size * 4,
+        .length_hint = 1024 * 1024 * 16,
+    }).init(allocator);
+    defer parser.deinit();
+    const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonexamples/semanticscholar-corpus.json");
+    defer allocator.free(path);
+    _ = try parser.parse(path);
+}
 
 test "small/adversarial" {
     const allocator = std.testing.allocator;
     var parser = dom.Parser(.{
-        .chunk_length = std.mem.page_size * 1,
-        .length_hint = 1024 * 1024 * 10,
+        .chunk_length = std.mem.page_size * 4,
+        .length_hint = 1024 * 1024 * 16,
     }).init(allocator);
     defer parser.deinit();
     const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonexamples/small/adversarial.json");
@@ -200,8 +200,8 @@ test "small/adversarial" {
 test "small/demo" {
     const allocator = std.testing.allocator;
     var parser = dom.Parser(.{
-        .chunk_length = std.mem.page_size * 1,
-        .length_hint = 1024 * 1024 * 10,
+        .chunk_length = std.mem.page_size * 4,
+        .length_hint = 1024 * 1024 * 16,
     }).init(allocator);
     defer parser.deinit();
     const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonexamples/small/demo.json");
@@ -212,8 +212,8 @@ test "small/demo" {
 test "small/flatadversarial" {
     const allocator = std.testing.allocator;
     var parser = dom.Parser(.{
-        .chunk_length = std.mem.page_size * 1,
-        .length_hint = 1024 * 1024 * 10,
+        .chunk_length = std.mem.page_size * 4,
+        .length_hint = 1024 * 1024 * 16,
     }).init(allocator);
     defer parser.deinit();
     const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonexamples/small/flatadversarial.json");
@@ -224,8 +224,8 @@ test "small/flatadversarial" {
 test "small/jsoniter_scala/che-1.geo" {
     const allocator = std.testing.allocator;
     var parser = dom.Parser(.{
-        .chunk_length = std.mem.page_size * 1,
-        .length_hint = 1024 * 1024 * 10,
+        .chunk_length = std.mem.page_size * 4,
+        .length_hint = 1024 * 1024 * 16,
     }).init(allocator);
     defer parser.deinit();
     const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonexamples/small/jsoniter_scala/che-1.geo.json");
@@ -236,8 +236,8 @@ test "small/jsoniter_scala/che-1.geo" {
 test "small/jsoniter_scala/che-2.geo" {
     const allocator = std.testing.allocator;
     var parser = dom.Parser(.{
-        .chunk_length = std.mem.page_size * 1,
-        .length_hint = 1024 * 1024 * 10,
+        .chunk_length = std.mem.page_size * 4,
+        .length_hint = 1024 * 1024 * 16,
     }).init(allocator);
     defer parser.deinit();
     const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonexamples/small/jsoniter_scala/che-2.geo.json");
@@ -248,8 +248,8 @@ test "small/jsoniter_scala/che-2.geo" {
 test "small/jsoniter_scala/che-3.geo" {
     const allocator = std.testing.allocator;
     var parser = dom.Parser(.{
-        .chunk_length = std.mem.page_size * 1,
-        .length_hint = 1024 * 1024 * 10,
+        .chunk_length = std.mem.page_size * 4,
+        .length_hint = 1024 * 1024 * 16,
     }).init(allocator);
     defer parser.deinit();
     const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonexamples/small/jsoniter_scala/che-3.geo.json");
@@ -260,8 +260,8 @@ test "small/jsoniter_scala/che-3.geo" {
 test "small/smalldemo" {
     const allocator = std.testing.allocator;
     var parser = dom.Parser(.{
-        .chunk_length = std.mem.page_size * 1,
-        .length_hint = 1024 * 1024 * 10,
+        .chunk_length = std.mem.page_size * 4,
+        .length_hint = 1024 * 1024 * 16,
     }).init(allocator);
     defer parser.deinit();
     const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonexamples/small/smalldemo.json");
@@ -272,8 +272,8 @@ test "small/smalldemo" {
 test "small/truenull" {
     const allocator = std.testing.allocator;
     var parser = dom.Parser(.{
-        .chunk_length = std.mem.page_size * 1,
-        .length_hint = 1024 * 1024 * 10,
+        .chunk_length = std.mem.page_size * 4,
+        .length_hint = 1024 * 1024 * 16,
     }).init(allocator);
     defer parser.deinit();
     const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonexamples/small/truenull.json");
@@ -284,8 +284,8 @@ test "small/truenull" {
 test "tree-pretty" {
     const allocator = std.testing.allocator;
     var parser = dom.Parser(.{
-        .chunk_length = std.mem.page_size * 1,
-        .length_hint = 1024 * 1024 * 10,
+        .chunk_length = std.mem.page_size * 4,
+        .length_hint = 1024 * 1024 * 16,
     }).init(allocator);
     defer parser.deinit();
     const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonexamples/tree-pretty.json");
@@ -296,8 +296,8 @@ test "tree-pretty" {
 test "twitter" {
     const allocator = std.testing.allocator;
     var parser = dom.Parser(.{
-        .chunk_length = std.mem.page_size * 1,
-        .length_hint = 1024 * 1024 * 10,
+        .chunk_length = std.mem.page_size * 4,
+        .length_hint = 1024 * 1024 * 16,
     }).init(allocator);
     defer parser.deinit();
     const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonexamples/twitter.json");
@@ -308,8 +308,8 @@ test "twitter" {
 test "twitter_api_compact_response" {
     const allocator = std.testing.allocator;
     var parser = dom.Parser(.{
-        .chunk_length = std.mem.page_size * 1,
-        .length_hint = 1024 * 1024 * 10,
+        .chunk_length = std.mem.page_size * 4,
+        .length_hint = 1024 * 1024 * 16,
     }).init(allocator);
     defer parser.deinit();
     const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonexamples/twitter_api_compact_response.json");
@@ -320,8 +320,8 @@ test "twitter_api_compact_response" {
 test "twitter_api_response" {
     const allocator = std.testing.allocator;
     var parser = dom.Parser(.{
-        .chunk_length = std.mem.page_size * 1,
-        .length_hint = 1024 * 1024 * 10,
+        .chunk_length = std.mem.page_size * 4,
+        .length_hint = 1024 * 1024 * 16,
     }).init(allocator);
     defer parser.deinit();
     const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonexamples/twitter_api_response.json");
@@ -332,8 +332,8 @@ test "twitter_api_response" {
 test "twitter_timeline" {
     const allocator = std.testing.allocator;
     var parser = dom.Parser(.{
-        .chunk_length = std.mem.page_size * 1,
-        .length_hint = 1024 * 1024 * 10,
+        .chunk_length = std.mem.page_size * 4,
+        .length_hint = 1024 * 1024 * 16,
     }).init(allocator);
     defer parser.deinit();
     const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonexamples/twitter_timeline.json");
@@ -344,8 +344,8 @@ test "twitter_timeline" {
 test "twitterescaped" {
     const allocator = std.testing.allocator;
     var parser = dom.Parser(.{
-        .chunk_length = std.mem.page_size * 1,
-        .length_hint = 1024 * 1024 * 10,
+        .chunk_length = std.mem.page_size * 4,
+        .length_hint = 1024 * 1024 * 16,
     }).init(allocator);
     defer parser.deinit();
     const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonexamples/twitterescaped.json");
@@ -356,11 +356,12 @@ test "twitterescaped" {
 test "update-center" {
     const allocator = std.testing.allocator;
     var parser = dom.Parser(.{
-        .chunk_length = std.mem.page_size * 1,
-        .length_hint = 1024 * 1024 * 10,
+        .chunk_length = std.mem.page_size * 4,
+        .length_hint = 1024 * 1024 * 16,
     }).init(allocator);
     defer parser.deinit();
     const path = try std.fs.cwd().realpathAlloc(allocator, simdjson_data ++ "/jsonexamples/update-center.json");
     defer allocator.free(path);
     _ = try parser.parse(path);
 }
+

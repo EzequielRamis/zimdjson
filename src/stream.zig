@@ -22,7 +22,7 @@ pub fn Stream(comptime options: Options) type {
         const Self = @This();
         const Indexer = indexer.Indexer(.{ .aligned = options.aligned });
         const DocumentStream = RingBuffer(u8, chunk_len * 2);
-        const IndexesStream = RingBuffer(u32, chunk_len + std.mem.page_size / @sizeOf(u32));
+        const IndexesStream = RingBuffer(u32, chunk_len * 2);
 
         visited_last_chunk: bool,
         fd: std.posix.fd_t,
@@ -65,24 +65,19 @@ pub fn Stream(comptime options: Options) type {
                 @branchHint(.likely);
                 const written = try self.indexNextChunk();
                 if (written == 0) return error.StreamChunkOverflow;
-                // if (!self.indexes_stream.isEmpty()) {
-                //     _ = try self.indexNextChunk();
-                //     // const written = try self.indexNextChunk();
-                //     // if (written == 0 //or self.indexes_stream.unsafeSlice()[0] > chunk_len
-                //     // ) return error.StreamChunkOverflow;
-                //     const index = self.indexes_stream.readAssumeLength();
-                //     self.document_stream.consumeAssumeLength(index);
-                //     return self.document_stream.unsafeSlice();
-                // } else while (self.indexes_stream.isEmpty()) {
-                //     if (self.visited_last_chunk) break;
-                //     _ = try self.indexNextChunk();
-                // }
             }
             const indexes = self.indexes_stream.unsafeSlice();
-            const prev = indexes[0];
-            const index = indexes[1];
-            self.document_stream.consumeAssumeLength(index - prev);
+            const prev: u64 = indexes[0];
+            const index: u64 = indexes[1];
+
+            const wrap_offset = (@as(u64, 1) << 33) * @intFromBool(index < prev);
+            const wrap_index = @as(u64, index) +% wrap_offset;
+            const offset = wrap_index -% prev;
+
+            if (offset > chunk_len) return error.StreamChunkOverflow;
+
             self.indexes_stream.consumeAssumeLength(1);
+            self.document_stream.consumeAssumeLength(@intCast(offset));
             return self.document_stream.unsafeSlice();
         }
 
@@ -90,10 +85,15 @@ pub fn Stream(comptime options: Options) type {
             if (self.indexes_stream.len() <= 2) return null;
 
             const indexes = self.indexes_stream.unsafeSlice();
-            const prev = indexes[0];
-            const index = indexes[1];
-            self.document_stream.consumeAssumeLength(index - prev);
+            const prev: u64 = indexes[0];
+            const index: u64 = indexes[1];
+
+            const wrap_offset = (@as(u64, 1) << 33) * @intFromBool(index < prev);
+            const wrap_index = @as(u64, index) +% wrap_offset;
+            const offset = wrap_index -% prev;
+
             self.indexes_stream.consumeAssumeLength(1);
+            self.document_stream.consumeAssumeLength(@intCast(offset));
             return self.document_stream.unsafeSlice();
         }
 

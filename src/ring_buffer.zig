@@ -5,7 +5,7 @@ const assert = std.debug.assert;
 
 pub fn RingBuffer(comptime T: type, comptime length: u32) type {
     const byte_len = @sizeOf(T) * length;
-    assert(byte_len % std.mem.page_size == 0);
+    assert(byte_len > 0 and byte_len & (byte_len - 1) == 0);
 
     return struct {
         const Self = @This();
@@ -96,11 +96,11 @@ pub fn RingBuffer(comptime T: type, comptime length: u32) type {
         }
 
         pub inline fn slice(self: Self) []T {
-            return self.ptr()[self.tail % length ..][0..self.len()];
+            return self.ptr()[mask(self.tail)..][0..self.len()];
         }
 
         pub inline fn unsafeSlice(self: Self) [*]T {
-            return self.ptr()[self.tail % length ..];
+            return self.ptr()[mask(self.tail)..];
         }
 
         pub inline fn read(self: *Self) ?T {
@@ -111,7 +111,7 @@ pub fn RingBuffer(comptime T: type, comptime length: u32) type {
         pub inline fn readAssumeLength(self: *Self) T {
             assert(!self.isEmpty());
             defer self.tail +%= 1;
-            return self.ptr()[self.tail % length];
+            return self.ptr()[mask(self.tail)];
         }
 
         pub inline fn readAll(self: *Self) []const T {
@@ -127,7 +127,7 @@ pub fn RingBuffer(comptime T: type, comptime length: u32) type {
         pub inline fn readFirstAssumeLength(self: *Self, count: u32) []const T {
             assert(count <= self.len());
             defer self.tail +%= count;
-            return self.ptr()[self.tail % length ..][0..count];
+            return self.ptr()[mask(self.tail)..][0..count];
         }
 
         pub inline fn write(self: *Self, el: T) !void {
@@ -138,7 +138,7 @@ pub fn RingBuffer(comptime T: type, comptime length: u32) type {
         pub inline fn writeAssumeCapacity(self: *Self, el: T) void {
             assert(!self.isFull());
             defer self.head +%= 1;
-            self.ptr()[self.head % length] = el;
+            self.ptr()[mask(self.head)] = el;
         }
 
         pub inline fn writeSlice(self: *Self, data: []const T) !void {
@@ -149,7 +149,7 @@ pub fn RingBuffer(comptime T: type, comptime length: u32) type {
         pub inline fn writeSliceAssumeCapacity(self: *Self, data: []const T) void {
             assert(data.len <= self.unused());
             defer self.head +%= data.len;
-            @memcpy(self.ptr()[self.head % length ..][0..data.len], data);
+            @memcpy(self.ptr()[mask(self.head)..][0..data.len], data);
         }
 
         pub inline fn reserve(self: *Self, count: u32) ![]T {
@@ -160,7 +160,7 @@ pub fn RingBuffer(comptime T: type, comptime length: u32) type {
         pub inline fn reserveAssumeCapacity(self: *Self, count: u32) []T {
             assert(count <= self.unused());
             defer self.head +%= count;
-            return self.ptr()[self.head % length ..][0..count];
+            return self.ptr()[mask(self.head)..][0..count];
         }
 
         pub inline fn reserveAll(self: *Self) []T {
@@ -189,6 +189,10 @@ pub fn RingBuffer(comptime T: type, comptime length: u32) type {
         pub inline fn shrinkAssumeLength(self: *Self, count: u32) void {
             assert(count <= self.len());
             self.head -%= count;
+        }
+
+        inline fn mask(n: u32) u32 {
+            return n & (length - 1);
         }
     };
 }

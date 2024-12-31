@@ -11,7 +11,7 @@ pub const Options = struct {
     length_hint: usize = common.default_length_hint,
     max_depth: u32 = common.default_max_depth,
     aligned: bool = false,
-    chunk_length: u32 = std.mem.page_size,
+    chunk_length: u32 = common.default_chunk_length,
 };
 
 pub fn Parser(comptime options: Options) type {

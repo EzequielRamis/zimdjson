@@ -5,6 +5,7 @@ const testing = std.testing;
 
 pub const default_max_depth = 1024;
 pub const default_length_hint = 1024 * 1024;
+pub const default_chunk_length = std.mem.page_size * 16;
 
 pub fn roundUp(comptime T: type, value: T, alignment: T) T {
     return (value + (alignment - 1)) & ~(alignment - 1);

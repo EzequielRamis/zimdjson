@@ -28,7 +28,6 @@ pub fn Stream(comptime options: Options) type {
         document_stream: DocumentStream,
         indexes_stream: IndexesStream,
         indexer: Indexer,
-        last_chunk_visited: bool = false,
 
         pub fn init(path: []const u8) Error!Self {
             const fd = std.posix.open(path, .{}, @intFromEnum(std.posix.ACCMODE.RDONLY)) catch return error.StreamError;
@@ -55,7 +54,6 @@ pub fn Stream(comptime options: Options) type {
         }
 
         pub inline fn prefetch(self: *Self) !void {
-            self.indexes_stream.writeAssumeCapacity(0);
             const written = try self.indexNextChunk();
             if (written == 0) return error.StreamChunkOverflow;
         }
@@ -73,29 +71,19 @@ pub fn Stream(comptime options: Options) type {
         }
 
         inline fn fetchOffset(self: *Self) !u32 {
-            if (self.last_chunk_visited) {
-                @branchHint(.unlikely);
-                return self.fetchLocalOffset();
-            }
-            if (self.indexes_stream.len() == 2) {
+            if (self.indexes_stream.len() == 1) {
                 const written = try self.indexNextChunk();
                 if (written == 0) return error.StreamChunkOverflow;
+                const first_offset = self.indexes_stream.unsafeSlice()[0];
+                if (first_offset > chunk_len) return error.StreamChunkOverflow;
             }
             return self.fetchLocalOffset();
         }
 
-        inline fn fetchLocalOffset(self: *Self) !u32 {
-            assert(self.indexes_stream.len() >= 2);
-
-            const indexes = self.indexes_stream.unsafeSlice();
-            const prev = indexes[0];
-            const index = indexes[1];
-            const wrap_offset = (@as(u64, 1) << 32) * @intFromBool(index < prev);
-            const wrap_index = @as(u64, index) +% wrap_offset;
-            const offset = wrap_index -% prev;
-            if (offset > chunk_len) return error.StreamChunkOverflow;
-
-            return @intCast(offset);
+        inline fn fetchLocalOffset(self: *Self) u32 {
+            assert(self.indexes_stream.len() >= 1);
+            const offset = self.indexes_stream.unsafeSlice()[0];
+            return offset;
         }
 
         fn indexNextChunk(self: *Self) !u32 {
@@ -103,7 +91,6 @@ pub fn Stream(comptime options: Options) type {
             const read: u32 = @intCast(std.posix.read(self.fd, buf) catch return error.StreamRead);
             if (read < chunk_len) {
                 @branchHint(.unlikely);
-                self.last_chunk_visited = true;
 
                 self.document_stream.shrinkAssumeLength(chunk_len - read);
                 const bogus_token = " $";

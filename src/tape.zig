@@ -99,6 +99,7 @@ pub fn Tape(comptime options: Options) type {
 
         pub fn build(self: *Self, path: []const u8, len_hint: usize) !void {
             self.stream = try Stream.init(path);
+            try self.stream.prefetch();
 
             // const tracer = tracy.traceNamed(@src(), "Tape");
             // defer tracer.end();
@@ -125,14 +126,14 @@ pub fn Tape(comptime options: Options) type {
                     const t = try self.stream.next();
                     switch (t[0]) {
                         '{' => {
-                            if (self.stream.peek()[0] == '}') {
+                            if (try self.stream.peek() == '}') {
                                 try self.visitEmptyObject();
                                 continue :state .end;
                             }
                             continue :state .object_begin;
                         },
                         '[' => {
-                            if (self.stream.peek()[0] == ']') {
+                            if (try self.stream.peek() == ']') {
                                 try self.visitEmptyArray();
                                 continue :state .end;
                             }
@@ -171,14 +172,14 @@ pub fn Tape(comptime options: Options) type {
                         const t = try self.stream.next();
                         switch (t[0]) {
                             '{' => {
-                                if (self.stream.peek()[0] == '}') {
+                                if (try self.stream.peek() == '}') {
                                     try self.visitEmptyObject();
                                     continue :state .object_continue;
                                 }
                                 continue :state .object_begin;
                             },
                             '[' => {
-                                if (self.stream.peek()[0] == ']') {
+                                if (try self.stream.peek() == ']') {
                                     try self.visitEmptyArray();
                                     continue :state .object_continue;
                                 }
@@ -240,14 +241,14 @@ pub fn Tape(comptime options: Options) type {
                     const t = try self.stream.next();
                     switch (t[0]) {
                         '{' => {
-                            if (self.stream.peek()[0] == '}') {
+                            if (try self.stream.peek() == '}') {
                                 try self.visitEmptyObject();
                                 continue :state .array_continue;
                             }
                             continue :state .object_begin;
                         },
                         '[' => {
-                            if (self.stream.peek()[0] == ']') {
+                            if (try self.stream.peek() == ']') {
                                 try self.visitEmptyArray();
                                 continue :state .array_continue;
                             }

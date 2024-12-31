@@ -24,33 +24,31 @@ pub fn Stream(comptime options: Options) type {
         const DocumentStream = RingBuffer(u8, chunk_len * 2);
         const IndexesStream = RingBuffer(u32, chunk_len * 2);
 
-        visited_last_chunk: bool,
         fd: std.posix.fd_t,
         document_stream: DocumentStream,
         indexes_stream: IndexesStream,
         indexer: Indexer,
+        next_chunk_buffer: []u8 = undefined,
+        next_chunk_len: u32 = undefined,
+        last_chunk_visited: bool,
 
         pub fn init(path: []const u8) Error!Self {
             const fd = std.posix.open(path, .{}, @intFromEnum(std.posix.ACCMODE.RDONLY)) catch return error.StreamError;
-            var self = Self{
-                .visited_last_chunk = false,
+            return .{
+                .last_chunk_visited = false,
                 .fd = fd,
                 .document_stream = DocumentStream.init() catch return error.StreamError,
                 .indexes_stream = IndexesStream.init() catch return error.StreamError,
                 .indexer = .init,
             };
-            self.indexes_stream.writeAssumeCapacity(0);
-            return self;
         }
 
         pub fn initFromFd(fd: std.posix.fd_t) !Self {
-            var self = Self{
+            return .{
                 .fd = fd,
                 .document = DocumentStream.init() catch return error.StreamError,
                 .indexes = IndexesStream.init() catch return error.StreamError,
             };
-            self.indexes_stream.writeAssumeCapacity(0);
-            return self;
         }
 
         pub fn deinit(self: *Self) void {
@@ -59,60 +57,64 @@ pub fn Stream(comptime options: Options) type {
             self.indexes_stream.deinit();
         }
 
+        pub inline fn prefetch(self: *Self) !void {
+            try self.fetchNextChunk();
+            self.indexes_stream.writeAssumeCapacity(0);
+            const written = try self.indexNextChunk();
+            if (written == 0) return error.StreamChunkOverflow;
+        }
+
         pub inline fn next(self: *Self) ![*]const u8 {
-            if (self.nextLocal()) |ptr| return ptr;
-            if (!self.visited_last_chunk) {
-                @branchHint(.likely);
+            const offset = try self.fetchOffset();
+            self.indexes_stream.consumeAssumeLength(1);
+            self.document_stream.consumeAssumeLength(offset);
+            return self.document_stream.unsafeSlice();
+        }
+
+        pub inline fn peek(self: *Self) !u8 {
+            const offset = try self.fetchOffset();
+            return self.document_stream.unsafeSlice()[offset];
+        }
+
+        inline fn fetchOffset(self: *Self) !u32 {
+            if (self.last_chunk_visited) {
+                @branchHint(.unlikely);
+                return self.fetchLocalOffset();
+            }
+            if (self.indexes_stream.len() == 2) {
+                @branchHint(.unlikely);
+                try self.fetchNextChunk();
                 const written = try self.indexNextChunk();
                 if (written == 0) return error.StreamChunkOverflow;
             }
-            const indexes = self.indexes_stream.unsafeSlice();
-            const prev: u64 = indexes[0];
-            const index: u64 = indexes[1];
-
-            const wrap_offset = (@as(u64, 1) << 33) * @intFromBool(index < prev);
-            const wrap_index = @as(u64, index) +% wrap_offset;
-            const offset = wrap_index -% prev;
-
-            if (offset > chunk_len) return error.StreamChunkOverflow;
-
-            self.indexes_stream.consumeAssumeLength(1);
-            self.document_stream.consumeAssumeLength(@intCast(offset));
-            return self.document_stream.unsafeSlice();
+            return self.fetchLocalOffset();
         }
 
-        pub inline fn nextLocal(self: *Self) ?[*]const u8 {
-            if (self.indexes_stream.len() <= 2) return null;
-
-            const indexes = self.indexes_stream.unsafeSlice();
-            const prev: u64 = indexes[0];
-            const index: u64 = indexes[1];
-
-            const wrap_offset = (@as(u64, 1) << 33) * @intFromBool(index < prev);
-            const wrap_index = @as(u64, index) +% wrap_offset;
-            const offset = wrap_index -% prev;
-
-            self.indexes_stream.consumeAssumeLength(1);
-            self.document_stream.consumeAssumeLength(@intCast(offset));
-            return self.document_stream.unsafeSlice();
-        }
-
-        pub inline fn peek(self: Self) [*]const u8 {
+        inline fn fetchLocalOffset(self: *Self) !u32 {
             assert(self.indexes_stream.len() >= 2);
+
             const indexes = self.indexes_stream.unsafeSlice();
             const prev = indexes[0];
             const index = indexes[1];
-            return self.document_stream.unsafeSlice()[index - prev ..];
+            const wrap_offset = (@as(u64, 1) << 32) * @intFromBool(index < prev);
+            const wrap_index = @as(u64, index) +% wrap_offset;
+            const offset = wrap_index -% prev;
+            if (offset > chunk_len) return error.StreamChunkOverflow;
+
+            return @intCast(offset);
+        }
+
+        inline fn fetchNextChunk(self: *Self) !void {
+            self.next_chunk_buffer = self.document_stream.reserveAssumeCapacity(chunk_len);
+            self.next_chunk_len = @intCast(std.posix.read(self.fd, self.next_chunk_buffer) catch return error.StreamRead);
         }
 
         fn indexNextChunk(self: *Self) !u32 {
-            // const tracer = tracy.traceNamed(@src(), "Stream");
-            // defer tracer.end();
-            const buf = self.document_stream.reserveAssumeCapacity(chunk_len);
-            const read: u32 = @intCast(std.posix.read(self.fd, buf) catch return error.StreamRead);
+            const buf = self.next_chunk_buffer;
+            const read = self.next_chunk_len;
             if (read < chunk_len) {
                 @branchHint(.unlikely);
-                self.visited_last_chunk = true;
+                self.last_chunk_visited = true;
 
                 self.document_stream.shrinkAssumeLength(chunk_len - read);
                 const bogus_token = " $";
@@ -120,7 +122,7 @@ pub fn Stream(comptime options: Options) type {
                 self.document_stream.writeSliceAssumeCapacity(padding);
 
                 const chunk = buf[0..common.roundUp(usize, read + bogus_token.len, reader.BLOCK_SIZE)];
-                const indexes = self.indexes_stream.reserveAll();
+                const indexes = self.indexes_stream.reserveAssumeCapacity(chunk_len);
                 const written = try self.indexer.index(chunk, indexes.ptr);
                 self.indexes_stream.shrinkAssumeLength(@as(u32, @intCast(indexes.len)) - written);
                 try self.indexer.validate();
@@ -128,9 +130,9 @@ pub fn Stream(comptime options: Options) type {
                 return written;
             } else {
                 const chunk = buf;
-                const indexes = self.indexes_stream.reserveAll();
+                const indexes = self.indexes_stream.reserveAssumeCapacity(chunk_len);
                 const written = try self.indexer.index(chunk, indexes.ptr);
-                self.indexes_stream.shrinkAssumeLength(@as(u32, @intCast(indexes.len)) - written);
+                self.indexes_stream.shrinkAssumeLength(chunk_len - written);
                 return written;
             }
         }

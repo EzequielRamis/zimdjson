@@ -60,7 +60,7 @@ pub fn main() !void {
 
     const allocator = arena.allocator();
 
-    var parser = dom.Parser(.{}).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
 
     const json = try parser.parse(args[1]);

@@ -75,8 +75,8 @@ pub fn Iterator(comptime options: Options) type {
             return self.challengeSource(self.peek());
         }
 
-        pub inline fn peek(self: Self) [*]const u8 {
-            return @ptrCast(&self.ptr[self.token[0]]);
+        pub inline fn peek(self: Self) u8 {
+            return self.ptr[self.token[0]][0];
         }
 
         pub fn jumpBack(self: *Self, token: [*]const u32) void {

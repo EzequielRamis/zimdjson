@@ -28,14 +28,11 @@ pub fn Stream(comptime options: Options) type {
         document_stream: DocumentStream,
         indexes_stream: IndexesStream,
         indexer: Indexer,
-        next_chunk_buffer: []u8 = undefined,
-        next_chunk_len: u32 = undefined,
-        last_chunk_visited: bool,
+        last_chunk_visited: bool = false,
 
         pub fn init(path: []const u8) Error!Self {
             const fd = std.posix.open(path, .{}, @intFromEnum(std.posix.ACCMODE.RDONLY)) catch return error.StreamError;
             return .{
-                .last_chunk_visited = false,
                 .fd = fd,
                 .document_stream = DocumentStream.init() catch return error.StreamError,
                 .indexes_stream = IndexesStream.init() catch return error.StreamError,
@@ -58,7 +55,6 @@ pub fn Stream(comptime options: Options) type {
         }
 
         pub inline fn prefetch(self: *Self) !void {
-            try self.fetchNextChunk();
             self.indexes_stream.writeAssumeCapacity(0);
             const written = try self.indexNextChunk();
             if (written == 0) return error.StreamChunkOverflow;
@@ -82,8 +78,6 @@ pub fn Stream(comptime options: Options) type {
                 return self.fetchLocalOffset();
             }
             if (self.indexes_stream.len() == 2) {
-                @branchHint(.unlikely);
-                try self.fetchNextChunk();
                 const written = try self.indexNextChunk();
                 if (written == 0) return error.StreamChunkOverflow;
             }
@@ -104,14 +98,9 @@ pub fn Stream(comptime options: Options) type {
             return @intCast(offset);
         }
 
-        inline fn fetchNextChunk(self: *Self) !void {
-            self.next_chunk_buffer = self.document_stream.reserveAssumeCapacity(chunk_len);
-            self.next_chunk_len = @intCast(std.posix.read(self.fd, self.next_chunk_buffer) catch return error.StreamRead);
-        }
-
         fn indexNextChunk(self: *Self) !u32 {
-            const buf = self.next_chunk_buffer;
-            const read = self.next_chunk_len;
+            const buf = self.document_stream.reserveAssumeCapacity(chunk_len);
+            const read: u32 = @intCast(std.posix.read(self.fd, buf) catch return error.StreamRead);
             if (read < chunk_len) {
                 @branchHint(.unlikely);
                 self.last_chunk_visited = true;

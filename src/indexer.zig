@@ -22,6 +22,7 @@ const Allocator = std.mem.Allocator;
 
 const Options = struct {
     aligned: bool,
+    relative: bool,
 };
 
 pub fn Indexer(comptime options: Options) type {
@@ -35,7 +36,8 @@ pub fn Indexer(comptime options: Options) type {
 
         prev_scalar: umask,
         prev_inside_string: umask,
-        prev_offset: i64,
+        prev_offset: if (options.relative) i64 else u32,
+
         next_is_escaped: umask,
         unescaped_error: umask,
         utf8_checker: Checker = .init,
@@ -191,53 +193,56 @@ pub fn Indexer(comptime options: Options) type {
             return written;
         }
 
+        const RelativeOffsetBuffer = [Mask.len_bits + 1]u8;
         inline fn extract(self: *Self, tokens: umask, dest: [*]u32) u32 {
             const steps = 4;
             const steps_until = 24;
-            const pop_count: u32 = @popCount(tokens);
+            const pop_count: u8 = @popCount(tokens);
             var s = if (cpu.arch.isARM()) @bitReverse(tokens) else tokens;
 
-            var offsets: [Mask.len_bits + 1]u8 = undefined;
-            offsets[0] = 0;
+            var offsets: RelativeOffsetBuffer = undefined;
+            if (options.relative) offsets[0] = 0;
 
             inline for (0..steps_until / steps) |u| {
                 if (u * steps < pop_count) {
                     @branchHint(.unlikely);
-                    inline for (0..steps) |j| {
-                        if (cpu.arch.isARM()) {
-                            const lz: u8 = @clz(s);
-                            dest[j + u * steps] = lz - offsets[j + u * steps];
-                            offsets[j + u * steps + 1] = lz;
-                            s ^= std.math.shr(umask, 1 << 63, lz);
-                        } else {
-                            const tz: u8 = @ctz(s);
-                            dest[j + u * steps] = tz - offsets[j + u * steps];
-                            offsets[j + u * steps + 1] = tz;
-                            s &= s -% 1;
-                        }
-                    }
+                    inline for (0..steps) |j| self.writeIndexAt(&s, j + u * steps, dest, &offsets);
                 }
             }
             if (steps_until < pop_count) {
                 @branchHint(.unlikely);
-                for (steps_until..pop_count) |j| {
-                    if (cpu.arch.isARM()) {
-                        const lz: u8 = @clz(s);
-                        dest[j] = lz - offsets[j];
-                        offsets[j + 1] = lz;
-                        s ^= std.math.shr(umask, 1 << 63, lz);
-                    } else {
-                        const tz: u8 = @ctz(s);
-                        dest[j] = tz - offsets[j];
-                        offsets[j + 1] = tz;
-                        s &= s -% 1;
-                    }
-                }
+                for (steps_until..pop_count) |j| self.writeIndexAt(&s, j, dest, &offsets);
             }
-            dest[0] = @intCast(@as(i64, @intCast(dest[0])) - self.prev_offset);
-            if (pop_count != 0) self.prev_offset = offsets[pop_count];
-            self.prev_offset -= Mask.len_bits;
+
+            if (options.relative) {
+                dest[0] = @intCast(@as(i64, @intCast(dest[0])) - self.prev_offset);
+                if (pop_count != 0) self.prev_offset = offsets[pop_count];
+                self.prev_offset -= Mask.len_bits;
+            } else {
+                self.prev_offset +%= Mask.len_bits;
+            }
             return pop_count;
+        }
+
+        inline fn writeIndexAt(self: Self, mask: *umask, i: usize, dest: [*]u32, offsets: *RelativeOffsetBuffer) void {
+            const offset: if (options.relative) u8 else u32 =
+                if (cpu.arch.isARM())
+                @clz(mask.*)
+            else
+                @ctz(mask.*);
+
+            if (options.relative) {
+                dest[i] = offset - offsets[i];
+                offsets[i + 1] = offset;
+            } else {
+                dest[i] = offset +% self.prev_offset;
+            }
+
+            if (cpu.arch.isARM()) {
+                mask.* ^= std.math.shr(umask, 1 << 63, offset);
+            } else {
+                mask.* &= mask.* -% 1;
+            }
         }
     };
 }

@@ -99,7 +99,6 @@ pub fn Tape(comptime options: Options) type {
 
         pub fn build(self: *Self, path: []const u8, len_hint: usize) !void {
             self.stream = try Stream.init(path);
-            try self.stream.prefetch();
 
             // const tracer = tracy.traceNamed(@src(), "Tape");
             // defer tracer.end();

@@ -16,11 +16,13 @@ const Options = struct {
 
 pub fn Stream(comptime options: Options) type {
     const chunk_len = options.chunk_len;
-    assert(chunk_len % std.mem.page_size == 0);
 
     return struct {
         const Self = @This();
-        const Indexer = indexer.Indexer(.{ .aligned = options.aligned });
+        const Indexer = indexer.Indexer(.{
+            .aligned = options.aligned,
+            .relative = true,
+        });
         const DocumentStream = RingBuffer(u8, chunk_len * 2);
         const IndexesStream = RingBuffer(u32, chunk_len * 2);
 
@@ -31,20 +33,18 @@ pub fn Stream(comptime options: Options) type {
 
         pub fn init(path: []const u8) Error!Self {
             const fd = std.posix.open(path, .{}, @intFromEnum(std.posix.ACCMODE.RDONLY)) catch return error.StreamError;
-            return .{
+            return .initFromFd(fd);
+        }
+
+        pub fn initFromFd(fd: std.posix.fd_t) !Self {
+            var self = Self{
                 .fd = fd,
                 .document_stream = DocumentStream.init() catch return error.StreamError,
                 .indexes_stream = IndexesStream.init() catch return error.StreamError,
                 .indexer = .init,
             };
-        }
-
-        pub fn initFromFd(fd: std.posix.fd_t) !Self {
-            return .{
-                .fd = fd,
-                .document = DocumentStream.init() catch return error.StreamError,
-                .indexes = IndexesStream.init() catch return error.StreamError,
-            };
+            try self.prefetch();
+            return self;
         }
 
         pub fn deinit(self: *Self) void {

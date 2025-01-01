@@ -5,7 +5,7 @@ const assert = std.debug.assert;
 
 pub fn RingBuffer(comptime T: type, comptime length: u32) type {
     const byte_len = @sizeOf(T) * length;
-    assert(byte_len >= std.mem.page_size and byte_len & (byte_len - 1) == 0);
+    assert(byte_len >= std.mem.page_size and byte_len & (byte_len - 1) == 0); // Must be a power of 2
 
     return struct {
         const Self = @This();

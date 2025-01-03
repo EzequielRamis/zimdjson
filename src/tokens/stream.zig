@@ -1,13 +1,14 @@
 const std = @import("std");
-const tracy = @import("tracy");
-const common = @import("common.zig");
-const reader = @import("reader.zig");
-const types = @import("types.zig");
-const indexer = @import("indexer.zig");
+const tracy = @import("../tracy");
+const common = @import("../common.zig");
+const reader = @import("../reader.zig");
+const types = @import("../types.zig");
+const indexer = @import("../indexer.zig");
+const RingBuffer = @import("../ring_buffer.zig").RingBuffer;
 const assert = std.debug.assert;
 const Vector = types.Vector;
 const Error = types.Error;
-const RingBuffer = @import("ring_buffer.zig").RingBuffer;
+const File = std.fs.File;
 
 const Options = struct {
     chunk_len: u32,
@@ -26,19 +27,14 @@ pub fn Stream(comptime options: Options) type {
         const DocumentStream = RingBuffer(u8, chunk_len * 2);
         const IndexesStream = RingBuffer(u32, chunk_len * 2);
 
-        fd: std.posix.fd_t,
+        file: File,
         document_stream: DocumentStream,
         indexes_stream: IndexesStream,
         indexer: Indexer,
 
-        pub fn init(path: []const u8) Error!Self {
-            const fd = std.posix.open(path, .{}, @intFromEnum(std.posix.ACCMODE.RDONLY)) catch return error.StreamError;
-            return .initFromFd(fd);
-        }
-
-        pub fn initFromFd(fd: std.posix.fd_t) !Self {
+        pub fn init(file: File) !Self {
             var self = Self{
-                .fd = fd,
+                .file = file,
                 .document_stream = DocumentStream.init() catch return error.StreamError,
                 .indexes_stream = IndexesStream.init() catch return error.StreamError,
                 .indexer = .init,
@@ -48,12 +44,12 @@ pub fn Stream(comptime options: Options) type {
         }
 
         pub fn deinit(self: *Self) void {
-            std.posix.close(self.fd);
+            self.file.close();
             self.document_stream.deinit();
             self.indexes_stream.deinit();
         }
 
-        pub inline fn prefetch(self: *Self) !void {
+        inline fn prefetch(self: *Self) !void {
             const written = try self.indexNextChunk();
             if (written == 0) return error.StreamChunkOverflow;
         }
@@ -88,7 +84,7 @@ pub fn Stream(comptime options: Options) type {
 
         fn indexNextChunk(self: *Self) !u32 {
             const buf = self.document_stream.reserveAssumeCapacity(chunk_len);
-            const read: u32 = @intCast(std.posix.read(self.fd, buf) catch return error.StreamRead);
+            const read: u32 = @intCast(self.file.read(buf) catch return error.StreamRead);
             if (read < chunk_len) {
                 @branchHint(.unlikely);
 

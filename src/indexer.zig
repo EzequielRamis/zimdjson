@@ -44,7 +44,7 @@ pub fn Indexer(comptime options: Options) type {
 
         pub const init = std.mem.zeroInit(Self, .{});
 
-        pub inline fn index(self: *Self, chunk: Aligned.slice, dest: [*]u32) !u32 {
+        pub inline fn index(self: *Self, chunk: Aligned.slice, dest: [*]u32) u32 {
             var written: u32 = 0;
             for (0..chunk.len / reader.BLOCK_SIZE) |i| {
                 const block: *align(Aligned.alignment) const reader.Block = @alignCast(chunk[i * reader.BLOCK_SIZE ..][0..reader.BLOCK_SIZE]);

@@ -46,6 +46,6 @@ A Zig version of [simdjson](https://github.com/simdjson/simdjson), a JSON parser
 
 ## Future work
 
-- Reflection (Zig provides compile-time reflection but I will wait until this [proposal](https://github.com/ziglang/zig/issues/1099) is resolved to prevent wasted work).
+- Reflection (Zig provides compile-time reflection but I will wait until there is a decision about this [proposal](https://github.com/ziglang/zig/issues/1099) to prevent wasted work).
 - Runtime CPU Detection (this [proposal](https://github.com/ziglang/zig/issues/1018) must be resolved first).
 - Multithreading on streaming.

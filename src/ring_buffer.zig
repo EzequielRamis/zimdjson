@@ -1,80 +1,182 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const posix = std.posix;
 const Allocator = std.mem.Allocator;
 const assert = std.debug.assert;
+const native_os = builtin.os.tag;
+const w = std.os.windows;
+
+pub const default_chunk_length = if (native_os == .windows) 1024 * 64 else std.mem.page_size * 16;
 
 pub fn RingBuffer(comptime T: type, comptime length: u32) type {
     const byte_len = @sizeOf(T) * length;
     assert(byte_len >= std.mem.page_size and byte_len & (byte_len - 1) == 0); // Must be a power of 2
+    assert(native_os != .windows or byte_len >= 1024 * 64);
 
     return struct {
         const Self = @This();
         pub const capacity = length;
 
-        buffer: []align(std.mem.page_size) u8,
-        fd: posix.fd_t,
+        base: switch (native_os) {
+            .windows => {
+                if (builtin.os.isAtLeast(native_os, .win10) orelse false)
+                    WindowsBuffer
+                else
+                    @compileError("Windows 10 or later is required to create a memory-mapped ring buffer");
+            },
+            else => PosixBuffer,
+        },
         head: u32,
         tail: u32,
 
+        const PosixBuffer = struct {
+            const Handle = std.fs.File.Handle;
+
+            buffer: [*]u8,
+            handle: Handle,
+
+            pub fn init() !PosixBuffer {
+                const handle = try posix.memfd_create("zimdjson_ringbuffer", posix.FD_CLOEXEC);
+                errdefer posix.close(handle);
+                try posix.ftruncate(handle, byte_len);
+
+                const buffer = try posix.mmap(
+                    null,
+                    byte_len * 2,
+                    posix.PROT.READ | posix.PROT.WRITE,
+                    .{
+                        .TYPE = .PRIVATE,
+                        .ANONYMOUS = true,
+                    },
+                    -1,
+                    0,
+                );
+                errdefer posix.munmap(buffer);
+
+                const mirror1 = try posix.mmap(
+                    @alignCast(buffer.ptr),
+                    byte_len,
+                    posix.PROT.READ | posix.PROT.WRITE,
+                    .{
+                        .TYPE = .SHARED,
+                        .FIXED = true,
+                    },
+                    handle,
+                    0,
+                );
+                if (mirror1.ptr != buffer.ptr) return error.Mirror;
+
+                const mirror2 = try posix.mmap(
+                    @alignCast(buffer.ptr + byte_len),
+                    byte_len,
+                    posix.PROT.READ | posix.PROT.WRITE,
+                    .{
+                        .TYPE = .SHARED,
+                        .FIXED = true,
+                    },
+                    handle,
+                    0,
+                );
+                if (mirror2.ptr != buffer.ptr + byte_len) return error.Mirror;
+
+                return .{ .buffer = buffer, .handle = handle };
+            }
+
+            fn deinit(self: PosixBuffer) void {
+                posix.munmap(self.buffer);
+                posix.close(self.handle);
+            }
+        };
+
+        const WindowsBuffer = struct {
+            buffer: [*]u8,
+            mirror: *anyopaque,
+
+            // from https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc2#examples
+            pub fn init() !WindowsBuffer {
+                const MEM_RESERVE = 0x00002000;
+                const buffer = VirtualAlloc2(
+                    null,
+                    null,
+                    byte_len * 2,
+                    MEM_RESERVE | w.MEM_RESERVE_PLACEHOLDERS,
+                    w.PAGE_NOACCESS,
+                    null,
+                    0,
+                );
+                if (buffer == null) return error.Mirror;
+                errdefer w.VirtualFree(buffer, 0, w.MEM_RELEASE);
+
+                const MEM_PRESERVE_PLACEHOLDER = 0x00000002;
+                if (!w.kernel32.VirtualFree(
+                    buffer,
+                    byte_len,
+                    w.MEM_RELEASE | MEM_PRESERVE_PLACEHOLDER,
+                )) return error.Mirror;
+
+                const section = CreateFileMappingW(
+                    w.INVALID_HANDLE_VALUE,
+                    null,
+                    w.PAGE_READWRITE,
+                    0,
+                    byte_len,
+                    null,
+                );
+                if (section == null) return error.Mirror;
+                errdefer w.CloseHandle(section);
+
+                const MEM_REPLACE_PLACEHOLDER = 0x00004000;
+                const mirror1 = MapViewOfFile3(
+                    section,
+                    null,
+                    buffer,
+                    0,
+                    byte_len,
+                    MEM_REPLACE_PLACEHOLDER,
+                    w.PAGE_READWRITE,
+                    null,
+                    0,
+                );
+                if (mirror1 == null) return error.Mirror;
+                errdefer UnmapViewOfFileEx(mirror1, 0);
+
+                const mirror2 = MapViewOfFile3(
+                    section,
+                    null,
+                    buffer + byte_len,
+                    0,
+                    byte_len,
+                    MEM_REPLACE_PLACEHOLDER,
+                    w.PAGE_READWRITE,
+                    null,
+                    0,
+                );
+                if (mirror2 == null) return error.Mirror;
+                errdefer UnmapViewOfFileEx(mirror2, 0);
+
+                return .{ .buffer = buffer, .mirror = mirror2 };
+            }
+
+            fn deinit(self: WindowsBuffer) void {
+                _ = UnmapViewOfFile(self.buffer);
+                _ = UnmapViewOfFile(self.mirror);
+            }
+        };
+
         pub fn init() !Self {
-            const fd = try posix.memfd_create("zimdjson_ringbuffer", posix.FD_CLOEXEC);
-            errdefer posix.close(fd);
-            try posix.ftruncate(fd, byte_len);
-
-            const buffer = try posix.mmap(
-                null,
-                byte_len * 2,
-                posix.PROT.READ | posix.PROT.WRITE,
-                .{
-                    .TYPE = .PRIVATE,
-                    .ANONYMOUS = true,
-                },
-                -1,
-                0,
-            );
-            errdefer posix.munmap(buffer);
-
-            const mirror1 = try posix.mmap(
-                @alignCast(buffer.ptr),
-                byte_len,
-                posix.PROT.READ | posix.PROT.WRITE,
-                .{
-                    .TYPE = .SHARED,
-                    .FIXED = true,
-                },
-                fd,
-                0,
-            );
-            if (mirror1.ptr != buffer.ptr) return error.Mirror;
-
-            const mirror2 = try posix.mmap(
-                @alignCast(buffer.ptr + byte_len),
-                byte_len,
-                posix.PROT.READ | posix.PROT.WRITE,
-                .{
-                    .TYPE = .SHARED,
-                    .FIXED = true,
-                },
-                fd,
-                0,
-            );
-            if (mirror2.ptr != buffer.ptr + byte_len) return error.Mirror;
-
             return .{
-                .buffer = buffer,
-                .fd = fd,
+                .mirror = try .init(),
                 .head = 0,
                 .tail = 0,
             };
         }
 
         pub fn deinit(self: Self) void {
-            posix.munmap(self.buffer);
-            posix.close(self.fd);
+            self.base.deinit();
         }
 
         inline fn ptr(self: Self) [*]T {
-            return @ptrCast(self.buffer.ptr);
+            return @ptrCast(self.base.buffer);
         }
 
         pub fn len(self: Self) u32 {
@@ -196,3 +298,43 @@ pub fn RingBuffer(comptime T: type, comptime length: u32) type {
         }
     };
 }
+
+extern "kernel32" fn VirtualAlloc2(
+    Process: ?w.HANDLE,
+    BaseAddress: ?w.PVOID,
+    Size: w.SIZE_T,
+    AllocationType: w.ULONG,
+    PageProtection: w.ULONG,
+    ExtendedParameters: ?*anyopaque,
+    ParameterCount: w.ULONG,
+) callconv(w.WINAPI) ?w.PVOID;
+
+extern "kernel32" fn CreateFileMappingW(
+    hFile: w.HANDLE,
+    lpFileMappingAttributes: ?*const anyopaque,
+    flProtect: w.DWORD,
+    dwMaximumSizeHigh: w.DWORD,
+    dwMaximumSizeLow: w.DWORD,
+    lpName: ?w.LPCWSTR,
+) callconv(w.WINAPI) ?w.HANDLE;
+
+extern "kernel32" fn MapViewOfFile3(
+    FileMapping: w.HANDLE,
+    Process: w.HANDLE,
+    BaseAddress: ?w.PVOID,
+    Offset: w.ULONG64,
+    ViewSize: w.SIZE_T,
+    AllocationType: w.ULONG,
+    PageProtection: w.ULONG,
+    ExtendedParameters: ?*anyopaque,
+    ParameterCount: w.ULONG,
+) callconv(w.WINAPI) ?w.PVOID;
+
+extern "kernel32" fn UnmapViewOfFileEx(
+    BaseAddress: w.PVOID,
+    UnmapFlags: w.ULONG,
+) callconv(w.WINAPI) w.BOOL;
+
+extern "kernel32" fn UnmapViewOfFile(
+    lpBaseAddress: w.LPCVOID,
+) callconv(w.WINAPI) w.BOOL;

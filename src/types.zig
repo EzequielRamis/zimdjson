@@ -11,7 +11,7 @@ pub const vector = @Vector(Vector.len_bytes, u8);
 
 pub fn Aligned(comptime aligned: bool) type {
     return struct {
-        pub const alignment = if (aligned) std.mem.page_size else @alignOf(u8);
+        pub const alignment = if (aligned) Vector.len_bytes else @alignOf(u8);
         pub const slice = []align(alignment) const u8;
         pub const chunk = *align(alignment) const [Mask.len_bits]u8;
         pub const vector = *align(alignment) const [Vector.len_bytes]u8;

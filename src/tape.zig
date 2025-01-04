@@ -99,7 +99,7 @@ pub fn Tape(comptime options: Options) type {
 
             try self.tokens.build(document);
 
-            try self.chars.ensureTotalCapacity(document_len * 2 + types.Vector.bytes_len);
+            try self.chars.ensureTotalCapacity(document_len);
             try self.stack.ensureTotalCapacity(self.allocator, options.max_depth);
             try self.parsed.ensureTotalCapacity(document_len);
 

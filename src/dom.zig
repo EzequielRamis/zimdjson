@@ -61,8 +61,7 @@ pub fn Parser(comptime options: Options) type {
             } else {
                 if (stat.size > options.max_bytes) return error.FileTooLarge;
                 try self.buffer.resize(stat.size);
-                const read = try file.readAll(self.buffer.items);
-                self.buffer.items.len = read;
+                _ = try file.readAll(self.buffer.items);
                 try self.tape.build(self.buffer.items, null);
             }
             return Visitor{

@@ -30,7 +30,7 @@ pub fn Parser(comptime options: Options) type {
             .aligned = options.aligned,
             .stream = options.stream,
         });
-        const FileBuffer = std.ArrayListAligned(u8, types.Aligned(true));
+        const FileBuffer = std.ArrayListAligned(u8, types.Aligned(true).alignment);
 
         tokens: Tokens,
         depth: u32 = 1,
@@ -61,7 +61,7 @@ pub fn Parser(comptime options: Options) type {
                 try self.tokens.build(document);
             }
 
-            try self.chars.ensureTotalCapacity(document.len * 2 + types.Vector.bytes_len);
+            try self.chars.ensureTotalCapacity(document.len);
             self.chars.shrinkRetainingCapacity(0);
             self.chars_ptr = self.chars.items.ptr;
             self.depth = 1;
@@ -80,8 +80,7 @@ pub fn Parser(comptime options: Options) type {
                 if (stat.kind != .file) return error.InvalidFile;
                 if (stat.size > options.max_bytes) return error.FileTooLarge;
                 try self.buffer.resize(stat.size);
-                const read = try file.readAll(self.buffer.items);
-                self.buffer.items.len = read;
+                _ = try file.readAll(self.buffer.items);
 
                 try self.chars.ensureTotalCapacity(stat.size);
                 self.chars.shrinkRetainingCapacity(0);
@@ -117,7 +116,7 @@ pub fn Parser(comptime options: Options) type {
             pub fn getObject(self: Visitor) Error!Object {
                 if (self.err) |err| return err;
 
-                const token = try self.document.stream.peek();
+                const token = try self.document.tokens.peek();
 
                 if (token != '{') return error.IncorrectType;
                 Logger.logStart(self.document.*, "object", self.depth);
@@ -130,7 +129,7 @@ pub fn Parser(comptime options: Options) type {
             pub fn getArray(self: Visitor) Error!Array {
                 if (self.err) |err| return err;
 
-                const token = try self.document.stream.peek();
+                const token = try self.document.tokens.peek();
 
                 if (token != '[') return error.IncorrectType;
                 Logger.logStart(self.document.*, "array ", self.depth);
@@ -143,7 +142,7 @@ pub fn Parser(comptime options: Options) type {
             pub fn getNumber(self: Visitor) Error!Number {
                 if (self.err) |err| return err;
 
-                var t = &self.document.stream;
+                var t = &self.document.tokens;
                 // const curr = t.token;
                 // errdefer t.revert();
                 const ptr = try t.next();
@@ -157,7 +156,7 @@ pub fn Parser(comptime options: Options) type {
             pub fn getUnsigned(self: Visitor) Error!u64 {
                 if (self.err) |err| return err;
 
-                var t = &self.document.stream;
+                var t = &self.document.tokens;
                 // const curr = t.token;
                 // errdefer t.revert();
                 const ptr = try t.next();
@@ -171,7 +170,7 @@ pub fn Parser(comptime options: Options) type {
             pub fn getSigned(self: Visitor) Error!i64 {
                 if (self.err) |err| return err;
 
-                var t = &self.document.stream;
+                var t = &self.document.tokens;
                 // const curr = t.token;
                 // errdefer t.revert();
                 const ptr = try t.next();
@@ -185,7 +184,7 @@ pub fn Parser(comptime options: Options) type {
             pub fn getFloat(self: Visitor) Error!f64 {
                 if (self.err) |err| return err;
 
-                var t = &self.document.stream;
+                var t = &self.document.tokens;
                 // const curr = t.token;
                 // errdefer t.revert();
                 const ptr = try t.next();
@@ -199,7 +198,7 @@ pub fn Parser(comptime options: Options) type {
             pub fn getString(self: Visitor) Error![]const u8 {
                 if (self.err) |err| return err;
 
-                var t = &self.document.stream;
+                var t = &self.document.tokens;
                 // const curr = t.token;
                 // errdefer t.revert();
 
@@ -213,7 +212,7 @@ pub fn Parser(comptime options: Options) type {
             pub fn getBool(self: Visitor) Error!bool {
                 if (self.err) |err| return err;
 
-                var t = &self.document.stream;
+                var t = &self.document.tokens;
                 // const curr = t.token;
                 // errdefer t.revert();
                 const ptr = try t.next();
@@ -228,7 +227,7 @@ pub fn Parser(comptime options: Options) type {
             pub fn isNull(self: Visitor) Error!void {
                 if (self.err) |err| return err;
 
-                var t = &self.document.stream;
+                var t = &self.document.tokens;
                 // const curr = t.token;
                 // errdefer t.revert();
                 const ptr = try t.next();
@@ -242,7 +241,7 @@ pub fn Parser(comptime options: Options) type {
             pub fn getAny(self: Visitor) Error!Element {
                 if (self.err) |err| return err;
 
-                var t = &self.document.stream;
+                var t = &self.document.tokens;
                 return switch (t.peek()) {
                     't', 'f' => .{ .bool = try self.getBool() },
                     'n' => .{ .null = try self.isNull() },
@@ -288,7 +287,7 @@ pub fn Parser(comptime options: Options) type {
             pub fn skip(self: Visitor) Error!void {
                 if (self.err) |err| return err;
 
-                const t = &self.document.stream;
+                const t = &self.document.tokens;
                 const wanted_depth = self.depth - 1;
                 const actual_depth = &self.document.depth;
 
@@ -342,7 +341,7 @@ pub fn Parser(comptime options: Options) type {
                         },
                     }
                 }
-                const token = try self.document.stream.peek();
+                const token = try self.document.tokens.peek();
                 return if (token == '{')
                     error.IncompleteObject
                 else
@@ -350,7 +349,7 @@ pub fn Parser(comptime options: Options) type {
             }
 
             fn getUnsafeString(self: Visitor, ptr: [*]const u8) Error![]const u8 {
-                var t = &self.document.stream;
+                var t = &self.document.tokens;
 
                 const next_str = self.document.chars_ptr;
                 const write = @import("parsers/string.zig").writeString;

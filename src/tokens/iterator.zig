@@ -46,11 +46,12 @@ pub fn Iterator(comptime options: Options) type {
 
         pub fn build(self: *Self, document: Aligned.slice) !void {
             {
-                try self.indexes.resize(document.len + 1);
+                try self.indexes.ensureTotalCapacity(document.len + 1);
                 self.indexer = .init;
                 self.document = document;
 
                 var written: usize = 0;
+                const dest = self.indexes.items.ptr;
                 const remaining = document.len % types.block_len;
                 const last_full_index: u32 = @intCast(document.len -| remaining);
                 var index_padding: types.block align(Aligned.alignment) = @splat(' ');
@@ -59,10 +60,10 @@ pub fn Iterator(comptime options: Options) type {
                 var i: usize = 0;
                 while (i < last_full_index) : (i += types.block_len) {
                     const block: *align(Aligned.alignment) const types.block = @alignCast(document[i..][0..types.block_len]);
-                    written += self.indexer.index(block.*, self.indexes.items[i..].ptr);
+                    written += self.indexer.index(block.*, dest + written);
                 }
                 if (i == last_full_index) {
-                    written += self.indexer.index(index_padding, self.indexes.items[i..].ptr);
+                    written += self.indexer.index(index_padding, dest + written);
                     i += types.block_len;
                 }
                 if (written == 0) return error.Empty;
@@ -80,7 +81,7 @@ pub fn Iterator(comptime options: Options) type {
             while (rev.next()) |t| : (padding_token -|= 1) {
                 if (t <= padding_bound) break;
             }
-            if (self.document[ixs[padding_token]] == '"') padding_token -|= 1;
+            if (document[ixs[padding_token]] == '"') padding_token -|= 1;
             self.token = @ptrCast(&ixs[0]);
             self.padding_token = @ptrCast(&ixs[padding_token]);
             const padding_index = if (padding_token == 0) 0 else ixs[padding_token];

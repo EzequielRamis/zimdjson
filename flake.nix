@@ -15,7 +15,6 @@
             (final: prev: rec {
               zig = inputs.zig.packages.${system}."master";
               zls = inputs.zls.packages.${system}.default;
-              tracy = import ./pkgs/tracy.nix { inherit pkgs inputs; };
             })
           ];
         };

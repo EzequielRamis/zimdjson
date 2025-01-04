@@ -191,7 +191,7 @@ pub fn Indexer(comptime options: Options) type {
             const steps = 4;
             const steps_until = 24;
             const pop_count: u8 = @popCount(tokens);
-            var s = if (cpu.arch.isARM()) @bitReverse(tokens) else tokens;
+            var s = if (cpu.arch.isArm()) @bitReverse(tokens) else tokens;
 
             var offsets: RelativeOffsetBuffer = undefined;
             if (options.relative) offsets[0] = 0;
@@ -219,7 +219,7 @@ pub fn Indexer(comptime options: Options) type {
 
         inline fn writeIndexAt(self: Self, mask: *umask, i: usize, dest: [*]u32, offsets: *RelativeOffsetBuffer) void {
             const offset: if (options.relative) u8 else u32 =
-                if (cpu.arch.isARM())
+                if (cpu.arch.isArm())
                 @clz(mask.*)
             else
                 @ctz(mask.*);
@@ -231,7 +231,7 @@ pub fn Indexer(comptime options: Options) type {
                 dest[i] = offset +% self.prev_offset;
             }
 
-            if (cpu.arch.isARM()) {
+            if (cpu.arch.isArm()) {
                 mask.* ^= std.math.shr(umask, 1 << 63, offset);
             } else {
                 mask.* &= mask.* -% 1;

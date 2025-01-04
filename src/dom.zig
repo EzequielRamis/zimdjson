@@ -20,12 +20,11 @@ pub fn Parser(comptime options: Options) type {
         const Self = @This();
         const Aligned = types.Aligned(options.aligned);
         const Tape = tape.Tape(.{
-            .max_bytes = options.max_bytes,
             .max_depth = options.max_depth,
             .aligned = options.aligned,
             .stream = options.stream,
         });
-        const FileBuffer = std.ArrayListAligned(u8, types.Aligned(true));
+        const FileBuffer = std.ArrayListAligned(u8, types.Aligned(true).alignment);
 
         tape: Tape,
         buffer: if (options.stream) |_| void else FileBuffer,
@@ -46,7 +45,7 @@ pub fn Parser(comptime options: Options) type {
             if (options.stream) |_| {
                 @compileError("TODO: add streaming support");
             } else {
-                try self.tape.build(document);
+                try self.tape.build(document, null);
             }
             return Visitor{
                 .tape = &self.tape,

@@ -2,7 +2,6 @@ const std = @import("std");
 const tracy = @import("tracy");
 const common = @import("common.zig");
 const types = @import("types.zig");
-const stream = @import("stream.zig");
 const tokens = @import("tokens.zig");
 const ArrayList = std.ArrayList;
 const MultiArrayList = std.MultiArrayList;

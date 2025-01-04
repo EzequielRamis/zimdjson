@@ -46,8 +46,7 @@ pub fn Iterator(comptime options: Options) type {
 
         pub fn build(self: *Self, document: Aligned.slice) !void {
             {
-                try self.indexes.ensureTotalCapacity(document.len + 1);
-                self.indexes.shrinkRetainingCapacity(0);
+                try self.indexes.resize(document.len + 1);
                 self.indexer = .init;
                 self.document = document;
 
@@ -95,11 +94,11 @@ pub fn Iterator(comptime options: Options) type {
 
         pub inline fn next(self: *Self) [*]const u8 {
             defer self.token += 1;
-            return self.challengeSource(self.peek());
+            return self.challengeSource(self.ptr[self.token[0]..]);
         }
 
         pub inline fn peek(self: Self) u8 {
-            return self.ptr[self.token[0]][0];
+            return self.ptr[self.token[0]];
         }
 
         pub fn revert(self: *Self, token: [*]const u32) void {

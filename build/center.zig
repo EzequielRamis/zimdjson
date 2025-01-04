@@ -11,7 +11,7 @@ pub const CommandCenter = struct {
         return .{
             .b = b,
             .allocator = allocator,
-            .names = std.ArrayList(u8).init(allocator),
+            .names = .init(allocator),
             .args = args,
         };
     }

@@ -21,7 +21,7 @@ pub fn Checker(comptime options: io.Options) type {
 
         pub inline fn succeeded(self: Self) bool {
             const err = self.err | self.prev_incomplete;
-            return simd.prefixScan(.Or, 1, err)[Vector.len_bytes - 1] == 0;
+            return simd.prefixScan(.Or, 1, err)[Vector.bytes_len - 1] == 0;
         }
 
         pub inline fn check(self: *Self, vecs: types.vectors) void {
@@ -55,7 +55,7 @@ pub fn Checker(comptime options: io.Options) type {
 
         inline fn checkUTF8Bytes(self: *Self, vec: vector) void {
             @setEvalBranchQuota(10000);
-            const len = Vector.len_bytes;
+            const len = Vector.bytes_len;
             const prev1_mask: @Vector(len, i32) = [_]i32{len} ++ ([_]i32{0} ** (len - 1));
             const prev2_mask: @Vector(len, i32) = [_]i32{ len - 1, len } ++ ([_]i32{0} ** (len - 2));
             const prev3_mask: @Vector(len, i32) = [_]i32{ len - 2, len - 1, len } ++ ([_]i32{0} ** (len - 3));
@@ -92,7 +92,7 @@ pub fn Checker(comptime options: io.Options) type {
                                             // 11111___ 1000____
             const OVERLONG_4     :u8 = 1 << 6; // 11110000 1000____
 
-            const byte_1_high = intr.lookupTable(simd.repeat(Vector.len_bytes, [_]u8{
+            const byte_1_high = intr.lookupTable(simd.repeat(Vector.bytes_len, [_]u8{
                 // 0_______ ________ <ASCII in byte 1>
                 TOO_LONG, TOO_LONG, TOO_LONG, TOO_LONG,
                 TOO_LONG, TOO_LONG, TOO_LONG, TOO_LONG,
@@ -110,7 +110,7 @@ pub fn Checker(comptime options: io.Options) type {
 
             const CARRY = TOO_SHORT | TOO_LONG | TWO_CONTS; // These all have ____ in byte 1 .
 
-            const byte_1_low = intr.lookupTable(simd.repeat(Vector.len_bytes, [_]u8{
+            const byte_1_low = intr.lookupTable(simd.repeat(Vector.bytes_len, [_]u8{
                 // ____0000 ________
                 CARRY | OVERLONG_3 | OVERLONG_2 | OVERLONG_4,
                 // ____0001 ________
@@ -139,7 +139,7 @@ pub fn Checker(comptime options: io.Options) type {
                 CARRY | TOO_LARGE | TOO_LARGE_1000,
             }), prev1 & @as(vector, @splat(0x0F)));
 
-            const byte_2_high = intr.lookupTable(simd.repeat(Vector.len_bytes, [_]u8{
+            const byte_2_high = intr.lookupTable(simd.repeat(Vector.bytes_len, [_]u8{
                 // ________ 0_______ <ASCII in byte 2>
                 TOO_SHORT, TOO_SHORT, TOO_SHORT, TOO_SHORT,
                 TOO_SHORT, TOO_SHORT, TOO_SHORT, TOO_SHORT,

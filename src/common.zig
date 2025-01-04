@@ -1,8 +1,11 @@
 const std = @import("std");
 const builtin = @import("builtin");
+const types = @import("types.zig");
 const simd = std.simd;
 const testing = std.testing;
+const arch = builtin.cpu.arch;
 
+pub const default_max_bytes = std.math.maxInt(u32);
 pub const default_max_depth = 1024;
 pub const default_length_hint = 1024 * 1024;
 

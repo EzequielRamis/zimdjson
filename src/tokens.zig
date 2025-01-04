@@ -4,20 +4,19 @@ const iterator = @import("tokens/iterator.zig");
 const types = @import("types.zig");
 const Allocator = std.mem.Allocator;
 
-const Options = struct {
+pub const Options = struct {
     aligned: bool,
     stream: ?StreamOptions,
 };
 
-const StreamOptions = struct {
+pub const StreamOptions = struct {
     chunk_len: u32,
 };
 
 pub fn Tokens(comptime options: Options) type {
     return struct {
         const Self = @This();
-
-        const Aligned = types.Aligned(options.aligned);
+        const Aligned = types.Aligned(options.stream != null or options.aligned);
         const Iterator = if (options.stream) |s|
             stream.Stream(.{
                 .aligned = options.aligned,
@@ -33,7 +32,7 @@ pub fn Tokens(comptime options: Options) type {
         pub fn init(
             allocator: if (options.stream) |_| void else Allocator,
         ) Self {
-            return .{ .iter = .init(allocator) };
+            return .{ .iter = if (options.stream) |_| .init else .init(allocator) };
         }
 
         pub fn deinit(self: *Self) void {

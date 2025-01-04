@@ -229,7 +229,7 @@ fn parseBigMantissa(bigint: *BigInt, number: FromString) i32 {
 
 fn skipZeroes(slice: *[]const u8) void {
     const zer: types.vector = @splat('0');
-    const len = types.Vector.len_bytes;
+    const len = types.Vector.bytes_len;
     while (slice.len >= len) {
         const vec: types.vector = @bitCast(slice.*[0..len].*);
         if (!types.Mask.allSet(types.Predicate.pack(vec == zer))) break;
@@ -244,7 +244,7 @@ fn skipZeroes(slice: *[]const u8) void {
 fn isTruncated(src: []const u8) bool {
     var slice = src;
     const zer: types.vector = @splat('0');
-    const len = types.Vector.len_bytes;
+    const len = types.Vector.bytes_len;
     while (slice.len >= len) {
         const vec: types.vector = @bitCast(slice[0..len].*);
         if (!types.Mask.allSet(types.Predicate.pack(vec == zer))) return true;

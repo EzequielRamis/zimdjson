@@ -6,7 +6,6 @@ const common = @import("common.zig");
 const types = @import("types.zig");
 const intr = @import("intrinsics.zig");
 const unicode = @import("unicode.zig");
-const reader = @import("reader.zig");
 const simd = std.simd;
 const vector = types.vector;
 const Vector = types.Vector;
@@ -44,29 +43,23 @@ pub fn Indexer(comptime options: Options) type {
 
         pub const init = std.mem.zeroInit(Self, .{});
 
-        pub inline fn index(self: *Self, chunk: Aligned.slice, dest: [*]u32) u32 {
-            var written: u32 = 0;
-            for (0..chunk.len / reader.BLOCK_SIZE) |i| {
-                const block: *align(Aligned.alignment) const reader.Block = @alignCast(chunk[i * reader.BLOCK_SIZE ..][0..reader.BLOCK_SIZE]);
-                written += self.step(block.*, dest + written);
-            }
-            return written;
-        }
-
         pub inline fn validate(self: Self) !void {
             if (self.unescaped_error != 0) return error.FoundControlCharacter;
             if (!self.utf8_checker.succeeded()) return error.InvalidEncoding;
+        }
+
+        pub inline fn validateEof(self: Self) !void {
             if (self.prev_inside_string != 0) return error.ExpectedStringEnd;
         }
 
-        inline fn step(self: *Self, block: reader.Block, dest: [*]u32) u32 {
+        pub inline fn index(self: *Self, block: types.block, dest: [*]u32) u32 {
             var written: u32 = 0;
-            inline for (0..reader.MASKS_PER_ITER) |m| {
-                const offset = @as(comptime_int, m) * Mask.len_bits;
-                const chunk: Aligned.chunk = @alignCast(block[offset..][0..Mask.len_bits]);
+            inline for (0..types.masks_per_iter) |m| {
+                const offset = @as(comptime_int, m) * Mask.bits_len;
+                const chunk: Aligned.chunk = @alignCast(block[offset..][0..Mask.bits_len]);
                 var vecs: types.vectors = undefined;
                 inline for (0..Mask.computed_vectors) |j| {
-                    vecs[j] = @as(Aligned.vector, @alignCast(chunk[j * Vector.len_bytes ..][0..Vector.len_bytes])).*;
+                    vecs[j] = @as(Aligned.vector, @alignCast(chunk[j * Vector.bytes_len ..][0..Vector.bytes_len])).*;
                 }
                 const tokens = self.identify(vecs);
                 written += self.next(vecs, tokens, dest + written);
@@ -79,7 +72,7 @@ pub fn Indexer(comptime options: Options) type {
             var quotes: umask = Predicate.pack(vec == Vector.quote);
             var backslash: umask = Predicate.pack(vec == Vector.slash);
             inline for (1..Mask.computed_vectors) |i| {
-                const offset = i * Vector.len_bytes;
+                const offset = i * Vector.bytes_len;
                 const _vec = vecs[i];
                 const q = Predicate.pack(_vec == Vector.quote);
                 const b = Predicate.pack(_vec == Vector.slash);
@@ -110,8 +103,8 @@ pub fn Indexer(comptime options: Options) type {
 
         inline fn classify(vecs: types.vectors) CharsBlock {
             if (cpu.arch.isX86()) {
-                const whitespace_table: vector = simd.repeat(Vector.len_bytes, [_]u8{ ' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100 });
-                const structural_table: vector = simd.repeat(Vector.len_bytes, [_]u8{
+                const whitespace_table: vector = simd.repeat(Vector.bytes_len, [_]u8{ ' ', 100, 100, 100, 17, 100, 113, 2, 100, '\t', '\n', 112, 100, '\r', 100, 100 });
+                const structural_table: vector = simd.repeat(Vector.bytes_len, [_]u8{
                     0, 0, 0, 0,
                     0, 0, 0, 0,
                     0, 0, ':', '{', // : = 3A, [ = 5B, { = 7B
@@ -121,7 +114,7 @@ pub fn Indexer(comptime options: Options) type {
                 var whitespace: umask = Predicate.pack(vec == intr.lookupTable(whitespace_table, vec));
                 var structural: umask = Predicate.pack(vec | @as(vector, @splat(0x20)) == intr.lookupTable(structural_table, vec));
                 inline for (1..Mask.computed_vectors) |i| {
-                    const offset = i * Vector.len_bytes;
+                    const offset = i * Vector.bytes_len;
                     const _vec = vecs[i];
                     const w: umask = Predicate.pack(_vec == intr.lookupTable(whitespace_table, _vec));
                     const s: umask = Predicate.pack(_vec | @as(vector, @splat(0x20)) == intr.lookupTable(structural_table, _vec));
@@ -131,8 +124,8 @@ pub fn Indexer(comptime options: Options) type {
 
                 return .{ .structural = structural, .whitespace = whitespace };
             } else {
-                const ln_table: vector = simd.repeat(Vector.len_bytes, [_]u8{ 16, 0, 0, 0, 0, 0, 0, 0, 0, 8, 10, 4, 1, 12, 0, 0 });
-                const hn_table: vector = simd.repeat(Vector.len_bytes, [_]u8{ 8, 0, 17, 2, 0, 4, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0 });
+                const ln_table: vector = simd.repeat(Vector.bytes_len, [_]u8{ 16, 0, 0, 0, 0, 0, 0, 0, 0, 8, 10, 4, 1, 12, 0, 0 });
+                const hn_table: vector = simd.repeat(Vector.bytes_len, [_]u8{ 8, 0, 17, 2, 0, 4, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0 });
                 const whitespace_table: vector = @splat(0b11000);
                 const structural_table: vector = @splat(0b00111);
                 const vec = vecs[0];
@@ -144,7 +137,7 @@ pub fn Indexer(comptime options: Options) type {
                 var whitespace: umask = ~Predicate.pack(desired_values & whitespace_table == Vector.zer);
                 var structural: umask = ~Predicate.pack(desired_values & structural_table == Vector.zer);
                 inline for (1..Mask.computed_vectors) |i| {
-                    const offset = i * Vector.len_bytes;
+                    const offset = i * Vector.bytes_len;
                     const _vec = vecs[i];
                     const _low_nibbles = _vec & @as(vector, @splat(0xF));
                     const _high_nibbles = _vec >> @as(vector, @splat(4));
@@ -166,7 +159,7 @@ pub fn Indexer(comptime options: Options) type {
                 self.next_is_escaped = 0;
                 return escaped;
             }
-            const odd_mask: umask = @bitCast(simd.repeat(Mask.len_bits, [_]u1{ 0, 1 }));
+            const odd_mask: umask = @bitCast(simd.repeat(Mask.bits_len, [_]u1{ 0, 1 }));
             const potential_escape = backs & ~self.next_is_escaped;
             const maybe_escaped = potential_escape << 1;
             const maybe_escaped_and_odd_bits = maybe_escaped | odd_mask;
@@ -182,7 +175,7 @@ pub fn Indexer(comptime options: Options) type {
             const vec = vecs[0];
             var unescaped: umask = Predicate.pack(vec <= @as(vector, @splat(0x1F)));
             inline for (1..Mask.computed_vectors) |j| {
-                const offset = j * Vector.len_bytes;
+                const offset = j * Vector.bytes_len;
                 const _vec = vecs[j];
                 const u = Predicate.pack(_vec <= @as(vector, @splat(0x1F)));
                 unescaped |= @as(umask, u) << @truncate(offset);
@@ -193,7 +186,7 @@ pub fn Indexer(comptime options: Options) type {
             return written;
         }
 
-        const RelativeOffsetBuffer = [Mask.len_bits + 1]u8;
+        const RelativeOffsetBuffer = [Mask.bits_len + 1]u8;
         inline fn extract(self: *Self, tokens: umask, dest: [*]u32) u32 {
             const steps = 4;
             const steps_until = 24;
@@ -217,9 +210,9 @@ pub fn Indexer(comptime options: Options) type {
             if (options.relative) {
                 dest[0] = @intCast(@as(i64, @intCast(dest[0])) - self.prev_offset);
                 if (pop_count != 0) self.prev_offset = offsets[pop_count];
-                self.prev_offset -= Mask.len_bits;
+                self.prev_offset -= Mask.bits_len;
             } else {
-                self.prev_offset +%= Mask.len_bits;
+                self.prev_offset +%= Mask.bits_len;
             }
             return pop_count;
         }
@@ -318,7 +311,7 @@ const Debug = struct {
     }
 
     pub fn expectIdentified(self: *Debug, vecs: types.vectors, actual: umask) void {
-        const chunk: [Mask.len_bits]u8 = @bitCast(vecs);
+        const chunk: [Mask.bits_len]u8 = @bitCast(vecs);
 
         // Structural chars
         var expected_structural: umask = 0;
@@ -373,7 +366,7 @@ const Debug = struct {
             if (c == '\n') self.loc += 1;
         }
 
-        var printable_chunk: [Mask.len_bits]u8 = undefined;
+        var printable_chunk: [Mask.bits_len]u8 = undefined;
         @memcpy(&printable_chunk, &chunk);
         for (&printable_chunk) |*c| {
             if (common.tables.is_whitespace[c.*] and c.* != ' ') {

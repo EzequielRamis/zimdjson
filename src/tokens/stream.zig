@@ -1,7 +1,6 @@
 const std = @import("std");
 const tracy = @import("../tracy");
 const common = @import("../common.zig");
-const reader = @import("../reader.zig");
 const types = @import("../types.zig");
 const indexer = @import("../indexer.zig");
 const RingBuffer = @import("../ring_buffer.zig").RingBuffer;
@@ -20,6 +19,7 @@ pub fn Stream(comptime options: Options) type {
 
     return struct {
         const Self = @This();
+        const Aligned = types.Aligned(options.aligned);
         const Indexer = indexer.Indexer(.{
             .aligned = options.aligned,
             .relative = true,
@@ -30,23 +30,27 @@ pub fn Stream(comptime options: Options) type {
         file: File,
         document_stream: DocumentStream,
         indexes_stream: IndexesStream,
-        indexer: Indexer,
+        indexer: Indexer = .init,
+        built: bool = false,
 
-        pub fn init(file: File) !Self {
-            var self = Self{
+        pub const init = std.mem.zeroInit(Self, .{});
+
+        pub fn build(self: *Self, file: File) !void {
+            self.* = .{
                 .file = file,
                 .document_stream = DocumentStream.init() catch return error.StreamError,
                 .indexes_stream = IndexesStream.init() catch return error.StreamError,
-                .indexer = .init,
             };
             try self.prefetch();
-            return self;
+            self.built = true;
         }
 
         pub fn deinit(self: *Self) void {
-            self.file.close();
-            self.document_stream.deinit();
-            self.indexes_stream.deinit();
+            if (self.built) {
+                self.file.close();
+                self.document_stream.deinit();
+                self.indexes_stream.deinit();
+            }
         }
 
         inline fn prefetch(self: *Self) !void {
@@ -84,29 +88,40 @@ pub fn Stream(comptime options: Options) type {
 
         fn indexNextChunk(self: *Self) !u32 {
             const buf = self.document_stream.reserveAssumeCapacity(chunk_len);
-            const read: u32 = @intCast(self.file.read(buf) catch return error.StreamRead);
+            const read: u32 = @intCast(self.file.readAll(buf) catch return error.StreamRead);
             if (read < chunk_len) {
                 @branchHint(.unlikely);
 
                 self.document_stream.shrinkAssumeLength(chunk_len - read);
                 const bogus_token = " $";
-                const padding = bogus_token ++ (" " ** (reader.BLOCK_SIZE - bogus_token.len));
+                const padding = bogus_token ++ (" " ** (types.block_len - bogus_token.len));
                 self.document_stream.writeSliceAssumeCapacity(padding);
 
-                const chunk = buf[0..common.roundUp(usize, read + bogus_token.len, reader.BLOCK_SIZE)];
+                const chunk = buf[0..common.roundUp(usize, read + bogus_token.len, types.block_len)];
                 const indexes = self.indexes_stream.reserveAssumeCapacity(chunk_len);
-                const written = try self.indexer.index(chunk, indexes.ptr);
-                self.indexes_stream.shrinkAssumeLength(@as(u32, @intCast(indexes.len)) - written);
+                const written = try self.indexChunk(chunk, indexes.ptr);
                 try self.indexer.validate();
+                try self.indexer.validateEof();
+                self.indexes_stream.shrinkAssumeLength(@as(u32, @intCast(indexes.len)) - written);
                 buf[read + bogus_token.len - 1] = ' '; // remove bogus token
                 return written;
             } else {
                 const chunk = buf;
                 const indexes = self.indexes_stream.reserveAssumeCapacity(chunk_len);
-                const written = try self.indexer.index(chunk, indexes.ptr);
+                const written = try self.indexChunk(chunk, indexes.ptr);
+                try self.indexer.validate();
                 self.indexes_stream.shrinkAssumeLength(chunk_len - written);
                 return written;
             }
+        }
+
+        inline fn indexChunk(self: *Self, chunk: Aligned.slice, dest: [*]u32) u32 {
+            var written: u32 = 0;
+            for (0..chunk.len / types.block_len) |i| {
+                const block: *align(Aligned.alignment) const types.block = @alignCast(chunk[i * types.block_len ..][0..types.block_len]);
+                written += self.indexer.index(block.*, dest + written);
+            }
+            return written;
         }
     };
 }

@@ -2,42 +2,70 @@ const std = @import("std");
 const common = @import("common.zig");
 const types = @import("types.zig");
 const tape = @import("tape.zig");
+const tokens = @import("tokens.zig");
 const Allocator = std.mem.Allocator;
 const Error = types.Error;
 const Number = types.Number;
 const assert = std.debug.assert;
 
 pub const Options = struct {
-    length_hint: usize = common.default_length_hint,
+    max_bytes: u32 = common.default_max_bytes,
     max_depth: u32 = common.default_max_depth,
     aligned: bool = false,
-    chunk_length: u32 = common.default_chunk_length,
+    stream: ?tokens.StreamOptions = null,
 };
 
 pub fn Parser(comptime options: Options) type {
     return struct {
         const Self = @This();
+        const Aligned = types.Aligned(options.aligned);
         const Tape = tape.Tape(.{
+            .max_bytes = options.max_bytes,
             .max_depth = options.max_depth,
             .aligned = options.aligned,
-            .chunk_len = options.chunk_length,
+            .stream = options.stream,
         });
-        const Aligned = types.Aligned(options.aligned);
+        const FileBuffer = std.ArrayListAligned(u8, types.Aligned(true));
 
         tape: Tape,
+        buffer: if (options.stream) |_| void else FileBuffer,
 
         pub fn init(allocator: Allocator) Self {
             return .{
-                .tape = Tape.init(allocator),
+                .tape = .init(allocator),
+                .buffer = if (options.stream) |_| {} else .init(allocator),
             };
         }
 
         pub fn deinit(self: *Self) void {
             self.tape.deinit();
+            if (options.stream == null) self.buffer.deinit();
         }
 
-        pub fn parse(self: *Self, path: Aligned.slice) !Visitor {
-            try self.tape.build(path, options.length_hint);
+        pub fn parse(self: *Self, document: Aligned.slice) !Visitor {
+            if (options.stream) |_| {
+                @compileError("TODO: add streaming support");
+            } else {
+                try self.tape.build(document);
+            }
+            return Visitor{
+                .tape = &self.tape,
+                .index = 0,
+            };
+        }
+
+        pub fn load(self: *Self, file: std.fs.File) !Visitor {
+            const stat = try file.stat();
+            if (stat.kind != .file) return error.InvalidFile;
+            if (options.stream) |_| {
+                try self.tape.build(file, stat.size);
+            } else {
+                if (stat.size > options.max_bytes) return error.FileTooLarge;
+                try self.buffer.resize(stat.size);
+                const read = try file.readAll(self.buffer.items);
+                self.buffer.items.len = read;
+                try self.tape.build(self.buffer.items, null);
+            }
             return Visitor{
                 .tape = &self.tape,
                 .index = 0,

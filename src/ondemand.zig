@@ -14,52 +14,86 @@ const log = std.log;
 const assert = std.debug.assert;
 
 pub const Options = struct {
-    max_capacity: u32 = common.default_max_capacity,
+    max_bytes: u32 = common.default_max_bytes,
+    max_depth: u32 = common.default_max_depth,
     aligned: bool = false,
+    stream: ?tokens.StreamOptions = null,
 };
 
 pub fn Parser(comptime options: Options) type {
-    const token_options = tokens.Options{
-        .aligned = options.aligned,
-    };
-
     const NumberParser = @import("parsers/number/parser.zig").Parser;
 
     return struct {
         const Self = @This();
-        const Tokens = tokens.Iterator(token_options);
         const Aligned = types.Aligned(options.aligned);
+        const Tokens = tokens.Tokens(.{
+            .aligned = options.aligned,
+            .stream = options.stream,
+        });
+        const FileBuffer = std.ArrayListAligned(u8, types.Aligned(true));
 
         tokens: Tokens,
-        chars: ArrayList(u8),
-        chars_ptr: [*]u8 = undefined,
         depth: u32 = 1,
+        buffer: if (options.stream) |_| void else FileBuffer,
+        chars: if (options.stream) |_| void else ArrayList(u8),
+        chars_ptr: if (options.stream) |_| void else [*]u8 = undefined,
 
         pub fn init(allocator: Allocator) Self {
             return .{
-                .tokens = Tokens.init(allocator),
-                .chars = ArrayList(u8).init(allocator),
+                .tokens = .init(allocator),
+                .chars = if (options.stream) |_| {} else .init(allocator),
+                .buffer = if (options.stream) |_| {} else .init(allocator),
             };
         }
 
         pub fn deinit(self: *Self) void {
-            self.chars.deinit();
             self.tokens.deinit();
+            if (options.stream == null) {
+                self.chars.deinit();
+                self.buffer.deinit();
+            }
         }
 
         pub fn parse(self: *Self, document: Aligned.slice) !Visitor {
-            if (document.len >= options.max_capacity) return error.ExceededCapacity;
-            const t = &self.tokens;
-            try t.build(document);
+            if (options.stream) |_| {
+                @compileError("TODO: add streaming support");
+            } else {
+                try self.tokens.build(document);
+            }
 
-            try self.chars.ensureTotalCapacity(document.len + Vector.len_bytes);
+            try self.chars.ensureTotalCapacity(document.len * 2 + types.Vector.bytes_len);
             self.chars.shrinkRetainingCapacity(0);
             self.chars_ptr = self.chars.items.ptr;
             self.depth = 1;
 
             return Visitor{
                 .document = self,
-                .token = t.token,
+                .depth = self.depth,
+            };
+        }
+
+        pub fn load(self: *Self, file: std.fs.File) !Visitor {
+            if (options.stream) |_| {
+                try self.tokens.build(file);
+            } else {
+                const stat = try file.stat();
+                if (stat.kind != .file) return error.InvalidFile;
+                if (stat.size > options.max_bytes) return error.FileTooLarge;
+                try self.buffer.resize(stat.size);
+                const read = try file.readAll(self.buffer.items);
+                self.buffer.items.len = read;
+
+                try self.chars.ensureTotalCapacity(stat.size);
+                self.chars.shrinkRetainingCapacity(0);
+                self.chars_ptr = self.chars.items.ptr;
+
+                try self.tokens.build(self.buffer.items);
+            }
+
+            self.depth = 1;
+
+            return Visitor{
+                .document = self,
                 .depth = self.depth,
             };
         }
@@ -77,21 +111,18 @@ pub fn Parser(comptime options: Options) type {
 
         pub const Visitor = struct {
             document: *Self,
-            token: [*]const u32,
             depth: u32,
             err: ?Error = null,
 
             pub fn getObject(self: Visitor) Error!Object {
                 if (self.err) |err| return err;
 
-                const document = self.document.tokens.document();
-                const token = document[self.token[0]];
+                const token = try self.document.stream.peek();
 
                 if (token != '{') return error.IncorrectType;
                 Logger.logStart(self.document.*, "object", self.depth);
                 return .{ .visitor = .{
                     .document = self.document,
-                    .token = self.token,
                     .depth = self.depth,
                 } };
             }
@@ -99,14 +130,12 @@ pub fn Parser(comptime options: Options) type {
             pub fn getArray(self: Visitor) Error!Array {
                 if (self.err) |err| return err;
 
-                const document = self.document.tokens.document();
-                const token = document[self.token[0]];
+                const token = try self.document.stream.peek();
 
                 if (token != '[') return error.IncorrectType;
                 Logger.logStart(self.document.*, "array ", self.depth);
                 return .{ .visitor = .{
                     .document = self.document,
-                    .token = self.token,
                     .depth = self.depth,
                 } };
             }
@@ -114,10 +143,10 @@ pub fn Parser(comptime options: Options) type {
             pub fn getNumber(self: Visitor) Error!Number {
                 if (self.err) |err| return err;
 
-                var t = &self.document.tokens;
-                const curr = t.token;
-                errdefer t.jumpBack(curr);
-                const ptr = t.next();
+                var t = &self.document.stream;
+                // const curr = t.token;
+                // errdefer t.revert();
+                const ptr = try t.next();
 
                 const n = try NumberParser.parse(ptr);
                 Logger.log(self.document.*, "number", self.depth);
@@ -128,10 +157,10 @@ pub fn Parser(comptime options: Options) type {
             pub fn getUnsigned(self: Visitor) Error!u64 {
                 if (self.err) |err| return err;
 
-                var t = &self.document.tokens;
-                const curr = t.token;
-                errdefer t.jumpBack(curr);
-                const ptr = t.next();
+                var t = &self.document.stream;
+                // const curr = t.token;
+                // errdefer t.revert();
+                const ptr = try t.next();
 
                 const n = try NumberParser.parseUnsigned(ptr);
                 Logger.log(self.document.*, "u64   ", self.depth);
@@ -142,10 +171,10 @@ pub fn Parser(comptime options: Options) type {
             pub fn getSigned(self: Visitor) Error!i64 {
                 if (self.err) |err| return err;
 
-                var t = &self.document.tokens;
-                const curr = t.token;
-                errdefer t.jumpBack(curr);
-                const ptr = t.next();
+                var t = &self.document.stream;
+                // const curr = t.token;
+                // errdefer t.revert();
+                const ptr = try t.next();
 
                 const n = try NumberParser.parseSigned(ptr);
                 Logger.log(self.document.*, "i64   ", self.depth);
@@ -156,10 +185,10 @@ pub fn Parser(comptime options: Options) type {
             pub fn getFloat(self: Visitor) Error!f64 {
                 if (self.err) |err| return err;
 
-                var t = &self.document.tokens;
-                const curr = t.token;
-                errdefer t.jumpBack(curr);
-                const ptr = t.next();
+                var t = &self.document.stream;
+                // const curr = t.token;
+                // errdefer t.revert();
+                const ptr = try t.next();
 
                 const n = try NumberParser.parseFloat(ptr);
                 Logger.log(self.document.*, "f64   ", self.depth);
@@ -170,11 +199,11 @@ pub fn Parser(comptime options: Options) type {
             pub fn getString(self: Visitor) Error![]const u8 {
                 if (self.err) |err| return err;
 
-                var t = &self.document.tokens;
-                const curr = t.token;
-                errdefer t.jumpBack(curr);
+                var t = &self.document.stream;
+                // const curr = t.token;
+                // errdefer t.revert();
 
-                const quote = t.next();
+                const quote = try t.next();
                 if (quote[0] != '"') return error.IncorrectType;
                 const string = try self.getUnsafeString(quote);
                 self.document.depth -= 1;
@@ -184,10 +213,10 @@ pub fn Parser(comptime options: Options) type {
             pub fn getBool(self: Visitor) Error!bool {
                 if (self.err) |err| return err;
 
-                var t = &self.document.tokens;
-                const curr = t.token;
-                errdefer t.jumpBack(curr);
-                const ptr = t.next();
+                var t = &self.document.stream;
+                // const curr = t.token;
+                // errdefer t.revert();
+                const ptr = try t.next();
 
                 const check = @import("parsers/atoms.zig").checkBool;
                 const is_true = try check(ptr);
@@ -199,10 +228,10 @@ pub fn Parser(comptime options: Options) type {
             pub fn isNull(self: Visitor) Error!void {
                 if (self.err) |err| return err;
 
-                var t = &self.document.tokens;
-                const curr = t.token;
-                errdefer t.jumpBack(curr);
-                const ptr = t.next();
+                var t = &self.document.stream;
+                // const curr = t.token;
+                // errdefer t.revert();
+                const ptr = try t.next();
 
                 const check = @import("parsers/atoms.zig").checkNull;
                 try check(ptr);
@@ -213,8 +242,8 @@ pub fn Parser(comptime options: Options) type {
             pub fn getAny(self: Visitor) Error!Element {
                 if (self.err) |err| return err;
 
-                var t = &self.document.tokens;
-                return switch (t.peek()[0]) {
+                var t = &self.document.stream;
+                return switch (t.peek()) {
                     't', 'f' => .{ .bool = try self.getBool() },
                     'n' => .{ .null = try self.isNull() },
                     '"' => .{ .string = try self.getString() },
@@ -259,14 +288,14 @@ pub fn Parser(comptime options: Options) type {
             pub fn skip(self: Visitor) Error!void {
                 if (self.err) |err| return err;
 
-                const t = &self.document.tokens;
+                const t = &self.document.stream;
                 const wanted_depth = self.depth - 1;
                 const actual_depth = &self.document.depth;
 
                 Logger.logDepth(wanted_depth, actual_depth.*);
 
                 if (actual_depth.* <= wanted_depth) return;
-                switch (t.next()[0]) {
+                switch (try t.next()[0]) {
                     '[', '{', ':' => {
                         Logger.logStart(self.document.*, "skip  ", actual_depth.*);
                     },
@@ -278,9 +307,9 @@ pub fn Parser(comptime options: Options) type {
                         actual_depth.* -= 1;
                         if (actual_depth.* <= wanted_depth) return;
                     },
-                    '"' => if (t.peek()[0] == ':') {
+                    '"' => if (t.peek() == ':') {
                         Logger.log(self.document.*, "key   ", actual_depth.*);
-                        _ = t.next();
+                        _ = try t.next();
                     } else {
                         Logger.log(self.document.*, "skip  ", actual_depth.*);
                         actual_depth.* -= 1;
@@ -294,7 +323,7 @@ pub fn Parser(comptime options: Options) type {
                 }
 
                 brk: while (true) {
-                    switch (t.next()[0]) {
+                    switch (try t.next()[0]) {
                         '[', '{' => {
                             Logger.logStart(self.document.*, "skip  ", actual_depth.*);
                             actual_depth.* += 1;
@@ -313,8 +342,7 @@ pub fn Parser(comptime options: Options) type {
                         },
                     }
                 }
-                const document = self.document.tokens.document();
-                const token = document[self.token[0]];
+                const token = try self.document.stream.peek();
                 return if (token == '{')
                     error.IncompleteObject
                 else
@@ -322,25 +350,24 @@ pub fn Parser(comptime options: Options) type {
             }
 
             fn getUnsafeString(self: Visitor, ptr: [*]const u8) Error![]const u8 {
-                var t = &self.document.tokens;
+                var t = &self.document.stream;
 
                 const next_str = self.document.chars_ptr;
                 const write = @import("parsers/string.zig").writeString;
                 const sentinel = try write(ptr, next_str);
                 const next_len = @intFromPtr(sentinel) - @intFromPtr(next_str);
-                if (t.peek()[0] == ':') {
+                if (t.peek() == ':') {
                     Logger.log(self.document.*, "key   ", self.depth);
                 } else {
                     Logger.log(self.document.*, "string", self.depth);
                 }
-                self.document.chars_ptr = sentinel;
+                // self.document.chars_ptr = sentinel;
                 return next_str[0..next_len];
             }
 
             fn throw(self: Visitor, err: Error) Visitor {
                 return .{
                     .document = self.document,
-                    .token = self.token,
                     .depth = self.depth,
                     .err = err,
                 };
@@ -349,26 +376,28 @@ pub fn Parser(comptime options: Options) type {
 
         const Array = struct {
             visitor: Visitor,
+            entered: bool = false,
 
-            pub fn next(self: Array) Error!?Visitor {
+            pub fn next(self: *Array) Error!?Visitor {
                 const doc = self.visitor.document;
-                const t = &doc.tokens;
-                if (self.visitor.token == t.token) {
-                    _ = t.next();
-                    if (t.peek()[0] == ']') {
-                        _ = t.next();
+                const t = &doc.stream;
+                if (!self.entered) {
+                    defer self.entered = true;
+                    _ = try t.next();
+                    if (try t.peek() == ']') {
+                        _ = try t.next();
                         self.visitor.document.depth -= 1;
                         return null;
                     }
                     return self.getVisitor();
                 }
-                switch (t.peek()[0]) {
+                switch (t.peek()) {
                     ',' => {
-                        _ = t.next();
+                        _ = try t.next();
                         return self.getVisitor();
                     },
                     ']' => {
-                        _ = t.next();
+                        _ = try t.next();
                         self.visitor.document.depth -= 1;
                         return null;
                     },
@@ -406,7 +435,6 @@ pub fn Parser(comptime options: Options) type {
                 self.visitor.document.depth += 1;
                 return Visitor{
                     .document = self.visitor.document,
-                    .token = self.visitor.document.tokens.token,
                     .depth = self.visitor.document.depth,
                 };
             }
@@ -414,6 +442,7 @@ pub fn Parser(comptime options: Options) type {
 
         const Object = struct {
             visitor: Visitor,
+            entered: bool = false,
 
             pub const Field = struct {
                 key: []const u8,
@@ -424,25 +453,26 @@ pub fn Parser(comptime options: Options) type {
                 }
             };
 
-            pub fn next(self: Object) Error!?Field {
+            pub fn next(self: *Object) Error!?Field {
                 const doc = self.visitor.document;
-                const t = &doc.tokens;
-                if (self.visitor.token == t.token) {
-                    _ = t.next();
-                    if (t.peek()[0] == '}') {
-                        _ = t.next();
+                const t = &doc.stream;
+                if (!self.entered) {
+                    defer self.entered = true;
+                    _ = try t.next();
+                    if (try t.peek() == '}') {
+                        _ = try t.next();
                         self.visitor.document.depth -= 1;
                         return null;
                     }
                     return try self.getField();
                 }
-                switch (t.peek()[0]) {
+                switch (try t.peek()) {
                     ',' => {
-                        _ = t.next();
+                        _ = try t.next();
                         return try self.getField();
                     },
                     '}' => {
-                        _ = t.next();
+                        _ = try t.next();
                         self.visitor.document.depth -= 1;
                         return null;
                     },
@@ -477,15 +507,14 @@ pub fn Parser(comptime options: Options) type {
 
             fn getField(self: Object) Error!Field {
                 const doc = self.visitor.document;
-                var t = &doc.tokens;
+                var t = &doc.stream;
                 var key_visitor = Visitor{
                     .document = doc,
-                    .token = t.token,
                     .depth = self.visitor.document.depth,
                 };
-                const curr = t.token;
-                errdefer t.jumpBack(curr);
-                const quote = t.next();
+                // const curr = t.token;
+                // errdefer t.revert();
+                const quote = try t.next();
                 if (quote[0] != '"') return error.ExpectedKey;
                 const key = try key_visitor.getUnsafeString(quote);
                 const colon = t.next();
@@ -495,7 +524,6 @@ pub fn Parser(comptime options: Options) type {
                     .key = key,
                     .value = .{
                         .document = doc,
-                        .token = t.token,
                         .depth = self.visitor.document.depth,
                     },
                 };
@@ -510,36 +538,36 @@ pub fn Parser(comptime options: Options) type {
 
             pub fn logStart(parser: Self, label: []const u8, depth: u32) void {
                 if (true) return;
-                const t = parser.tokens;
-                var buffer = t.ptr[0..Vector.len_bytes].*;
+                const t = parser.stream;
+                var buffer = t.ptr[0..Vector.bytes_len].*;
                 for (&buffer) |*b| {
                     if (b.* == '\n') b.* = ' ';
                     if (b.* == '\t') b.* = ' ';
                     if (b.* > 127) b.* = '*';
                 }
-                std.log.info("+{s} | {s} | depth: {} | next: {c}", .{ label, buffer, depth, t.peek()[0] });
+                std.log.info("+{s} | {s} | depth: {} | next: {c}", .{ label, buffer, depth, try t.peek() });
             }
             pub fn log(parser: Self, label: []const u8, depth: u32) void {
                 if (true) return;
-                const t = parser.tokens;
-                var buffer = t.ptr[0..Vector.len_bytes].*;
+                const t = parser.stream;
+                var buffer = t.ptr[0..Vector.bytes_len].*;
                 for (&buffer) |*b| {
                     if (b.* == '\n') b.* = ' ';
                     if (b.* == '\t') b.* = ' ';
                     if (b.* > 127) b.* = '*';
                 }
-                std.log.info(" {s} | {s} | depth: {} | next: {c}", .{ label, buffer, depth, t.peek()[0] });
+                std.log.info(" {s} | {s} | depth: {} | next: {c}", .{ label, buffer, depth, try t.peek() });
             }
             pub fn logEnd(parser: Self, label: []const u8, depth: u32) void {
                 if (true) return;
-                const t = parser.tokens;
-                var buffer = t.ptr[0..Vector.len_bytes].*;
+                const t = parser.stream;
+                var buffer = t.ptr[0..Vector.bytes_len].*;
                 for (&buffer) |*b| {
                     if (b.* == '\n') b.* = ' ';
                     if (b.* == '\t') b.* = ' ';
                     if (b.* > 127) b.* = '*';
                 }
-                std.log.info("-{s} | {s} | depth: {} | next: {c}", .{ label, buffer, depth, t.peek()[0] });
+                std.log.info("-{s} | {s} | depth: {} | next: {c}", .{ label, buffer, depth, try t.peek() });
             }
         };
     };

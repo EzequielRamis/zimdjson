@@ -7,11 +7,11 @@ const native_os = builtin.os.tag;
 const w = std.os.windows;
 
 pub const default_chunk_length = if (native_os == .windows) 1024 * 64 else std.mem.page_size * 16;
+const min_chunk_length = if (native_os == .windows) 1024 * 64 else std.mem.page_size;
 
 pub fn RingBuffer(comptime T: type, comptime length: u32) type {
     const byte_len = @sizeOf(T) * length;
-    assert(byte_len >= std.mem.page_size and byte_len & (byte_len - 1) == 0); // Must be a power of 2
-    assert(native_os != .windows or byte_len >= 1024 * 64);
+    assert(byte_len >= min_chunk_length and byte_len & (byte_len - 1) == 0); // Must be a power of 2
 
     return struct {
         const Self = @This();

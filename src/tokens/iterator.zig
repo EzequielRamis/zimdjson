@@ -18,55 +18,79 @@ pub const Options = struct {
 pub fn Iterator(comptime options: Options) type {
     return struct {
         const Self = @This();
-        const Indexer = indexer.Indexer(.{ .aligned = options.aligned });
         const Aligned = types.Aligned(options.aligned);
 
-        indexer: Indexer,
-        ptr: [*]const u8 = undefined,
+        indexes: ArrayList(u32),
         padding: ArrayList(u8),
+        indexer: indexer.Indexer(.{
+            .aligned = options.aligned,
+            .relative = false,
+        }),
+        document: Aligned.slice = undefined,
+        ptr: [*]const u8 = undefined,
         padding_token: [*]const u32 = undefined,
         token: [*]const u32 = undefined,
 
         pub fn init(allocator: Allocator) Self {
             return .{
                 .indexer = .init,
-                .padding = ArrayList(u8).init(allocator),
+                .indexes = .init(allocator),
+                .padding = .init(allocator),
             };
         }
 
         pub fn deinit(self: *Self) void {
+            self.indexes.deinit();
             self.padding.deinit();
         }
 
-        pub fn build(self: *Self, doc: Aligned.slice) !void {
-            try self.indexer.index(doc);
+        pub fn build(self: *Self, document: Aligned.slice) !void {
+            {
+                try self.indexes.ensureTotalCapacity(document.len + 1);
+                self.indexes.shrinkRetainingCapacity(0);
+                self.indexer = .init;
+                self.document = document;
 
-            const ixs = self.indexes();
-            self.indexer.indexes.appendAssumeCapacity(@intCast(self.indexer.reader.document.len)); // Sentinel index at ' '
-            const padding_bound = doc.len -| Vector.len_bytes;
+                var written: usize = 0;
+                const remaining = document.len % types.block_len;
+                const last_full_index: u32 = @intCast(document.len -| remaining);
+                var index_padding: types.block align(Aligned.alignment) = @splat(' ');
+                @memcpy(index_padding[0..remaining], self.document[last_full_index..]);
+
+                var i: usize = 0;
+                while (i < last_full_index) : (i += types.block_len) {
+                    const block: *align(Aligned.alignment) const types.block = @alignCast(document[i..][0..types.block_len]);
+                    written += self.indexer.index(block.*, self.indexes.items[i..].ptr);
+                }
+                if (i == last_full_index) {
+                    written += self.indexer.index(index_padding, self.indexes.items[i..].ptr);
+                    i += types.block_len;
+                }
+                if (written == 0) return error.Empty;
+                self.indexes.items.len = written;
+
+                try self.indexer.validate();
+                try self.indexer.validateEof();
+            }
+
+            const ixs = self.indexes.items;
+            self.indexes.appendAssumeCapacity(@intCast(document.len)); // Sentinel index at ' '
+            const padding_bound = document.len -| Vector.bytes_len;
             var padding_token: u32 = @intCast(ixs.len - 1);
             var rev = std.mem.reverseIterator(ixs);
             while (rev.next()) |t| : (padding_token -|= 1) {
                 if (t <= padding_bound) break;
             }
-            if (self.document()[ixs[padding_token]] == '"') padding_token -|= 1;
+            if (self.document[ixs[padding_token]] == '"') padding_token -|= 1;
             self.token = @ptrCast(&ixs[0]);
             self.padding_token = @ptrCast(&ixs[padding_token]);
             const padding_index = if (padding_token == 0) 0 else ixs[padding_token];
-            const padding_len = doc.len - padding_index;
-            try self.padding.ensureTotalCapacity(padding_len + Vector.len_bytes);
-            self.padding.items.len = padding_len + Vector.len_bytes;
-            @memcpy(self.padding.items[0..padding_len], doc[padding_index..]);
+            const padding_len = document.len - padding_index;
+            try self.padding.ensureTotalCapacity(padding_len + Vector.bytes_len);
+            self.padding.items.len = padding_len + Vector.bytes_len;
+            @memcpy(self.padding.items[0..padding_len], document[padding_index..]);
             self.padding.items[padding_len] = ' ';
-            self.ptr = if (padding_token == 0) self.padding.items.ptr else doc.ptr;
-        }
-
-        pub inline fn indexes(self: Self) []const u32 {
-            return self.indexer.indexes.items;
-        }
-
-        pub inline fn document(self: Self) Aligned.slice {
-            return self.indexer.reader.document;
+            self.ptr = if (padding_token == 0) self.padding.items.ptr else document.ptr;
         }
 
         pub inline fn next(self: *Self) [*]const u8 {
@@ -81,18 +105,17 @@ pub fn Iterator(comptime options: Options) type {
         pub fn revert(self: *Self, token: [*]const u32) void {
             assert(@intFromPtr(token) <= @intFromPtr(self.token));
 
-            const doc = self.document();
-
+            const document = self.document;
             defer self.token = token;
             const i = token[0];
             const b = self.padding_token[0];
 
             if (@intFromPtr(token) < @intFromPtr(self.padding_token)) {
                 @branchHint(.likely);
-                self.ptr = doc[i..].ptr;
+                self.ptr = document[i..].ptr;
             } else {
-                const index_ptr = @intFromPtr(doc[i..].ptr);
-                const padding_ptr = @intFromPtr(doc[b..].ptr);
+                const index_ptr = @intFromPtr(document[i..].ptr);
+                const padding_ptr = @intFromPtr(document[b..].ptr);
                 const offset_ptr = index_ptr - padding_ptr;
                 self.ptr = self.padding.items[offset_ptr..].ptr;
             }
@@ -101,7 +124,7 @@ pub fn Iterator(comptime options: Options) type {
         inline fn challengeSource(self: *Self, ptr: [*]const u8) [*]const u8 {
             if (@intFromPtr(self.padding_token) <= @intFromPtr(self.token)) {
                 @branchHint(.unlikely);
-                if (self.padding_token == @as([*]const u32, @ptrCast(&self.indexes()[0]))) return ptr;
+                if (self.padding_token == @as([*]const u32, @ptrCast(&self.indexes.items[0]))) return ptr;
                 const pad = @intFromPtr(self.padding.items.ptr);
                 self.ptr = @ptrFromInt(pad -% self.padding_token[0]);
                 return @ptrCast(&self.ptr[self.token[0]]);

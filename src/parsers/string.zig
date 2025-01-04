@@ -13,10 +13,10 @@ pub inline fn writeString(src: [*]const u8, _dst: [*]u8) Error![*]u8 {
     var ptr = src + 1;
     var dst = _dst;
     while (true) {
-        const chunk = ptr[0..Vector.len_bytes];
+        const chunk = ptr[0..Vector.bytes_len];
         const slash = Predicate.pack(Vector.slash == chunk.*);
         const quote = Predicate.pack(Vector.quote == chunk.*);
-        @memcpy(dst[0..Vector.len_bytes], chunk);
+        @memcpy(dst[0..Vector.bytes_len], chunk);
 
         const has_quote_first = ((slash -% 1) & quote) != 0;
         if (has_quote_first) {
@@ -40,8 +40,8 @@ pub inline fn writeString(src: [*]const u8, _dst: [*]u8) Error![*]u8 {
                 dst += slash_index + 1;
             }
         } else {
-            dst += Vector.len_bytes;
-            ptr += Vector.len_bytes;
+            dst += Vector.bytes_len;
+            ptr += Vector.bytes_len;
         }
     }
 }

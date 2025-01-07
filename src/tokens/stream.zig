@@ -27,11 +27,12 @@ pub fn Stream(comptime options: Options) type {
         const DocumentStream = RingBuffer(u8, chunk_len * 2);
         const IndexesStream = RingBuffer(u32, chunk_len * 2);
 
-        file: File,
-        document_stream: DocumentStream,
-        indexes_stream: IndexesStream,
+        file: File = undefined,
+        document_stream: DocumentStream = undefined,
+        indexes_stream: IndexesStream = undefined,
         indexer: Indexer = .init,
         built: bool = false,
+        last_chunk_visited: bool = false,
 
         pub const init = std.mem.zeroInit(Self, .{});
 
@@ -86,12 +87,14 @@ pub fn Stream(comptime options: Options) type {
             return offset;
         }
 
-        inline fn indexNextChunk(self: *Self) !u32 {
+        fn indexNextChunk(self: *Self) !u32 {
             const buf = self.document_stream.reserveAssumeCapacity(chunk_len);
             const read: u32 = @intCast(self.file.readAll(buf) catch return error.StreamRead);
             if (read < chunk_len) {
                 @branchHint(.unlikely);
 
+                if (self.last_chunk_visited) return 1;
+                self.last_chunk_visited = true;
                 self.document_stream.shrinkAssumeLength(chunk_len - read);
                 const bogus_token = " $";
                 const padding = bogus_token ++ (" " ** (types.block_len - bogus_token.len));
@@ -99,7 +102,7 @@ pub fn Stream(comptime options: Options) type {
 
                 const chunk = buf[0..common.roundUp(usize, read + bogus_token.len, types.block_len)];
                 const indexes = self.indexes_stream.reserveAssumeCapacity(chunk_len);
-                const written = try self.indexChunk(chunk, indexes.ptr);
+                const written = self.indexChunk(@alignCast(chunk), indexes.ptr);
                 try self.indexer.validate();
                 try self.indexer.validateEof();
                 self.indexes_stream.shrinkAssumeLength(@as(u32, @intCast(indexes.len)) - written);
@@ -108,7 +111,7 @@ pub fn Stream(comptime options: Options) type {
             } else {
                 const chunk = buf;
                 const indexes = self.indexes_stream.reserveAssumeCapacity(chunk_len);
-                const written = try self.indexChunk(chunk, indexes.ptr);
+                const written = self.indexChunk(@alignCast(chunk), indexes.ptr);
                 try self.indexer.validate();
                 self.indexes_stream.shrinkAssumeLength(chunk_len - written);
                 return written;

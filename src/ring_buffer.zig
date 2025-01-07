@@ -32,7 +32,7 @@ pub fn RingBuffer(comptime T: type, comptime length: u32) type {
         const PosixBuffer = struct {
             const Handle = std.fs.File.Handle;
 
-            buffer: [*]u8,
+            buffer: []align(std.mem.page_size) u8,
             handle: Handle,
 
             pub fn init() !PosixBuffer {
@@ -165,7 +165,7 @@ pub fn RingBuffer(comptime T: type, comptime length: u32) type {
 
         pub fn init() !Self {
             return .{
-                .mirror = try .init(),
+                .base = try .init(),
                 .head = 0,
                 .tail = 0,
             };
@@ -176,7 +176,8 @@ pub fn RingBuffer(comptime T: type, comptime length: u32) type {
         }
 
         inline fn ptr(self: Self) [*]T {
-            return @ptrCast(self.base.buffer);
+            const _ptr = if (native_os == .windows) self.base.buffer else self.base.buffer.ptr;
+            return @ptrCast(_ptr);
         }
 
         pub fn len(self: Self) u32 {

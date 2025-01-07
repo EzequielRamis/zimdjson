@@ -162,6 +162,26 @@ pub fn build(b: *std.Build) !void {
             }
         }
         {
+            const com = center.command("bench/streaming", "Run 'streaming' benchmark");
+            const parsers = Parsers.get(com, target, optimize);
+            const file_path = try getProvidedPath(com, &path_buf, use_cwd);
+
+            if (parsers) |p| {
+                var suite_dom = bench.Suite("streaming"){ .zimdjson = zimdjson, .simdjson = p.simdjson, .target = target, .optimize = optimize };
+                const runner_dom = suite_dom.create(
+                    &.{
+                        suite_dom.addZigBenchmark("zimdjson_stream_dom"),
+                        suite_dom.addZigBenchmark("zimdjson_dom"),
+                        suite_dom.addCppBenchmark("simdjson_dom", p.simdjson),
+                        suite_dom.addCBenchmark("yyjson", p.yyjson),
+                        suite_dom.addCppBenchmark("rapidjson_stream", p.rapidjson),
+                    },
+                    file_path,
+                );
+                com.dependOn(&runner_dom.step);
+            }
+        }
+        {
             const com = center.command("bench/find-tweet", "Run 'find tweet' benchmark");
             const parsers = Parsers.get(com, target, optimize);
             const file_path = path: {

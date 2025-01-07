@@ -81,7 +81,7 @@ pub fn Tape(comptime options: Options) type {
             return Self{
                 .parsed = .init(allocator),
                 .stack = .empty,
-                .tokens = .init(allocator),
+                .tokens = if (options.stream) |_| .init({}) else .init(allocator),
                 .chars = .init(allocator),
                 .allocator = allocator,
             };

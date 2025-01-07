@@ -63,7 +63,7 @@ const Command = struct {
     const Measurements = struct {
         throughput: Measurement,
         wall_time: Measurement,
-        mem_required: Measurement,
+        mem_allocated: Measurement,
         cpu_cycles: Measurement,
         instructions: Measurement,
         cache_references: Measurement,
@@ -75,7 +75,7 @@ const Command = struct {
 const Sample = struct {
     throughput: u64,
     wall_time: u64,
-    mem_required: u64,
+    mem_allocated: u64,
     cpu_cycles: u64,
     instructions: u64,
     cache_references: u64,
@@ -201,7 +201,7 @@ pub fn main() !void {
 
             _ = std.os.linux.ioctl(perf_fds[0], PERF.EVENT_IOC.DISABLE, PERF.IOC_FLAG_GROUP);
 
-            const mem_required = command.events.memusage() -| file_size;
+            const mem_allocated = command.events.memusage() -| file_size;
 
             try @call(.never_inline, command.events.postrun, .{});
 
@@ -210,7 +210,7 @@ pub fn main() !void {
             samples_buf[sample_index] = .{
                 .throughput = file_size * 1000_000_000 / (end - start),
                 .wall_time = end - start,
-                .mem_required = mem_required,
+                .mem_allocated = mem_allocated,
                 .cpu_cycles = format.values[0].value,
                 .instructions = format.values[1].value,
                 .cache_references = format.values[2].value,
@@ -241,7 +241,7 @@ pub fn main() !void {
         command.measurements = .{
             .throughput = Measurement.compute(all_samples, "throughput", .throughput),
             .wall_time = Measurement.compute(all_samples, "wall_time", .nanoseconds),
-            .mem_required = Measurement.compute(all_samples, "mem_required", .bytes),
+            .mem_allocated = Measurement.compute(all_samples, "mem_allocated", .bytes),
             .cpu_cycles = Measurement.compute(all_samples, "cpu_cycles", .count),
             .instructions = Measurement.compute(all_samples, "instructions", .count),
             .cache_references = Measurement.compute(all_samples, "cache_references", .count),

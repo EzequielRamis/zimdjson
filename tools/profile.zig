@@ -17,14 +17,15 @@ pub fn main() !void {
     const allocator = tracy_alloc.allocator();
 
     const path = args[1];
-    var parser = dom.Parser(.{ .length_hint = 1024 * 1024 * 1024 * 2 }).init(allocator);
+    const file = try std.fs.openFileAbsolute(path, .{});
+    var parser = dom.Parser(.{}).init(allocator);
     // var parser = ondemand.Parser(.{}).init(allocator);
     defer parser.deinit();
 
     // const rand = std.crypto.random;
     while (true) {
         // const index = rand.uintLessThan(u8, 100);
-        _ = try parser.parse(path);
+        _ = try parser.load(file);
         // const created_at = try document.at(index).at("reportedOn").getString();
         // tracy.messageCopy(created_at);
     }

@@ -1,14 +1,17 @@
 const std = @import("std");
 const types = @import("types.zig");
 const intr = @import("intrinsics.zig");
-const io = @import("io.zig");
 const simd = std.simd;
 const vector = types.vector;
 const Vector = types.Vector;
 const Mask = types.Mask;
 const Predicate = types.Predicate;
 
-pub fn Checker(comptime options: io.Options) type {
+const Options = struct {
+    aligned: bool,
+};
+
+pub fn Checker(comptime options: Options) type {
     return struct {
         const Self = @This();
         const Aligned = types.Aligned(options.aligned);

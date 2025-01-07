@@ -2,7 +2,6 @@ const std = @import("std");
 const common = @import("../common.zig");
 const types = @import("../types.zig");
 const indexer = @import("../indexer.zig");
-const io = @import("../io.zig");
 const Allocator = std.mem.Allocator;
 const ArrayList = std.ArrayList;
 const Vector = types.Vector;
@@ -44,7 +43,7 @@ pub fn Iterator(comptime options: Options) type {
             self.padding.deinit();
         }
 
-        pub fn build(self: *Self, document: Aligned.slice) !void {
+        pub inline fn build(self: *Self, document: Aligned.slice) !void {
             {
                 try self.indexes.ensureTotalCapacity(document.len + 1);
                 self.indexer = .init;
@@ -102,7 +101,7 @@ pub fn Iterator(comptime options: Options) type {
             return self.ptr[self.token[0]];
         }
 
-        pub fn revert(self: *Self, token: [*]const u32) void {
+        pub inline fn revert(self: *Self, token: [*]const u32) void {
             assert(@intFromPtr(token) <= @intFromPtr(self.token));
 
             const document = self.document;

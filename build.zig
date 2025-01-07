@@ -143,28 +143,21 @@ pub fn build(b: *std.Build) !void {
     // -- Benchmarking
     {
         {
-            const com = center.command("bench/indexer", "Run 'indexer' benchmark");
+            const com = center.command("bench/full-parsing", "Run 'full parsing' benchmark");
             const parsers = Parsers.get(com, target, optimize);
             const file_path = try getProvidedPath(com, &path_buf, use_cwd);
 
             if (parsers) |p| {
-                // var suite_ondemand = bench.Suite("indexer"){ .zimdjson = zimdjson, .simdjson = p.simdjson, .target = target, .optimize = optimize };
-                // const runner_ondemand = suite_ondemand.create(
-                //     &.{
-                //         suite_ondemand.addZigBenchmark("zimdjson_ondemand"),
-                //         suite_ondemand.addCppBenchmark("simdjson_ondemand", p.simdjson),
-                //     },
-                //     file_path,
-                // );
-                var suite_dom = bench.Suite("indexer"){ .zimdjson = zimdjson, .simdjson = p.simdjson, .target = target, .optimize = optimize };
+                var suite_dom = bench.Suite("full_parsing"){ .zimdjson = zimdjson, .simdjson = p.simdjson, .target = target, .optimize = optimize };
                 const runner_dom = suite_dom.create(
                     &.{
                         suite_dom.addZigBenchmark("zimdjson_dom"),
                         suite_dom.addCppBenchmark("simdjson_dom", p.simdjson),
+                        suite_dom.addCBenchmark("yyjson", p.yyjson),
+                        suite_dom.addCppBenchmark("rapidjson_dom", p.rapidjson),
                     },
                     file_path,
                 );
-                // runner_dom.step.dependOn(&runner_ondemand.step);
                 com.dependOn(&runner_dom.step);
             }
         }

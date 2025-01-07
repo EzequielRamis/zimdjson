@@ -1,14 +1,16 @@
 #include "simdjson.h"
+#include "rapidjson/document.h"
 #include "template.hpp"
 #include "traced_allocator.hpp"
 
 using namespace std;
+using namespace rapidjson;
 using namespace simdjson;
 
-struct simdjson_ondemand {
+struct rapidjson_dom {
 
   padded_string json;
-  ondemand::parser parser;
+  Document doc{};
 
   void init(string_view path) {
     simdjson::error_code err;
@@ -17,11 +19,13 @@ struct simdjson_ondemand {
 
   void prerun() {}
 
-  void run() { auto doc = parser.iterate(json); }
+  void run() { doc.Parse(json.data()); }
 
   void postrun() {}
 
   void deinit() {}
+
+
 };
 
-BENCHMARK_TEMPLATE(simdjson_ondemand);
+BENCHMARK_TEMPLATE(rapidjson_dom);

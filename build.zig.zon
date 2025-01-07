@@ -23,38 +23,8 @@
             .lazy = true,
         },
         .rapidjson = .{
-            .url = "git+https://github.com/Tencent/rapidjson.git#v1.1.0",
-            .hash = "122084f00a476f61099ac1d0723da671ac4568d49cc6021313ad75981adc17e9bad4",
-            .lazy = true,
-        },
-        .nlohmann = .{
-            .url = "git+https://github.com/nlohmann/json.git#v3.11.3",
-            .hash = "12203ada5de99b48676019c52ad8ea06a5cae74319c5f1fe5aaf020ec9636872f423",
-            .lazy = true,
-        },
-        .sajson = .{
-            .url = "git+https://github.com/chadaustin/sajson.git#ec644013e34f9984a3cc9ba568cab97a391db9cd",
-            .hash = "1220b753d73a84a84af97df31e712ab5d2fdc7f17f8c68d2c4ae37d2313f12da3b4b",
-            .lazy = true,
-        },
-        .boost = .{
-            .url = "git+https://github.com/boostorg/json.git#boost-1.85.0",
-            .hash = "122033d984f580d5e269c1ad6a327fb727990ce55486ca59b1311ffc12922f240990",
-            .lazy = true,
-        },
-        .glaze = .{
-            .url = "git+https://github.com/stephenberry/glaze.git#v3.2.3",
-            .hash = "1220861e04bc0ddacb4350b14e0fdca59ccef85e1da44052ac3e0971a6d4094c4822",
-            .lazy = true,
-        },
-        .daw_json_link = .{
-            .url = "git+https://github.com/beached/daw_json_link.git#v3.27.1",
-            .hash = "1220004764a1aafa45dcf1ea787fd213666ffa6dc91622d8bfcb0ee18a3db04b994e",
-            .lazy = true,
-        },
-        .json_struct = .{
-            .url = "git+https://github.com/jorgen/json_struct.git#1fc4672c1c93ea336ef62b5deadbabb0d1b02649",
-            .hash = "1220717c16ead609830c00920168cc920a5a064a82901fea8de8b611e8c66b6671c2",
+            .url = "git+https://github.com/EzequielRamis/rapidjson.git#bf11b43f8eac3173ca88f82430917ad919feee2b",
+            .hash = "1220f3c05afeb13948456cb1b49800aaaa4dffa589010bdc9373ebfb4e4b32e78c15",
             .lazy = true,
         },
     },

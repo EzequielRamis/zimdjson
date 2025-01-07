@@ -35,7 +35,7 @@ pub fn Stream(comptime options: Options) type {
 
         pub const init = std.mem.zeroInit(Self, .{});
 
-        pub fn build(self: *Self, file: File) !void {
+        pub inline fn build(self: *Self, file: File) !void {
             self.* = .{
                 .file = file,
                 .document_stream = DocumentStream.init() catch return error.StreamError,
@@ -86,7 +86,7 @@ pub fn Stream(comptime options: Options) type {
             return offset;
         }
 
-        fn indexNextChunk(self: *Self) !u32 {
+        inline fn indexNextChunk(self: *Self) !u32 {
             const buf = self.document_stream.reserveAssumeCapacity(chunk_len);
             const read: u32 = @intCast(self.file.readAll(buf) catch return error.StreamRead);
             if (read < chunk_len) {
@@ -115,7 +115,7 @@ pub fn Stream(comptime options: Options) type {
             }
         }
 
-        inline fn indexChunk(self: *Self, chunk: Aligned.slice, dest: [*]u32) u32 {
+        fn indexChunk(self: *Self, chunk: Aligned.slice, dest: [*]u32) u32 {
             var written: u32 = 0;
             for (0..chunk.len / types.block_len) |i| {
                 const block: *align(Aligned.alignment) const types.block = @alignCast(chunk[i * types.block_len ..][0..types.block_len]);

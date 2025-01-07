@@ -7,7 +7,11 @@ const arch = builtin.cpu.arch;
 
 pub const default_max_bytes = std.math.maxInt(u32);
 pub const default_max_depth = 1024;
-pub const default_length_hint = 1024 * 1024;
+
+pub const error_messages = struct {
+    pub const stream_slice = "Parsing JSON from a slice is not supported when stream mode is enabled. Instead, disable stream mode or use `load()` to parse it from a file.";
+    pub const at_type = "A number or string must be provided for the `at` parameter.";
+};
 
 pub fn roundUp(comptime T: type, value: T, alignment: T) T {
     return (value + (alignment - 1)) & ~(alignment - 1);

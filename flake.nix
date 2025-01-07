@@ -19,7 +19,14 @@
           ];
         };
       in {
-        devShell =
-          pkgs.mkShell { buildInputs = with pkgs; [ zig zls tracy ccls ]; };
+        devShell = pkgs.mkShell {
+          buildInputs = with pkgs; [
+            zig
+            zls
+            tracy-glfw
+            ccls
+            (python3.withPackages (p: with p; [ seaborn python-lsp-server ]))
+          ];
+        };
       });
 }

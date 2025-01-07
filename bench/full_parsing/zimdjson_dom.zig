@@ -5,11 +5,12 @@ const TracedAllocator = @import("TracedAllocator");
 var traced = TracedAllocator{ .wrapped = std.heap.c_allocator };
 const allocator = traced.allocator();
 
-var json: zimdjson.io.Reader(.{}).slice = undefined;
-var parser = zimdjson.ondemand.Parser(.{}).init(allocator);
+var json: []const u8 = undefined;
+var parser = zimdjson.dom.Parser(.{}).init(allocator);
 
 pub fn init(path: []const u8) !void {
-    json = try zimdjson.io.Reader(.{}).readFileAlloc(allocator, path);
+    const file = try std.fs.openFileAbsolute(path, .{});
+    json = try file.readToEndAlloc(allocator, std.math.maxInt(u32));
 }
 
 pub fn prerun() !void {}
@@ -21,8 +22,8 @@ pub fn run() !void {
 pub fn postrun() !void {}
 
 pub fn deinit() void {
-    allocator.free(json);
     parser.deinit();
+    std.heap.c_allocator.free(json);
 }
 
 pub fn memusage() usize {

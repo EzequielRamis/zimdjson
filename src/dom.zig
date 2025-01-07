@@ -9,7 +9,9 @@ const Number = types.Number;
 const assert = std.debug.assert;
 
 pub const Options = struct {
-    max_bytes: u32 = common.default_max_bytes,
+    pub const default: Options = .{};
+
+    max_bytes: u64 = common.default_max_bytes,
     max_depth: u32 = common.default_max_depth,
     aligned: bool = false,
     stream: ?tokens.StreamOptions = null,
@@ -42,11 +44,11 @@ pub fn Parser(comptime options: Options) type {
         }
 
         pub fn parse(self: *Self, document: Aligned.slice) !Visitor {
-            if (options.stream) |_| {
-                @compileError("TODO: add streaming support");
-            } else {
-                try self.tape.build(document, null);
-            }
+            if (options.stream) |_| @compileError(common.error_stream_slice);
+
+            if (document.len > options.max_bytes) return error.DocumentTooLarge;
+            try self.tape.build(document, null);
+
             return Visitor{
                 .tape = &self.tape,
                 .index = 0,
@@ -59,7 +61,7 @@ pub fn Parser(comptime options: Options) type {
             if (options.stream) |_| {
                 try self.tape.build(file, stat.size);
             } else {
-                if (stat.size > options.max_bytes) return error.FileTooLarge;
+                if (stat.size > options.max_bytes) return error.DocumentTooLarge;
                 try self.buffer.resize(stat.size);
                 _ = try file.readAll(self.buffer.items);
                 try self.tape.build(self.buffer.items, null);
@@ -110,8 +112,10 @@ pub fn Parser(comptime options: Options) type {
                 const w = self.tape.get(self.index);
                 return switch (w.tag) {
                     .string => brk: {
-                        const len: u32 = @bitCast(self.tape.chars.items[w.data.ptr..][0..4].*);
-                        const ptr = self.tape.chars.items[w.data.ptr + 4 ..];
+                        const low_bits = self.tape.chars.items[w.data.ptr];
+                        const high_bits = w.data.len;
+                        const len: u32 = high_bits << 16 | low_bits;
+                        const ptr = self.tape.chars.items[w.data.ptr + 2 ..];
                         break :brk ptr[0..len];
                     },
                     else => error.IncorrectType,
@@ -216,7 +220,7 @@ pub fn Parser(comptime options: Options) type {
                         };
                         break :brk arr.at(ptr);
                     }
-                    @compileError("JSON Pointer must be a string or number");
+                    @compileError(common.error_messages.at_type);
                 };
                 return if (query) |v| v else |err| .{
                     .tape = self.tape,

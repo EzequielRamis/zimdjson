@@ -1,5 +1,6 @@
 const std = @import("std");
 const stream = @import("tokens/stream.zig");
+const ring_buffer = @import("ring_buffer.zig");
 const iterator = @import("tokens/iterator.zig");
 const types = @import("types.zig");
 const Allocator = std.mem.Allocator;
@@ -10,7 +11,9 @@ pub const Options = struct {
 };
 
 pub const StreamOptions = struct {
-    chunk_len: u32,
+    pub const default: StreamOptions = .{};
+
+    chunk_length: u32 = ring_buffer.default_chunk_length,
 };
 
 pub fn Tokens(comptime options: Options) type {
@@ -19,8 +22,8 @@ pub fn Tokens(comptime options: Options) type {
         const Aligned = types.Aligned(options.stream != null or options.aligned);
         const Iterator = if (options.stream) |s|
             stream.Stream(.{
-                .aligned = options.aligned,
-                .chunk_len = s.chunk_len,
+                .aligned = true,
+                .chunk_len = s.chunk_length,
             })
         else
             iterator.Iterator(.{

@@ -38,7 +38,7 @@ pub fn Suite(comptime suite: []const u8) type {
                 });
                 mod.addImport("TracedAllocator", self.traced_alloc.?);
             }
-            return .{ .module = mod, .name = identifier };
+            return .{ .module = mod, .name = name };
         }
 
         pub fn addCppBenchmark(
@@ -64,7 +64,32 @@ pub fn Suite(comptime suite: []const u8) type {
                 .optimize = self.optimize,
             });
             mod.linkLibrary(lib);
-            return .{ .module = mod, .name = identifier };
+            return .{ .module = mod, .name = name };
+        }
+
+        pub fn addCBenchmark(
+            self: Self,
+            comptime name: []const u8,
+            parser: *std.Build.Step.Compile,
+        ) Benchmark {
+            const b = self.zimdjson.owner;
+            const identifier = self.suite ++ "/" ++ name;
+            const lib = b.addSharedLibrary(.{
+                .name = self.suite ++ "_" ++ name,
+                .target = self.target,
+                .optimize = self.optimize,
+            });
+            lib.installHeader(b.addWriteFiles().add(identifier, formatTemplateHeader(name)), identifier ++ ".h");
+            lib.addCSourceFile(.{ .file = b.path("bench/" ++ identifier ++ ".c") });
+            lib.linkLibrary(parser);
+            lib.addIncludePath(b.path("bench"));
+            const mod = b.createModule(.{
+                .root_source_file = b.addWriteFiles().add(identifier ++ ".zig", formatWrapper(identifier, name)),
+                .target = self.target,
+                .optimize = self.optimize,
+            });
+            mod.linkLibrary(lib);
+            return .{ .module = mod, .name = name };
         }
 
         pub fn create(
@@ -74,6 +99,9 @@ pub fn Suite(comptime suite: []const u8) type {
         ) *std.Build.Step.Run {
             const b = self.zimdjson.owner;
             var buf = std.BoundedArray(u8, 1024).init(0) catch unreachable;
+            buf.appendSliceAssumeCapacity("pub const suite = \"");
+            buf.appendSliceAssumeCapacity(self.suite);
+            buf.appendSliceAssumeCapacity("\";\n");
             const wrappers = formatWrappers(&buf, benchs);
             const mod = b.createModule(.{
                 .root_source_file = b.addWriteFiles().add(self.suite ++ ".zig", wrappers),

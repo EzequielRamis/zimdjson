@@ -37,11 +37,11 @@ const Tag = enum(u8) {
 };
 
 const Word = packed struct {
-    tag: Tag,
     data: packed struct {
-        len: u24,
         ptr: u32,
+        len: u24,
     },
+    tag: Tag,
 };
 
 const Context = struct {
@@ -80,7 +80,7 @@ pub fn Tape(comptime options: Options) type {
         pub fn init(allocator: Allocator) Self {
             return Self{
                 .parsed = .init(allocator),
-                .stack = .{},
+                .stack = .empty,
                 .tokens = .init(allocator),
                 .chars = .init(allocator),
                 .allocator = allocator,
@@ -94,7 +94,7 @@ pub fn Tape(comptime options: Options) type {
             self.chars.deinit();
         }
 
-        pub fn build(self: *Self, document: if (options.stream) |_| std.fs.File else Aligned.slice, len: ?usize) !void {
+        pub inline fn build(self: *Self, document: if (options.stream) |_| std.fs.File else Aligned.slice, len: ?usize) !void {
             const document_len = if (options.stream) |_| len.? else document.len;
 
             try self.tokens.build(document);
@@ -111,7 +111,7 @@ pub fn Tape(comptime options: Options) type {
             return self.dispatch();
         }
 
-        pub fn get(self: Self, index: u32) Word {
+        pub inline fn get(self: Self, index: u32) Word {
             return @bitCast(self.parsed.items[index]);
         }
 
@@ -328,13 +328,16 @@ pub fn Tape(comptime options: Options) type {
                     @branchHint(.likely);
                     return self.visitString(ptr);
                 },
-                't' => return self.visitTrue(ptr),
-                'f' => return self.visitFalse(ptr),
-                'n' => return self.visitNull(ptr),
-                else => {
-                    @branchHint(.likely);
-                    return self.visitNumber(ptr);
+                't', 'f', 'n' => {
+                    @branchHint(.unlikely);
+                    return switch (t) {
+                        't' => return self.visitTrue(ptr),
+                        'f' => return self.visitFalse(ptr),
+                        'n' => return self.visitNull(ptr),
+                        else => unreachable,
+                    };
                 },
+                else => return self.visitNumber(ptr),
             }
         }
 
@@ -378,15 +381,17 @@ pub fn Tape(comptime options: Options) type {
 
         inline fn visitString(self: *Self, ptr: [*]const u8) Error!void {
             const parse = @import("parsers/string.zig").writeString;
-            const next_len: *align(1) u32 = @ptrCast(self.chars_ptr);
-            const next_str = self.chars_ptr + @sizeOf(u32);
+            const low_bits: *align(1) u16 = @ptrCast(self.chars_ptr);
+            const next_str = self.chars_ptr + 2;
             const sentinel = try parse(ptr, next_str);
-            next_len.* = @intCast(@intFromPtr(sentinel) - @intFromPtr(next_str));
+            const next_len: u32 = @intCast(@intFromPtr(sentinel) - @intFromPtr(next_str));
+            low_bits.* = @truncate(next_len);
+            const high_bits: u16 = @intCast(next_len >> 16);
             self.parsed_ptr[0] = @bitCast(Word{
                 .tag = .string,
                 .data = .{
                     .ptr = @intCast(@intFromPtr(self.chars_ptr) - @intFromPtr(self.chars.items.ptr)),
-                    .len = undefined,
+                    .len = high_bits,
                 },
             });
             self.parsed_ptr += 1;

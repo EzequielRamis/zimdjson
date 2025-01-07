@@ -314,6 +314,39 @@ pub fn main() !void {
     }
 
     try stdout_bw.flush(); // 💩
+
+    var results_dir_buf: [256]u8 = undefined;
+    const results_dir = try std.fmt.bufPrint(&results_dir_buf, "bench/{s}/results", .{benchmarks.suite});
+
+    var results_filepath_buf: [256]u8 = undefined;
+    const results_filepath = try std.fmt.bufPrint(&results_filepath_buf, "bench/{s}/results/{s}.json", .{
+        benchmarks.suite,
+        std.fs.path.stem(path),
+    });
+
+    std.fs.cwd().makeDir(results_dir) catch |err| switch (err) {
+        error.PathAlreadyExists => {},
+        else => return err,
+    };
+
+    const results_file = try std.fs.cwd().createFile(results_filepath, .{
+        .truncate = true,
+    });
+    defer results_file.close();
+    const Results = [commands.len]struct {
+        name: []const u8,
+        measurements: Command.Measurements,
+        sample_count: usize,
+    };
+    var results: Results = undefined;
+    for (&results, &commands) |*result, command| {
+        result.* = .{
+            .name = command.name,
+            .measurements = command.measurements,
+            .sample_count = command.sample_count,
+        };
+    }
+    try std.json.stringify(results, .{ .whitespace = .indent_2 }, results_file.writer());
 }
 
 fn parseCmd(list: *std.ArrayList([]const u8), cmd: []const u8) !void {

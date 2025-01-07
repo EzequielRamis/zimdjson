@@ -8,3 +8,4 @@ exe
 .ccls-cache
 .zig-cache
 .zig-out
+results

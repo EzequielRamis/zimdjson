@@ -1,4 +1,6 @@
-pub const io = @import("io.zig");
 pub const dom = @import("dom.zig");
 pub const ondemand = @import("ondemand.zig");
-pub const Error = @import("types.zig").Error;
+
+const types = @import("types.zig");
+pub const recommended_alignment = types.Aligned(true).alignment;
+pub const Error = types.Error;

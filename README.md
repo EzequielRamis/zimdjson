@@ -34,7 +34,7 @@ A Zig version of [simdjson](https://github.com/simdjson/simdjson), a JSON parser
       big1 -- Yes --> error
       big1 -- No --> valid1
       big2 -- No ---> valid2
-      big2 ~~~ comment@{ shape: brace-l, label: "At this stage there is no clear answer so benchmarking should be considered" }
+      big2 ~~~ comment@{ shape: brace-l, label: "At this stage there is no clear answer so specific requirements should be considered" }
       big2 -- Yes --> stream_ondemand
       valid1 -- Yes --> dom1
       valid1 -- No --> ondemand1

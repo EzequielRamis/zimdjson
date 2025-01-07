@@ -1,6 +1,5 @@
 const std = @import("std");
 const builtin = @import("builtin");
-const io = @import("io.zig");
 const meta = std.meta;
 const simd = std.simd;
 const arch = builtin.cpu.arch;
@@ -69,7 +68,7 @@ pub const Error = error{
 };
 
 pub const Vector = struct {
-    pub const bytes_len = simd.suggestVectorLength(u8) orelse @compileError("SIMD unsupported on this target.");
+    pub const bytes_len = simd.suggestVectorLength(u8) orelse @compileError("No SIMD features available");
 
     pub const zer: vector = @splat(0);
     pub const one: vector = @splat(255);

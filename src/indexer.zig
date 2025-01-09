@@ -52,7 +52,7 @@ pub fn Indexer(comptime options: Options) type {
             if (self.prev_inside_string != 0) return error.ExpectedStringEnd;
         }
 
-        pub inline fn index(self: *Self, block: types.block, dest: [*]u32) u32 {
+        pub inline fn index(self: *Self, block: Aligned.block, dest: [*]u32) u32 {
             var written: u32 = 0;
             inline for (0..types.masks_per_iter) |m| {
                 const offset = @as(comptime_int, m) * Mask.bits_len;

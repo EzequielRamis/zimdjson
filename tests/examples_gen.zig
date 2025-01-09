@@ -80,7 +80,7 @@ pub fn main() !void {
         try checker_zig_content.appendSlice(try std.fmt.bufPrint(&buf,
             \\test "{[id]s}" {{
             \\    const allocator = std.testing.allocator;
-            \\    var parser = dom.Parser(.{{}}).init(allocator);
+            \\    var parser = dom.Parser(.default).init(allocator);
             \\    defer parser.deinit();
             \\    const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonexamples/{[path]s}", .{{}});
             \\    _ = try parser.load(file);

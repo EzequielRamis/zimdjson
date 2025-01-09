@@ -11,8 +11,8 @@ const assert = std.debug.assert;
 pub const Options = struct {
     pub const default: Options = .{};
 
-    max_bytes: u64 = common.default_max_bytes,
-    max_depth: u32 = common.default_max_depth,
+    max_capacity: tape.Capacity = .normal,
+    max_depth: u32 = 1024,
     aligned: bool = false,
     stream: ?tokens.StreamOptions = null,
 };
@@ -22,6 +22,7 @@ pub fn Parser(comptime options: Options) type {
         const Self = @This();
         const Aligned = types.Aligned(options.aligned);
         const Tape = tape.Tape(.{
+            .max_capacity = options.max_capacity,
             .max_depth = options.max_depth,
             .aligned = options.aligned,
             .stream = options.stream,
@@ -44,9 +45,11 @@ pub fn Parser(comptime options: Options) type {
         }
 
         pub fn parse(self: *Self, document: Aligned.slice) !Visitor {
-            if (options.stream) |_| @compileError(common.error_stream_slice);
+            if (options.stream) |_| @compileError(common.error_messages.stream_slice);
+            if (comptime options.max_capacity.greater(.normal))
+                @compileError("Larger documents are not supported in non-stream mode. Consider using the DOM API with stream mode.");
 
-            if (document.len > options.max_bytes) return error.DocumentTooLarge;
+            if (document.len > @intFromEnum(options.max_capacity)) return error.DocumentCapacity;
             try self.tape.build(document, null);
 
             return Visitor{
@@ -57,11 +60,16 @@ pub fn Parser(comptime options: Options) type {
 
         pub fn load(self: *Self, file: std.fs.File) !Visitor {
             const stat = try file.stat();
-            if (stat.kind != .file) return error.InvalidFile;
             if (options.stream) |_| {
+                if (comptime options.max_capacity.greater(.large))
+                    @compileError("Too large documents are not supported in stream mode. Consider using the OnDemand API with stream mode.");
+
                 try self.tape.build(file, stat.size);
             } else {
-                if (stat.size > options.max_bytes) return error.DocumentTooLarge;
+                if (comptime options.max_capacity.greater(.normal))
+                    @compileError("Larger documents are not supported in non-stream mode. Consider using the DOM API with stream mode.");
+
+                if (stat.size > @intFromEnum(options.max_capacity)) return error.DocumentCapacity;
                 try self.buffer.resize(stat.size);
                 _ = try file.readAll(self.buffer.items);
                 try self.tape.build(self.buffer.items, null);
@@ -114,7 +122,7 @@ pub fn Parser(comptime options: Options) type {
                     .string => brk: {
                         const low_bits = self.tape.chars.items[w.data.ptr];
                         const high_bits = w.data.len;
-                        const len: u32 = high_bits << 16 | low_bits;
+                        const len: u64 = high_bits << @bitSizeOf(Tape.StringHighBits) | low_bits;
                         const ptr = self.tape.chars.items[w.data.ptr + 2 ..];
                         break :brk ptr[0..len];
                     },
@@ -259,7 +267,7 @@ pub fn Parser(comptime options: Options) type {
             };
 
             pub fn iterator(self: Array) Iterator {
-                return Iterator{
+                return .{
                     .tape = self.tape,
                     .curr = self.root + 1,
                 };
@@ -313,7 +321,7 @@ pub fn Parser(comptime options: Options) type {
             };
 
             pub fn iterator(self: Object) Iterator {
-                return Iterator{
+                return .{
                     .tape = self.tape,
                     .curr = self.root + 1,
                 };

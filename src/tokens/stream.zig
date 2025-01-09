@@ -88,12 +88,15 @@ pub fn Stream(comptime options: Options) type {
         }
 
         fn indexNextChunk(self: *Self) !u32 {
+            if (self.last_chunk_visited) {
+                @branchHint(.unlikely);
+                return 1;
+            }
             const buf = self.document_stream.reserveAssumeCapacity(chunk_len);
             const read: u32 = @intCast(self.file.readAll(buf) catch return error.StreamRead);
             if (read < chunk_len) {
                 @branchHint(.unlikely);
 
-                if (self.last_chunk_visited) return 1;
                 self.last_chunk_visited = true;
                 self.document_stream.shrinkAssumeLength(chunk_len - read);
                 const bogus_token = " $";
@@ -121,8 +124,8 @@ pub fn Stream(comptime options: Options) type {
         fn indexChunk(self: *Self, chunk: Aligned.slice, dest: [*]u32) u32 {
             var written: u32 = 0;
             for (0..chunk.len / types.block_len) |i| {
-                const block: *align(Aligned.alignment) const types.block = @alignCast(chunk[i * types.block_len ..][0..types.block_len]);
-                written += self.indexer.index(block.*, dest + written);
+                const block: Aligned.block = @alignCast(chunk[i * types.block_len ..][0..types.block_len]);
+                written += self.indexer.index(block, dest + written);
             }
             return written;
         }

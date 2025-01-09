@@ -5,11 +5,8 @@ const simd = std.simd;
 const testing = std.testing;
 const arch = builtin.cpu.arch;
 
-pub const default_max_bytes = std.math.maxInt(u32);
-pub const default_max_depth = 1024;
-
 pub const error_messages = struct {
-    pub const stream_slice = "Parsing JSON from a slice is not supported when stream mode is enabled. Instead, disable stream mode or use `load()` to parse it from a file.";
+    pub const stream_slice = "Parsing JSON from a slice is not supported when stream mode is enabled. Consider disabling stream mode or using `load` to parse it from a file.";
     pub const at_type = "A number or string must be provided for the `at` parameter.";
 };
 

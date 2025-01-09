@@ -53,16 +53,16 @@ pub fn Iterator(comptime options: Options) type {
                 const dest = self.indexes.items.ptr;
                 const remaining = document.len % types.block_len;
                 const last_full_index: u32 = @intCast(document.len -| remaining);
-                var index_padding: types.block align(Aligned.alignment) = @splat(' ');
+                var index_padding: [types.block_len]u8 align(Aligned.alignment) = @splat(' ');
                 @memcpy(index_padding[0..remaining], self.document[last_full_index..]);
 
                 var i: usize = 0;
                 while (i < last_full_index) : (i += types.block_len) {
-                    const block: *align(Aligned.alignment) const types.block = @alignCast(document[i..][0..types.block_len]);
-                    written += self.indexer.index(block.*, dest + written);
+                    const block: Aligned.block = @alignCast(document[i..][0..types.block_len]);
+                    written += self.indexer.index(block, dest + written);
                 }
                 if (i == last_full_index) {
-                    written += self.indexer.index(index_padding, dest + written);
+                    written += self.indexer.index(&index_padding, dest + written);
                     i += types.block_len;
                 }
                 if (written == 0) return error.Empty;

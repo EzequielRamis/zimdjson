@@ -8,21 +8,20 @@ const signed = std.builtin.Signedness.signed;
 const unsigned = std.builtin.Signedness.unsigned;
 
 pub const vector = @Vector(Vector.bytes_len, u8);
+pub const vectors = [Mask.computed_vectors]vector;
+
+pub const masks_per_iter = if (arch.isX86()) 2 else 1;
+pub const block_len = Mask.bits_len * masks_per_iter;
 
 pub fn Aligned(comptime aligned: bool) type {
     return struct {
         pub const alignment = if (aligned) Vector.bytes_len else @alignOf(u8);
         pub const slice = []align(alignment) const u8;
-        pub const chunk = *align(alignment) const [Mask.bits_len]u8;
         pub const vector = *align(alignment) const [Vector.bytes_len]u8;
+        pub const chunk = *align(alignment) const [Mask.bits_len]u8;
+        pub const block = *align(alignment) const [block_len]u8;
     };
 }
-
-pub const vectors = [Mask.computed_vectors]vector;
-
-pub const masks_per_iter = if (arch.isX86()) 2 else 1;
-pub const block_len = Mask.bits_len * masks_per_iter;
-pub const block = [block_len]u8;
 
 const NumberTag = enum(u8) {
     unsigned = 'u',

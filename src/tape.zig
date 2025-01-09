@@ -52,7 +52,20 @@ const Context = struct {
     },
 };
 
+pub const Capacity = enum(u64) {
+    large = std.math.maxInt(u32) * @sizeOf(Word),
+    normal = std.math.maxInt(u32),
+    _,
+
+    pub fn greater(self: Capacity, other: Capacity) bool {
+        return @intFromEnum(self) > @intFromEnum(other);
+    }
+};
+
 pub const Options = struct {
+    pub const default: Options = .{};
+
+    max_capacity: Capacity = .normal,
     max_depth: u32,
     aligned: bool,
     stream: ?tokens.StreamOptions,
@@ -68,6 +81,7 @@ pub fn Tape(comptime options: Options) type {
         });
         const Words = ArrayList(u64);
         const Stack = MultiArrayList(Context);
+        pub const StringHighBits = if (options.stream != null and options.max_capacity.greater(.normal)) u24 else u16;
 
         parsed: Words,
         parsed_ptr: [*]u64 = undefined,
@@ -99,7 +113,7 @@ pub fn Tape(comptime options: Options) type {
 
             try self.tokens.build(document);
 
-            try self.chars.ensureTotalCapacity(document_len);
+            try self.chars.ensureTotalCapacity(document_len + types.Vector.bytes_len);
             try self.stack.ensureTotalCapacity(self.allocator, options.max_depth);
             try self.parsed.ensureTotalCapacity(document_len);
 
@@ -386,7 +400,7 @@ pub fn Tape(comptime options: Options) type {
             const sentinel = try parse(ptr, next_str);
             const next_len: u32 = @intCast(@intFromPtr(sentinel) - @intFromPtr(next_str));
             low_bits.* = @truncate(next_len);
-            const high_bits: u16 = @intCast(next_len >> 16);
+            const high_bits: StringHighBits = @intCast(next_len >> @bitSizeOf(StringHighBits));
             self.parsed_ptr[0] = @bitCast(Word{
                 .tag = .string,
                 .data = .{

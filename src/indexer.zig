@@ -56,10 +56,10 @@ pub fn Indexer(comptime options: Options) type {
             var written: u32 = 0;
             inline for (0..types.masks_per_iter) |m| {
                 const offset = @as(comptime_int, m) * Mask.bits_len;
-                const chunk: Aligned.chunk = @alignCast(block[offset..][0..Mask.bits_len]);
+                const chunk: Aligned.chunk = block[offset..][0..Mask.bits_len];
                 var vecs: types.vectors = undefined;
                 inline for (0..Mask.computed_vectors) |j| {
-                    vecs[j] = @as(Aligned.vector, @alignCast(chunk[j * Vector.bytes_len ..][0..Vector.bytes_len])).*;
+                    vecs[j] = @as(Aligned.vector, chunk[j * Vector.bytes_len ..][0..Vector.bytes_len]).*;
                 }
                 const tokens = self.identify(vecs);
                 written += self.next(vecs, tokens, dest + written);

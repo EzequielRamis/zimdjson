@@ -15,19 +15,18 @@ const string expected = "RT @shiawaseomamori: "
 
 struct simdjson_dom {
 
-  padded_string json;
+  string path;
   dom::parser parser;
   string_view result;
 
-  void init(string_view path) {
-    simdjson::error_code err;
-    if (err = padded_string::load(path).get(json)) throw runtime_error("file not found");
+  void init(string_view _path) {
+    path = string(_path);
   }
 
   void prerun() {}
 
   void run() {
-    auto doc = parser.parse(json);
+    auto doc = parser.load(path);
     for (auto tweet : doc["statuses"]) {
       if (uint64_t(tweet["id"]) == find_id) {
         result = tweet["text"];

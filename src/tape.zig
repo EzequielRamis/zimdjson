@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const tracy = @import("tracy");
 const common = @import("common.zig");
 const types = @import("types.zig");
@@ -6,6 +7,7 @@ const tokens = @import("tokens.zig");
 const ArrayList = std.ArrayList;
 const MultiArrayList = std.MultiArrayList;
 const assert = std.debug.assert;
+const native_endian = builtin.cpu.arch.endian();
 
 const Allocator = std.mem.Allocator;
 const Error = types.Error;
@@ -113,9 +115,9 @@ pub fn Tape(comptime options: Options) type {
 
             try self.tokens.build(document);
 
-            try self.chars.ensureTotalCapacity(document_len + types.Vector.bytes_len);
+            try self.chars.ensureTotalCapacityPrecise(document_len + types.Vector.bytes_len);
             try self.stack.ensureTotalCapacity(self.allocator, options.max_depth);
-            try self.parsed.ensureTotalCapacity(document_len);
+            try self.parsed.ensureTotalCapacityPrecise(document_len);
 
             self.chars_ptr = self.chars.items.ptr;
             self.stack.shrinkRetainingCapacity(0);
@@ -395,12 +397,12 @@ pub fn Tape(comptime options: Options) type {
 
         inline fn visitString(self: *Self, ptr: [*]const u8) Error!void {
             const parse = @import("parsers/string.zig").writeString;
-            const low_bits: *align(1) u16 = @ptrCast(self.chars_ptr);
-            const next_str = self.chars_ptr + 2;
+            const low_bits = self.chars_ptr;
+            const next_str = self.chars_ptr + @sizeOf(u16);
             const sentinel = try parse(ptr, next_str);
             const next_len: u32 = @intCast(@intFromPtr(sentinel) - @intFromPtr(next_str));
-            low_bits.* = @truncate(next_len);
-            const high_bits: StringHighBits = @intCast(next_len >> @bitSizeOf(StringHighBits));
+            std.mem.writeInt(u16, low_bits[0..@sizeOf(u16)], @truncate(next_len), native_endian);
+            const high_bits: StringHighBits = @truncate(next_len >> @bitSizeOf(StringHighBits));
             self.parsed_ptr[0] = @bitCast(Word{
                 .tag = .string,
                 .data = .{

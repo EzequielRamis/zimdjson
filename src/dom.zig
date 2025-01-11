@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const common = @import("common.zig");
 const types = @import("types.zig");
 const tape = @import("tape.zig");
@@ -7,6 +8,7 @@ const Allocator = std.mem.Allocator;
 const Error = types.Error;
 const Number = types.Number;
 const assert = std.debug.assert;
+const native_endian = builtin.cpu.arch.endian();
 
 pub const Options = struct {
     pub const default: Options = .{};
@@ -62,7 +64,7 @@ pub fn Parser(comptime options: Options) type {
             const stat = try file.stat();
             if (options.stream) |_| {
                 if (comptime options.max_capacity.greater(.large))
-                    @compileError("Too large documents are not supported in stream mode. Consider using the OnDemand API with stream mode.");
+                    @compileError("Too large documents are not supported in stream mode. Consider using the On-Demand API with stream mode.");
 
                 try self.tape.build(file, stat.size);
             } else {
@@ -120,10 +122,10 @@ pub fn Parser(comptime options: Options) type {
                 const w = self.tape.get(self.index);
                 return switch (w.tag) {
                     .string => brk: {
-                        const low_bits = self.tape.chars.items[w.data.ptr];
+                        const low_bits = std.mem.readInt(u16, self.tape.chars.items[w.data.ptr..][0..@sizeOf(u16)], native_endian);
                         const high_bits = w.data.len;
                         const len: u64 = high_bits << @bitSizeOf(Tape.StringHighBits) | low_bits;
-                        const ptr = self.tape.chars.items[w.data.ptr + 2 ..];
+                        const ptr = self.tape.chars.items[w.data.ptr + @sizeOf(u16) ..];
                         break :brk ptr[0..len];
                     },
                     else => error.IncorrectType,

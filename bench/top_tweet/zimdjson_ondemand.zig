@@ -22,7 +22,7 @@ const allocator = traced.allocator();
 
 var file: std.fs.File = undefined;
 var path: []const u8 = undefined;
-var parser = zimdjson.dom.Parser(.default).init(allocator);
+var parser = zimdjson.ondemand.Parser(.default).init(allocator);
 var result: TopTweet = undefined;
 
 pub fn init(_path: []const u8) !void {
@@ -33,22 +33,25 @@ pub fn prerun() !void {}
 
 pub fn run() !void {
     result.retweet_count = -1;
-    var top_tweet: Parser.Visitor = undefined;
 
     file = try std.fs.openFileAbsolute(path, .{});
     const doc = try parser.load(file);
     const tweet = try doc.at("statuses").getArray();
     var it = tweet.iterator();
-    while (it.next()) |t| {
+    while (try it.next()) |t| : (try t.skip()) {
+        const text = try t.at("text").getString();
+        const screen_name = try t.at("user").at("screen_name").getString();
+        std.debug.print("text: {s}\n", .{text});
         const retweet_count = try t.at("retweet_count").getSigned();
+        std.debug.print("retweet_count: {}\n", .{retweet_count});
         if (retweet_count <= max_retweet_count and retweet_count >= result.retweet_count) {
-            result.retweet_count = retweet_count;
-            top_tweet = t;
+            result = .{
+                .retweet_count = retweet_count,
+                .text = text,
+                .screen_name = screen_name,
+            };
         }
     }
-
-    result.text = try top_tweet.at("text").getString();
-    result.screen_name = try top_tweet.at("user").at("screen_name").getString();
 }
 
 pub fn postrun() !void {

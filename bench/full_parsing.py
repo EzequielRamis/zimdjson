@@ -23,8 +23,8 @@ files = [
 ]
 
 better_names = {
-    'zimdjson_dom': 'zimdjson (DOM)',
     'simdjson_dom': 'simdjson (DOM)',
+    'zimdjson_dom': 'zimdjson (DOM)',
     'yyjson': 'yyjson',
     'rapidjson_dom': 'rapidjson',
 }
@@ -49,10 +49,10 @@ data = pd.concat(map(lambda x: suite_dataframe(x), files))
 
 sns.set_theme(context="notebook", palette="bright", style="whitegrid")
 
-g = sns.catplot(data, kind="bar", x="suite", y="perf", hue="name", legend_out=False)
-g.set_xlabels("")
-g.set_ylabels("throughput (GB/s)")
+g = sns.catplot(data, kind="bar", y="suite", x="perf", hue="name", legend_out=False, hue_order=better_names.values())
+g.set_ylabels("")
+g.set_xlabels("throughput (GB/s)")
 g.legend.set_title("")
 
-plt.xticks(rotation=45)
+# plt.xticks(rotation=45)
 plt.show()

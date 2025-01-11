@@ -45,7 +45,7 @@ pub fn Iterator(comptime options: Options) type {
 
         pub inline fn build(self: *Self, document: Aligned.slice) !void {
             {
-                try self.indexes.ensureTotalCapacity(document.len + 1);
+                try self.indexes.ensureTotalCapacityPrecise(document.len + 1);
                 self.indexer = .init;
                 self.document = document;
 
@@ -85,7 +85,7 @@ pub fn Iterator(comptime options: Options) type {
             self.padding_token = @ptrCast(&ixs[padding_token]);
             const padding_index = if (padding_token == 0) 0 else ixs[padding_token];
             const padding_len = document.len - padding_index;
-            try self.padding.ensureTotalCapacity(padding_len + Vector.bytes_len);
+            try self.padding.ensureTotalCapacityPrecise(padding_len + Vector.bytes_len);
             self.padding.items.len = padding_len + Vector.bytes_len;
             @memcpy(self.padding.items[0..padding_len], document[padding_index..]);
             self.padding.items[padding_len] = ' ';

@@ -8,18 +8,20 @@ const expected = "RT @shiawaseomamori: 一に止まると書いて、正しい�
 var traced = TracedAllocator{ .wrapped = std.heap.c_allocator };
 const allocator = traced.allocator();
 
-var json: zimdjson.io.Reader(.{}).slice = undefined;
-var parser = zimdjson.dom.Parser(.{}).init(allocator);
+var file: std.fs.File = undefined;
+var path: []const u8 = undefined;
+var parser = zimdjson.dom.Parser(.default).init(allocator);
 var result: []const u8 = undefined;
 
-pub fn init(path: []const u8) !void {
-    json = try zimdjson.io.Reader(.{}).readFileAlloc(allocator, path);
+pub fn init(_path: []const u8) !void {
+    path = _path;
 }
 
 pub fn prerun() !void {}
 
 pub fn run() !void {
-    const doc = try parser.parse(json);
+    file = try std.fs.openFileAbsolute(path, .{});
+    const doc = try parser.load(file);
     const tweet = try doc.at("statuses").getArray();
     var it = tweet.iterator();
     while (it.next()) |t| {
@@ -31,13 +33,14 @@ pub fn run() !void {
     @panic("tweet not found");
 }
 
-pub fn postrun() !void {}
+pub fn postrun() !void {
+    file.close();
+}
 
 pub fn deinit() void {
     if (!std.mem.eql(u8, expected, result)) {
         @panic("tweet text unequal to expected");
     }
-    allocator.free(json);
     parser.deinit();
 }
 

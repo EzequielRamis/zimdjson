@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const common = @import("../common.zig");
 const types = @import("../types.zig");
 const tokens = @import("../tokens.zig");
@@ -8,6 +9,7 @@ const Vector = types.Vector;
 const Predicate = types.Predicate;
 const Error = types.Error;
 const readInt = std.mem.readInt;
+const native_endian = builtin.cpu.arch.endian();
 
 pub inline fn writeString(src: [*]const u8, _dst: [*]u8) Error![*]u8 {
     var ptr = src + 1;
@@ -50,7 +52,7 @@ inline fn handleUnicodeCodepoint(ptr: *[*]const u8) Error!u32 {
     const first_literal = ptr.*[2..][0..4].*;
     const first_codepoint = parseHexDword(first_literal);
     if (utf16IsHighSurrogate(first_codepoint)) {
-        if (readInt(u16, ptr.*[2..][4..][0..2], .little) == readInt(u16, "\\u", .little)) {
+        if (readInt(u16, ptr.*[2..][4..][0..2], native_endian) == readInt(u16, "\\u", native_endian)) {
             const high_surrogate = first_codepoint;
             const second_literal = ptr.*[2..][4..][2..][0..4].*;
             const low_surrogate = parseHexDword(second_literal);

@@ -70,7 +70,7 @@ pub fn Parser(comptime options: Options) type {
         buffer: if (options.stream) |_| void else FileBuffer,
         chars: std.ArrayListUnmanaged(u8),
         chars_ptr: [*]u8 = undefined,
-        field_key_buf: if (options.stream) |s| [s.chunk_length]u8 else void = undefined,
+        curr_id: usize = undefined,
 
         pub fn init(allocator: if (manual_manage_strings) ?Allocator else Allocator) Self {
             return .{
@@ -95,22 +95,19 @@ pub fn Parser(comptime options: Options) type {
             if (document.len > @intFromEnum(options.max_capacity)) return error.DocumentCapacity;
             try self.tokens.build(document);
 
-            try self.chars.ensureTotalCapacity(self.allocator.?, document.len);
+            try self.chars.ensureTotalCapacityPrecise(self.allocator.?, document.len);
             self.chars.shrinkRetainingCapacity(0);
             self.chars_ptr = self.chars.items.ptr;
             self.depth = 1;
 
-            return Visitor{
-                .document = self,
-                .depth = self.depth,
-            };
+            return self.startVisitor();
         }
 
         pub fn load(self: *Self, file: std.fs.File) !Visitor {
             const stat = try file.stat();
             if (stat.size > @intFromEnum(options.max_capacity)) return error.DocumentCapacity;
             if (!manual_manage_strings) {
-                try self.chars.ensureTotalCapacity(self.allocator.?, stat.size);
+                try self.chars.ensureTotalCapacityPrecise(self.allocator.?, stat.size);
                 self.chars.shrinkRetainingCapacity(0);
                 self.chars_ptr = self.chars.items.ptr;
             }
@@ -124,10 +121,7 @@ pub fn Parser(comptime options: Options) type {
 
             self.depth = 1;
 
-            return Visitor{
-                .document = self,
-                .depth = self.depth,
-            };
+            return self.startVisitor();
         }
 
         pub const Element = union(enum) {
@@ -144,32 +138,46 @@ pub fn Parser(comptime options: Options) type {
         pub const Visitor = struct {
             document: *Self,
             depth: u32,
+            token: u8,
+            id: usize,
             err: ?Error = null,
 
             pub fn getObject(self: Visitor) Error!Object {
                 if (self.err) |err| return err;
 
-                const token = try self.document.tokens.peek();
-
-                if (token != '{') return error.IncorrectType;
+                if (self.token != '{') return error.IncorrectType;
                 Logger.logStart(self.document.*, "object", self.depth);
-                return .{ .visitor = .{
-                    .document = self.document,
-                    .depth = self.depth,
-                } };
+                return .{
+                    .visitor = self.document.startVisitorWith(self.token),
+                };
+            }
+
+            fn startOrResumeObject(self: Visitor) Error!Object {
+                if (self.isAtStart()) {
+                    return self.getObject();
+                }
+                return .{
+                    .visitor = self.document.resumeVisitorWith('{'),
+                    .entered = true,
+                };
             }
 
             pub fn getArray(self: Visitor) Error!Array {
                 if (self.err) |err| return err;
 
-                const token = try self.document.tokens.peek();
-
-                if (token != '[') return error.IncorrectType;
+                if (self.token != '[') return error.IncorrectType;
                 Logger.logStart(self.document.*, "array ", self.depth);
-                return .{ .visitor = .{
-                    .document = self.document,
-                    .depth = self.depth,
-                } };
+                return .{ .visitor = self.document.startVisitorWith(self.token) };
+            }
+
+            fn startOrResumeArray(self: Visitor) Error!Array {
+                if (self.isAtStart()) {
+                    return self.getArray();
+                }
+                return .{
+                    .visitor = self.document.resumeVisitorWith('['),
+                    .entered = true,
+                };
             }
 
             pub fn getNumber(self: Visitor) Error!Number {
@@ -314,11 +322,11 @@ pub fn Parser(comptime options: Options) type {
 
                 const query = brk: {
                     if (common.isString(@TypeOf(ptr))) {
-                        const obj = self.getObject() catch return self.throw(error.IncorrectPointer);
+                        const obj = self.startOrResumeObject() catch return self.throw(error.IncorrectPointer);
                         break :brk obj.at(ptr);
                     }
                     if (common.isIndex(@TypeOf(ptr))) {
-                        const arr = self.getArray() catch return self.throw(error.IncorrectPointer);
+                        const arr = self.startOrResumeArray() catch return self.throw(error.IncorrectPointer);
                         break :brk arr.at(ptr);
                     }
                     @compileError(common.error_messages.at_type);
@@ -344,7 +352,7 @@ pub fn Parser(comptime options: Options) type {
                 Logger.logDepth(wanted_depth, actual_depth.*);
 
                 if (actual_depth.* <= wanted_depth) return;
-                switch (try t.next()[0]) {
+                switch ((try t.next())[0]) {
                     '[', '{', ':' => {
                         Logger.logStart(self.document.*, "skip  ", actual_depth.*);
                     },
@@ -372,7 +380,7 @@ pub fn Parser(comptime options: Options) type {
                 }
 
                 brk: while (true) {
-                    switch (try t.next()[0]) {
+                    switch ((try t.next())[0]) {
                         '[', '{' => {
                             Logger.logStart(self.document.*, "skip  ", actual_depth.*);
                             actual_depth.* += 1;
@@ -429,39 +437,80 @@ pub fn Parser(comptime options: Options) type {
                 return next_str[0..next_len];
             }
 
-            fn throw(self: Visitor, err: Error) Visitor {
+            inline fn throw(self: Visitor, err: Error) Visitor {
                 return .{
                     .document = self.document,
                     .depth = self.depth,
+                    .token = self.token,
+                    .id = self.id,
                     .err = err,
                 };
+            }
+
+            inline fn isAtStart(self: Visitor) bool {
+                return self.id == self.document.curr_id;
+            }
+
+            inline fn assertAtStart(self: Visitor) void {
+                std.debug.assert(self.id == self.document.curr_id);
+                std.debug.assert(self.depth == self.document.depth);
+                std.debug.assert(self.document.depth > 0);
+            }
+
+            inline fn assertAtContainerStart(self: Visitor) void {
+                std.debug.assert(self.id == self.document.curr_id + 1);
+                std.debug.assert(self.depth == self.document.depth);
+                std.debug.assert(self.document.depth > 0);
+            }
+
+            inline fn assertAtNext(self: Visitor) void {
+                std.debug.assert(self.document.curr_id > self.id);
+                std.debug.assert(self.depth == self.document.depth);
+                std.debug.assert(self.document.depth > 0);
+            }
+
+            inline fn assertAtChild(self: Visitor) void {
+                std.debug.assert(self.document.curr_id > self.id);
+                std.debug.assert(self.document.depth == self.depth + 1);
+                std.debug.assert(self.document.depth > 0);
+            }
+
+            inline fn assertAtRoot(self: Visitor) void {
+                self.assertAtStart();
+                std.debug.assert(self.document.depth == 1);
+            }
+
+            inline fn assertAtNonRoot(self: Visitor) void {
+                self.assertAtStart();
+                std.debug.assert(self.document.depth > 1);
             }
         };
 
         const Array = struct {
             visitor: Visitor,
+            entered: bool = false,
 
             pub const Iterator = struct {
                 root: Array,
-                entered: bool = false,
 
                 pub fn next(self: *Iterator) Error!?Visitor {
                     const doc = self.root.visitor.document;
                     const t = &doc.tokens;
-                    if (!self.entered) {
-                        defer self.entered = true;
+                    if (!self.root.entered) {
+                        defer self.root.entered = true;
                         _ = try t.next();
-                        if (try t.peek() == ']') {
+                        const token = try t.peek();
+                        if (token == ']') {
                             _ = try t.next();
                             self.root.visitor.document.depth -= 1;
                             return null;
                         }
-                        return self.root.getVisitor();
+                        return self.root.getVisitor(token);
                     }
                     switch (try t.peek()) {
                         ',' => {
                             _ = try t.next();
-                            return self.root.getVisitor();
+                            return self.root.getVisitor(try t.peek());
                         },
                         ']' => {
                             _ = try t.next();
@@ -505,19 +554,17 @@ pub fn Parser(comptime options: Options) type {
                 return count;
             }
 
-            fn getVisitor(self: Array) Visitor {
-                self.visitor.document.depth += 1;
-                return Visitor{
-                    .document = self.visitor.document,
-                    .depth = self.visitor.document.depth,
-                };
+            fn getVisitor(self: Array, token: u8) Visitor {
+                return self.visitor.document.startChildVisitorWith(token);
             }
         };
 
         const Object = struct {
             visitor: Visitor,
+            entered: bool = false,
 
             pub const Field = struct {
+                key_buf: if (options.stream) |s| [s.chunk_length]u8 else void = undefined,
                 key: []const u8,
                 value: Visitor,
 
@@ -528,13 +575,12 @@ pub fn Parser(comptime options: Options) type {
 
             pub const Iterator = struct {
                 root: Object,
-                entered: bool = false,
 
                 pub fn next(self: *Iterator) Error!?Field {
                     const doc = self.root.visitor.document;
                     const t = &doc.tokens;
-                    if (!self.entered) {
-                        defer self.entered = true;
+                    if (!self.root.entered) {
+                        defer self.root.entered = true;
                         _ = try t.next();
                         if (try t.peek() == '}') {
                             _ = try t.next();
@@ -592,10 +638,7 @@ pub fn Parser(comptime options: Options) type {
             fn getField(self: Object) Error!Field {
                 const doc = self.visitor.document;
                 var t = &doc.tokens;
-                var key_visitor = Visitor{
-                    .document = doc,
-                    .depth = self.visitor.document.depth,
-                };
+                var key_visitor = doc.startVisitorWith(undefined);
                 // const curr = t.token;
                 // errdefer t.revert();
                 const quote = try t.next();
@@ -606,16 +649,83 @@ pub fn Parser(comptime options: Options) type {
                     try key_visitor.getUnsafeString(quote);
                 const colon = try t.next();
                 if (colon[0] != ':') return error.ExpectedColon;
-                self.visitor.document.depth += 1;
                 return .{
                     .key = key,
-                    .value = .{
-                        .document = doc,
-                        .depth = self.visitor.document.depth,
-                    },
+                    .value = try doc.startChildVisitor(),
+                };
+            }
+
+            fn writeField(self: Object, dest: *Field) Error!Field {
+                const doc = self.visitor.document;
+                var t = &doc.tokens;
+                var key_visitor = doc.startVisitorWith(undefined);
+                // const curr = t.token;
+                // errdefer t.revert();
+                const quote = try t.next();
+                if (quote[0] != '"') return error.ExpectedKey;
+                const key = if (manual_manage_strings)
+                    try key_visitor.writeUnsafeString(quote, &dest.key_buf)
+                else
+                    try key_visitor.getUnsafeString(quote);
+                const colon = try t.next();
+                if (colon[0] != ':') return error.ExpectedColon;
+                dest.* = .{
+                    .key = key,
+                    .value = try doc.startChildVisitor(),
                 };
             }
         };
+
+        fn startVisitor(self: *Self) !Visitor {
+            self.curr_id += 1;
+            return .{
+                .document = self,
+                .depth = self.depth,
+                .id = self.curr_id,
+                .token = try self.tokens.peek(),
+            };
+        }
+
+        fn startVisitorWith(self: *Self, token: u8) Visitor {
+            self.curr_id += 1;
+            return .{
+                .document = self,
+                .depth = self.depth,
+                .id = self.curr_id,
+                .token = token,
+            };
+        }
+
+        fn startChildVisitor(self: *Self) !Visitor {
+            self.depth += 1;
+            self.curr_id += 1;
+            return .{
+                .document = self,
+                .depth = self.depth,
+                .id = self.curr_id,
+                .token = try self.tokens.peek(),
+            };
+        }
+
+        fn startChildVisitorWith(self: *Self, token: u8) Visitor {
+            self.depth += 1;
+            self.curr_id += 1;
+            return .{
+                .document = self,
+                .depth = self.depth,
+                .id = self.curr_id,
+                .token = token,
+            };
+        }
+
+        fn resumeVisitorWith(self: *Self, token: u8) Visitor {
+            return .{
+                .document = self,
+                .depth = self.depth,
+                .id = self.curr_id,
+                .token = token,
+            };
+        }
 
         const Logger = struct {
             pub fn logDepth(expected: u32, actual: u32) void {
@@ -625,8 +735,8 @@ pub fn Parser(comptime options: Options) type {
 
             pub fn logStart(parser: Self, label: []const u8, depth: u32) void {
                 if (true) return;
-                const t = parser.stream;
-                var buffer = t.ptr[0..Vector.bytes_len].*;
+                var t = parser.tokens;
+                var buffer = t.iter.ptr[(t.iter.token - 1)[0]..][0..Vector.bytes_len].*;
                 for (&buffer) |*b| {
                     if (b.* == '\n') b.* = ' ';
                     if (b.* == '\t') b.* = ' ';
@@ -636,8 +746,8 @@ pub fn Parser(comptime options: Options) type {
             }
             pub fn log(parser: Self, label: []const u8, depth: u32) void {
                 if (true) return;
-                const t = parser.stream;
-                var buffer = t.ptr[0..Vector.bytes_len].*;
+                var t = parser.tokens;
+                var buffer = t.iter.ptr[(t.iter.token - 1)[0]..][0..Vector.bytes_len].*;
                 for (&buffer) |*b| {
                     if (b.* == '\n') b.* = ' ';
                     if (b.* == '\t') b.* = ' ';
@@ -647,8 +757,8 @@ pub fn Parser(comptime options: Options) type {
             }
             pub fn logEnd(parser: Self, label: []const u8, depth: u32) void {
                 if (true) return;
-                const t = parser.stream;
-                var buffer = t.ptr[0..Vector.bytes_len].*;
+                var t = parser.tokens;
+                var buffer = t.iter.ptr[(t.iter.token - 1)[0]..][0..Vector.bytes_len].*;
                 for (&buffer) |*b| {
                     if (b.* == '\n') b.* = ' ';
                     if (b.* == '\t') b.* = ' ';

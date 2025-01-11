@@ -101,7 +101,7 @@ pub const Parser = struct {
 
         const longest_digit_count = max_digits - 1;
         if (integer_len <= longest_digit_count) {
-            if (mantissa_10 > std.math.maxInt(i64) + @intFromBool(is_negative)) return error.NumberOutOfRange;
+            if (mantissa_10 > std.math.maxInt(i64) + @as(u64, @intFromBool(is_negative))) return error.NumberOutOfRange;
 
             const i: i64 = @intCast(mantissa_10);
             return if (is_negative) -i else i;

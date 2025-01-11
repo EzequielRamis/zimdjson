@@ -7,7 +7,7 @@ const allocator = traced.allocator();
 
 var file: std.fs.File = undefined;
 var path: []const u8 = undefined;
-var parser = zimdjson.dom.Parser(.{}).init(allocator);
+var parser = zimdjson.dom.Parser(.default).init(allocator);
 
 pub fn init(_path: []const u8) !void {
     path = _path;

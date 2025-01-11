@@ -22,7 +22,7 @@ pub fn RingBuffer(comptime T: type, comptime length: u32) type {
                 if (builtin.os.isAtLeast(native_os, .win10) orelse false)
                     WindowsBuffer
                 else
-                    @compileError("Windows 10 or later is required to create a memory-mapped ring buffer");
+                    @compileError("Streaming capabilities are supported on Windows 10 and later");
             },
             else => PosixBuffer,
         },

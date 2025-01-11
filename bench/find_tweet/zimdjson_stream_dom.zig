@@ -10,7 +10,7 @@ const allocator = traced.allocator();
 
 var file: std.fs.File = undefined;
 var path: []const u8 = undefined;
-var parser = zimdjson.ondemand.Parser(.default).init(allocator);
+var parser = zimdjson.dom.Parser(.{ .stream = .default }).init(allocator);
 var result: []const u8 = undefined;
 
 pub fn init(_path: []const u8) !void {
@@ -24,7 +24,7 @@ pub fn run() !void {
     const doc = try parser.load(file);
     const tweet = try doc.at("statuses").getArray();
     var it = tweet.iterator();
-    while (try it.next()) |t| : (try t.skip()) {
+    while (it.next()) |t| {
         if (try t.at("id").getUnsigned() == find_id) {
             result = try t.at("text").getString();
             return;

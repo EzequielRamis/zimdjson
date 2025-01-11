@@ -1,7 +1,7 @@
 const std = @import("std");
 const zimdjson = @import("zimdjson");
 const TracedAllocator = @import("TracedAllocator");
-const Parser = zimdjson.dom.Parser(.{});
+const Parser = zimdjson.dom.Parser(.{ .stream = .default });
 
 const TopTweet = struct {
     text: []const u8,
@@ -22,7 +22,7 @@ const allocator = traced.allocator();
 
 var file: std.fs.File = undefined;
 var path: []const u8 = undefined;
-var parser = zimdjson.dom.Parser(.default).init(allocator);
+var parser = Parser.init(allocator);
 var result: TopTweet = undefined;
 
 pub fn init(_path: []const u8) !void {

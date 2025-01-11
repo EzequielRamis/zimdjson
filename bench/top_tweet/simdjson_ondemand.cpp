@@ -20,10 +20,10 @@ const top_tweet expected = {
     "anime_toshiden1",
     58};
 
-struct simdjson_dom {
+struct simdjson_ondemand {
 
   string path;
-  dom::parser parser;
+  ondemand::parser parser;
   top_tweet result;
 
   void init(string_view _path) {
@@ -34,19 +34,25 @@ struct simdjson_dom {
 
   void run() {
     result.retweet_count = -1;
-    dom::element top_tweet{};
 
-    auto doc = parser.load(path);
+    padded_string json;
+    simdjson::error_code err;
+    if (err = padded_string::load(path).get(json)) throw runtime_error("file not found");
+
+    auto doc = parser.iterate(json);
     for (auto tweet : doc["statuses"]) {
+      // Since text, user.screen_name, and retweet_count generally appear in order, it's nearly free
+      // for us to retrieve them here (and will cost a bit more if we do it in the if
+      // statement).
+      auto tweet_text = tweet["text"];
+      auto tweet_screen_name = tweet["user"]["screen_name"];
       int64_t retweet_count = tweet["retweet_count"];
       if (retweet_count <= max_retweet_count && retweet_count >= result.retweet_count) {
         result.retweet_count = retweet_count;
-        top_tweet = tweet;
+        result.text = tweet_text;
+        result.screen_name = tweet_screen_name;
       }
     }
-
-    result.text = top_tweet["text"];
-    result.screen_name = top_tweet["user"]["screen_name"];
   }
 
   void postrun() {}
@@ -61,4 +67,4 @@ struct simdjson_dom {
   }
 };
 
-BENCHMARK_TEMPLATE(simdjson_dom);
+BENCHMARK_TEMPLATE(simdjson_ondemand);

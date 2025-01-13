@@ -25,7 +25,7 @@ const Stats = struct {
 
 var stats = std.mem.zeroes(Stats);
 
-fn walk(v: Parser.Visitor) !void {
+fn walk(v: Parser.Value) !void {
     stats.token_count += 1;
     const any = try v.getAny();
     switch (any) {

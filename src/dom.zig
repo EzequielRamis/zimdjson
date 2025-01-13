@@ -46,7 +46,7 @@ pub fn Parser(comptime options: Options) type {
             if (options.stream == null) self.buffer.deinit();
         }
 
-        pub fn parse(self: *Self, document: Aligned.slice) !Visitor {
+        pub fn parse(self: *Self, document: Aligned.slice) !Value {
             if (options.stream) |_| @compileError(common.error_messages.stream_slice);
             if (comptime options.max_capacity.greater(.normal))
                 @compileError("Larger documents are not supported in non-stream mode. Consider using the DOM API with stream mode.");
@@ -54,13 +54,13 @@ pub fn Parser(comptime options: Options) type {
             if (document.len > @intFromEnum(options.max_capacity)) return error.DocumentCapacity;
             try self.tape.build(document, null);
 
-            return Visitor{
+            return Value{
                 .tape = &self.tape,
                 .index = 0,
             };
         }
 
-        pub fn load(self: *Self, file: std.fs.File) !Visitor {
+        pub fn load(self: *Self, file: std.fs.File) !Value {
             const stat = try file.stat();
             if (options.stream) |_| {
                 if (comptime options.max_capacity.greater(.large))
@@ -76,30 +76,28 @@ pub fn Parser(comptime options: Options) type {
                 _ = try file.readAll(self.buffer.items);
                 try self.tape.build(self.buffer.items, null);
             }
-            return Visitor{
+            return Value{
                 .tape = &self.tape,
                 .index = 0,
             };
         }
 
-        pub const Element = union(enum) {
+        pub const Element = union(types.ElementType) {
             null,
             bool: bool,
-            unsigned: u64,
-            signed: i64,
-            float: f64,
+            number: Number,
             string: []const u8,
             object: Object,
             array: Array,
         };
 
-        pub const Visitor = struct {
+        pub const Value = struct {
             tape: *const Tape,
             index: u32,
-            err: ?Error = null,
+            err: Error!void = {},
 
-            pub fn getObject(self: Visitor) Error!Object {
-                if (self.err) |err| return err;
+            pub fn getObject(self: Value) Error!Object {
+                try self.err;
 
                 return switch (self.tape.get(self.index).tag) {
                     .object_opening => Object{ .tape = self.tape, .root = self.index },
@@ -107,8 +105,8 @@ pub fn Parser(comptime options: Options) type {
                 };
             }
 
-            pub fn getArray(self: Visitor) Error!Array {
-                if (self.err) |err| return err;
+            pub fn getArray(self: Value) Error!Array {
+                try self.err;
 
                 return switch (self.tape.get(self.index).tag) {
                     .array_opening => Array{ .tape = self.tape, .root = self.index },
@@ -116,8 +114,8 @@ pub fn Parser(comptime options: Options) type {
                 };
             }
 
-            pub fn getString(self: Visitor) Error![]const u8 {
-                if (self.err) |err| return err;
+            pub fn getString(self: Value) Error![]const u8 {
+                try self.err;
 
                 const w = self.tape.get(self.index);
                 return switch (w.tag) {
@@ -132,8 +130,8 @@ pub fn Parser(comptime options: Options) type {
                 };
             }
 
-            pub fn getNumber(self: Visitor) Error!Number {
-                if (self.err) |err| return err;
+            pub fn getNumber(self: Value) Error!Number {
+                try self.err;
 
                 const number = self.tape.get(self.index + 1);
                 return switch (self.tape.get(self.index).tag) {
@@ -144,8 +142,8 @@ pub fn Parser(comptime options: Options) type {
                 };
             }
 
-            pub fn getUnsigned(self: Visitor) Error!u64 {
-                if (self.err) |err| return err;
+            pub fn getUnsigned(self: Value) Error!u64 {
+                try self.err;
 
                 const number = self.tape.get(self.index + 1);
                 return switch (self.tape.get(self.index).tag) {
@@ -155,8 +153,8 @@ pub fn Parser(comptime options: Options) type {
                 };
             }
 
-            pub fn getSigned(self: Visitor) Error!i64 {
-                if (self.err) |err| return err;
+            pub fn getSigned(self: Value) Error!i64 {
+                try self.err;
 
                 const number = self.tape.get(self.index + 1);
                 return switch (self.tape.get(self.index).tag) {
@@ -166,8 +164,8 @@ pub fn Parser(comptime options: Options) type {
                 };
             }
 
-            pub fn getFloat(self: Visitor) Error!f64 {
-                if (self.err) |err| return err;
+            pub fn getFloat(self: Value) Error!f64 {
+                try self.err;
 
                 const number = self.tape.get(self.index + 1);
                 return switch (self.tape.get(self.index).tag) {
@@ -176,8 +174,8 @@ pub fn Parser(comptime options: Options) type {
                 };
             }
 
-            pub fn getBool(self: Visitor) Error!bool {
-                if (self.err) |err| return err;
+            pub fn getBool(self: Value) Error!bool {
+                try self.err;
 
                 return switch (self.tape.get(self.index).tag) {
                     .true => true,
@@ -186,23 +184,21 @@ pub fn Parser(comptime options: Options) type {
                 };
             }
 
-            pub fn isNull(self: Visitor) Error!bool {
-                if (self.err) |err| return err;
+            pub fn isNull(self: Value) Error!bool {
+                try self.err;
 
                 return self.tape.get(self.index).tag == .null;
             }
 
-            pub fn getAny(self: Visitor) Error!Element {
-                if (self.err) |err| return err;
+            pub fn getAny(self: Value) Error!Element {
+                try self.err;
 
                 const w = self.tape.get(self.index);
                 return switch (w.tag) {
                     .true => .{ .bool = true },
                     .false => .{ .bool = false },
                     .null => .null,
-                    .unsigned => .{ .unsigned = (self.getNumber() catch unreachable).unsigned },
-                    .signed => .{ .signed = (self.getNumber() catch unreachable).signed },
-                    .float => .{ .float = (self.getNumber() catch unreachable).float },
+                    .number => .{ .number = self.getNumber() catch unreachable },
                     .string => .{ .string = self.getString() catch unreachable },
                     .object_opening => .{ .object = .{ .tape = self.tape, .root = self.index } },
                     .array_opening => .{ .array = .{ .tape = self.tape, .root = self.index } },
@@ -210,37 +206,52 @@ pub fn Parser(comptime options: Options) type {
                 };
             }
 
-            pub fn at(self: Visitor, ptr: anytype) Visitor {
-                if (self.err) |_| return self;
+            pub fn getType(self: Value) Error!types.ElementType {
+                try self.err;
+
+                const w = self.tape.get(self.index);
+                return switch (w.tag) {
+                    .true, .false => .bool,
+                    .null => .null,
+                    .number => .number,
+                    .string => .string,
+                    .object_opening => .object,
+                    .array_opening => .array,
+                    else => unreachable,
+                };
+            }
+
+            pub fn at(self: Value, ptr: anytype) Value {
+                self.err catch return self;
 
                 const query = brk: {
                     if (common.isString(@TypeOf(ptr))) {
-                        const obj = self.getObject() catch return .{
+                        const obj = self.getObject() catch |err| return .{
                             .tape = self.tape,
                             .index = self.index,
-                            .err = error.IncorrectPointer,
+                            .err = err,
                         };
                         break :brk obj.at(ptr);
                     }
                     if (common.isIndex(@TypeOf(ptr))) {
-                        const arr = self.getArray() catch return .{
+                        const arr = self.getArray() catch |err| return .{
                             .tape = self.tape,
                             .index = self.index,
-                            .err = error.IncorrectPointer,
+                            .err = err,
                         };
                         break :brk arr.at(ptr);
                     }
                     @compileError(common.error_messages.at_type);
                 };
-                return if (query) |v| v else |err| .{
+                return query catch |err| .{
                     .tape = self.tape,
                     .index = self.index,
                     .err = err,
                 };
             }
 
-            pub fn getSize(self: Visitor) Error!u32 {
-                if (self.err) |err| return err;
+            pub fn getSize(self: Value) Error!u32 {
+                try self.err;
 
                 if (self.getArray()) |arr| return arr.getSize() else |_| {}
                 if (self.getObject()) |obj| return obj.getSize() else |_| {}
@@ -256,7 +267,7 @@ pub fn Parser(comptime options: Options) type {
                 tape: *const Tape,
                 curr: u32,
 
-                pub fn next(self: *Iterator) ?Visitor {
+                pub fn next(self: *Iterator) ?Value {
                     const curr = self.tape.get(self.curr);
                     if (curr.tag == .array_closing) return null;
                     defer self.curr = switch (curr.tag) {
@@ -275,7 +286,7 @@ pub fn Parser(comptime options: Options) type {
                 };
             }
 
-            pub fn at(self: Array, index: u32) Error!Visitor {
+            pub fn at(self: Array, index: u32) Error!Value {
                 var it = self.iterator();
                 var i: u32 = 0;
                 while (it.next()) |v| : (i += 1) if (i == index) return v;
@@ -298,7 +309,7 @@ pub fn Parser(comptime options: Options) type {
 
             pub const Field = struct {
                 key: []const u8,
-                value: Visitor,
+                value: Value,
             };
 
             pub const Iterator = struct {
@@ -307,8 +318,8 @@ pub fn Parser(comptime options: Options) type {
 
                 pub fn next(self: *Iterator) ?Field {
                     if (self.tape.get(self.curr).tag == .object_closing) return null;
-                    const field = Visitor{ .tape = self.tape, .index = self.curr };
-                    const value = Visitor{ .tape = self.tape, .index = self.curr + 1 };
+                    const field = Value{ .tape = self.tape, .index = self.curr };
+                    const value = Value{ .tape = self.tape, .index = self.curr + 1 };
                     const curr = self.tape.get(self.curr + 1);
                     defer self.curr = switch (curr.tag) {
                         .array_opening, .object_opening => curr.data.ptr,
@@ -329,7 +340,7 @@ pub fn Parser(comptime options: Options) type {
                 };
             }
 
-            pub fn at(self: Object, key: []const u8) Error!Visitor {
+            pub fn at(self: Object, key: []const u8) Error!Value {
                 var it = self.iterator();
                 while (it.next()) |field| if (std.mem.eql(u8, field.key, key)) return field.value;
                 return error.MissingField;

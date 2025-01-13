@@ -34,6 +34,8 @@ pub fn Stream(comptime options: Options) type {
         built: bool = false,
         last_chunk_visited: bool = false,
 
+        pub const bogus_token = ' ';
+
         pub const init = std.mem.zeroInit(Self, .{});
 
         pub inline fn build(self: *Self, file: File) !void {
@@ -66,9 +68,14 @@ pub fn Stream(comptime options: Options) type {
             return self.document_stream.unsafeSlice();
         }
 
-        pub inline fn peek(self: *Self) !u8 {
-            const offset = try self.fetchOffset();
+        pub inline fn peekChar(self: *Self) u8 {
+            const offset = self.fetchLocalOffset();
             return self.document_stream.unsafeSlice()[offset];
+        }
+
+        pub inline fn peek(self: *Self) ![*]const u8 {
+            const offset = try self.fetchOffset();
+            return self.document_stream.unsafeSlice()[offset..];
         }
 
         inline fn fetchOffset(self: *Self) !u32 {
@@ -99,17 +106,17 @@ pub fn Stream(comptime options: Options) type {
 
                 self.last_chunk_visited = true;
                 self.document_stream.shrinkAssumeLength(chunk_len - read);
-                const bogus_token = " $";
-                const padding = bogus_token ++ (" " ** (types.block_len - bogus_token.len));
+                const bogus_indexed_token = " $";
+                const padding = bogus_indexed_token ++ (" " ** (types.block_len - bogus_indexed_token.len));
                 self.document_stream.writeSliceAssumeCapacity(padding);
 
-                const chunk = buf[0..common.roundUp(usize, read + bogus_token.len, types.block_len)];
+                const chunk = buf[0..common.roundUp(usize, read + bogus_indexed_token.len, types.block_len)];
                 const indexes = self.indexes_stream.reserveAssumeCapacity(chunk_len);
                 const written = self.indexChunk(@alignCast(chunk), indexes.ptr);
                 try self.indexer.validate();
                 try self.indexer.validateEof();
                 self.indexes_stream.shrinkAssumeLength(@as(u32, @intCast(indexes.len)) - written);
-                buf[read + bogus_token.len - 1] = ' '; // remove bogus token
+                buf[read + bogus_indexed_token.len - 1] = bogus_token;
                 return written;
             } else {
                 const chunk = buf;

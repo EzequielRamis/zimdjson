@@ -32,6 +32,8 @@ pub fn Tokens(comptime options: Options) type {
 
         iter: Iterator,
 
+        pub const bogus_token = Iterator.bogus_token;
+
         pub fn init(
             allocator: if (options.stream) |_| void else Allocator,
         ) Self {
@@ -53,8 +55,12 @@ pub fn Tokens(comptime options: Options) type {
             return self.iter.next();
         }
 
-        pub inline fn peek(self: *Self) !u8 {
+        pub inline fn peek(self: *Self) ![*]const u8 {
             return self.iter.peek();
+        }
+
+        pub inline fn peekChar(self: *Self) !u8 {
+            return self.iter.peekChar();
         }
 
         pub inline fn revert(self: *Self) void {

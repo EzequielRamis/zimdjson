@@ -23,16 +23,41 @@ pub fn Aligned(comptime aligned: bool) type {
     };
 }
 
-const NumberTag = enum(u8) {
+const NumberType = enum(u8) {
     unsigned = 'u',
     signed = 'i',
     float = 'd',
 };
 
-pub const Number = union(NumberTag) {
+pub const Number = union(NumberType) {
     unsigned: u64,
     signed: i64,
     float: f64,
+
+    pub fn lossyCast(self: Number, comptime T: type) T {
+        return switch (self) {
+            .unsigned => |n| std.math.lossyCast(T, n),
+            .signed => |n| std.math.lossyCast(T, n),
+            .float => |n| std.math.lossyCast(T, n),
+        };
+    }
+
+    pub fn cast(self: Number, comptime T: type) ?T {
+        return switch (self) {
+            .unsigned => |n| std.math.cast(T, n),
+            .signed => |n| std.math.cast(T, n),
+            .float => |n| std.math.cast(T, n),
+        };
+    }
+};
+
+pub const ElementType = enum {
+    null,
+    bool,
+    number,
+    string,
+    object,
+    array,
 };
 
 pub const Error = error{
@@ -64,6 +89,7 @@ pub const Error = error{
     UnknownField,
     MissingField,
     DuplicateField,
+    OutOfOrderIteration,
 };
 
 pub const Vector = struct {

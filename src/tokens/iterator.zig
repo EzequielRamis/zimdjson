@@ -26,9 +26,11 @@ pub fn Iterator(comptime options: Options) type {
             .relative = false,
         }),
         document: Aligned.slice = undefined,
-        ptr: [*]const u8 = undefined,
-        padding_token: [*]const u32 = undefined,
-        token: [*]const u32 = undefined,
+        padding_token: u32 = undefined,
+        padding_offset: [*]const u8 = undefined,
+        token: u32 = undefined,
+
+        pub const bogus_token = ' ';
 
         pub fn init(allocator: Allocator) Self {
             return .{
@@ -45,7 +47,7 @@ pub fn Iterator(comptime options: Options) type {
 
         pub inline fn build(self: *Self, document: Aligned.slice) !void {
             {
-                try self.indexes.ensureTotalCapacityPrecise(document.len + 1);
+                try self.indexes.ensureTotalCapacityPrecise(document.len + 1); // + 1 because of the bogus index
                 self.indexer = .init;
                 self.document = document;
 
@@ -73,63 +75,45 @@ pub fn Iterator(comptime options: Options) type {
             }
 
             const ixs = self.indexes.items;
-            self.indexes.appendAssumeCapacity(@intCast(document.len)); // Sentinel index at ' '
+            self.indexes.appendAssumeCapacity(@intCast(document.len)); // bogus index at document.len
             const padding_bound = document.len -| Vector.bytes_len;
             var padding_token: u32 = @intCast(ixs.len - 1);
             var rev = std.mem.reverseIterator(ixs);
             while (rev.next()) |t| : (padding_token -|= 1) {
                 if (t <= padding_bound) break;
             }
-            if (document[ixs[padding_token]] == '"') padding_token -|= 1;
-            self.token = @ptrCast(&ixs[0]);
-            self.padding_token = @ptrCast(&ixs[padding_token]);
-            const padding_index = if (padding_token == 0) 0 else ixs[padding_token];
+            self.token = 0;
+            self.padding_token = padding_token;
+            const padding_index = ixs[padding_token];
             const padding_len = document.len - padding_index;
             try self.padding.ensureTotalCapacityPrecise(padding_len + Vector.bytes_len);
             self.padding.items.len = padding_len + Vector.bytes_len;
             @memcpy(self.padding.items[0..padding_len], document[padding_index..]);
-            self.padding.items[padding_len] = ' ';
-            self.ptr = if (padding_token == 0) self.padding.items.ptr else document.ptr;
+            self.padding.items[padding_len] = bogus_token;
+            self.padding_offset = self.padding.items.ptr - padding_index;
         }
 
         pub inline fn next(self: *Self) [*]const u8 {
             defer self.token += 1;
-            return self.challengeSource(self.ptr[self.token[0]..]);
+            return self.peek();
         }
 
-        pub inline fn peek(self: Self) u8 {
-            return self.ptr[self.token[0]];
+        pub inline fn peekChar(self: Self) u8 {
+            return self.peek()[0];
         }
 
-        pub inline fn revert(self: *Self, token: [*]const u32) void {
-            assert(@intFromPtr(token) <= @intFromPtr(self.token));
-
-            const document = self.document;
-            defer self.token = token;
-            const i = token[0];
-            const b = self.padding_token[0];
-
-            if (@intFromPtr(token) < @intFromPtr(self.padding_token)) {
-                @branchHint(.likely);
-                self.ptr = document[i..].ptr;
+        pub inline fn peek(self: Self) [*]const u8 {
+            if (self.token < self.padding_token) {
+                return self.document.ptr[self.indexes.items.ptr[self.token]..];
             } else {
-                const index_ptr = @intFromPtr(document[i..].ptr);
-                const padding_ptr = @intFromPtr(document[b..].ptr);
-                const offset_ptr = index_ptr - padding_ptr;
-                self.ptr = self.padding.items[offset_ptr..].ptr;
-            }
-        }
-
-        inline fn challengeSource(self: *Self, ptr: [*]const u8) [*]const u8 {
-            if (@intFromPtr(self.padding_token) <= @intFromPtr(self.token)) {
                 @branchHint(.unlikely);
-                if (self.padding_token == @as([*]const u32, @ptrCast(&self.indexes.items[0]))) return ptr;
-                const pad = @intFromPtr(self.padding.items.ptr);
-                self.ptr = @ptrFromInt(pad -% self.padding_token[0]);
-                return @ptrCast(&self.ptr[self.token[0]]);
-            } else {
-                return ptr;
+                return self.padding_offset[self.indexes.items.ptr[self.token]..];
             }
+        }
+
+        pub inline fn revert(self: *Self, token: u32) void {
+            assert(token <= self.token);
+            self.token = token;
         }
     };
 }

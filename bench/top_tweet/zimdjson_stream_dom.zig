@@ -33,7 +33,7 @@ pub fn prerun() !void {}
 
 pub fn run() !void {
     result.retweet_count = -1;
-    var top_tweet: Parser.Visitor = undefined;
+    var top_tweet: Parser.Value = undefined;
 
     file = try std.fs.openFileAbsolute(path, .{});
     const doc = try parser.load(file);

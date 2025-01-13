@@ -17,7 +17,7 @@ const Capacity = enum(u64) {
     normal = std.math.maxInt(u32),
     _,
 
-    pub fn greater(self: Capacity, other: Capacity) bool {
+    fn greater(self: Capacity, other: Capacity) bool {
         return @intFromEnum(self) > @intFromEnum(other);
     }
 };
@@ -66,11 +66,10 @@ pub fn Parser(comptime options: Options) type {
 
         allocator: ?Allocator,
         tokens: Tokens,
-        depth: u32 = 1,
         buffer: if (options.stream) |_| void else FileBuffer,
         chars: std.ArrayListUnmanaged(u8),
         chars_ptr: [*]u8 = undefined,
-        curr_id: usize = undefined,
+        cursor: Cursor = undefined,
 
         pub fn init(allocator: if (manual_manage_strings) ?Allocator else Allocator) Self {
             return .{
@@ -89,7 +88,7 @@ pub fn Parser(comptime options: Options) type {
             }
         }
 
-        pub fn parse(self: *Self, document: Aligned.slice) !Visitor {
+        pub fn parse(self: *Self, document: Aligned.slice) !Document {
             if (options.stream) |_| @compileError(common.error_messages.stream_slice);
 
             if (document.len > @intFromEnum(options.max_capacity)) return error.DocumentCapacity;
@@ -98,12 +97,19 @@ pub fn Parser(comptime options: Options) type {
             try self.chars.ensureTotalCapacityPrecise(self.allocator.?, document.len);
             self.chars.shrinkRetainingCapacity(0);
             self.chars_ptr = self.chars.items.ptr;
-            self.depth = 1;
 
-            return self.startVisitor();
+            self.cursor = .{ .document = self };
+            return .{
+                .iter = .{
+                    .cursor = &self.cursor,
+                    .start_position = 0,
+                    .start_depth = 1,
+                    .start_char = try self.cursor.peekChar(),
+                },
+            };
         }
 
-        pub fn load(self: *Self, file: std.fs.File) !Visitor {
+        pub fn load(self: *Self, file: std.fs.File) !Document {
             const stat = try file.stat();
             if (stat.size > @intFromEnum(options.max_capacity)) return error.DocumentCapacity;
             if (!manual_manage_strings) {
@@ -119,188 +125,188 @@ pub fn Parser(comptime options: Options) type {
                 try self.tokens.build(file);
             }
 
-            self.depth = 1;
-
-            return self.startVisitor();
+            self.cursor = .{ .document = self };
+            return .{
+                .iter = .{
+                    .cursor = &self.cursor,
+                    .start_position = 0,
+                    .start_depth = 1,
+                    .start_char = try self.cursor.peekChar(),
+                },
+            };
         }
 
-        pub const Element = union(enum) {
+        pub const Element = union(types.ElementType) {
             null,
             bool: bool,
-            unsigned: u64,
-            signed: i64,
-            float: f64,
+            number: Number,
             string: []const u8,
             object: Object,
             array: Array,
         };
 
-        pub const Visitor = struct {
+        const Cursor = struct {
             document: *Self,
-            depth: u32,
-            token: u8,
-            id: usize,
-            err: ?Error = null,
+            position: usize = 0,
+            depth: u32 = 1,
+            err: Error!void = {},
 
-            pub fn getObject(self: Visitor) Error!Object {
-                if (self.err) |err| return err;
-
-                if (self.token != '{') return error.IncorrectType;
-                Logger.logStart(self.document.*, "object", self.depth);
-                return .{
-                    .visitor = self.document.startVisitorWith(self.token),
-                };
+            fn tokens(self: Cursor) *Tokens {
+                return &self.document.tokens;
             }
 
-            fn startOrResumeObject(self: Visitor) Error!Object {
-                if (self.isAtStart()) {
-                    return self.getObject();
+            fn next(self: *Cursor) Error![*]const u8 {
+                try self.err;
+
+                defer self.position += 1;
+                return self.tokens().next();
+            }
+
+            fn peekChar(self: *Cursor) Error!u8 {
+                return self.tokens().peekChar();
+            }
+
+            fn peek(self: *Cursor) Error![*]const u8 {
+                return self.tokens().peek();
+            }
+
+            fn ascend(self: *Cursor, parent_depth: u32) void {
+                assert(0 <= parent_depth and parent_depth < options.max_depth - 1);
+                assert(self.depth == parent_depth + 1);
+                self.depth = parent_depth;
+            }
+
+            fn descend(self: *Cursor, child_depth: u32) void {
+                assert(1 <= child_depth and child_depth < options.max_depth);
+                assert(self.depth == child_depth - 1);
+                self.depth = child_depth;
+            }
+
+            fn getNextStringPtr(self: Cursor) [*]u8 {
+                return self.document.chars_ptr;
+            }
+
+            fn setNextStringPtr(self: *Cursor, ptr: [*]u8) void {
+                self.document.chars_ptr = ptr;
+            }
+
+            fn skip(self: *Cursor, parent_depth: u32, parent_char: u8) Error!void {
+                // Logger.logDepth(parent_depth, self.depth);
+
+                if (self.depth <= parent_depth) return;
+                switch ((try self.next())[0]) {
+                    '[', '{', ':' => {
+                        // Logger.logStart(self.document.*, "skip  ", self.depth);
+                    },
+                    ',' => {
+                        // Logger.log(self.document.*, "skip  ", self.depth);
+                    },
+                    ']', '}' => {
+                        // Logger.logEnd(self.document.*, "skip  ", self.depth);
+                        self.depth -= 1;
+                        if (self.depth <= parent_depth) return;
+                    },
+                    '"' => if (try self.peekChar() == ':') {
+                        // Logger.log(self.document.*, "key   ", self.depth);
+                        _ = try self.next();
+                    } else {
+                        // Logger.log(self.document.*, "skip  ", self.depth);
+                        self.depth -= 1;
+                        if (self.depth <= parent_depth) return;
+                    },
+                    else => {
+                        // Logger.log(self.document.*, "skip  ", self.depth);
+                        self.depth -= 1;
+                        if (self.depth <= parent_depth) return;
+                    },
                 }
-                return .{
-                    .visitor = self.document.resumeVisitorWith('{'),
-                    .entered = true,
-                };
-            }
 
-            pub fn getArray(self: Visitor) Error!Array {
-                if (self.err) |err| return err;
-
-                if (self.token != '[') return error.IncorrectType;
-                Logger.logStart(self.document.*, "array ", self.depth);
-                return .{ .visitor = self.document.startVisitorWith(self.token) };
-            }
-
-            fn startOrResumeArray(self: Visitor) Error!Array {
-                if (self.isAtStart()) {
-                    return self.getArray();
+                brk: while (true) {
+                    switch ((try self.next())[0]) {
+                        '[', '{' => {
+                            // Logger.logStart(self.document.*, "skip  ", self.depth);
+                            self.depth += 1;
+                        },
+                        ']', '}' => {
+                            // Logger.logEnd(self.document.*, "skip  ", self.depth);
+                            self.depth -= 1;
+                            if (self.depth <= parent_depth) return;
+                        },
+                        ' ' => {
+                            @branchHint(.unlikely);
+                            break :brk;
+                        },
+                        else => {
+                            // Logger.log(self.document.*, "skip  ", self.depth);
+                        },
+                    }
                 }
-                return .{
-                    .visitor = self.document.resumeVisitorWith('['),
-                    .entered = true,
-                };
+                return self.reportError(switch (parent_char) {
+                    '{' => error.IncompleteObject,
+                    '[' => error.IncompleteArray,
+                    else => unreachable,
+                });
             }
 
-            pub fn getNumber(self: Visitor) Error!Number {
-                if (self.err) |err| return err;
+            inline fn reportError(self: *Cursor, err: Error!void) Error!void {
+                self.err = err;
+                return err;
+            }
+        };
 
-                var t = &self.document.tokens;
-                // const curr = t.token;
-                // errdefer t.revert();
-                const ptr = try t.next();
+        pub const Document = struct {
+            iter: Value.Iterator,
+            err: Error!void = {},
 
-                const n = try NumberParser.parse(ptr);
-                Logger.log(self.document.*, "number", self.depth);
-                self.document.depth -= 1;
-                return n;
+            fn getObject(self: Document) Error!Object {
+                try self.err;
+                return Object.startRoot(self.iter);
             }
 
-            pub fn getUnsigned(self: Visitor) Error!u64 {
-                if (self.err) |err| return err;
-
-                var t = &self.document.tokens;
-                // const curr = t.token;
-                // errdefer t.revert();
-                const ptr = try t.next();
-
-                const n = try NumberParser.parseUnsigned(ptr);
-                Logger.log(self.document.*, "u64   ", self.depth);
-                self.document.depth -= 1;
-                return n;
+            fn getArray(self: Document) Error!Array {
+                try self.err;
+                return Array.startRoot(self.iter);
             }
 
-            pub fn getSigned(self: Visitor) Error!i64 {
-                if (self.err) |err| return err;
-
-                var t = &self.document.tokens;
-                // const curr = t.token;
-                // errdefer t.revert();
-                const ptr = try t.next();
-
-                const n = try NumberParser.parseSigned(ptr);
-                Logger.log(self.document.*, "i64   ", self.depth);
-                self.document.depth -= 1;
-                return n;
+            fn getNumber(self: Document) Error!Number {
+                try self.err;
+                return self.iter.getRootNumber();
             }
 
-            pub fn getFloat(self: Visitor) Error!f64 {
-                if (self.err) |err| return err;
-
-                var t = &self.document.tokens;
-                // const curr = t.token;
-                // errdefer t.revert();
-                const ptr = try t.next();
-
-                const n = try NumberParser.parseFloat(ptr);
-                Logger.log(self.document.*, "f64   ", self.depth);
-                self.document.depth -= 1;
-                return n;
+            fn getUnsigned(self: Document) Error!u64 {
+                try self.err;
+                return self.iter.getRootUnsigned();
             }
 
-            pub fn getString(self: Visitor) Error![]const u8 {
-                if (options.stream != null and options.stream.?.manual_manage_strings)
-                    @compileError("Strings stored in parser are not available. Consider enabling `.manage_strings` or using `writeString`.");
-
-                if (self.err) |err| return err;
-
-                var t = &self.document.tokens;
-                // const curr = t.token;
-                // errdefer t.revert();
-
-                const quote = try t.next();
-                if (quote[0] != '"') return error.IncorrectType;
-                const str = try self.getUnsafeString(quote);
-                self.document.depth -= 1;
-                return str;
+            fn getSigned(self: Document) Error!i64 {
+                try self.err;
+                return self.iter.getRootSigned();
             }
 
-            pub fn writeString(self: Visitor, buf: []u8) Error![]const u8 {
-                if (self.err) |err| return err;
-
-                var t = &self.document.tokens;
-                // const curr = t.token;
-                // errdefer t.revert();
-
-                const quote = try t.next();
-                if (quote[0] != '"') return error.IncorrectType;
-                const str = try self.writeUnsafeString(quote, buf);
-                self.document.depth -= 1;
-                return str;
+            fn getFloat(self: Document) Error!f64 {
+                try self.err;
+                return self.iter.getRootFloat();
             }
 
-            pub fn getBool(self: Visitor) Error!bool {
-                if (self.err) |err| return err;
-
-                var t = &self.document.tokens;
-                // const curr = t.token;
-                // errdefer t.revert();
-                const ptr = try t.next();
-
-                const check = @import("parsers/atoms.zig").checkBool;
-                const is_true = try check(ptr);
-                Logger.log(self.document.*, "bool  ", self.depth);
-                self.document.depth -= 1;
-                return is_true;
+            fn getString(self: Document) Error![]const u8 {
+                try self.err;
+                return self.iter.getRootString();
             }
 
-            pub fn isNull(self: Visitor) Error!void {
-                if (self.err) |err| return err;
-
-                var t = &self.document.tokens;
-                // const curr = t.token;
-                // errdefer t.revert();
-                const ptr = try t.next();
-
-                const check = @import("parsers/atoms.zig").checkNull;
-                try check(ptr);
-                Logger.log(self.document.*, "null  ", self.depth);
-                self.document.depth -= 1;
+            fn getBool(self: Document) Error!bool {
+                try self.err;
+                return self.iter.getRootBool();
             }
 
-            pub fn getAny(self: Visitor) Error!Element {
-                if (self.err) |err| return err;
+            fn isNull(self: Document) Error!void {
+                try self.err;
+                return self.iter.isRootNull();
+            }
 
-                var t = &self.document.tokens;
-                return switch (try t.peek()) {
+            fn getAny(self: Document) Error!Element {
+                try self.err;
+                self.iter.assertAtRoot();
+                return switch (try self.iter.cursor.peekChar()) {
                     't', 'f' => .{ .bool = try self.getBool() },
                     'n' => .{ .null = try self.isNull() },
                     '"' => .{ .string = try self.getString() },
@@ -312,428 +318,667 @@ pub fn Parser(comptime options: Options) type {
                     '[' => .{ .array = try self.getArray() },
                     '{' => .{ .object = try self.getObject() },
                     else => {
+                        return error.ExpectedDocument;
+                    },
+                };
+            }
+
+            fn skip(self: Document) Error!void {
+                try self.err;
+                return self.iter.skipChild();
+            }
+
+            pub fn at(self: Document, ptr: anytype) Value {
+                self.err catch return .{ .iter = self.iter };
+
+                const query = brk: {
+                    if (common.isString(@TypeOf(ptr))) {
+                        const obj = self.startOrResumeObject() catch |err| return .{ .iter = self.iter, .err = err };
+                        break :brk obj.at(ptr);
+                    }
+                    if (common.isIndex(@TypeOf(ptr))) {
+                        const arr = self.startOrResumeArray() catch |err| return .{ .iter = self.iter, .err = err };
+                        break :brk arr.at(ptr);
+                    }
+                    @compileError(common.error_messages.at_type);
+                };
+                return query catch |err| .{ .iter = self.iter, .err = err };
+            }
+
+            fn startOrResumeObject(self: Document) Error!Object {
+                if (self.iter.isAtRoot()) {
+                    return self.getObject();
+                }
+                return .{ .iter = self.iter };
+            }
+
+            fn startOrResumeArray(self: Document) Error!Array {
+                if (self.iter.isAtRoot()) {
+                    return self.getArray();
+                }
+                return .{ .iter = self.iter };
+            }
+        };
+
+        pub const Value = struct {
+            iter: Iterator,
+            err: Error!void = {},
+
+            pub const Iterator = struct {
+                cursor: *Cursor,
+                start_position: usize,
+                start_depth: u32,
+                start_char: u8,
+
+                fn getNumber(self: Iterator) Error!Number {
+                    const n = try self.parseNumber(try self.peekNonRootScalar());
+                    try self.advanceNonRootScalar();
+                    return n;
+                }
+
+                fn getUnsigned(self: Iterator) Error!u64 {
+                    const n = try self.parseUnsigned(try self.peekNonRootScalar());
+                    try self.advanceNonRootScalar();
+                    return n;
+                }
+
+                fn getSigned(self: Iterator) Error!i64 {
+                    const n = try self.parseSigned(try self.peekNonRootScalar());
+                    try self.advanceNonRootScalar();
+                    return n;
+                }
+
+                fn getFloat(self: Iterator) Error!f64 {
+                    const n = try self.parseFloat(try self.peekNonRootScalar());
+                    try self.advanceNonRootScalar();
+                    return n;
+                }
+
+                fn getString(self: Iterator) Error![]const u8 {
+                    const str = try self.parseString(try self.peekNonRootScalar());
+                    try self.advanceNonRootScalar();
+                    return str;
+                }
+
+                fn getBool(self: Iterator) Error!bool {
+                    const is_true = try self.parseBool(try self.peekNonRootScalar());
+                    try self.advanceNonRootScalar();
+                    return is_true;
+                }
+
+                fn isNull(self: Iterator) Error!void {
+                    try self.parseNull(try self.peekNonRootScalar());
+                    try self.advanceNonRootScalar();
+                }
+
+                fn getRootNumber(self: Iterator) Error!Number {
+                    const n = try self.parseNumber(try self.peekRootScalar());
+                    try self.advanceRootScalar();
+                    return n;
+                }
+
+                fn getRootUnsigned(self: Iterator) Error!u64 {
+                    const n = try self.parseUnsigned(try self.peekRootScalar());
+                    try self.advanceRootScalar();
+                    return n;
+                }
+
+                fn getRootSigned(self: Iterator) Error!i64 {
+                    const n = try self.parseSigned(try self.peekRootScalar());
+                    try self.advanceRootScalar();
+                    return n;
+                }
+
+                fn getRootFloat(self: Iterator) Error!f64 {
+                    const n = try self.parseFloat(try self.peekRootScalar());
+                    try self.advanceRootScalar();
+                    return n;
+                }
+
+                fn getRootString(self: Iterator) Error![]const u8 {
+                    const str = try self.parseString(try self.peekRootScalar());
+                    try self.advanceRootScalar();
+                    return str;
+                }
+
+                fn getRootBool(self: Iterator) Error!bool {
+                    const is_true = try self.parseBool(try self.peekRootScalar());
+                    try self.advanceRootScalar();
+                    return is_true;
+                }
+
+                fn isRootNull(self: Iterator) Error!void {
+                    try self.parseNull(try self.peekRootScalar());
+                    try self.advanceRootScalar();
+                }
+
+                fn parseNumber(_: Iterator, ptr: [*]const u8) Error!Number {
+                    return NumberParser.parse(ptr);
+                }
+
+                fn parseUnsigned(_: Iterator, ptr: [*]const u8) Error!u64 {
+                    return NumberParser.parseUnsigned(ptr);
+                }
+
+                fn parseSigned(_: Iterator, ptr: [*]const u8) Error!i64 {
+                    return NumberParser.parseSigned(ptr);
+                }
+
+                fn parseFloat(_: Iterator, ptr: [*]const u8) Error!f64 {
+                    return NumberParser.parseFloat(ptr);
+                }
+
+                fn parseString(self: Iterator, ptr: [*]const u8) Error![]const u8 {
+                    // if (options.stream != null and options.stream.?.manual_manage_strings)
+                    //     @compileError("Strings stored in parser are not available. Consider enabling `.manage_strings` or using `writeString`.");
+
+                    if (ptr[0] != '"') return error.IncorrectType;
+
+                    const next_str = self.cursor.getNextStringPtr();
+                    const write = @import("parsers/string.zig").writeString;
+                    const sentinel = try write(ptr, next_str);
+                    const next_len = @intFromPtr(sentinel) - @intFromPtr(next_str);
+                    self.cursor.setNextStringPtr(sentinel);
+                    return next_str[0..next_len];
+                }
+
+                fn parseBool(_: Iterator, ptr: [*]const u8) Error!bool {
+                    const check = @import("parsers/atoms.zig").checkBool;
+                    return check(ptr);
+                }
+
+                fn parseNull(_: Iterator, ptr: [*]const u8) Error!void {
+                    const check = @import("parsers/atoms.zig").checkNull;
+                    return check(ptr);
+                }
+
+                fn getFieldKey(self: Iterator) Error![]const u8 {
+                    // TODO: cambiar este if
+                    if (options.stream != null and options.stream.?.manual_manage_strings)
+                        @compileError("Strings stored in parser are not available. Consider enabling `.manage_strings` or using `writeString`.");
+
+                    self.assertAtNext();
+                    const ptr = try self.cursor.next();
+                    if (ptr[0] != '"') return self.reportError(error.ExpectedKey);
+
+                    const next_str = self.cursor.getNextStringPtr();
+                    const write = @import("parsers/string.zig").writeString;
+                    const sentinel = try write(ptr, next_str);
+                    const next_len = @intFromPtr(sentinel) - @intFromPtr(next_str);
+                    self.cursor.setNextStringPtr(sentinel);
+
+                    return next_str[0..next_len];
+                }
+
+                fn goToFieldValue(self: Iterator) Error!void {
+                    self.assertAtNext();
+                    const ptr = try self.cursor.next();
+                    if (ptr[0] != ':') return self.reportError(error.ExpectedColon);
+                    self.cursor.descend(self.start_depth + 1);
+                }
+
+                fn endContainer(self: Iterator) void {
+                    self.cursor.ascend(self.start_depth - 1);
+                }
+
+                fn isAtStart(self: Iterator) bool {
+                    return self.cursor.position == self.start_position;
+                }
+
+                fn isAtRoot(self: Iterator) bool {
+                    return self.cursor.position == 0;
+                }
+
+                fn isAtContainerStart(self: Iterator) bool {
+                    const delta = self.cursor.position - self.start_position;
+                    return delta == 1 or delta == 2;
+                }
+
+                fn isAtKey(self: Iterator) Error!bool {
+                    return self.start_depth == self.cursor.depth and try self.cursor.peekChar() == '"';
+                }
+
+                fn isAtFirstField(self: Iterator) bool {
+                    assert(self.cursor.position > self.start_position);
+                    return self.cursor.position == self.start_position + 1;
+                }
+
+                fn isOpen(self: Iterator) bool {
+                    return self.cursor.depth >= self.start_depth;
+                }
+
+                fn isAtEnd(self: Iterator) Error!bool {
+                    return try self.cursor.peekChar() == Tokens.bogus_token;
+                }
+
+                fn hasNextField(self: Iterator) Error!bool {
+                    self.assertAtNext();
+
+                    switch ((try self.cursor.next())[0]) {
+                        ',' => return true,
+                        '}' => {
+                            self.endContainer();
+                            return false;
+                        },
+                        else => return self.reportError(error.ExpectedObjectCommaOrEnd),
+                    }
+                }
+
+                fn hasNextElement(self: Iterator) Error!bool {
+                    self.assertAtNext();
+
+                    switch ((try self.cursor.next())[0]) {
+                        ',' => {
+                            self.cursor.descend(self.start_depth + 1);
+                            return true;
+                        },
+                        ']' => {
+                            self.endContainer();
+                            return false;
+                        },
+                        else => return self.reportError(error.ExpectedArrayCommaOrEnd),
+                    }
+                }
+
+                fn startObject(self: Iterator) Error!bool {
+                    try self.startContainer('{');
+                    return self.startedObject();
+                }
+
+                fn startRootObject(self: Iterator) Error!bool {
+                    try self.startContainer('{');
+                    return self.startedRootObject();
+                }
+
+                fn startedObject(self: Iterator) Error!bool {
+                    self.assertAtContainerStart();
+                    if (try self.cursor.peekChar() == '}') {
+                        _ = try self.cursor.next();
+                        self.endContainer();
+                        return false;
+                    }
+                    return true;
+                }
+
+                fn startedRootObject(self: Iterator) Error!bool {
+                    self.assertAtContainerStart();
+                    if (try self.cursor.peekChar() == '}') {
+                        _ = try self.cursor.next();
+                        self.endContainer();
+                        if (try self.isAtEnd()) return false;
+                        return error.TrailingContent;
+                    }
+                    return true;
+                }
+
+                fn startArray(self: Iterator) Error!bool {
+                    try self.startContainer('[');
+                    return self.startedArray();
+                }
+
+                fn startRootArray(self: Iterator) Error!bool {
+                    try self.startContainer('[');
+                    return self.startedRootArray();
+                }
+
+                fn startedArray(self: Iterator) Error!bool {
+                    self.assertAtContainerStart();
+                    if (try self.cursor.peekChar() == ']') {
+                        _ = try self.cursor.next();
+                        self.endContainer();
+                        return false;
+                    }
+                    self.cursor.descend(self.start_depth + 1);
+                    return true;
+                }
+
+                fn startedRootArray(self: Iterator) Error!bool {
+                    self.assertAtContainerStart();
+                    if (try self.cursor.peekChar() == ']') {
+                        _ = try self.cursor.next();
+                        self.endContainer();
+                        if (try self.isAtEnd()) return false;
+                        return error.TrailingContent;
+                    }
+                    return true;
+                }
+
+                fn startContainer(self: Iterator, start_char: u8) Error!void {
+                    if (self.isAtStart()) {
+                        self.assertAtStart();
+                        if (try self.cursor.peekChar() != start_char) return error.IncorrectType;
+                        _ = try self.cursor.next();
+                    } else {
+                        // if (!self.isAtContainerStart()) return error.OutOfOrderIteration;
+                        if (self.start_char != start_char) return error.IncorrectType;
+                    }
+                }
+
+                fn peekNonRootScalar(self: Iterator) Error![*]const u8 {
+                    // if (!self.isAtStart()) return error.OutOfOrderIteration;
+                    self.assertAtNonRootStart();
+                    return self.cursor.peek();
+                }
+
+                fn peekRootScalar(self: Iterator) Error![*]const u8 {
+                    // if (!self.isAtStart()) return error.OutOfOrderIteration;
+                    self.assertAtRoot();
+                    return self.cursor.peek();
+                }
+
+                fn advanceNonRootScalar(self: Iterator) Error!void {
+                    if (!self.isAtStart()) return;
+                    self.assertAtNonRootStart();
+                    _ = try self.cursor.next();
+                    self.cursor.ascend(self.start_depth - 1);
+                }
+
+                fn advanceRootScalar(self: Iterator) Error!void {
+                    if (!self.isAtStart()) return;
+                    self.assertAtRoot();
+                    _ = try self.cursor.next();
+                    self.cursor.ascend(self.start_depth - 1);
+                }
+
+                fn skipChild(self: Iterator) Error!void {
+                    assert(self.cursor.position > self.start_position);
+                    assert(self.cursor.depth >= self.start_depth);
+
+                    return self.cursor.skip(self.start_depth, self.start_char);
+                }
+
+                fn child(self: Iterator) Error!Iterator {
+                    self.assertAtChild();
+                    return .{
+                        .cursor = self.cursor,
+                        .start_position = self.cursor.position,
+                        .start_depth = self.start_depth + 1,
+                        .start_char = try self.cursor.peekChar(),
+                    };
+                }
+
+                fn findField(self: Iterator, key: []const u8) Error!bool {
+                    var has_value = false;
+                    if (self.isAtFirstField()) {
+                        has_value = true;
+                    } else if (!self.isOpen()) {
+                        return false;
+                    } else {
+                        try self.skipChild();
+                        has_value = try self.hasNextField();
+                    }
+                    while (has_value) : (has_value = try self.hasNextField()) {
+                        const actual_key = try self.getFieldKey();
+                        try self.goToFieldValue();
+                        if (std.mem.eql(u8, key, actual_key)) return true;
+                        try self.skipChild();
+                    }
+                    return false;
+                }
+
+                fn assertAtStart(self: Iterator) void {
+                    assert(self.cursor.position == self.start_position);
+                    assert(self.cursor.depth == self.start_depth);
+                    assert(self.start_depth > 0);
+                }
+
+                fn assertAtContainerStart(self: Iterator) void {
+                    assert(self.cursor.position == self.start_position + 1);
+                    assert(self.cursor.depth == self.start_depth);
+                    assert(self.start_depth > 0);
+                }
+
+                fn assertAtNext(self: Iterator) void {
+                    assert(self.cursor.position > self.start_position);
+                    assert(self.cursor.depth == self.start_depth);
+                    assert(self.start_depth > 0);
+                }
+
+                fn assertAtChild(self: Iterator) void {
+                    assert(self.cursor.position > self.start_position);
+                    assert(self.cursor.depth == self.start_depth + 1);
+                    assert(self.start_depth > 0);
+                }
+
+                fn assertAtRoot(self: Iterator) void {
+                    self.assertAtStart();
+                    assert(self.start_depth == 1);
+                }
+
+                fn assertAtNonRootStart(self: Iterator) void {
+                    self.assertAtStart();
+                    assert(self.start_depth > 1);
+                }
+
+                inline fn reportError(self: Iterator, err: Error!void) Error!void {
+                    return self.cursor.reportError(err);
+                }
+            };
+
+            pub fn from(document: Document) Value {
+                return .{ .iter = document.iter, .err = document.err };
+            }
+
+            pub fn getObject(self: Value) Error!Object {
+                try self.err;
+                return Object.start(self.iter);
+            }
+
+            pub fn getArray(self: Value) Error!Array {
+                try self.err;
+                return Array.start(self.iter);
+            }
+
+            pub fn getNumber(self: Value) Error!Number {
+                try self.err;
+                return self.iter.getNumber();
+            }
+
+            pub fn getUnsigned(self: Value) Error!u64 {
+                try self.err;
+                return self.iter.getUnsigned();
+            }
+
+            pub fn getSigned(self: Value) Error!i64 {
+                try self.err;
+                return self.iter.getSigned();
+            }
+
+            pub fn getFloat(self: Value) Error!f64 {
+                try self.err;
+                return self.iter.getFloat();
+            }
+
+            pub fn getString(self: Value) Error![]const u8 {
+                try self.err;
+                return self.iter.getString();
+            }
+
+            pub fn getBool(self: Value) Error!bool {
+                try self.err;
+                return self.iter.getBool();
+            }
+
+            pub fn isNull(self: Value) Error!void {
+                try self.err;
+                return self.iter.isNull();
+            }
+
+            pub fn getAny(self: Value) Error!Element {
+                try self.err;
+                return switch (try self.iter.cursor.peekChar()) {
+                    't', 'f' => .{ .bool = try self.getBool() },
+                    'n' => .{ .null = try self.isNull() },
+                    '"' => .{ .string = try self.getString() },
+                    '-', '0'...'9' => .{ .number = try self.getNumber() },
+                    '[' => .{ .array = try self.getArray() },
+                    '{' => .{ .object = try self.getObject() },
+                    else => {
                         return error.ExpectedValue;
                     },
                 };
             }
 
-            pub fn at(self: Visitor, ptr: anytype) Visitor {
-                if (self.err) |_| return self;
+            pub fn getType(self: Value) Error!types.ElementType {
+                try self.err;
+                return switch (try self.iter.cursor.peekChar()) {
+                    't', 'f' => .bool,
+                    'n' => .null,
+                    '"' => .string,
+                    '-', '0'...'9' => .number,
+                    '[' => .array,
+                    '{' => .object,
+                    else => error.ExpectedValue,
+                };
+            }
+
+            pub fn skip(self: Value) Error!void {
+                try self.err;
+                return self.iter.skipChild();
+            }
+
+            pub fn at(self: Value, ptr: anytype) Value {
+                self.err catch return self;
 
                 const query = brk: {
                     if (common.isString(@TypeOf(ptr))) {
-                        const obj = self.startOrResumeObject() catch return self.throw(error.IncorrectPointer);
+                        const obj = self.startOrResumeObject() catch |err| return .{ .iter = self.iter, .err = err };
                         break :brk obj.at(ptr);
                     }
                     if (common.isIndex(@TypeOf(ptr))) {
-                        const arr = self.startOrResumeArray() catch return self.throw(error.IncorrectPointer);
+                        const arr = self.startOrResumeArray() catch |err| return .{ .iter = self.iter, .err = err };
                         break :brk arr.at(ptr);
                     }
                     @compileError(common.error_messages.at_type);
                 };
-                return query;
+                return query catch |err| .{ .iter = self.iter, .err = err };
             }
 
-            pub fn getSize(self: Visitor) Error!u32 {
-                if (self.err) |err| return err;
-
-                if (self.getArray()) |arr| return arr.getSize() else |_| {}
-                if (self.getObject()) |obj| return obj.getSize() else |_| {}
-                return error.IncorrectType;
-            }
-
-            pub fn skip(self: Visitor) Error!void {
-                if (self.err) |err| return err;
-
-                const t = &self.document.tokens;
-                const wanted_depth = self.depth - 1;
-                const actual_depth = &self.document.depth;
-
-                Logger.logDepth(wanted_depth, actual_depth.*);
-
-                if (actual_depth.* <= wanted_depth) return;
-                switch ((try t.next())[0]) {
-                    '[', '{', ':' => {
-                        Logger.logStart(self.document.*, "skip  ", actual_depth.*);
-                    },
-                    ',' => {
-                        Logger.log(self.document.*, "skip  ", actual_depth.*);
-                    },
-                    ']', '}' => {
-                        Logger.logEnd(self.document.*, "skip  ", actual_depth.*);
-                        actual_depth.* -= 1;
-                        if (actual_depth.* <= wanted_depth) return;
-                    },
-                    '"' => if (try t.peek() == ':') {
-                        Logger.log(self.document.*, "key   ", actual_depth.*);
-                        _ = try t.next();
-                    } else {
-                        Logger.log(self.document.*, "skip  ", actual_depth.*);
-                        actual_depth.* -= 1;
-                        if (actual_depth.* <= wanted_depth) return;
-                    },
-                    else => {
-                        Logger.log(self.document.*, "skip  ", actual_depth.*);
-                        actual_depth.* -= 1;
-                        if (actual_depth.* <= wanted_depth) return;
-                    },
+            fn startOrResumeObject(self: Value) Error!Object {
+                if (self.iter.isAtStart()) {
+                    return self.getObject();
                 }
+                return .{ .iter = self.iter };
+            }
 
-                brk: while (true) {
-                    switch ((try t.next())[0]) {
-                        '[', '{' => {
-                            Logger.logStart(self.document.*, "skip  ", actual_depth.*);
-                            actual_depth.* += 1;
-                        },
-                        ']', '}' => {
-                            Logger.logEnd(self.document.*, "skip  ", actual_depth.*);
-                            actual_depth.* -= 1;
-                            if (actual_depth.* <= wanted_depth) return;
-                        },
-                        ' ' => {
-                            @branchHint(.unlikely);
-                            break :brk;
-                        },
-                        else => {
-                            Logger.log(self.document.*, "skip  ", actual_depth.*);
-                        },
-                    }
+            fn startOrResumeArray(self: Value) Error!Array {
+                if (self.iter.isAtStart()) {
+                    return self.getArray();
                 }
-                const token = try self.document.tokens.peek();
-                return if (token == '{')
-                    error.IncompleteObject
-                else
-                    error.IncompleteArray;
-            }
-
-            fn getUnsafeString(self: Visitor, ptr: [*]const u8) Error![]const u8 {
-                var t = &self.document.tokens;
-
-                const next_str = self.document.chars_ptr;
-                const write = @import("parsers/string.zig").writeString;
-                const sentinel = try write(ptr, next_str);
-                const next_len = @intFromPtr(sentinel) - @intFromPtr(next_str);
-                if (try t.peek() == ':') {
-                    Logger.log(self.document.*, "key   ", self.depth);
-                } else {
-                    Logger.log(self.document.*, "string", self.depth);
-                }
-                self.document.chars_ptr = sentinel;
-                return next_str[0..next_len];
-            }
-
-            fn writeUnsafeString(self: Visitor, ptr: [*]const u8, dest: [*]u8) Error![]const u8 {
-                var t = &self.document.tokens;
-
-                const next_str = dest;
-                const write = @import("parsers/string.zig").writeString;
-                const sentinel = try write(ptr, next_str);
-                const next_len = @intFromPtr(sentinel) - @intFromPtr(next_str);
-                if (try t.peek() == ':') {
-                    Logger.log(self.document.*, "key   ", self.depth);
-                } else {
-                    Logger.log(self.document.*, "string", self.depth);
-                }
-                return next_str[0..next_len];
-            }
-
-            inline fn throw(self: Visitor, err: Error) Visitor {
-                return .{
-                    .document = self.document,
-                    .depth = self.depth,
-                    .token = self.token,
-                    .id = self.id,
-                    .err = err,
-                };
-            }
-
-            inline fn isAtStart(self: Visitor) bool {
-                return self.id == self.document.curr_id;
-            }
-
-            inline fn assertAtStart(self: Visitor) void {
-                std.debug.assert(self.id == self.document.curr_id);
-                std.debug.assert(self.depth == self.document.depth);
-                std.debug.assert(self.document.depth > 0);
-            }
-
-            inline fn assertAtContainerStart(self: Visitor) void {
-                std.debug.assert(self.id == self.document.curr_id + 1);
-                std.debug.assert(self.depth == self.document.depth);
-                std.debug.assert(self.document.depth > 0);
-            }
-
-            inline fn assertAtNext(self: Visitor) void {
-                std.debug.assert(self.document.curr_id > self.id);
-                std.debug.assert(self.depth == self.document.depth);
-                std.debug.assert(self.document.depth > 0);
-            }
-
-            inline fn assertAtChild(self: Visitor) void {
-                std.debug.assert(self.document.curr_id > self.id);
-                std.debug.assert(self.document.depth == self.depth + 1);
-                std.debug.assert(self.document.depth > 0);
-            }
-
-            inline fn assertAtRoot(self: Visitor) void {
-                self.assertAtStart();
-                std.debug.assert(self.document.depth == 1);
-            }
-
-            inline fn assertAtNonRoot(self: Visitor) void {
-                self.assertAtStart();
-                std.debug.assert(self.document.depth > 1);
+                return .{ .iter = self.iter };
             }
         };
 
         const Array = struct {
-            visitor: Visitor,
-            entered: bool = false,
+            iter: Value.Iterator,
 
-            pub const Iterator = struct {
-                root: Array,
+            pub fn next(self: Array) Error!?Value {
+                if (!self.iter.isOpen()) return null;
+                try self.iter.skipChild();
 
-                pub fn next(self: *Iterator) Error!?Visitor {
-                    const doc = self.root.visitor.document;
-                    const t = &doc.tokens;
-                    if (!self.root.entered) {
-                        defer self.root.entered = true;
-                        _ = try t.next();
-                        const token = try t.peek();
-                        if (token == ']') {
-                            _ = try t.next();
-                            self.root.visitor.document.depth -= 1;
-                            return null;
-                        }
-                        return self.root.getVisitor(token);
-                    }
-                    switch (try t.peek()) {
-                        ',' => {
-                            _ = try t.next();
-                            return self.root.getVisitor(try t.peek());
-                        },
-                        ']' => {
-                            _ = try t.next();
-                            self.root.visitor.document.depth -= 1;
-                            return null;
-                        },
-                        else => return error.ExpectedArrayCommaOrEnd,
-                    }
+                if (try self.iter.hasNextElement()) {
+                    return .{ .iter = try self.iter.child() };
                 }
-            };
-
-            pub fn iterator(self: Array) Iterator {
-                return .{ .root = self };
+                return null;
             }
 
-            pub fn skip(self: Array) Error!void {
-                self.visitor.skip();
+            fn start(iter: Value.Iterator) Error!Array {
+                _ = try iter.startArray();
+                return .{ .iter = iter };
             }
 
-            pub fn at(self: Array, index: u32) Visitor {
-                var it = self.iterator();
-                var i: u32 = 0;
-                while (it.next() catch |err| return self.visitor.throw(err)) |v| : (i += 1) {
-                    if (i == index) {
-                        return v;
-                    } else {
-                        v.skip() catch |err| return self.visitor.throw(err);
-                    }
-                }
-                return self.visitor.throw(error.IndexOutOfBounds);
+            fn started(iter: Value.Iterator) Error!Array {
+                _ = try iter.startedArray();
+                return .{ .iter = iter };
+            }
+
+            fn startRoot(iter: Value.Iterator) Error!Array {
+                _ = try iter.startRootArray();
+                return .{ .iter = iter };
+            }
+
+            pub fn at(self: Array, index: usize) Error!Value {
+                var i: usize = 0;
+                while (try self.next()) |v| : (i += 1)
+                    if (i == index) return v;
+
+                return error.IndexOutOfBounds;
             }
 
             pub fn isEmpty(self: Array) Error!bool {
-                return (try self.getSize()) == 0;
+                return !(try self.iter.startedArray());
             }
 
-            pub fn getSize(self: Array) Error!u32 {
-                var it = self.iterator();
-                var count: u32 = 0;
-                while (try it.next()) |v| : (try v.skip()) count += 1;
-                return count;
-            }
-
-            fn getVisitor(self: Array, token: u8) Visitor {
-                return self.visitor.document.startChildVisitorWith(token);
+            pub fn skip(self: Array) Error!void {
+                return self.iter.cursor.skip(self.iter.start_depth - 1, '[');
             }
         };
 
         const Object = struct {
-            visitor: Visitor,
-            entered: bool = false,
+            iter: Value.Iterator,
 
             pub const Field = struct {
-                key_buf: if (options.stream) |s| [s.chunk_length]u8 else void = undefined,
                 key: []const u8,
-                value: Visitor,
-
-                pub fn skip(self: Field) Error!void {
-                    return self.value.skip();
-                }
+                value: Value,
             };
 
-            pub const Iterator = struct {
-                root: Object,
+            pub fn next(self: Object) Error!?Field {
+                if (!self.iter.isOpen()) return null;
+                try self.iter.skipChild();
 
-                pub fn next(self: *Iterator) Error!?Field {
-                    const doc = self.root.visitor.document;
-                    const t = &doc.tokens;
-                    if (!self.root.entered) {
-                        defer self.root.entered = true;
-                        _ = try t.next();
-                        if (try t.peek() == '}') {
-                            _ = try t.next();
-                            self.root.visitor.document.depth -= 1;
-                            return null;
-                        }
-                        return try self.root.getField();
-                    }
-                    switch (try t.peek()) {
-                        ',' => {
-                            _ = try t.next();
-                            return try self.root.getField();
-                        },
-                        '}' => {
-                            _ = try t.next();
-                            self.root.visitor.document.depth -= 1;
-                            return null;
-                        },
-                        else => return error.ExpectedObjectCommaOrEnd,
-                    }
+                if (try self.iter.hasNextField()) {
+                    const key = try self.iter.getFieldKey();
+                    try self.iter.goToFieldValue();
+                    return .{
+                        .key = key,
+                        .value = .{ .iter = try self.iter.child() },
+                    };
                 }
-            };
-
-            pub fn iterator(self: Object) Iterator {
-                return .{ .root = self };
+                return null;
             }
 
-            pub fn skip(self: Object) Error!void {
-                return self.visitor.skip();
+            fn start(iter: Value.Iterator) Error!Object {
+                _ = try iter.startObject();
+                return .{ .iter = iter };
             }
 
-            pub fn at(self: Object, key: []const u8) Visitor {
-                var it = self.iterator();
-                while (it.next() catch |err| return self.visitor.throw(err)) |field| {
-                    if (std.mem.eql(u8, field.key, key)) {
-                        return field.value;
-                    } else {
-                        field.skip() catch |err| return self.visitor.throw(err);
-                    }
-                }
-                return self.visitor.throw(error.MissingField);
+            fn started(iter: Value.Iterator) Error!Object {
+                _ = try iter.startedObject();
+                return .{ .iter = iter };
+            }
+
+            fn startRoot(iter: Value.Iterator) Error!Object {
+                _ = try iter.startRootObject();
+                return .{ .iter = iter };
+            }
+
+            pub fn at(self: Object, key: []const u8) Error!Value {
+                return if (try self.iter.findField(key))
+                    .{ .iter = try self.iter.child() }
+                else
+                    error.MissingField;
             }
 
             pub fn isEmpty(self: Object) Error!bool {
-                return (try self.getSize()) == 0;
+                return !(try self.iter.startedObject());
             }
 
-            pub fn getSize(self: Object) Error!u32 {
-                var it = self.iterator();
-                var count: u32 = 0;
-                while (try it.next()) |field| : (try field.skip()) count += 1;
-                return count;
-            }
-
-            fn getField(self: Object) Error!Field {
-                const doc = self.visitor.document;
-                var t = &doc.tokens;
-                var key_visitor = doc.startVisitorWith(undefined);
-                // const curr = t.token;
-                // errdefer t.revert();
-                const quote = try t.next();
-                if (quote[0] != '"') return error.ExpectedKey;
-                const key = if (manual_manage_strings)
-                    try key_visitor.writeUnsafeString(quote, &self.visitor.document.field_key_buf)
-                else
-                    try key_visitor.getUnsafeString(quote);
-                const colon = try t.next();
-                if (colon[0] != ':') return error.ExpectedColon;
-                return .{
-                    .key = key,
-                    .value = try doc.startChildVisitor(),
-                };
-            }
-
-            fn writeField(self: Object, dest: *Field) Error!Field {
-                const doc = self.visitor.document;
-                var t = &doc.tokens;
-                var key_visitor = doc.startVisitorWith(undefined);
-                // const curr = t.token;
-                // errdefer t.revert();
-                const quote = try t.next();
-                if (quote[0] != '"') return error.ExpectedKey;
-                const key = if (manual_manage_strings)
-                    try key_visitor.writeUnsafeString(quote, &dest.key_buf)
-                else
-                    try key_visitor.getUnsafeString(quote);
-                const colon = try t.next();
-                if (colon[0] != ':') return error.ExpectedColon;
-                dest.* = .{
-                    .key = key,
-                    .value = try doc.startChildVisitor(),
-                };
+            pub fn skip(self: Object) Error!void {
+                if (try self.iter.isAtKey()) {
+                    _ = try self.iter.getFieldKey();
+                    try self.iter.goToFieldValue();
+                }
+                return self.iter.cursor.skip(self.iter.start_depth - 1, '{');
             }
         };
 
-        fn startVisitor(self: *Self) !Visitor {
-            self.curr_id += 1;
-            return .{
-                .document = self,
-                .depth = self.depth,
-                .id = self.curr_id,
-                .token = try self.tokens.peek(),
-            };
-        }
-
-        fn startVisitorWith(self: *Self, token: u8) Visitor {
-            self.curr_id += 1;
-            return .{
-                .document = self,
-                .depth = self.depth,
-                .id = self.curr_id,
-                .token = token,
-            };
-        }
-
-        fn startChildVisitor(self: *Self) !Visitor {
-            self.depth += 1;
-            self.curr_id += 1;
-            return .{
-                .document = self,
-                .depth = self.depth,
-                .id = self.curr_id,
-                .token = try self.tokens.peek(),
-            };
-        }
-
-        fn startChildVisitorWith(self: *Self, token: u8) Visitor {
-            self.depth += 1;
-            self.curr_id += 1;
-            return .{
-                .document = self,
-                .depth = self.depth,
-                .id = self.curr_id,
-                .token = token,
-            };
-        }
-
-        fn resumeVisitorWith(self: *Self, token: u8) Visitor {
-            return .{
-                .document = self,
-                .depth = self.depth,
-                .id = self.curr_id,
-                .token = token,
-            };
-        }
-
         const Logger = struct {
-            pub fn logDepth(expected: u32, actual: u32) void {
+            fn logDepth(expected: u32, actual: u32) void {
                 if (true) return;
                 std.log.info(" SKIP     Wanted depth: {}, actual: {}", .{ expected, actual });
             }
 
-            pub fn logStart(parser: Self, label: []const u8, depth: u32) void {
+            fn logStart(parser: Self, label: []const u8, depth: u32) void {
                 if (true) return;
                 var t = parser.tokens;
                 var buffer = t.iter.ptr[(t.iter.token - 1)[0]..][0..Vector.bytes_len].*;
@@ -744,7 +989,7 @@ pub fn Parser(comptime options: Options) type {
                 }
                 std.log.info("+{s} | {s} | depth: {} | next: {c}", .{ label, buffer, depth, try t.peek() });
             }
-            pub fn log(parser: Self, label: []const u8, depth: u32) void {
+            fn log(parser: Self, label: []const u8, depth: u32) void {
                 if (true) return;
                 var t = parser.tokens;
                 var buffer = t.iter.ptr[(t.iter.token - 1)[0]..][0..Vector.bytes_len].*;
@@ -755,7 +1000,7 @@ pub fn Parser(comptime options: Options) type {
                 }
                 std.log.info(" {s} | {s} | depth: {} | next: {c}", .{ label, buffer, depth, try t.peek() });
             }
-            pub fn logEnd(parser: Self, label: []const u8, depth: u32) void {
+            fn logEnd(parser: Self, label: []const u8, depth: u32) void {
                 if (true) return;
                 var t = parser.tokens;
                 var buffer = t.iter.ptr[(t.iter.token - 1)[0]..][0..Vector.bytes_len].*;

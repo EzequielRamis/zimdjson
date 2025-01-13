@@ -36,8 +36,7 @@ pub fn run() !void {
     file = try std.fs.openFileAbsolute(path, .{});
     const doc = try parser.load(file);
     const tweet = try doc.at("statuses").getArray();
-    var it = tweet.iterator();
-    while (try it.next()) |t| : (try t.skip()) {
+    while (try tweet.next()) |t| {
         const text = try t.at("text").getString();
         const screen_name = try t.at("user").at("screen_name").getString();
         const retweet_count = try t.at("retweet_count").getSigned();
@@ -52,7 +51,7 @@ pub fn run() !void {
 }
 
 pub fn postrun() !void {
-    file.close();
+    // file.close();
 }
 
 pub fn deinit() void {

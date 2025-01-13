@@ -13,15 +13,14 @@ fn printDepth() !void {
     try stdout.writeBytesNTimes("  ", depth);
 }
 
-fn walk(visitor: Parser.Visitor) !void {
-    const any = try visitor.getAny();
+fn walk(v: Parser.Value) !void {
+    const any = try v.getAny();
     switch (any) {
         .object => |c| {
             try stdout.writeByte('{');
             depth += 1;
-            var it = c.iterator();
             var size: usize = 0;
-            while (try it.next()) |field| : (size += 1) {
+            while (try c.next()) |field| : (size += 1) {
                 try printDepth();
                 try stdout.print("{s}: ", .{field.key});
                 try walk(field.value);
@@ -33,9 +32,8 @@ fn walk(visitor: Parser.Visitor) !void {
         .array => |c| {
             try stdout.writeByte('[');
             depth += 1;
-            var it = c.iterator();
             var size: usize = 0;
-            while (try it.next()) |value| : (size += 1) {
+            while (try c.next()) |value| : (size += 1) {
                 try printDepth();
                 try walk(value);
             }
@@ -44,9 +42,11 @@ fn walk(visitor: Parser.Visitor) !void {
             try stdout.writeByte(']');
         },
         .string => |value| try stdout.print("\"{s}\"", .{value}),
-        .unsigned => |value| try stdout.print("{}", .{value}),
-        .signed => |value| try stdout.print("{}", .{value}),
-        .float => |value| try stdout.print("{}", .{value}),
+        .number => |value| switch (value) {
+            .unsigned => |n| try stdout.print("{}", .{n}),
+            .signed => |n| try stdout.print("{}", .{n}),
+            .float => |n| try stdout.print("{}", .{n}),
+        },
         .bool => |value| try stdout.print("{}", .{value}),
         .null => try stdout.print("null", .{}),
     }
@@ -68,5 +68,5 @@ pub fn main() !void {
 
     const file = try std.fs.openFileAbsolute(args[1], .{});
     const json = try parser.load(file);
-    try walk(json);
+    try walk(Parser.Value.from(json));
 }

@@ -137,14 +137,14 @@ pub fn Tape(comptime options: Options) type {
                     const t = try self.tokens.next();
                     switch (t[0]) {
                         '{' => {
-                            if (try self.tokens.peek() == '}') {
+                            if (try self.tokens.peekChar() == '}') {
                                 try self.visitEmptyObject();
                                 continue :state .end;
                             }
                             continue :state .object_begin;
                         },
                         '[' => {
-                            if (try self.tokens.peek() == ']') {
+                            if (try self.tokens.peekChar() == ']') {
                                 try self.visitEmptyArray();
                                 continue :state .end;
                             }
@@ -183,14 +183,14 @@ pub fn Tape(comptime options: Options) type {
                         const t = try self.tokens.next();
                         switch (t[0]) {
                             '{' => {
-                                if (try self.tokens.peek() == '}') {
+                                if (try self.tokens.peekChar() == '}') {
                                     try self.visitEmptyObject();
                                     continue :state .object_continue;
                                 }
                                 continue :state .object_begin;
                             },
                             '[' => {
-                                if (try self.tokens.peek() == ']') {
+                                if (try self.tokens.peekChar() == ']') {
                                     try self.visitEmptyArray();
                                     continue :state .object_continue;
                                 }
@@ -252,14 +252,14 @@ pub fn Tape(comptime options: Options) type {
                     const t = try self.tokens.next();
                     switch (t[0]) {
                         '{' => {
-                            if (try self.tokens.peek() == '}') {
+                            if (try self.tokens.peekChar() == '}') {
                                 try self.visitEmptyObject();
                                 continue :state .array_continue;
                             }
                             continue :state .object_begin;
                         },
                         '[' => {
-                            if (try self.tokens.peek() == ']') {
+                            if (try self.tokens.peekChar() == ']') {
                                 try self.visitEmptyArray();
                                 continue :state .array_continue;
                             }
@@ -318,7 +318,7 @@ pub fn Tape(comptime options: Options) type {
                 },
                 .end => {
                     const trail = try self.tokens.next();
-                    if (!common.tables.is_whitespace[trail[0]]) return error.TrailingContent;
+                    if (trail[0] != Tokens.bogus_token) return error.TrailingContent;
                     self.chars.items.len = @intFromPtr(self.chars_ptr) - @intFromPtr(self.chars.items.ptr);
                     self.parsed.items.len = self.currentIndex();
                     if (self.parsed.items.len == 0) return error.Empty;

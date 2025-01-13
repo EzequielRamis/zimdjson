@@ -23,8 +23,7 @@ pub fn run() !void {
     file = try std.fs.openFileAbsolute(path, .{});
     const doc = try parser.load(file);
     const tweet = try doc.at("statuses").getArray();
-    var it = tweet.iterator();
-    while (try it.next()) |t| : (try t.skip()) {
+    while (try tweet.next()) |t| {
         if (try t.at("id").getUnsigned() == find_id) {
             result = try t.at("text").getString();
             return;
@@ -34,7 +33,7 @@ pub fn run() !void {
 }
 
 pub fn postrun() !void {
-    file.close();
+    // file.close();
 }
 
 pub fn deinit() void {

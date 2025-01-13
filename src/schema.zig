@@ -3,14 +3,14 @@ const builtin = @import("builtin");
 const types = @import("types.zig");
 const OnDemand = @import("ondemand.zig");
 const Parser = OnDemand.Parser(.{});
-const Visitor = Parser.Visitor;
+const Value = Parser.Value;
 const Error = types.Error;
 const wyhash = std.hash.Wyhash.hash;
 const assert = std.debug.assert;
 
 fn Common(comptime T: type) type {
     return struct {
-        pub fn dispatch(v: *Visitor) Error!T {
+        pub fn dispatch(v: *Value) Error!T {
             const info = @typeInfo(T);
             return switch (info) {
                 .int => if (info.int.signedness == .unsigned) unsigned(v) else signed(v),
@@ -27,19 +27,19 @@ fn Common(comptime T: type) type {
             };
         }
 
-        fn unsigned(v: *Visitor) Error!T {
+        fn unsigned(v: *Value) Error!T {
             return std.math.cast(T, try v.getUnsigned()) orelse error.NumberOutOfRange;
         }
 
-        fn signed(v: *Visitor) Error!T {
+        fn signed(v: *Value) Error!T {
             return std.math.cast(T, try v.getSigned()) orelse error.NumberOutOfRange;
         }
 
-        fn float(v: *Visitor) Error!T {
+        fn float(v: *Value) Error!T {
             return @floatCast(try v.getFloat());
         }
 
-        fn boolean(v: *Visitor) Error!T {
+        fn boolean(v: *Value) Error!T {
             return v.getBool();
         }
     };
@@ -55,7 +55,7 @@ fn Writer(comptime T: type, comptime opt: Options) type {
         table: VTable = VTable{},
         written: VTable.Size = 0,
 
-        pub fn write(self: *Self, to: *T, v: *Visitor) Error!void {
+        pub fn write(self: *Self, to: *T, v: *Value) Error!void {
             const object = try v.getObject();
             while (try object.next()) |field| {
                 const h = self.table.hash(field.key);
@@ -94,7 +94,7 @@ fn Writer(comptime T: type, comptime opt: Options) type {
 }
 
 const PHCaller = struct {
-    dispatch: ?*const fn (v: *Visitor, ptr: *anyopaque) Error!void = null,
+    dispatch: ?*const fn (v: *Value, ptr: *anyopaque) Error!void = null,
 };
 
 const Options = struct {
@@ -185,7 +185,7 @@ fn PHTable(comptime T: type, comptime opt: Options) type {
                     collided[i] = true;
                     callers[i] = .{
                         .dispatch = struct {
-                            pub fn dispatch(el: *Visitor, ptr: *anyopaque) Error!void {
+                            pub fn dispatch(el: *Value, ptr: *anyopaque) Error!void {
                                 const value: *T = @ptrCast(@alignCast(ptr));
                                 @field(value, field.name) = try parse_with(el);
                             }
@@ -226,7 +226,7 @@ fn Field(comptime T: type) type {
     return struct {
         rename: ?[]const u8 = null,
         aliases: []const []const u8 = &[_][]const u8{},
-        dispatch: *const fn (*Visitor) Error!T = Common(T).dispatch,
+        dispatch: *const fn (*Value) Error!T = Common(T).dispatch,
     };
 }
 

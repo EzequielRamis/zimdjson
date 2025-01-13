@@ -4,33 +4,34 @@ const ondemand = zimdjson.ondemand;
 const Reader = zimdjson.io.Reader(.{});
 const Parser = ondemand.Parser(.{ .stream = .default });
 
-const stdout = std.io.getStdOut().writer();
+var buf = std.io.bufferedWriter(std.io.getStdOut().writer());
+var w = buf.writer();
 
 var depth: usize = 0;
 
 fn printDepth() !void {
-    try stdout.writeByte('\n');
-    try stdout.writeBytesNTimes("  ", depth);
+    try w.writeByte('\n');
+    try w.writeBytesNTimes("  ", depth);
 }
 
 fn walk(v: Parser.Value) !void {
     const any = try v.getAny();
     switch (any) {
         .object => |c| {
-            try stdout.writeByte('{');
+            try w.writeByte('{');
             depth += 1;
             var size: usize = 0;
             while (try c.next()) |field| : (size += 1) {
                 try printDepth();
-                try stdout.print("{s}: ", .{field.key});
+                try w.print("{s}: ", .{field.key});
                 try walk(field.value);
             }
             depth -= 1;
             if (size != 0) try printDepth();
-            try stdout.writeByte('}');
+            try w.writeByte('}');
         },
         .array => |c| {
-            try stdout.writeByte('[');
+            try w.writeByte('[');
             depth += 1;
             var size: usize = 0;
             while (try c.next()) |value| : (size += 1) {
@@ -39,16 +40,16 @@ fn walk(v: Parser.Value) !void {
             }
             depth -= 1;
             if (size != 0) try printDepth();
-            try stdout.writeByte(']');
+            try w.writeByte(']');
         },
-        .string => |value| try stdout.print("\"{s}\"", .{value}),
+        .string => |value| try w.print("\"{s}\"", .{value}),
         .number => |value| switch (value) {
-            .unsigned => |n| try stdout.print("{}", .{n}),
-            .signed => |n| try stdout.print("{}", .{n}),
-            .float => |n| try stdout.print("{}", .{n}),
+            .unsigned => |n| try w.print("{}", .{n}),
+            .signed => |n| try w.print("{}", .{n}),
+            .float => |n| try w.print("{}", .{n}),
         },
-        .bool => |value| try stdout.print("{}", .{value}),
-        .null => try stdout.print("null", .{}),
+        .bool => |value| try w.print("{}", .{value}),
+        .null => try w.print("null", .{}),
     }
 }
 
@@ -69,4 +70,5 @@ pub fn main() !void {
     const file = try std.fs.openFileAbsolute(args[1], .{});
     const json = try parser.load(file);
     try walk(Parser.Value.from(json));
+    try buf.flush();
 }

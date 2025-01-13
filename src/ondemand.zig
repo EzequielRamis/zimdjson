@@ -538,7 +538,7 @@ pub fn Parser(comptime options: Options) type {
                     return self.start_depth == self.cursor.depth and try self.cursor.peekChar() == '"';
                 }
 
-                fn isAtFirstField(self: Iterator) bool {
+                fn isAtFirstValue(self: Iterator) bool {
                     assert(self.cursor.position > self.start_position);
                     return self.cursor.position == self.start_position + 1;
                 }
@@ -699,7 +699,7 @@ pub fn Parser(comptime options: Options) type {
 
                 fn findField(self: Iterator, key: []const u8) Error!bool {
                     var has_value = false;
-                    if (self.isAtFirstField()) {
+                    if (self.isAtFirstValue()) {
                         has_value = true;
                     } else if (!self.isOpen()) {
                         return false;
@@ -874,6 +874,9 @@ pub fn Parser(comptime options: Options) type {
 
             pub fn next(self: Array) Error!?Value {
                 if (!self.iter.isOpen()) return null;
+                if (self.iter.isAtFirstValue()) {
+                    return .{ .iter = try self.iter.child() };
+                }
                 try self.iter.skipChild();
 
                 if (try self.iter.hasNextElement()) {
@@ -924,6 +927,14 @@ pub fn Parser(comptime options: Options) type {
 
             pub fn next(self: Object) Error!?Field {
                 if (!self.iter.isOpen()) return null;
+                if (self.iter.isAtFirstValue()) {
+                    const key = try self.iter.getFieldKey();
+                    try self.iter.goToFieldValue();
+                    return .{
+                        .key = key,
+                        .value = .{ .iter = try self.iter.child() },
+                    };
+                }
                 try self.iter.skipChild();
 
                 if (try self.iter.hasNextField()) {

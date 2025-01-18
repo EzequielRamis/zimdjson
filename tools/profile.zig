@@ -25,7 +25,7 @@ pub fn main() !void {
     // const rand = std.crypto.random;
     while (true) {
         // const index = rand.uintLessThan(u8, 100);
-        _ = try parser.load(file);
+        _ = try parser.parseFromFile(file);
         // const created_at = try document.at(index).at("reportedOn").getString();
         // tracy.messageCopy(created_at);
     }

@@ -7,7 +7,7 @@ const unicode = std.unicode;
 const vector = types.vector;
 const Vector = types.Vector;
 const Predicate = types.Predicate;
-const Error = types.Error;
+const Error = types.ParseError;
 const readInt = std.mem.readInt;
 const native_endian = builtin.cpu.arch.endian();
 

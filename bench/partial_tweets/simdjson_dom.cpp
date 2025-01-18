@@ -22,16 +22,17 @@ struct partial_tweet {
 
 struct simdjson_dom {
 
-  padded_string json;
+  string path;
   dom::parser parser;
   vector<partial_tweet> result{};
 
-  void init(string_view path) {
-    simdjson::error_code err;
-    if (err = padded_string::load(path).get(json)) throw runtime_error("file not found");
+  void init(string_view _path) {
+    path = string(_path);
   }
 
-  void prerun() {}
+  void prerun() {
+    result.clear();
+  }
 
   simdjson_inline uint64_t nullable_int(dom::element element) {
     if (element.is_null()) { return 0; }
@@ -39,7 +40,7 @@ struct simdjson_dom {
   }
 
   void run() {
-    for (dom::element tweet : parser.parse(json)["statuses"]) {
+    for (dom::element tweet : parser.load(path)["statuses"]) {
       auto user = tweet["user"];
       result.emplace_back(partial_tweet{
         tweet["created_at"],

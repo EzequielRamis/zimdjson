@@ -5,7 +5,7 @@ const common = @import("../../common.zig");
 const number_common = @import("common.zig");
 const eisel_lemire = @import("eisel_lemire.zig");
 const digit_comp = @import("digit_comp.zig");
-const Error = types.Error;
+const Error = types.ParseError;
 const Number = types.Number;
 const max_digits = number_common.max_digits;
 

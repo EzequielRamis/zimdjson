@@ -72,7 +72,7 @@ pub fn main() !void {
     defer parser.deinit();
 
     stats.json_size = file.len;
-    const json = try parser.parse(file);
+    const json = try parser.parseFromFile(file);
     try walk(json);
 
     try stdout.print(

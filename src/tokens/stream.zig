@@ -3,13 +3,13 @@ const tracy = @import("../tracy");
 const common = @import("../common.zig");
 const types = @import("../types.zig");
 const indexer = @import("../indexer.zig");
-const RingBuffer = @import("../ring_buffer.zig").RingBuffer;
+const ring_buffer = @import("../ring_buffer.zig");
+const RingBuffer = ring_buffer.RingBuffer;
 const assert = std.debug.assert;
 const Vector = types.Vector;
-const Error = types.Error;
-const File = std.fs.File;
 
 const Options = struct {
+    Reader: type,
     chunk_len: u32,
     aligned: bool,
 };
@@ -19,6 +19,7 @@ pub fn Stream(comptime options: Options) type {
 
     return struct {
         const Self = @This();
+
         const Aligned = types.Aligned(options.aligned);
         const Indexer = indexer.Indexer(.{
             .aligned = options.aligned,
@@ -27,103 +28,110 @@ pub fn Stream(comptime options: Options) type {
         const DocumentStream = RingBuffer(u8, chunk_len * 2);
         const IndexesStream = RingBuffer(u32, chunk_len * 2);
 
-        file: File = undefined,
-        document_stream: DocumentStream = undefined,
-        indexes_stream: IndexesStream = undefined,
+        pub const Error =
+            options.Reader.Error ||
+            indexer.Error ||
+            ring_buffer.Error ||
+            error.BatchOverflow;
+
+        reader: options.Reader,
+        document: DocumentStream,
+        indexes: IndexesStream,
         indexer: Indexer = .init,
         built: bool = false,
+        first_chunk_visited: bool = false,
         last_chunk_visited: bool = false,
 
-        pub const bogus_token = ' ';
-
+        const bogus_token = ' ';
         pub const init = std.mem.zeroInit(Self, .{});
 
-        pub inline fn build(self: *Self, file: File) !void {
+        pub fn build(self: *Self, reader: options.Reader) Error!void {
             self.* = .{
-                .file = file,
-                .document_stream = DocumentStream.init() catch return error.StreamError,
-                .indexes_stream = IndexesStream.init() catch return error.StreamError,
+                .reader = reader,
+                .document = try DocumentStream.init(),
+                .indexes = try IndexesStream.init(),
             };
             try self.prefetch();
             self.built = true;
         }
 
-        pub fn deinit(self: *Self) void {
+        pub fn deinit(self: Self) void {
             if (self.built) {
-                self.file.close();
-                self.document_stream.deinit();
-                self.indexes_stream.deinit();
+                self.document.deinit();
+                self.indexes.deinit();
             }
         }
 
-        inline fn prefetch(self: *Self) !void {
+        inline fn prefetch(self: *Self) Error!void {
             const written = try self.indexNextChunk();
-            if (written == 0) return error.StreamChunkOverflow;
+            if (written == 0) return error.BatchOverflow;
+            self.first_chunk_visited = true;
         }
 
-        pub inline fn next(self: *Self) ![*]const u8 {
+        pub inline fn next(self: *Self) Error![*]const u8 {
             const offset = try self.fetchOffset();
-            self.indexes_stream.consumeAssumeLength(1);
-            self.document_stream.consumeAssumeLength(offset);
-            return self.document_stream.unsafeSlice();
+            self.indexes.consumeAssumeLength(1);
+            self.document.consumeAssumeLength(offset);
+            return self.document.unsafeSlice();
         }
 
         pub inline fn peekChar(self: *Self) u8 {
             const offset = self.fetchLocalOffset();
-            return self.document_stream.unsafeSlice()[offset];
+            return self.document.unsafeSlice()[offset];
         }
 
-        pub inline fn peek(self: *Self) ![*]const u8 {
+        pub inline fn peek(self: *Self) Error![*]const u8 {
             const offset = try self.fetchOffset();
-            return self.document_stream.unsafeSlice()[offset..];
+            return self.document.unsafeSlice()[offset..];
         }
 
-        inline fn fetchOffset(self: *Self) !u32 {
-            if (self.indexes_stream.len() == 1) {
+        inline fn fetchOffset(self: *Self) Error!u32 {
+            if (self.indexes.len() == 1) {
                 const written = try self.indexNextChunk();
-                if (written == 0) return error.StreamChunkOverflow;
-                const first_offset = self.indexes_stream.unsafeSlice()[0];
-                if (first_offset > chunk_len) return error.StreamChunkOverflow;
+                if (written == 0) return error.BatchOverflow;
+                const first_offset = self.indexes.unsafeSlice()[0];
+                if (first_offset > chunk_len) return error.BatchOverflow;
             }
             return self.fetchLocalOffset();
         }
 
         inline fn fetchLocalOffset(self: *Self) u32 {
-            assert(self.indexes_stream.len() >= 1);
-            const offset = self.indexes_stream.unsafeSlice()[0];
+            assert(self.indexes.len() >= 1);
+            const offset = self.indexes.unsafeSlice()[0];
             return offset;
         }
 
-        fn indexNextChunk(self: *Self) !u32 {
+        fn indexNextChunk(self: *Self) Error!u32 {
             if (self.last_chunk_visited) {
                 @branchHint(.unlikely);
                 return 1;
             }
-            const buf = self.document_stream.reserveAssumeCapacity(chunk_len);
-            const read: u32 = @intCast(self.file.readAll(buf) catch return error.StreamRead);
+            const buf = self.document.reserveAssumeCapacity(chunk_len);
+            const read: u32 = @intCast(try self.reader.readAll(buf));
             if (read < chunk_len) {
                 @branchHint(.unlikely);
 
                 self.last_chunk_visited = true;
-                self.document_stream.shrinkAssumeLength(chunk_len - read);
+                self.document.shrinkAssumeLength(chunk_len - read);
                 const bogus_indexed_token = " $";
                 const padding = bogus_indexed_token ++ (" " ** (types.block_len - bogus_indexed_token.len));
-                self.document_stream.writeSliceAssumeCapacity(padding);
+                self.document.writeSliceAssumeCapacity(padding);
 
                 const chunk = buf[0..common.roundUp(usize, read + bogus_indexed_token.len, types.block_len)];
-                const indexes = self.indexes_stream.reserveAssumeCapacity(chunk_len);
+                const indexes = self.indexes.reserveAssumeCapacity(chunk_len);
                 const written = self.indexChunk(@alignCast(chunk), indexes.ptr);
+                if (written == 0 and !self.first_chunk_visited) return error.Empty;
                 try self.indexer.validate();
                 try self.indexer.validateEof();
-                self.indexes_stream.shrinkAssumeLength(@as(u32, @intCast(indexes.len)) - written);
+                self.indexes.shrinkAssumeLength(@as(u32, @intCast(indexes.len)) - written);
                 buf[read + bogus_indexed_token.len - 1] = bogus_token;
                 return written;
             } else {
                 const chunk = buf;
-                const indexes = self.indexes_stream.reserveAssumeCapacity(chunk_len);
+                const indexes = self.indexes.reserveAssumeCapacity(chunk_len);
                 const written = self.indexChunk(@alignCast(chunk), indexes.ptr);
                 try self.indexer.validate();
-                self.indexes_stream.shrinkAssumeLength(chunk_len - written);
+                self.indexes.shrinkAssumeLength(chunk_len - written);
                 return written;
             }
         }

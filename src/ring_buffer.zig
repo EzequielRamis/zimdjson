@@ -1,5 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
+const types = @import("types.zig");
 const posix = std.posix;
 const Allocator = std.mem.Allocator;
 const assert = std.debug.assert;
@@ -8,6 +9,11 @@ const w = std.os.windows;
 
 pub const default_chunk_length = if (native_os == .windows) 1024 * 64 else std.mem.page_size * 16;
 const min_chunk_length = if (native_os == .windows) 1024 * 64 else std.mem.page_size;
+
+pub const Error =
+    std.posix.MemFdCreateError ||
+    std.posix.TruncateError ||
+    std.posix.MMapError;
 
 pub fn RingBuffer(comptime T: type, comptime length: u32) type {
     const byte_len = @sizeOf(T) * length;
@@ -25,7 +31,7 @@ pub fn RingBuffer(comptime T: type, comptime length: u32) type {
             buffer: [*]align(std.mem.page_size) u8,
             handle: if (native_os == .windows) w.HANDLE else std.fs.File.Handle,
 
-            pub fn init() !Buffer {
+            pub fn init() Error!Buffer {
                 switch (native_os) {
                     .windows => {
                         if (!(builtin.os.isAtLeast(native_os, .win10) orelse false))
@@ -164,7 +170,7 @@ pub fn RingBuffer(comptime T: type, comptime length: u32) type {
             }
         };
 
-        pub fn init() !Self {
+        pub fn init() Error!Self {
             return .{
                 .base = try .init(),
                 .head = 0,
@@ -222,7 +228,7 @@ pub fn RingBuffer(comptime T: type, comptime length: u32) type {
             return self.slice();
         }
 
-        pub inline fn readFirst(self: *Self, count: u32) ![]const T {
+        pub inline fn readFirst(self: *Self, count: u32) Error![]const T {
             if (count > self.len()) return error.ReadLengthInvalid;
             return self.readFirstAssumeLength(count);
         }
@@ -233,7 +239,7 @@ pub fn RingBuffer(comptime T: type, comptime length: u32) type {
             return self.ptr()[mask(self.tail)..][0..count];
         }
 
-        pub inline fn write(self: *Self, el: T) !void {
+        pub inline fn write(self: *Self, el: T) Error!void {
             if (self.isFull()) return error.Full;
             self.writeAssumeCapacity(el);
         }
@@ -244,7 +250,7 @@ pub fn RingBuffer(comptime T: type, comptime length: u32) type {
             self.ptr()[mask(self.head)] = el;
         }
 
-        pub inline fn writeSlice(self: *Self, data: []const T) !void {
+        pub inline fn writeSlice(self: *Self, data: []const T) Error!void {
             if (data.len > self.unused()) return error.Full;
             self.writeSliceAssumeCapacity(data);
         }
@@ -255,7 +261,7 @@ pub fn RingBuffer(comptime T: type, comptime length: u32) type {
             @memcpy(self.ptr()[mask(self.head)..][0..data.len], data);
         }
 
-        pub inline fn reserve(self: *Self, count: u32) ![]T {
+        pub inline fn reserve(self: *Self, count: u32) Error![]T {
             if (count > self.unused()) return error.Full;
             return self.reserveAssumeCapacity(count);
         }
@@ -270,7 +276,7 @@ pub fn RingBuffer(comptime T: type, comptime length: u32) type {
             return self.reserveAssumeCapacity(self.unused());
         }
 
-        pub inline fn consume(self: *Self, count: u32) !void {
+        pub inline fn consume(self: *Self, count: u32) Error!void {
             if (count > self.len()) return error.ReadLengthInvalid;
             self.consumeAssumeLength(count);
         }
@@ -284,7 +290,7 @@ pub fn RingBuffer(comptime T: type, comptime length: u32) type {
             self.consumeAssumeLength(self.len());
         }
 
-        pub inline fn shrink(self: *Self, count: u32) !void {
+        pub inline fn shrink(self: *Self, count: u32) Error!void {
             if (count > self.len()) return error.ReadLengthInvalid;
             self.shrinkAssumeLength(count);
         }

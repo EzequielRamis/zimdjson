@@ -3,7 +3,7 @@ const builtin = @import("builtin");
 const common = @import("../common.zig");
 const types = @import("../types.zig");
 const tokens = @import("../tokens.zig");
-const Error = types.Error;
+const Error = types.ParseError;
 const readInt = std.mem.readInt;
 const native_endian = builtin.cpu.arch.endian();
 

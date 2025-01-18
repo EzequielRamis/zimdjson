@@ -71,7 +71,7 @@ pub fn main() !void {
             try checker_zig_content.appendSlice(try std.fmt.bufPrint(&buf,
                 \\test "{[id]s}" {{
                 \\    const allocator = std.testing.allocator;
-                \\    var parser = dom.Parser(.default).init(allocator);
+                \\    var parser = dom.parserFromFile(.default).init(allocator);
                 \\    defer parser.deinit();
                 \\
             , .{ .id = identifier }));
@@ -83,7 +83,8 @@ pub fn main() !void {
                 try checker_zig_content.appendSlice(file);
                 try checker_zig_content.appendSlice(
                     \\", .{});
-                    \\    _ = try parser.load(file);
+                    \\    defer file.close();
+                    \\    _ = try parser.parse(file.reader());
                 );
             } else {
                 try checker_zig_content.appendSlice(
@@ -93,7 +94,8 @@ pub fn main() !void {
                 try checker_zig_content.appendSlice(file);
                 try checker_zig_content.appendSlice(
                     \\", .{});
-                    \\    _ = parser.load(file) catch return;
+                    \\    defer file.close();
+                    \\    _ = parser.parse(file.reader()) catch return;
                     \\    return error.MustHaveFailed;
                 );
             }

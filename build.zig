@@ -153,7 +153,7 @@ pub fn build(b: *std.Build) !void {
                     &.{
                         suite_dom.addZigBenchmark("zimdjson_dom"),
                         suite_dom.addCppBenchmark("simdjson_dom", p.simdjson),
-                        suite_dom.addCBenchmark("yyjson", p.yyjson),
+                        suite_dom.addCppBenchmark("yyjson", p.yyjson),
                         suite_dom.addCppBenchmark("rapidjson_dom", p.rapidjson),
                     },
                     file_path,
@@ -173,7 +173,7 @@ pub fn build(b: *std.Build) !void {
                         suite_dom.addZigBenchmark("zimdjson_stream_dom"),
                         suite_dom.addZigBenchmark("zimdjson_dom"),
                         suite_dom.addCppBenchmark("simdjson_dom", p.simdjson),
-                        suite_dom.addCBenchmark("yyjson", p.yyjson),
+                        suite_dom.addCppBenchmark("yyjson", p.yyjson),
                         suite_dom.addCppBenchmark("rapidjson_stream", p.rapidjson),
                     },
                     file_path,
@@ -205,7 +205,7 @@ pub fn build(b: *std.Build) !void {
                         suite.addZigBenchmark("zimdjson_dom"),
                         suite.addZigBenchmark("zimdjson_stream_dom"),
                         suite.addCppBenchmark("simdjson_dom", p.simdjson),
-                        suite.addCBenchmark("yyjson", p.yyjson),
+                        suite.addCppBenchmark("yyjson", p.yyjson),
                     },
                     file_path,
                 );
@@ -236,7 +236,7 @@ pub fn build(b: *std.Build) !void {
                         suite.addZigBenchmark("zimdjson_dom"),
                         suite.addZigBenchmark("zimdjson_stream_dom"),
                         suite.addCppBenchmark("simdjson_dom", p.simdjson),
-                        suite.addCBenchmark("yyjson", p.yyjson),
+                        suite.addCppBenchmark("yyjson", p.yyjson),
                     },
                     file_path,
                 );
@@ -261,10 +261,13 @@ pub fn build(b: *std.Build) !void {
                 };
                 const runner = suite.create(
                     &.{
-                        // suite.addZigBenchmark("zimdjson_ondemand"),
-                        // suite.addCppBenchmark("simdjson_ondemand", p.simdjson),
+                        suite.addZigBenchmark("zimdjson_ondemand"),
+                        suite.addZigBenchmark("zimdjson_stream_ondemand"),
+                        suite.addCppBenchmark("simdjson_ondemand", p.simdjson),
                         suite.addZigBenchmark("zimdjson_dom"),
+                        suite.addZigBenchmark("zimdjson_stream_dom"),
                         suite.addCppBenchmark("simdjson_dom", p.simdjson),
+                        suite.addCppBenchmark("yyjson", p.yyjson),
                     },
                     file_path,
                 );
@@ -289,10 +292,40 @@ pub fn build(b: *std.Build) !void {
                 };
                 const runner = suite.create(
                     &.{
-                        // suite.addZigBenchmark("zimdjson_ondemand"),
-                        // suite.addCppBenchmark("simdjson_ondemand", p.simdjson),
+                        suite.addZigBenchmark("zimdjson_ondemand"),
+                        suite.addZigBenchmark("zimdjson_stream_ondemand"),
+                        suite.addCppBenchmark("simdjson_ondemand", p.simdjson),
                         suite.addZigBenchmark("zimdjson_dom"),
+                        suite.addZigBenchmark("zimdjson_stream_dom"),
                         suite.addCppBenchmark("simdjson_dom", p.simdjson),
+                        suite.addCppBenchmark("yyjson", p.yyjson),
+                    },
+                    file_path,
+                );
+                com.dependOn(&runner.step);
+            }
+        }
+        {
+            const com = center.command("bench/large-random", "Run 'large random' benchmark");
+            const parsers = Parsers.get(com, target, optimize);
+            const file_path = try getProvidedPath(com, &path_buf, use_cwd);
+
+            if (parsers) |p| {
+                var suite = bench.Suite("large_random"){
+                    .zimdjson = zimdjson,
+                    .simdjson = p.simdjson,
+                    .target = target,
+                    .optimize = optimize,
+                };
+                const runner = suite.create(
+                    &.{
+                        suite.addZigBenchmark("zimdjson_ondemand"),
+                        suite.addZigBenchmark("zimdjson_stream_ondemand"),
+                        suite.addCppBenchmark("simdjson_ondemand", p.simdjson),
+                        suite.addZigBenchmark("zimdjson_dom"),
+                        suite.addZigBenchmark("zimdjson_stream_dom"),
+                        suite.addCppBenchmark("simdjson_dom", p.simdjson),
+                        suite.addCppBenchmark("yyjson", p.yyjson),
                     },
                     file_path,
                 );

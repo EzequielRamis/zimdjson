@@ -1,3 +1,5 @@
+// TODO: agregar dev_checks
+// TODO: agregar algun logger bien hecho
 const std = @import("std");
 const common = @import("common.zig");
 const types = @import("types.zig");
@@ -6,7 +8,6 @@ const tokens = @import("tokens.zig");
 const Vector = types.Vector;
 const Pred = types.Predicate;
 const Allocator = std.mem.Allocator;
-const Error = types.Error;
 const Number = types.Number;
 const vector = types.vector;
 const log = std.log;
@@ -38,7 +39,7 @@ pub const Options = struct {
     stream: ?StreamOptions = null,
 };
 
-pub fn Parser(comptime options: Options) type {
+pub fn Parser(comptime Reader: ?type, comptime options: Options) type {
     const NumberParser = @import("parsers/number/parser.zig").Parser;
 
     if (options.stream == null and comptime options.max_capacity.greater(.normal))
@@ -52,8 +53,10 @@ pub fn Parser(comptime options: Options) type {
 
     return struct {
         const Self = @This();
+
         const Aligned = types.Aligned(options.aligned);
         const Tokens = tokens.Tokens(.{
+            .Reader = Reader,
             .aligned = options.aligned,
             .stream = if (options.stream) |s|
                 .{
@@ -62,15 +65,18 @@ pub fn Parser(comptime options: Options) type {
             else
                 null,
         });
-        const FileBuffer = std.ArrayListAligned(u8, types.Aligned(true).alignment);
+
+        pub const Error = types.ParserError || (if (options.stream) |_| types.StreamError else error{});
 
         allocator: ?Allocator,
         tokens: Tokens,
-        buffer: if (options.stream) |_| void else FileBuffer,
+        buffer: if (options.stream) |_| void else std.ArrayListAligned(u8, types.Aligned(true).alignment),
         chars: std.ArrayListUnmanaged(u8),
         chars_ptr: [*]u8 = undefined,
         cursor: Cursor = undefined,
 
+        // para streaming enchufarle el tipo ?Allocator en el init, para que el usuario tenga la opcion de mandarle un allocator por si sabe el tamaño del documento
+        // o si no, que el usuario se encargue de mandar buffers para los fields y los strings
         pub fn init(allocator: if (manual_manage_strings) ?Allocator else Allocator) Self {
             return .{
                 .allocator = allocator,
@@ -88,13 +94,13 @@ pub fn Parser(comptime options: Options) type {
             }
         }
 
-        pub fn parse(self: *Self, document: Aligned.slice) !Document {
+        pub fn parseFromSlice(self: *Self, document: Aligned.slice) !Document {
             if (options.stream) |_| @compileError(common.error_messages.stream_slice);
 
             if (document.len > @intFromEnum(options.max_capacity)) return error.DocumentCapacity;
             try self.tokens.build(document);
 
-            try self.chars.ensureTotalCapacityPrecise(self.allocator.?, document.len);
+            try self.chars.ensureTotalCapacity(self.allocator.?, document.len);
             self.chars.shrinkRetainingCapacity(0);
             self.chars_ptr = self.chars.items.ptr;
 
@@ -109,11 +115,11 @@ pub fn Parser(comptime options: Options) type {
             };
         }
 
-        pub fn load(self: *Self, file: std.fs.File) !Document {
+        pub fn parseFromFile(self: *Self, file: std.fs.File) !Document {
             const stat = try file.stat();
             if (stat.size > @intFromEnum(options.max_capacity)) return error.DocumentCapacity;
             if (!manual_manage_strings) {
-                try self.chars.ensureTotalCapacityPrecise(self.allocator.?, stat.size);
+                try self.chars.ensureTotalCapacity(self.allocator.?, stat.size);
                 self.chars.shrinkRetainingCapacity(0);
                 self.chars_ptr = self.chars.items.ptr;
             }
@@ -122,7 +128,7 @@ pub fn Parser(comptime options: Options) type {
                 _ = try file.readAll(self.buffer.items);
                 try self.tokens.build(self.buffer.items);
             } else {
-                try self.tokens.build(file);
+                try self.tokens.build(file.reader().any());
             }
 
             self.cursor = .{ .document = self };
@@ -135,6 +141,8 @@ pub fn Parser(comptime options: Options) type {
                 },
             };
         }
+
+        // pub fn parseFromReader(self : *Self, reader: anytype) !Document {}
 
         pub const Element = union(types.ElementType) {
             null,
@@ -149,14 +157,14 @@ pub fn Parser(comptime options: Options) type {
             document: *Self,
             position: usize = 0,
             depth: u32 = 1,
-            err: Error!void = {},
+            err: ?Error = null,
 
             fn tokens(self: Cursor) *Tokens {
                 return &self.document.tokens;
             }
 
             fn next(self: *Cursor) Error![*]const u8 {
-                try self.err;
+                if (self.err) |err| return err;
 
                 defer self.position += 1;
                 return self.tokens().next();
@@ -248,7 +256,7 @@ pub fn Parser(comptime options: Options) type {
                 });
             }
 
-            inline fn reportError(self: *Cursor, err: Error!void) Error!void {
+            inline fn reportError(self: *Cursor, err: Error) Error!void {
                 self.err = err;
                 return err;
             }
@@ -256,55 +264,55 @@ pub fn Parser(comptime options: Options) type {
 
         pub const Document = struct {
             iter: Value.Iterator,
-            err: Error!void = {},
+            err: ?Error = null,
 
             fn getObject(self: Document) Error!Object {
-                try self.err;
+                if (self.err) |err| return err;
                 return Object.startRoot(self.iter);
             }
 
             fn getArray(self: Document) Error!Array {
-                try self.err;
+                if (self.err) |err| return err;
                 return Array.startRoot(self.iter);
             }
 
             fn getNumber(self: Document) Error!Number {
-                try self.err;
+                if (self.err) |err| return err;
                 return self.iter.getRootNumber();
             }
 
             fn getUnsigned(self: Document) Error!u64 {
-                try self.err;
+                if (self.err) |err| return err;
                 return self.iter.getRootUnsigned();
             }
 
             fn getSigned(self: Document) Error!i64 {
-                try self.err;
+                if (self.err) |err| return err;
                 return self.iter.getRootSigned();
             }
 
             fn getFloat(self: Document) Error!f64 {
-                try self.err;
+                if (self.err) |err| return err;
                 return self.iter.getRootFloat();
             }
 
             fn getString(self: Document) Error![]const u8 {
-                try self.err;
+                if (self.err) |err| return err;
                 return self.iter.getRootString();
             }
 
             fn getBool(self: Document) Error!bool {
-                try self.err;
+                if (self.err) |err| return err;
                 return self.iter.getRootBool();
             }
 
             fn isNull(self: Document) Error!void {
-                try self.err;
+                if (self.err) |err| return err;
                 return self.iter.isRootNull();
             }
 
             fn getAny(self: Document) Error!Element {
-                try self.err;
+                if (self.err) |err| return err;
                 self.iter.assertAtRoot();
                 return switch (try self.iter.cursor.peekChar()) {
                     't', 'f' => .{ .bool = try self.getBool() },
@@ -324,12 +332,12 @@ pub fn Parser(comptime options: Options) type {
             }
 
             fn skip(self: Document) Error!void {
-                try self.err;
+                if (self.err) |err| return err;
                 return self.iter.skipChild();
             }
 
             pub fn at(self: Document, ptr: anytype) Value {
-                self.err catch return .{ .iter = self.iter };
+                if (self.err) |_| return .{ .iter = self.iter };
 
                 const query = brk: {
                     if (common.isString(@TypeOf(ptr))) {
@@ -362,7 +370,7 @@ pub fn Parser(comptime options: Options) type {
 
         pub const Value = struct {
             iter: Iterator,
-            err: Error!void = {},
+            err: ?Error = null,
 
             pub const Iterator = struct {
                 cursor: *Cursor,
@@ -548,7 +556,7 @@ pub fn Parser(comptime options: Options) type {
                 }
 
                 fn isAtEnd(self: Iterator) Error!bool {
-                    return try self.cursor.peekChar() == Tokens.bogus_token;
+                    return common.tables.is_whitespace[try self.cursor.peekChar()];
                 }
 
                 fn hasNextField(self: Iterator) Error!bool {
@@ -750,7 +758,7 @@ pub fn Parser(comptime options: Options) type {
                     assert(self.start_depth > 1);
                 }
 
-                inline fn reportError(self: Iterator, err: Error!void) Error!void {
+                inline fn reportError(self: Iterator, err: Error) Error!void {
                     return self.cursor.reportError(err);
                 }
             };
@@ -760,52 +768,52 @@ pub fn Parser(comptime options: Options) type {
             }
 
             pub fn getObject(self: Value) Error!Object {
-                try self.err;
+                if (self.err) |err| return err;
                 return Object.start(self.iter);
             }
 
             pub fn getArray(self: Value) Error!Array {
-                try self.err;
+                if (self.err) |err| return err;
                 return Array.start(self.iter);
             }
 
             pub fn getNumber(self: Value) Error!Number {
-                try self.err;
+                if (self.err) |err| return err;
                 return self.iter.getNumber();
             }
 
             pub fn getUnsigned(self: Value) Error!u64 {
-                try self.err;
+                if (self.err) |err| return err;
                 return self.iter.getUnsigned();
             }
 
             pub fn getSigned(self: Value) Error!i64 {
-                try self.err;
+                if (self.err) |err| return err;
                 return self.iter.getSigned();
             }
 
             pub fn getFloat(self: Value) Error!f64 {
-                try self.err;
+                if (self.err) |err| return err;
                 return self.iter.getFloat();
             }
 
             pub fn getString(self: Value) Error![]const u8 {
-                try self.err;
+                if (self.err) |err| return err;
                 return self.iter.getString();
             }
 
             pub fn getBool(self: Value) Error!bool {
-                try self.err;
+                if (self.err) |err| return err;
                 return self.iter.getBool();
             }
 
             pub fn isNull(self: Value) Error!void {
-                try self.err;
+                if (self.err) |err| return err;
                 return self.iter.isNull();
             }
 
             pub fn getAny(self: Value) Error!Element {
-                try self.err;
+                if (self.err) |err| return err;
                 return switch (try self.iter.cursor.peekChar()) {
                     't', 'f' => .{ .bool = try self.getBool() },
                     'n' => .{ .null = try self.isNull() },
@@ -820,7 +828,7 @@ pub fn Parser(comptime options: Options) type {
             }
 
             pub fn getType(self: Value) Error!types.ElementType {
-                try self.err;
+                if (self.err) |err| return err;
                 return switch (try self.iter.cursor.peekChar()) {
                     't', 'f' => .bool,
                     'n' => .null,
@@ -833,12 +841,12 @@ pub fn Parser(comptime options: Options) type {
             }
 
             pub fn skip(self: Value) Error!void {
-                try self.err;
+                if (self.err) |err| return err;
                 return self.iter.skipChild();
             }
 
             pub fn at(self: Value, ptr: anytype) Value {
-                self.err catch return self;
+                if (self.err) |_| return self;
 
                 const query = brk: {
                     if (common.isString(@TypeOf(ptr))) {

@@ -1,7 +1,6 @@
 const std = @import("std");
 const zimdjson = @import("zimdjson");
 const TracedAllocator = @import("TracedAllocator");
-const Parser = zimdjson.dom.Parser(.{});
 
 const TopTweet = struct {
     text: []const u8,

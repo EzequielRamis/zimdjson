@@ -2,16 +2,14 @@ const std = @import("std");
 const common = @import("../common.zig");
 const types = @import("../types.zig");
 const indexer = @import("../indexer.zig");
-const Allocator = std.mem.Allocator;
-const ArrayList = std.ArrayList;
 const Vector = types.Vector;
-const Error = types.Error;
 const vector = types.vector;
 const umask = types.umask;
 const assert = std.debug.assert;
 
 pub const Options = struct {
     aligned: bool,
+    assume_padding: bool,
 };
 
 pub fn Iterator(comptime options: Options) type {
@@ -19,35 +17,38 @@ pub fn Iterator(comptime options: Options) type {
         const Self = @This();
         const Aligned = types.Aligned(options.aligned);
 
-        indexes: ArrayList(u32),
-        padding: ArrayList(u8),
-        indexer: indexer.Indexer(.{
-            .aligned = options.aligned,
-            .relative = false,
-        }),
+        pub const Error = indexer.Error || std.mem.Allocator.Error;
+
+        indexes: std.ArrayList(u32),
+        indexer: indexer.Indexer(.{ .aligned = options.aligned, .relative = false }),
         document: Aligned.slice = undefined,
-        padding_token: u32 = undefined,
-        padding_offset: [*]const u8 = undefined,
         token: u32 = undefined,
 
-        pub const bogus_token = ' ';
+        padding: if (!options.assume_padding) std.ArrayList(u8) else void,
+        padding_token: if (!options.assume_padding) u32 else void = undefined,
+        padding_offset: if (!options.assume_padding) [*]const u8 else void = undefined,
 
-        pub fn init(allocator: Allocator) Self {
+        const bogus_token = ' ';
+
+        pub fn init(allocator: std.mem.Allocator) Self {
             return .{
                 .indexer = .init,
                 .indexes = .init(allocator),
-                .padding = .init(allocator),
+                .padding = if (!options.assume_padding) .init(allocator) else {},
             };
         }
 
-        pub fn deinit(self: *Self) void {
+        pub fn deinit(self: Self) void {
             self.indexes.deinit();
-            self.padding.deinit();
+            if (!options.assume_padding) self.padding.deinit();
         }
 
-        pub inline fn build(self: *Self, document: Aligned.slice) !void {
+        pub fn ensureTotalCapacity(self: *Self, capacity: usize) !void {
+            try self.indexes.ensureTotalCapacity(capacity + 1); // + 1 because of the bogus index
+        }
+
+        pub inline fn build(self: *Self, document: Aligned.slice) Error!void {
             {
-                try self.indexes.ensureTotalCapacityPrecise(document.len + 1); // + 1 because of the bogus index
                 self.indexer = .init;
                 self.document = document;
 
@@ -76,33 +77,38 @@ pub fn Iterator(comptime options: Options) type {
 
             const ixs = self.indexes.items;
             self.indexes.appendAssumeCapacity(@intCast(document.len)); // bogus index at document.len
-            const padding_bound = document.len -| Vector.bytes_len;
-            var padding_token: u32 = @intCast(ixs.len - 1);
-            var rev = std.mem.reverseIterator(ixs);
-            while (rev.next()) |t| : (padding_token -|= 1) {
-                if (t <= padding_bound) break;
-            }
             self.token = 0;
-            self.padding_token = padding_token;
-            const padding_index = ixs[padding_token];
-            const padding_len = document.len - padding_index;
-            try self.padding.ensureTotalCapacityPrecise(padding_len + Vector.bytes_len);
-            self.padding.items.len = padding_len + Vector.bytes_len;
-            @memcpy(self.padding.items[0..padding_len], document[padding_index..]);
-            self.padding.items[padding_len] = bogus_token;
-            self.padding_offset = self.padding.items.ptr - padding_index;
+            if (!options.assume_padding) {
+                const padding_bound = document.len -| Vector.bytes_len;
+                var padding_token: u32 = @intCast(ixs.len - 1);
+                var rev = std.mem.reverseIterator(ixs);
+                while (rev.next()) |t| : (padding_token -|= 1) {
+                    if (t <= padding_bound) break;
+                }
+                self.padding_token = padding_token;
+                const padding_index = ixs[padding_token];
+                const padding_len = document.len - padding_index;
+                try self.padding.ensureTotalCapacity(padding_len + Vector.bytes_len);
+                self.padding.items.len = padding_len + Vector.bytes_len;
+                @memcpy(self.padding.items[0..padding_len], document[padding_index..]);
+                self.padding.items[padding_len] = bogus_token;
+                self.padding_offset = self.padding.items.ptr - padding_index;
+            }
         }
 
-        pub inline fn next(self: *Self) [*]const u8 {
+        pub inline fn next(self: *Self) ![*]const u8 { // there is no error but to be consistent with the streaming iterator
             defer self.token += 1;
             return self.peek();
         }
 
         pub inline fn peekChar(self: Self) u8 {
-            return self.peek()[0];
+            return (self.peek() catch unreachable)[0];
         }
 
-        pub inline fn peek(self: Self) [*]const u8 {
+        pub inline fn peek(self: Self) ![*]const u8 {
+            if (options.assume_padding)
+                return self.document.ptr[self.indexes.items.ptr[self.token]..];
+
             if (self.token < self.padding_token) {
                 return self.document.ptr[self.indexes.items.ptr[self.token]..];
             } else {

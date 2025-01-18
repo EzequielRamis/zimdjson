@@ -8,7 +8,7 @@ using namespace simdjson;
 struct simdjson_dom {
 
   string path;
-  dom::parser parser;
+  ondemand::parser parser;
   vector<uint64_t> result{};
 
   void init(string_view _path) {
@@ -20,17 +20,21 @@ struct simdjson_dom {
   }
 
   void run() {
+    padded_string json;
+    simdjson::error_code err;
+    if (err = padded_string::load(path).get(json)) throw runtime_error("file not found");
+
     // Walk the document, parsing as we go
-    auto doc = parser.load(path);
-    for (dom::object tweet : doc["statuses"]) {
+    auto doc = parser.iterate(json);
+    for (ondemand::object tweet : doc.find_field("statuses")) {
       // We believe that all statuses have a matching
       // user, and we are willing to throw when they do not.
-      result.push_back(tweet["user"]["id"]);
+      result.push_back(tweet.find_field("user").find_field("id"));
       // Not all tweets have a "retweeted_status", but when they do
       // we want to go and find the user within.
-      auto retweet = tweet["retweeted_status"];
-      if (retweet.error() != NO_SUCH_FIELD) {
-        result.push_back(retweet["user"]["id"]);
+      auto retweet = tweet.find_field("retweeted_status");
+      if (!retweet.error()) {
+        result.push_back(retweet.find_field("user").find_field("id"));
       }
     }
   }

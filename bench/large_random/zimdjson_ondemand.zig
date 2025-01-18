@@ -2,13 +2,19 @@ const std = @import("std");
 const zimdjson = @import("zimdjson");
 const TracedAllocator = @import("TracedAllocator");
 
+const Point = struct {
+    x: f64,
+    y: f64,
+    z: f64,
+};
+
 var traced = TracedAllocator{ .wrapped = std.heap.c_allocator };
 const allocator = traced.allocator();
 
 var file: std.fs.File = undefined;
 var path: []const u8 = undefined;
-var parser = zimdjson.dom.Parser(.default).init(allocator);
-var result = std.ArrayList(u64).init(allocator);
+var parser = zimdjson.ondemand.Parser(.default).init(allocator);
+var result = std.ArrayList(Point).init(allocator);
 
 pub fn init(_path: []const u8) !void {
     path = _path;
@@ -19,15 +25,15 @@ pub fn prerun() !void {
 }
 
 pub fn run() !void {
-    const doc = try parser.load(path);
-    const statuses = try doc.at("statuses").getArray();
-    var it = statuses.iterator();
-    while (it.next()) |tweet| {
-        try result.append(try tweet.at("user").at("id").getUnsigned());
-        const retweet = tweet.at("retweeted_status");
-        if (retweet.err != error.MissingField) {
-            try result.append(try retweet.at("user").at("id").getUnsigned());
-        }
+    const doc = try parser.parseFromFile(path);
+    const systems = try doc.getArray();
+    while (try systems.next()) |sys| {
+        const point = try sys.at("coords").getObject();
+        try result.append(.{
+            .x = try point.at("x").getFloat(),
+            .y = try point.at("y").getFloat(),
+            .z = try point.at("z").getFloat(),
+        });
     }
 }
 

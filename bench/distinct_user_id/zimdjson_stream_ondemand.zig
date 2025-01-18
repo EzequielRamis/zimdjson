@@ -7,7 +7,7 @@ const allocator = traced.allocator();
 
 var file: std.fs.File = undefined;
 var path: []const u8 = undefined;
-var parser = zimdjson.dom.Parser(.default).init(allocator);
+var parser = zimdjson.ondemand.Parser(.{ .stream = .default }).init(allocator);
 var result = std.ArrayList(u64).init(allocator);
 
 pub fn init(_path: []const u8) !void {
@@ -21,11 +21,10 @@ pub fn prerun() !void {
 pub fn run() !void {
     const doc = try parser.load(path);
     const statuses = try doc.at("statuses").getArray();
-    var it = statuses.iterator();
-    while (it.next()) |tweet| {
+    while (try statuses.next()) |tweet| {
         try result.append(try tweet.at("user").at("id").getUnsigned());
         const retweet = tweet.at("retweeted_status");
-        if (retweet.err != error.MissingField) {
+        if (retweet.err == null) {
             try result.append(try retweet.at("user").at("id").getUnsigned());
         }
     }

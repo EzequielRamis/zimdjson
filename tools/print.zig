@@ -44,9 +44,7 @@ fn walk(v: Parser.Value) !void {
         },
         .string => |value| try w.print("\"{s}\"", .{value}),
         .number => |value| switch (value) {
-            .unsigned => |n| try w.print("{}", .{n}),
-            .signed => |n| try w.print("{}", .{n}),
-            .float => |n| try w.print("{}", .{n}),
+            inline else => |n| try w.print("{}", .{n}),
         },
         .bool => |value| try w.print("{}", .{value}),
         .null => try w.print("null", .{}),
@@ -68,7 +66,7 @@ pub fn main() !void {
     defer parser.deinit();
 
     const file = try std.fs.openFileAbsolute(args[1], .{});
-    const json = try parser.load(file);
+    const json = try parser.parseFromFile(file);
     try walk(Parser.Value.from(json));
     try buf.flush();
 }

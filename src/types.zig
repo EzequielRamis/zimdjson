@@ -3,6 +3,8 @@ const builtin = @import("builtin");
 const meta = std.meta;
 const simd = std.simd;
 const arch = builtin.cpu.arch;
+const assert = std.debug.assert;
+const Allocator = std.mem.Allocator;
 
 const signed = std.builtin.Signedness.signed;
 const unsigned = std.builtin.Signedness.unsigned;
@@ -36,17 +38,13 @@ pub const Number = union(NumberType) {
 
     pub fn lossyCast(self: Number, comptime T: type) T {
         return switch (self) {
-            .unsigned => |n| std.math.lossyCast(T, n),
-            .signed => |n| std.math.lossyCast(T, n),
-            .float => |n| std.math.lossyCast(T, n),
+            inline else => |_, n| std.math.lossyCast(T, n),
         };
     }
 
     pub fn cast(self: Number, comptime T: type) ?T {
         return switch (self) {
-            .unsigned => |n| std.math.cast(T, n),
-            .signed => |n| std.math.cast(T, n),
-            .float => |n| std.math.cast(T, n),
+            inline else => |_, n| std.math.cast(T, n),
         };
     }
 };
@@ -60,21 +58,14 @@ pub const ElementType = enum {
     array,
 };
 
-pub const Error = error{
-    Empty,
+pub const ParseError = error{
     ExceededDepth,
     ExceededCapacity,
-    StreamError,
-    StreamRead,
-    StreamChunkOverflow,
-    FoundControlCharacter,
-    InvalidEncoding,
     InvalidEscape,
     InvalidUnicodeCodePoint,
     InvalidNumberLiteral,
     ExpectedValue,
     ExpectedColon,
-    ExpectedStringEnd,
     ExpectedKey,
     ExpectedArrayCommaOrEnd,
     ExpectedObjectCommaOrEnd,
@@ -83,13 +74,11 @@ pub const Error = error{
     NumberOutOfRange,
     IndexOutOfBounds,
     TrailingContent,
-    IncorrectPointer,
     IncorrectType,
     UnknownVariant,
     UnknownField,
     MissingField,
     DuplicateField,
-    OutOfOrderIteration,
 };
 
 pub const Vector = struct {
@@ -145,3 +134,91 @@ pub const Predicate = struct {
         )));
     }
 };
+
+pub fn BoundedArrayListUnmanaged(comptime T: type, comptime initial_max_capacity: usize) type {
+    const Error = ParseError || Allocator.Error;
+
+    return struct {
+        const Self = @This();
+
+        max_capacity: usize,
+        list: std.ArrayListUnmanaged(T),
+
+        pub const empty = Self{
+            .list = .empty,
+            .max_capacity = initial_max_capacity,
+        };
+
+        pub fn deinit(self: *Self, allocator: Allocator) void {
+            self.list.deinit(allocator);
+        }
+
+        pub fn ensureUnusedCapacity(
+            self: *Self,
+            allocator: Allocator,
+            additional_count: usize,
+        ) Error!void {
+            if (self.list.items.len + additional_count > self.max_capacity) return error.ExceededCapacity;
+            try self.list.ensureUnusedCapacity(allocator, additional_count);
+        }
+
+        pub fn ensureTotalCapacity(
+            self: *Self,
+            allocator: Allocator,
+            new_capacity: usize,
+        ) Error!void {
+            if (new_capacity > self.max_capacity) return error.ExceededCapacity;
+            try self.list.ensureTotalCapacity(allocator, new_capacity);
+        }
+
+        pub fn appendAssumeCapacity(self: *Self, item: T) void {
+            self.list.appendAssumeCapacity(item);
+        }
+
+        pub fn items(self: Self) []T {
+            return self.list.items;
+        }
+    };
+}
+
+pub fn BoundedMultiArrayList(comptime T: type, comptime initial_max_capacity: usize) type {
+    const Error = ParseError || Allocator.Error;
+
+    return struct {
+        const Self = @This();
+
+        max_capacity: usize,
+        list: std.MultiArrayList(T),
+
+        pub const empty = Self{
+            .list = .empty,
+            .max_capacity = initial_max_capacity,
+        };
+
+        pub fn deinit(self: *Self, allocator: Allocator) void {
+            self.list.deinit(allocator);
+        }
+
+        pub fn ensureUnusedCapacity(
+            self: *Self,
+            allocator: Allocator,
+            additional_count: usize,
+        ) Error!void {
+            if (self.list.len + additional_count > self.max_capacity) return error.ExceededDepth;
+            try self.list.ensureTotalCapacity(allocator, self.list.len + additional_count);
+        }
+
+        pub fn ensureTotalCapacity(
+            self: *Self,
+            allocator: Allocator,
+            new_capacity: usize,
+        ) Error!void {
+            if (new_capacity > self.max_capacity) return error.ExceededCapacity;
+            try self.list.ensureTotalCapacity(allocator, new_capacity);
+        }
+
+        pub fn appendAssumeCapacity(self: *Self, item: T) void {
+            self.list.appendAssumeCapacity(item);
+        }
+    };
+}

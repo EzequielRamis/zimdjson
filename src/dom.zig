@@ -119,7 +119,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             }
 
             if (!want_stream) {
-                try self.tape.tokens.indexes.ensureTotalCapacity(new_capacity);
+                try self.tape.tokens.ensureTotalCapacity(new_capacity);
             }
 
             try self.tape.stack.ensureTotalCapacity(self.tape.allocator, new_depth);
@@ -137,9 +137,10 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     &self.document,
                     self.max_capacity,
                 )));
+                const len = self.document.items.len;
                 try self.document.appendNTimes(' ', types.Vector.bytes_len);
-                try self.ensureTotalCapacity(self.document.items.len, self.depth);
-                try self.tape.build(self.document.items);
+                try self.ensureTotalCapacity(len, self.depth);
+                try self.tape.build(self.document.items[0..len]);
             } else {
                 if (!want_stream) assert(document.len <= self.capacity);
                 try self.ensureTotalCapacity(document.len, self.depth);
@@ -159,8 +160,9 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     &self.document,
                     self.capacity,
                 );
+                const len = self.document.items.len;
                 try self.document.appendNTimes(' ', types.Vector.bytes_len);
-                try self.tape.build(self.document.items);
+                try self.tape.build(self.document.items[0..len]);
             } else {
                 if (!want_stream) assert(document.len <= self.capacity);
                 try self.tape.build(document);
@@ -528,7 +530,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     try self.words.ensureTotalCapacity(self.allocator, tokens_count);
 
                     // if there are only n numbers, there must be n - 1 commas plus an ending container token, so almost half of the tokens are numbers
-                    try self.numbers.ensureTotalCapacity(self.allocator, tokens_count >> 1 + 1);
+                    try self.numbers.ensureTotalCapacity(self.allocator, (tokens_count >> 1) + 1);
                 }
 
                 self.words.list.shrinkRetainingCapacity(0);
@@ -813,9 +815,9 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             }
 
             inline fn visitString(self: *Tape, ptr: [*]const u8) Error!void {
-                if (options.stream) |s| {
+                if (want_stream) {
                     try self.words.ensureUnusedCapacity(self.allocator, 1);
-                    try self.strings.ensureUnusedCapacity(self.allocator, s.chunk_length);
+                    try self.strings.ensureUnusedCapacity(self.allocator, options.stream.?.chunk_length);
                 }
                 const writeString = @import("parsers/string.zig").writeString;
                 const curr: u32 = @intCast(self.strings.items().len);

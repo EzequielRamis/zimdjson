@@ -22,10 +22,10 @@ pub fn prerun() !void {}
 pub fn run() !void {
     file = try std.fs.openFileAbsolute(path, .{});
     const doc = try parser.load(file);
-    const tweet = try doc.at("statuses").getArray();
+    const tweet = try doc.at("statuses").asArray();
     while (try tweet.next()) |t| {
-        if (try t.at("id").getUnsigned() == find_id) {
-            result = try t.at("text").getString();
+        if (try t.at("id").asUnsigned() == find_id) {
+            result = try t.at("text").asString().get();
             return;
         }
     }

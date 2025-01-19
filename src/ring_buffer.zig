@@ -24,8 +24,8 @@ pub fn RingBuffer(comptime T: type, comptime length: u32) type {
         pub const capacity = length;
 
         base: Buffer,
-        head: u32,
-        tail: u32,
+        head: usize,
+        tail: usize,
 
         const Buffer = struct {
             buffer: [*]align(std.mem.page_size) u8,
@@ -186,13 +186,13 @@ pub fn RingBuffer(comptime T: type, comptime length: u32) type {
             return @ptrCast(self.base.buffer);
         }
 
-        pub fn len(self: Self) u32 {
+        pub fn len(self: Self) usize {
             const wrap_offset = length * 2 * @intFromBool(self.head < self.tail);
             const head = self.head +% wrap_offset;
             return head -% self.tail;
         }
 
-        pub inline fn unused(self: Self) u32 {
+        pub inline fn unused(self: Self) usize {
             return length - self.len();
         }
 
@@ -228,12 +228,12 @@ pub fn RingBuffer(comptime T: type, comptime length: u32) type {
             return self.slice();
         }
 
-        pub inline fn readFirst(self: *Self, count: u32) Error![]const T {
+        pub inline fn readFirst(self: *Self, count: usize) Error![]const T {
             if (count > self.len()) return error.ReadLengthInvalid;
             return self.readFirstAssumeLength(count);
         }
 
-        pub inline fn readFirstAssumeLength(self: *Self, count: u32) []const T {
+        pub inline fn readFirstAssumeLength(self: *Self, count: usize) []const T {
             assert(count <= self.len());
             defer self.tail +%= count;
             return self.ptr()[mask(self.tail)..][0..count];
@@ -261,12 +261,12 @@ pub fn RingBuffer(comptime T: type, comptime length: u32) type {
             @memcpy(self.ptr()[mask(self.head)..][0..data.len], data);
         }
 
-        pub inline fn reserve(self: *Self, count: u32) Error![]T {
+        pub inline fn reserve(self: *Self, count: usize) Error![]T {
             if (count > self.unused()) return error.Full;
             return self.reserveAssumeCapacity(count);
         }
 
-        pub inline fn reserveAssumeCapacity(self: *Self, count: u32) []T {
+        pub inline fn reserveAssumeCapacity(self: *Self, count: usize) []T {
             assert(count <= self.unused());
             defer self.head +%= count;
             return self.ptr()[mask(self.head)..][0..count];
@@ -276,12 +276,12 @@ pub fn RingBuffer(comptime T: type, comptime length: u32) type {
             return self.reserveAssumeCapacity(self.unused());
         }
 
-        pub inline fn consume(self: *Self, count: u32) Error!void {
+        pub inline fn consume(self: *Self, count: usize) Error!void {
             if (count > self.len()) return error.ReadLengthInvalid;
             self.consumeAssumeLength(count);
         }
 
-        pub inline fn consumeAssumeLength(self: *Self, count: u32) void {
+        pub inline fn consumeAssumeLength(self: *Self, count: usize) void {
             assert(count <= self.len());
             self.tail +%= count;
         }
@@ -290,17 +290,17 @@ pub fn RingBuffer(comptime T: type, comptime length: u32) type {
             self.consumeAssumeLength(self.len());
         }
 
-        pub inline fn shrink(self: *Self, count: u32) Error!void {
+        pub inline fn shrink(self: *Self, count: usize) Error!void {
             if (count > self.len()) return error.ReadLengthInvalid;
             self.shrinkAssumeLength(count);
         }
 
-        pub inline fn shrinkAssumeLength(self: *Self, count: u32) void {
+        pub inline fn shrinkAssumeLength(self: *Self, count: usize) void {
             assert(count <= self.len());
             self.head -%= count;
         }
 
-        inline fn mask(n: u32) u32 {
+        inline fn mask(n: usize) usize {
             return n & (length - 1);
         }
     };

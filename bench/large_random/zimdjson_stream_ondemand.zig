@@ -26,13 +26,13 @@ pub fn prerun() !void {
 
 pub fn run() !void {
     const doc = try parser.parseFromFile(path);
-    const systems = try doc.getArray();
+    const systems = try doc.asArray();
     while (try systems.next()) |sys| {
-        const point = try sys.at("coords").getObject();
+        const point = try sys.at("coords").asObject();
         try result.append(.{
-            .x = try point.at("x").getFloat(),
-            .y = try point.at("y").getFloat(),
-            .z = try point.at("z").getFloat(),
+            .x = try point.at("x").asFloat(),
+            .y = try point.at("y").asFloat(),
+            .z = try point.at("z").asFloat(),
         });
     }
 }

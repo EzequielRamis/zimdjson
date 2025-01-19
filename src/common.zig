@@ -10,14 +10,6 @@ pub const error_messages = struct {
     pub const at_type = "A number or string must be provided for the `at` parameter.";
 };
 
-pub fn roundUp(comptime T: type, value: T, alignment: T) T {
-    return (value + (alignment - 1)) & ~(alignment - 1);
-}
-
-pub fn roundDown(comptime T: type, value: T, alignment: T) T {
-    return value & ~(alignment - 1);
-}
-
 pub const tables = struct {
     pub const is_structural: [256]bool = init: {
         var res: [256]bool = undefined;

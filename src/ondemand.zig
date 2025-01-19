@@ -5,6 +5,7 @@ const common = @import("common.zig");
 const types = @import("types.zig");
 const intr = @import("intrinsics.zig");
 const tokens = @import("tokens.zig");
+const NumberParser = @import("parsers/number/parser.zig").Parser;
 const Vector = types.Vector;
 const Pred = types.Predicate;
 const Allocator = std.mem.Allocator;
@@ -13,124 +14,152 @@ const vector = types.vector;
 const log = std.log;
 const assert = std.debug.assert;
 
-const Capacity = enum(u64) {
-    infinite = std.math.maxInt(u64),
-    normal = std.math.maxInt(u32),
-    _,
+pub const default_stream_chunk_length = tokens.ring_buffer.default_chunk_length;
 
-    fn greater(self: Capacity, other: Capacity) bool {
-        return @intFromEnum(self) > @intFromEnum(other);
-    }
-};
+pub fn ParserOptions(comptime Reader: ?type) type {
+    return if (Reader) |_| struct {
+        pub const default: @This() = .{};
+        aligned: bool = false,
+        stream: ?struct {
+            pub const default: @This() = .{};
+            chunk_length: u32 = default_stream_chunk_length,
+        } = null,
+    } else struct {
+        pub const default: @This() = .{};
+        aligned: bool = false,
+        assume_padding: bool = false,
+    };
+}
 
-pub const StreamOptions = struct {
-    pub const default: StreamOptions = .{};
+pub fn parserFromSlice(comptime options: ParserOptions(null)) type {
+    return Parser(null, options);
+}
 
-    chunk_length: u32 = tokens.StreamOptions.default.chunk_length,
-    manual_manage_strings: bool = false,
-};
+pub fn parserFromFile(comptime options: ParserOptions(std.fs.File.Reader)) type {
+    return Parser(std.fs.File.Reader, options);
+}
 
-pub const Options = struct {
-    pub const default: Options = .{};
-
-    max_capacity: Capacity = .normal,
-    max_depth: u32 = 1024,
-    aligned: bool = false,
-    stream: ?StreamOptions = null,
-};
-
-pub fn Parser(comptime Reader: ?type, comptime options: Options) type {
-    const NumberParser = @import("parsers/number/parser.zig").Parser;
-
-    if (options.stream == null and comptime options.max_capacity.greater(.normal))
-        @compileError("Larger documents are not supported in non-stream mode. Consider using stream mode.");
-
-    const manual_manage_strings = if (options.stream) |s| s.manual_manage_strings else false;
-
-    const must_be_manual_manage_strings = options.max_capacity == .infinite;
-    if (must_be_manual_manage_strings and !manual_manage_strings)
-        @compileError("Strings stored in parser are not supported with infinite capacity");
+pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) type {
+    const want_stream = Reader != null and options.stream != null;
+    const need_document_buffer = Reader != null and options.stream == null;
 
     return struct {
         const Self = @This();
 
         const Aligned = types.Aligned(options.aligned);
-        const Tokens = tokens.Tokens(.{
-            .Reader = Reader,
-            .aligned = options.aligned,
-            .stream = if (options.stream) |s|
-                .{
-                    .chunk_length = s.chunk_length,
-                }
-            else
-                null,
-        });
+        const Tokens = if (want_stream)
+            tokens.Stream(.{
+                .Reader = Reader.?,
+                .aligned = options.aligned,
+                .chunk_len = options.stream.?.chunk_length,
+                .slots = 4,
+            })
+        else
+            tokens.Iterator(.{
+                .aligned = options.aligned,
+                .assume_padding = Reader != null or options.assume_padding,
+            });
 
-        pub const Error = types.ParserError || (if (options.stream) |_| types.StreamError else error{});
+        pub const Error = Tokens.Error || types.ParseError || Allocator.Error || error{ExpectedAllocator};
+        pub const max_capacity_bound = if (want_stream) std.math.maxInt(usize) else std.math.maxInt(u32);
+        pub const default_max_depth = 1024;
 
-        allocator: ?Allocator,
+        allocator: if (want_stream) ?Allocator else Allocator,
+        document_buffer: if (need_document_buffer) std.ArrayListAligned(u8, types.Aligned(true).alignment) else void,
+
         tokens: Tokens,
-        buffer: if (options.stream) |_| void else std.ArrayListAligned(u8, types.Aligned(true).alignment),
-        chars: std.ArrayListUnmanaged(u8),
-        chars_ptr: [*]u8 = undefined,
+        strings: types.BoundedArrayListUnmanaged(u8, max_capacity_bound),
         cursor: Cursor = undefined,
 
-        // para streaming enchufarle el tipo ?Allocator en el init, para que el usuario tenga la opcion de mandarle un allocator por si sabe el tamaño del documento
-        // o si no, que el usuario se encargue de mandar buffers para los fields y los strings
-        pub fn init(allocator: if (manual_manage_strings) ?Allocator else Allocator) Self {
+        max_capacity: usize,
+        max_depth: usize,
+        capacity: usize,
+        depth: usize,
+
+        pub fn init(allocator: if (want_stream) ?Allocator else Allocator) Self {
             return .{
                 .allocator = allocator,
-                .tokens = if (options.stream) |_| .init({}) else .init(allocator),
-                .buffer = if (options.stream) |_| {} else .init(allocator),
-                .chars = .empty,
+                .document_buffer = if (need_document_buffer) .init(allocator) else {},
+                .tokens = if (want_stream) .init else .init(allocator),
+                .strings = .empty,
+                .max_capacity = max_capacity_bound,
+                .max_depth = default_max_depth,
+                .capacity = 0,
+                .depth = 0,
             };
         }
 
         pub fn deinit(self: *Self) void {
             self.tokens.deinit();
-            if (self.allocator) |alloc| self.chars.deinit(alloc);
-            if (options.stream == null) {
-                self.buffer.deinit();
-            }
-        }
-
-        pub fn parseFromSlice(self: *Self, document: Aligned.slice) !Document {
-            if (options.stream) |_| @compileError(common.error_messages.stream_slice);
-
-            if (document.len > @intFromEnum(options.max_capacity)) return error.DocumentCapacity;
-            try self.tokens.build(document);
-
-            try self.chars.ensureTotalCapacity(self.allocator.?, document.len);
-            self.chars.shrinkRetainingCapacity(0);
-            self.chars_ptr = self.chars.items.ptr;
-
-            self.cursor = .{ .document = self };
-            return .{
-                .iter = .{
-                    .cursor = &self.cursor,
-                    .start_position = 0,
-                    .start_depth = 1,
-                    .start_char = try self.cursor.peekChar(),
-                },
-            };
-        }
-
-        pub fn parseFromFile(self: *Self, file: std.fs.File) !Document {
-            const stat = try file.stat();
-            if (stat.size > @intFromEnum(options.max_capacity)) return error.DocumentCapacity;
-            if (!manual_manage_strings) {
-                try self.chars.ensureTotalCapacity(self.allocator.?, stat.size);
-                self.chars.shrinkRetainingCapacity(0);
-                self.chars_ptr = self.chars.items.ptr;
-            }
-            if (options.stream == null) {
-                try self.buffer.resize(stat.size);
-                _ = try file.readAll(self.buffer.items);
-                try self.tokens.build(self.buffer.items);
+            if (need_document_buffer) self.document_buffer.deinit();
+            if (want_stream) {
+                if (self.allocator) |alloc| self.strings.deinit(alloc);
             } else {
-                try self.tokens.build(file.reader().any());
+                self.strings.deinit(self.allocator);
+            }
+        }
+
+        pub fn setMaximumCapacity(self: *Self, new_capacity: usize, new_depth: usize) Error!void {
+            if (new_capacity > max_capacity_bound) return error.ExceededCapacity;
+
+            if (!want_stream and new_capacity + 1 < self.tokens.indexes.items.len)
+                self.tokens.indexes.shrinkAndFree(new_capacity + 1);
+
+            if (new_capacity + types.Vector.bytes_len < self.strings.items().len) {
+                if (want_stream) {
+                    if (self.allocator) |alloc|
+                        self.strings.list.shrinkAndFree(alloc, new_capacity + types.Vector.bytes_len);
+                } else {
+                    self.strings.list.shrinkAndFree(self.allocator, new_capacity + types.Vector.bytes_len);
+                }
+                self.strings.max_capacity = new_capacity + types.Vector.bytes_len;
             }
 
+            self.max_capacity = new_capacity;
+            self.max_depth = new_depth;
+        }
+
+        pub fn ensureTotalCapacity(self: *Self, new_capacity: usize, new_depth: usize) Error!void {
+            if (new_capacity > self.max_capacity) return error.ExceededCapacity;
+            if (new_depth > self.max_depth) return error.ExceededDepth;
+
+            if (need_document_buffer) {
+                try self.document_buffer.ensureTotalCapacity(new_capacity + types.Vector.bytes_len);
+            }
+
+            if (!want_stream) {
+                try self.tokens.ensureTotalCapacity(new_capacity);
+            }
+
+            if (want_stream) {
+                if (self.allocator) |alloc|
+                    try self.strings.ensureTotalCapacity(alloc, new_capacity + types.Vector.bytes_len);
+            } else {
+                try self.strings.ensureTotalCapacity(self.allocator, new_capacity + types.Vector.bytes_len);
+            }
+
+            self.capacity = new_capacity;
+            self.depth = new_depth;
+        }
+
+        pub fn parse(self: *Self, document: if (Reader) |reader| reader else Aligned.slice) Error!Document {
+            if (need_document_buffer) {
+                self.document_buffer.clearRetainingCapacity();
+                try @as(Error!void, @errorCast(common.readAllArrayListAlignedRetainingCapacity(
+                    document,
+                    types.Aligned(true).alignment,
+                    &self.document_buffer,
+                    self.max_capacity,
+                )));
+                const len = self.document_buffer.items.len;
+                try self.document_buffer.appendNTimes(' ', types.Vector.bytes_len);
+                try self.ensureTotalCapacity(len, self.depth);
+                try self.tokens.build(self.document_buffer.items[0..len]);
+            } else {
+                if (!want_stream) try self.ensureTotalCapacity(document.len, self.depth);
+                try self.tokens.build(document);
+            }
+            self.strings.list.clearRetainingCapacity();
             self.cursor = .{ .document = self };
             return .{
                 .iter = .{
@@ -142,13 +171,34 @@ pub fn Parser(comptime Reader: ?type, comptime options: Options) type {
             };
         }
 
-        // pub fn parseFromReader(self : *Self, reader: anytype) !Document {}
+        pub fn parseAssumeCapacity(self: *Self, document: if (Reader) |reader| reader else Aligned.slice) Error!Document {
+            if (need_document_buffer) {
+                self.document_buffer.clearRetainingCapacity();
+                const len = try document.readAll(self.document_buffer.items);
+                if (len > self.capacity) return error.ExceededCapacity;
+                try self.document_buffer.appendNTimes(' ', types.Vector.bytes_len);
+                try self.tokens.build(self.document_buffer.items[0..len]);
+            } else {
+                if (!want_stream) if (document.len > self.capacity) return error.ExceededCapacity;
+                try self.tokens.build(document);
+            }
+            self.strings.list.clearRetainingCapacity();
+            self.cursor = .{ .document = self };
+            return .{
+                .iter = .{
+                    .cursor = &self.cursor,
+                    .start_position = 0,
+                    .start_depth = 1,
+                    .start_char = try self.cursor.peekChar(),
+                },
+            };
+        }
 
         pub const Element = union(types.ElementType) {
             null,
             bool: bool,
             number: Number,
-            string: []const u8,
+            string: String,
             object: Object,
             array: Array,
         };
@@ -179,23 +229,15 @@ pub fn Parser(comptime Reader: ?type, comptime options: Options) type {
             }
 
             fn ascend(self: *Cursor, parent_depth: u32) void {
-                assert(0 <= parent_depth and parent_depth < options.max_depth - 1);
+                assert(0 <= parent_depth and parent_depth < self.document.max_depth - 1);
                 assert(self.depth == parent_depth + 1);
                 self.depth = parent_depth;
             }
 
             fn descend(self: *Cursor, child_depth: u32) void {
-                assert(1 <= child_depth and child_depth < options.max_depth);
+                assert(1 <= child_depth and child_depth < self.document.max_depth);
                 assert(self.depth == child_depth - 1);
                 self.depth = child_depth;
-            }
-
-            fn getNextStringPtr(self: Cursor) [*]u8 {
-                return self.document.chars_ptr;
-            }
-
-            fn setNextStringPtr(self: *Cursor, ptr: [*]u8) void {
-                self.document.chars_ptr = ptr;
             }
 
             fn skip(self: *Cursor, parent_depth: u32, parent_char: u8) Error!void {
@@ -266,72 +308,76 @@ pub fn Parser(comptime Reader: ?type, comptime options: Options) type {
             iter: Value.Iterator,
             err: ?Error = null,
 
-            fn getObject(self: Document) Error!Object {
+            pub fn asObject(self: Document) Error!Object {
                 if (self.err) |err| return err;
                 return Object.startRoot(self.iter);
             }
 
-            fn getArray(self: Document) Error!Array {
+            pub fn asArray(self: Document) Error!Array {
                 if (self.err) |err| return err;
                 return Array.startRoot(self.iter);
             }
 
-            fn getNumber(self: Document) Error!Number {
+            pub fn asNumber(self: Document) Error!Number {
                 if (self.err) |err| return err;
-                return self.iter.getRootNumber();
+                return self.iter.asRootNumber();
             }
 
-            fn getUnsigned(self: Document) Error!u64 {
+            pub fn asUnsigned(self: Document) Error!u64 {
                 if (self.err) |err| return err;
-                return self.iter.getRootUnsigned();
+                return self.iter.asRootUnsigned();
             }
 
-            fn getSigned(self: Document) Error!i64 {
+            pub fn asSigned(self: Document) Error!i64 {
                 if (self.err) |err| return err;
-                return self.iter.getRootSigned();
+                return self.iter.asRootSigned();
             }
 
-            fn getFloat(self: Document) Error!f64 {
+            pub fn asFloat(self: Document) Error!f64 {
                 if (self.err) |err| return err;
-                return self.iter.getRootFloat();
+                return self.iter.asRootFloat();
             }
 
-            fn getString(self: Document) Error![]const u8 {
-                if (self.err) |err| return err;
-                return self.iter.getRootString();
+            pub fn asString(self: Document) String {
+                if (self.err) |err| return .{
+                    .iter = self.iter,
+                    .raw_str = undefined,
+                    .err = err,
+                };
+                return self.iter.asRootString();
             }
 
-            fn getBool(self: Document) Error!bool {
+            pub fn asBool(self: Document) Error!bool {
                 if (self.err) |err| return err;
-                return self.iter.getRootBool();
+                return self.iter.asRootBool();
             }
 
-            fn isNull(self: Document) Error!void {
+            pub fn isNull(self: Document) Error!void {
                 if (self.err) |err| return err;
                 return self.iter.isRootNull();
             }
 
-            fn getAny(self: Document) Error!Element {
+            pub fn asAny(self: Document) Error!Element {
                 if (self.err) |err| return err;
                 self.iter.assertAtRoot();
                 return switch (try self.iter.cursor.peekChar()) {
-                    't', 'f' => .{ .bool = try self.getBool() },
+                    't', 'f' => .{ .bool = try self.asBool() },
                     'n' => .{ .null = try self.isNull() },
-                    '"' => .{ .string = try self.getString() },
-                    '-', '0'...'9' => switch (try self.getNumber()) {
+                    '"' => .{ .string = self.asString() },
+                    '-', '0'...'9' => switch (try self.asNumber()) {
                         .unsigned => |n| .{ .unsigned = n },
                         .signed => |n| .{ .signed = n },
                         .float => |n| .{ .float = n },
                     },
-                    '[' => .{ .array = try self.getArray() },
-                    '{' => .{ .object = try self.getObject() },
+                    '[' => .{ .array = try self.asArray() },
+                    '{' => .{ .object = try self.asObject() },
                     else => {
                         return error.ExpectedDocument;
                     },
                 };
             }
 
-            fn skip(self: Document) Error!void {
+            pub fn skip(self: Document) Error!void {
                 if (self.err) |err| return err;
                 return self.iter.skipChild();
             }
@@ -355,14 +401,14 @@ pub fn Parser(comptime Reader: ?type, comptime options: Options) type {
 
             fn startOrResumeObject(self: Document) Error!Object {
                 if (self.iter.isAtRoot()) {
-                    return self.getObject();
+                    return self.asObject();
                 }
                 return .{ .iter = self.iter };
             }
 
             fn startOrResumeArray(self: Document) Error!Array {
                 if (self.iter.isAtRoot()) {
-                    return self.getArray();
+                    return self.asArray();
                 }
                 return .{ .iter = self.iter };
             }
@@ -378,37 +424,40 @@ pub fn Parser(comptime Reader: ?type, comptime options: Options) type {
                 start_depth: u32,
                 start_char: u8,
 
-                fn getNumber(self: Iterator) Error!Number {
+                fn asNumber(self: Iterator) Error!Number {
                     const n = try self.parseNumber(try self.peekNonRootScalar());
                     try self.advanceNonRootScalar();
                     return n;
                 }
 
-                fn getUnsigned(self: Iterator) Error!u64 {
+                fn asUnsigned(self: Iterator) Error!u64 {
                     const n = try self.parseUnsigned(try self.peekNonRootScalar());
                     try self.advanceNonRootScalar();
                     return n;
                 }
 
-                fn getSigned(self: Iterator) Error!i64 {
+                fn asSigned(self: Iterator) Error!i64 {
                     const n = try self.parseSigned(try self.peekNonRootScalar());
                     try self.advanceNonRootScalar();
                     return n;
                 }
 
-                fn getFloat(self: Iterator) Error!f64 {
+                fn asFloat(self: Iterator) Error!f64 {
                     const n = try self.parseFloat(try self.peekNonRootScalar());
                     try self.advanceNonRootScalar();
                     return n;
                 }
 
-                fn getString(self: Iterator) Error![]const u8 {
-                    const str = try self.parseString(try self.peekNonRootScalar());
+                fn asString(self: Iterator) Error!String {
+                    const str = String{
+                        .iter = self,
+                        .raw_str = try self.peekNonRootScalar(),
+                    };
                     try self.advanceNonRootScalar();
                     return str;
                 }
 
-                fn getBool(self: Iterator) Error!bool {
+                fn asBool(self: Iterator) Error!bool {
                     const is_true = try self.parseBool(try self.peekNonRootScalar());
                     try self.advanceNonRootScalar();
                     return is_true;
@@ -419,37 +468,40 @@ pub fn Parser(comptime Reader: ?type, comptime options: Options) type {
                     try self.advanceNonRootScalar();
                 }
 
-                fn getRootNumber(self: Iterator) Error!Number {
+                fn asRootNumber(self: Iterator) Error!Number {
                     const n = try self.parseNumber(try self.peekRootScalar());
                     try self.advanceRootScalar();
                     return n;
                 }
 
-                fn getRootUnsigned(self: Iterator) Error!u64 {
+                fn asRootUnsigned(self: Iterator) Error!u64 {
                     const n = try self.parseUnsigned(try self.peekRootScalar());
                     try self.advanceRootScalar();
                     return n;
                 }
 
-                fn getRootSigned(self: Iterator) Error!i64 {
+                fn asRootSigned(self: Iterator) Error!i64 {
                     const n = try self.parseSigned(try self.peekRootScalar());
                     try self.advanceRootScalar();
                     return n;
                 }
 
-                fn getRootFloat(self: Iterator) Error!f64 {
+                fn asRootFloat(self: Iterator) Error!f64 {
                     const n = try self.parseFloat(try self.peekRootScalar());
                     try self.advanceRootScalar();
                     return n;
                 }
 
-                fn getRootString(self: Iterator) Error![]const u8 {
-                    const str = try self.parseString(try self.peekRootScalar());
+                fn asRootString(self: Iterator) Error!String {
+                    const str = String{
+                        .iter = self,
+                        .raw_str = try self.peekRootScalar(),
+                    };
                     try self.advanceRootScalar();
                     return str;
                 }
 
-                fn getRootBool(self: Iterator) Error!bool {
+                fn asRootBool(self: Iterator) Error!bool {
                     const is_true = try self.parseBool(try self.peekRootScalar());
                     try self.advanceRootScalar();
                     return is_true;
@@ -476,18 +528,12 @@ pub fn Parser(comptime Reader: ?type, comptime options: Options) type {
                     return NumberParser.parseFloat(ptr);
                 }
 
-                fn parseString(self: Iterator, ptr: [*]const u8) Error![]const u8 {
-                    // if (options.stream != null and options.stream.?.manual_manage_strings)
-                    //     @compileError("Strings stored in parser are not available. Consider enabling `.manage_strings` or using `writeString`.");
-
+                fn parseString(_: Iterator, ptr: [*]const u8, dst: [*]u8) Error![]const u8 {
                     if (ptr[0] != '"') return error.IncorrectType;
-
-                    const next_str = self.cursor.getNextStringPtr();
                     const write = @import("parsers/string.zig").writeString;
-                    const sentinel = try write(ptr, next_str);
-                    const next_len = @intFromPtr(sentinel) - @intFromPtr(next_str);
-                    self.cursor.setNextStringPtr(sentinel);
-                    return next_str[0..next_len];
+                    const sentinel = try write(ptr, dst);
+                    const next_len = @intFromPtr(sentinel) - @intFromPtr(dst);
+                    return dst[0..next_len];
                 }
 
                 fn parseBool(_: Iterator, ptr: [*]const u8) Error!bool {
@@ -498,31 +544,6 @@ pub fn Parser(comptime Reader: ?type, comptime options: Options) type {
                 fn parseNull(_: Iterator, ptr: [*]const u8) Error!void {
                     const check = @import("parsers/atoms.zig").checkNull;
                     return check(ptr);
-                }
-
-                fn getFieldKey(self: Iterator) Error![]const u8 {
-                    // TODO: cambiar este if
-                    if (options.stream != null and options.stream.?.manual_manage_strings)
-                        @compileError("Strings stored in parser are not available. Consider enabling `.manage_strings` or using `writeString`.");
-
-                    self.assertAtNext();
-                    const ptr = try self.cursor.next();
-                    if (ptr[0] != '"') return self.reportError(error.ExpectedKey);
-
-                    const next_str = self.cursor.getNextStringPtr();
-                    const write = @import("parsers/string.zig").writeString;
-                    const sentinel = try write(ptr, next_str);
-                    const next_len = @intFromPtr(sentinel) - @intFromPtr(next_str);
-                    self.cursor.setNextStringPtr(sentinel);
-
-                    return next_str[0..next_len];
-                }
-
-                fn goToFieldValue(self: Iterator) Error!void {
-                    self.assertAtNext();
-                    const ptr = try self.cursor.next();
-                    if (ptr[0] != ':') return self.reportError(error.ExpectedColon);
-                    self.cursor.descend(self.start_depth + 1);
                 }
 
                 fn endContainer(self: Iterator) void {
@@ -716,10 +737,10 @@ pub fn Parser(comptime Reader: ?type, comptime options: Options) type {
                         has_value = try self.hasNextField();
                     }
                     while (has_value) : (has_value = try self.hasNextField()) {
-                        const actual_key = try self.getFieldKey();
-                        try self.goToFieldValue();
+                        const field = try Object.Field.start(self);
+                        const actual_key = try field.key.get();
                         if (std.mem.eql(u8, key, actual_key)) return true;
-                        try self.skipChild();
+                        try field.value.skip();
                     }
                     return false;
                 }
@@ -767,44 +788,52 @@ pub fn Parser(comptime Reader: ?type, comptime options: Options) type {
                 return .{ .iter = document.iter, .err = document.err };
             }
 
-            pub fn getObject(self: Value) Error!Object {
+            pub fn asObject(self: Value) Error!Object {
                 if (self.err) |err| return err;
                 return Object.start(self.iter);
             }
 
-            pub fn getArray(self: Value) Error!Array {
+            pub fn asArray(self: Value) Error!Array {
                 if (self.err) |err| return err;
                 return Array.start(self.iter);
             }
 
-            pub fn getNumber(self: Value) Error!Number {
+            pub fn asNumber(self: Value) Error!Number {
                 if (self.err) |err| return err;
-                return self.iter.getNumber();
+                return self.iter.asNumber();
             }
 
-            pub fn getUnsigned(self: Value) Error!u64 {
+            pub fn asUnsigned(self: Value) Error!u64 {
                 if (self.err) |err| return err;
-                return self.iter.getUnsigned();
+                return self.iter.asUnsigned();
             }
 
-            pub fn getSigned(self: Value) Error!i64 {
+            pub fn asSigned(self: Value) Error!i64 {
                 if (self.err) |err| return err;
-                return self.iter.getSigned();
+                return self.iter.asSigned();
             }
 
-            pub fn getFloat(self: Value) Error!f64 {
+            pub fn asFloat(self: Value) Error!f64 {
                 if (self.err) |err| return err;
-                return self.iter.getFloat();
+                return self.iter.asFloat();
             }
 
-            pub fn getString(self: Value) Error![]const u8 {
-                if (self.err) |err| return err;
-                return self.iter.getString();
+            pub fn asString(self: Value) String {
+                if (self.err) |err| return .{
+                    .iter = self.iter,
+                    .raw_str = undefined,
+                    .err = err,
+                };
+                return self.iter.asString() catch |err| .{
+                    .iter = self.iter,
+                    .raw_str = undefined,
+                    .err = err,
+                };
             }
 
-            pub fn getBool(self: Value) Error!bool {
+            pub fn asBool(self: Value) Error!bool {
                 if (self.err) |err| return err;
-                return self.iter.getBool();
+                return self.iter.asBool();
             }
 
             pub fn isNull(self: Value) Error!void {
@@ -812,15 +841,15 @@ pub fn Parser(comptime Reader: ?type, comptime options: Options) type {
                 return self.iter.isNull();
             }
 
-            pub fn getAny(self: Value) Error!Element {
+            pub fn asAny(self: Value) Error!Element {
                 if (self.err) |err| return err;
                 return switch (try self.iter.cursor.peekChar()) {
-                    't', 'f' => .{ .bool = try self.getBool() },
+                    't', 'f' => .{ .bool = try self.asBool() },
                     'n' => .{ .null = try self.isNull() },
-                    '"' => .{ .string = try self.getString() },
-                    '-', '0'...'9' => .{ .number = try self.getNumber() },
-                    '[' => .{ .array = try self.getArray() },
-                    '{' => .{ .object = try self.getObject() },
+                    '"' => .{ .string = self.asString() },
+                    '-', '0'...'9' => .{ .number = try self.asNumber() },
+                    '[' => .{ .array = try self.asArray() },
+                    '{' => .{ .object = try self.asObject() },
                     else => {
                         return error.ExpectedValue;
                     },
@@ -864,16 +893,43 @@ pub fn Parser(comptime Reader: ?type, comptime options: Options) type {
 
             fn startOrResumeObject(self: Value) Error!Object {
                 if (self.iter.isAtStart()) {
-                    return self.getObject();
+                    return self.asObject();
                 }
                 return .{ .iter = self.iter };
             }
 
             fn startOrResumeArray(self: Value) Error!Array {
                 if (self.iter.isAtStart()) {
-                    return self.getArray();
+                    return self.asArray();
                 }
                 return .{ .iter = self.iter };
+            }
+        };
+
+        const String = struct {
+            iter: Value.Iterator,
+            raw_str: [*]const u8,
+            err: ?Error = null,
+
+            pub fn get(self: String) Error![]const u8 {
+                if (self.err) |err| return err;
+
+                if (want_stream) {
+                    if (self.iter.cursor.document.allocator) |alloc|
+                        try self.iter.cursor.document.strings.ensureUnusedCapacity(alloc, options.stream.?.chunk_length)
+                    else
+                        return error.ExpectedAllocator;
+                }
+                const str = try self.iter.parseString(self.raw_str, self.iter.cursor.document.strings.items().ptr);
+                self.iter.cursor.document.strings.list.items.len += str.len;
+                return str;
+            }
+
+            pub fn write(self: String, dest: []u8) Error![]const u8 {
+                if (self.err) |err| return err;
+
+                const str = try self.iter.parseString(self.raw_str, dest.ptr);
+                return str;
             }
         };
 
@@ -929,29 +985,51 @@ pub fn Parser(comptime Reader: ?type, comptime options: Options) type {
             iter: Value.Iterator,
 
             pub const Field = struct {
-                key: []const u8,
+                key: String,
                 value: Value,
+
+                fn start(iter: Value.Iterator) Error!Field {
+                    iter.assertAtNext();
+                    const key_quote = try iter.cursor.next();
+                    if (key_quote[0] != '"') return iter.reportError(error.ExpectedKey);
+
+                    // var key_len: usize = brk: {
+                    //     if (want_stream) {
+                    //         const offset = iter.cursor.tokens().fetchLocalOffset();
+                    //         break :brk offset;
+                    //     } else {
+                    //         break :brk undefined;
+                    //     }
+                    // };
+
+                    iter.assertAtNext();
+                    const colon = try iter.cursor.next();
+                    if (colon[0] != ':') return iter.reportError(error.ExpectedColon);
+                    iter.cursor.descend(iter.start_depth + 1);
+
+                    // if (!want_stream) {
+                    //     key_len = @intFromPtr(colon) - @intFromPtr(key_quote);
+                    // }
+
+                    return .{
+                        .key = .{
+                            .iter = iter,
+                            .raw_str = key_quote,
+                        },
+                        .value = .{ .iter = try iter.child() },
+                    };
+                }
             };
 
             pub fn next(self: Object) Error!?Field {
                 if (!self.iter.isOpen()) return null;
                 if (self.iter.isAtFirstValue()) {
-                    const key = try self.iter.getFieldKey();
-                    try self.iter.goToFieldValue();
-                    return .{
-                        .key = key,
-                        .value = .{ .iter = try self.iter.child() },
-                    };
+                    return try Field.start(self.iter);
                 }
                 try self.iter.skipChild();
 
                 if (try self.iter.hasNextField()) {
-                    const key = try self.iter.getFieldKey();
-                    try self.iter.goToFieldValue();
-                    return .{
-                        .key = key,
-                        .value = .{ .iter = try self.iter.child() },
-                    };
+                    return try Field.start(self.iter);
                 }
                 return null;
             }
@@ -984,8 +1062,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: Options) type {
 
             pub fn skip(self: Object) Error!void {
                 if (try self.iter.isAtKey()) {
-                    _ = try self.iter.getFieldKey();
-                    try self.iter.goToFieldValue();
+                    _ = try Object.Field.start(self.iter);
                 }
                 return self.iter.cursor.skip(self.iter.start_depth - 1, '{');
             }

@@ -29,7 +29,7 @@ const Options = struct {
     relative: bool,
 };
 
-pub fn Indexer(comptime options: Options) type {
+pub fn Indexer(comptime T: type, comptime options: Options) type {
     return struct {
         const Self = @This();
         const Aligned = types.Aligned(options.aligned);
@@ -38,11 +38,11 @@ pub fn Indexer(comptime options: Options) type {
 
         prev_scalar: umask,
         prev_inside_string: umask,
-        prev_offset: if (options.relative) i64 else u32,
+        prev_offset: if (options.relative) i64 else T,
 
         next_is_escaped: umask,
         unescaped_error: umask,
-        utf8: UTF8 = .init,
+        utf8: Utf8 = .init,
 
         pub const init = std.mem.zeroInit(Self, .{});
 
@@ -55,7 +55,7 @@ pub fn Indexer(comptime options: Options) type {
             if (self.prev_inside_string != 0) return error.ExpectedStringEnd;
         }
 
-        pub inline fn index(self: *Self, block: Aligned.block, dest: [*]u32) u32 {
+        pub inline fn index(self: *Self, block: Aligned.block, dest: [*]T) u32 {
             var written: u32 = 0;
             inline for (0..types.masks_per_iter) |m| {
                 const offset = @as(comptime_int, m) * Mask.bits_len;
@@ -174,7 +174,7 @@ pub fn Indexer(comptime options: Options) type {
             return escaped;
         }
 
-        inline fn next(self: *Self, vecs: types.vectors, block: JsonBlock, dest: [*]u32) u32 {
+        inline fn next(self: *Self, vecs: types.vectors, block: JsonBlock, dest: [*]T) u32 {
             const vec = vecs[0];
             var unescaped: umask = Predicate.pack(vec <= @as(vector, @splat(0x1F)));
             inline for (1..Mask.computed_vectors) |j| {
@@ -190,7 +190,7 @@ pub fn Indexer(comptime options: Options) type {
         }
 
         const RelativeOffsetBuffer = [Mask.bits_len + 1]u8;
-        inline fn extract(self: *Self, tokens: umask, dest: [*]u32) u32 {
+        inline fn extract(self: *Self, tokens: umask, dest: [*]T) u32 {
             const steps = 4;
             const steps_until = 24;
             const pop_count: u8 = @popCount(tokens);
@@ -220,8 +220,8 @@ pub fn Indexer(comptime options: Options) type {
             return pop_count;
         }
 
-        inline fn writeIndexAt(self: Self, mask: *umask, i: usize, dest: [*]u32, offsets: *RelativeOffsetBuffer) void {
-            const offset: if (options.relative) u8 else u32 =
+        inline fn writeIndexAt(self: Self, mask: *umask, i: usize, dest: [*]T, offsets: *RelativeOffsetBuffer) void {
+            const offset: if (options.relative) u8 else T =
                 if (cpu.arch.isArm())
                 @clz(mask.*)
             else
@@ -303,7 +303,7 @@ const CharsBlock = struct {
     }
 };
 
-const UTF8 = struct {
+const Utf8 = struct {
     const Self = @This();
 
     err: vector,

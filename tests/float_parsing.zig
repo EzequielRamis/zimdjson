@@ -6,7 +6,7 @@ fn testFrom(comptime set: []const u8) !void {
     // std.debug.print("START:   {s}\n", .{set});
     const path = parse_number_fxx ++ "/data/" ++ set ++ ".txt";
     const allocator = std.testing.allocator;
-    var parser = ondemand.Parser(.{}).init(allocator);
+    var parser = ondemand.parserFromSlice(.default).init(allocator);
     defer parser.deinit();
     const buf = try allocator.alloc(u8, 2048);
     defer allocator.free(buf);
@@ -20,13 +20,14 @@ fn testFrom(comptime set: []const u8) !void {
         var document = try parser.parse(str);
         const float = document.getFloat() catch |err| switch (err) {
             error.NumberOutOfRange => std.math.inf(f64),
-            else => {
+            error.InvalidNumberLiteral, error.ExpectedValue => {
                 // std.debug.print("ignoring invalid number {:0>4}: {s}\n", .{ i, str });
                 continue;
             },
+            else => return err,
         };
         const actual = try std.fmt.bufPrint(&actual_buf, "{X:0>16}", .{@as(u64, @bitCast(float))});
-        std.testing.expectEqualStrings(expected, actual) catch @breakpoint();
+        try std.testing.expectEqualStrings(expected, actual);
     }
     // std.debug.print("END:     {s}\n\n", .{set});
 }

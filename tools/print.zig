@@ -1,11 +1,10 @@
 const std = @import("std");
 const zimdjson = @import("zimdjson");
-const ondemand = zimdjson.ondemand;
-const Reader = zimdjson.io.Reader(.{});
-const Parser = ondemand.Parser(.{ .stream = .default });
+const Parser = zimdjson.ondemand.parserFromFile(.{ .stream = .default });
 
 var buf = std.io.bufferedWriter(std.io.getStdOut().writer());
 var w = buf.writer();
+var string_buf: [zimdjson.ondemand.default_stream_chunk_length]u8 = undefined;
 
 var depth: usize = 0;
 
@@ -15,7 +14,7 @@ fn printDepth() !void {
 }
 
 fn walk(v: Parser.Value) !void {
-    const any = try v.getAny();
+    const any = try v.asAny();
     switch (any) {
         .object => |c| {
             try w.writeByte('{');
@@ -23,7 +22,7 @@ fn walk(v: Parser.Value) !void {
             var size: usize = 0;
             while (try c.next()) |field| : (size += 1) {
                 try printDepth();
-                try w.print("{s}: ", .{field.key});
+                try w.print("{s}: ", .{try field.key.write(&string_buf)});
                 try walk(field.value);
             }
             depth -= 1;
@@ -42,7 +41,7 @@ fn walk(v: Parser.Value) !void {
             if (size != 0) try printDepth();
             try w.writeByte(']');
         },
-        .string => |value| try w.print("\"{s}\"", .{value}),
+        .string => |value| try w.print("\"{s}\"", .{try value.write(&string_buf)}),
         .number => |value| switch (value) {
             inline else => |n| try w.print("{}", .{n}),
         },
@@ -66,7 +65,7 @@ pub fn main() !void {
     defer parser.deinit();
 
     const file = try std.fs.openFileAbsolute(args[1], .{});
-    const json = try parser.parseFromFile(file);
+    const json = try parser.parse(file.reader());
     try walk(Parser.Value.from(json));
     try buf.flush();
 }

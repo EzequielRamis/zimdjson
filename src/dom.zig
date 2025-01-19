@@ -39,12 +39,12 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
         const Self = @This();
 
         const Aligned = types.Aligned(options.aligned);
-
         const Tokens = if (want_stream)
             tokens.Stream(.{
                 .Reader = Reader.?,
                 .aligned = options.aligned,
                 .chunk_len = options.stream.?.chunk_length,
+                .slots = 2,
             })
         else
             tokens.Iterator(.{
@@ -56,7 +56,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
         pub const max_capacity_bound = if (want_stream) std.math.maxInt(u32) * @sizeOf(Tape.Word) else std.math.maxInt(u32);
         pub const default_max_depth = 1024;
 
-        document: if (need_document_buffer) std.ArrayListAligned(u8, types.Aligned(true).alignment) else void,
+        document_buffer: if (need_document_buffer) std.ArrayListAligned(u8, types.Aligned(true).alignment) else void,
         tape: Tape,
 
         max_capacity: usize,
@@ -66,7 +66,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
 
         pub fn init(allocator: Allocator) Self {
             return .{
-                .document = if (need_document_buffer) .init(allocator) else {},
+                .document_buffer = if (need_document_buffer) .init(allocator) else {},
                 .tape = .init(allocator),
                 .max_capacity = max_capacity_bound,
                 .max_depth = default_max_depth,
@@ -76,7 +76,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
         }
 
         pub fn deinit(self: *Self) void {
-            if (need_document_buffer) self.document.deinit();
+            if (need_document_buffer) self.document_buffer.deinit();
             self.tape.deinit();
         }
 
@@ -91,7 +91,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 self.tape.words.max_capacity = new_capacity;
             }
 
-            if (new_capacity + types.Vector.bytes_len < self.tape.strings.list.items.len) {
+            if (new_capacity + types.Vector.bytes_len < self.tape.strings.items().len) {
                 self.tape.strings.list.shrinkAndFree(self.tape.allocator, new_capacity + types.Vector.bytes_len);
                 self.tape.strings.max_capacity = new_capacity + types.Vector.bytes_len;
             }
@@ -115,7 +115,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             if (new_depth > self.max_depth) return error.ExceededDepth;
 
             if (need_document_buffer) {
-                try self.document.ensureTotalCapacity(new_capacity + types.Vector.bytes_len);
+                try self.document_buffer.ensureTotalCapacity(new_capacity + types.Vector.bytes_len);
             }
 
             if (!want_stream) {
@@ -131,19 +131,19 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
 
         pub fn parse(self: *Self, document: if (Reader) |reader| reader else Aligned.slice) Error!Value {
             if (need_document_buffer) {
+                self.document_buffer.clearRetainingCapacity();
                 try @as(Error!void, @errorCast(common.readAllArrayListAlignedRetainingCapacity(
                     document,
                     types.Aligned(true).alignment,
-                    &self.document,
+                    &self.document_buffer,
                     self.max_capacity,
                 )));
-                const len = self.document.items.len;
-                try self.document.appendNTimes(' ', types.Vector.bytes_len);
+                const len = self.document_buffer.items.len;
+                try self.document_buffer.appendNTimes(' ', types.Vector.bytes_len);
                 try self.ensureTotalCapacity(len, self.depth);
-                try self.tape.build(self.document.items[0..len]);
+                try self.tape.build(self.document_buffer.items[0..len]);
             } else {
-                if (!want_stream) assert(document.len <= self.capacity);
-                try self.ensureTotalCapacity(document.len, self.depth);
+                if (!want_stream) try self.ensureTotalCapacity(document.len, self.depth);
                 try self.tape.build(document);
             }
             return .{
@@ -154,17 +154,13 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
 
         pub fn parseAssumeCapacity(self: *Self, document: if (Reader) |reader| reader else Aligned.slice) Error!Value {
             if (need_document_buffer) {
-                try common.readAllArrayListAlignedRetainingCapacity(
-                    document,
-                    types.Aligned(true).alignment,
-                    &self.document,
-                    self.capacity,
-                );
-                const len = self.document.items.len;
-                try self.document.appendNTimes(' ', types.Vector.bytes_len);
-                try self.tape.build(self.document.items[0..len]);
+                self.document_buffer.clearRetainingCapacity();
+                const len = try document.readAll(self.document_buffer.items);
+                if (len > self.capacity) return error.ExceededCapacity;
+                try self.document_buffer.appendNTimes(' ', types.Vector.bytes_len);
+                try self.tape.build(self.document_buffer.items[0..len]);
             } else {
-                if (!want_stream) assert(document.len <= self.capacity);
+                if (!want_stream) if (document.len > self.capacity) return error.ExceededCapacity;
                 try self.tape.build(document);
             }
             return .{
@@ -187,7 +183,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             index: u32,
             err: ?Error = null,
 
-            pub fn getObject(self: Value) Error!Object {
+            pub fn asObject(self: Value) Error!Object {
                 if (self.err) |err| return err;
 
                 return switch (self.tape.get(self.index).tag) {
@@ -196,7 +192,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
-            pub fn getArray(self: Value) Error!Array {
+            pub fn asArray(self: Value) Error!Array {
                 if (self.err) |err| return err;
 
                 return switch (self.tape.get(self.index).tag) {
@@ -205,15 +201,15 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
-            pub fn getString(self: Value) Error![]const u8 {
+            pub fn asString(self: Value) Error![]const u8 {
                 if (self.err) |err| return err;
 
                 const w = self.tape.get(self.index);
                 return switch (w.tag) {
                     .string => brk: {
                         const low_bits = std.mem.readInt(u16, self.tape.strings.items()[w.data.ptr..][0..@sizeOf(u16)], native_endian);
-                        const high_bits = w.data.len;
-                        const len: u64 = high_bits << @bitSizeOf(Tape.StringHighBits) | low_bits;
+                        const high_bits: u64 = w.data.len;
+                        const len = high_bits << @bitSizeOf(Tape.StringHighBits) | low_bits;
                         const ptr = self.tape.strings.items()[w.data.ptr + @sizeOf(u16) ..];
                         break :brk ptr[0..len];
                     },
@@ -221,7 +217,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
-            pub fn getNumber(self: Value) Error!Number {
+            pub fn asNumber(self: Value) Error!Number {
                 if (self.err) |err| return err;
 
                 const w = self.tape.get(self.index);
@@ -232,7 +228,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
-            pub fn getUnsigned(self: Value) Error!u64 {
+            pub fn asUnsigned(self: Value) Error!u64 {
                 if (self.err) |err| return err;
 
                 const w = self.tape.get(self.index);
@@ -244,7 +240,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
-            pub fn getSigned(self: Value) Error!i64 {
+            pub fn asSigned(self: Value) Error!i64 {
                 if (self.err) |err| return err;
 
                 const w = self.tape.get(self.index);
@@ -256,7 +252,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
-            pub fn getFloat(self: Value) Error!f64 {
+            pub fn asFloat(self: Value) Error!f64 {
                 if (self.err) |err| return err;
 
                 const w = self.tape.get(self.index);
@@ -267,7 +263,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
-            pub fn getBool(self: Value) Error!bool {
+            pub fn asBool(self: Value) Error!bool {
                 if (self.err) |err| return err;
 
                 return switch (self.tape.get(self.index).tag) {
@@ -283,7 +279,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 return self.tape.get(self.index).tag == .null;
             }
 
-            pub fn getAny(self: Value) Error!Element {
+            pub fn asAny(self: Value) Error!Element {
                 if (self.err) |err| return err;
 
                 const w = self.tape.get(self.index);
@@ -291,8 +287,8 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     .true => .{ .bool = true },
                     .false => .{ .bool = false },
                     .null => .null,
-                    .number => .{ .number = self.getNumber() catch unreachable },
-                    .string => .{ .string = self.getString() catch unreachable },
+                    .unsigned, .signed, .float => .{ .number = self.asNumber() catch unreachable },
+                    .string => .{ .string = self.asString() catch unreachable },
                     .object_opening => .{ .object = .{ .tape = self.tape, .root = self.index } },
                     .array_opening => .{ .array = .{ .tape = self.tape, .root = self.index } },
                     else => unreachable,
@@ -319,7 +315,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
 
                 const query = brk: {
                     if (common.isString(@TypeOf(ptr))) {
-                        const obj = self.getObject() catch |err| return .{
+                        const obj = self.asObject() catch |err| return .{
                             .tape = self.tape,
                             .index = self.index,
                             .err = err,
@@ -327,7 +323,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         break :brk obj.at(ptr);
                     }
                     if (common.isIndex(@TypeOf(ptr))) {
-                        const arr = self.getArray() catch |err| return .{
+                        const arr = self.asArray() catch |err| return .{
                             .tape = self.tape,
                             .index = self.index,
                             .err = err,
@@ -346,8 +342,8 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             pub fn getSize(self: Value) Error!u24 {
                 if (self.err) |err| return err;
 
-                if (self.getArray()) |arr| return arr.getSize() else |_| {}
-                if (self.getObject()) |obj| return obj.getSize() else |_| {}
+                if (self.asArray()) |arr| return arr.getSize() else |_| {}
+                if (self.asObject()) |obj| return obj.getSize() else |_| {}
                 return error.IncorrectType;
             }
         };
@@ -365,7 +361,6 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     if (curr.tag == .array_closing) return null;
                     defer self.curr = switch (curr.tag) {
                         .array_opening, .object_opening => curr.data.ptr,
-                        .unsigned, .signed, .float => self.curr + 2,
                         else => self.curr + 1,
                     };
                     return .{ .tape = self.tape, .index = self.curr };
@@ -416,11 +411,10 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     const curr = self.tape.get(self.curr + 1);
                     defer self.curr = switch (curr.tag) {
                         .array_opening, .object_opening => curr.data.ptr,
-                        .unsigned, .signed, .float => self.curr + 3,
                         else => self.curr + 2,
                     };
                     return .{
-                        .key = field.getString() catch unreachable,
+                        .key = field.asString() catch unreachable,
                         .value = value,
                     };
                 }
@@ -506,7 +500,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             pub fn init(allocator: Allocator) Tape {
                 return .{
                     .allocator = allocator,
-                    .tokens = if (want_stream) .init({}) else .init(allocator),
+                    .tokens = if (want_stream) .init else .init(allocator),
                     .words = .empty,
                     .stack = .empty,
                     .strings = .empty,
@@ -522,7 +516,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 self.numbers.deinit(self.allocator);
             }
 
-            pub inline fn build(self: *Tape, document: if (want_stream) Reader else Aligned.slice) Error!void {
+            pub inline fn build(self: *Tape, document: if (want_stream) Reader.? else Aligned.slice) Error!void {
                 try self.tokens.build(document);
 
                 if (!want_stream) {
@@ -533,17 +527,17 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     try self.numbers.ensureTotalCapacity(self.allocator, (tokens_count >> 1) + 1);
                 }
 
-                self.words.list.shrinkRetainingCapacity(0);
-                self.numbers.list.shrinkRetainingCapacity(0);
+                self.words.list.clearRetainingCapacity();
+                self.stack.list.clearRetainingCapacity();
 
-                self.stack.list.shrinkRetainingCapacity(0);
-                self.strings.list.shrinkRetainingCapacity(0);
+                self.numbers.list.clearRetainingCapacity();
+                self.strings.list.clearRetainingCapacity();
 
                 return self.dispatch();
             }
 
-            pub inline fn get(self: Tape, index: u32) Word {
-                return @bitCast(self.words.items[index]);
+            pub inline fn as(self: Tape, index: u32) Word {
+                return @bitCast(self.words.items()[index]);
             }
 
             fn dispatch(self: *Tape) Error!void {
@@ -582,6 +576,10 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                                 .len = 1,
                             },
                         });
+
+                        if (want_stream) try self.words.ensureUnusedCapacity(self.allocator, 1);
+                        self.words.list.items.len += 1;
+
                         continue :state .object_field;
                     },
                     .object_field => {
@@ -663,7 +661,10 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                                 .len = 1,
                             },
                         });
+
+                        if (want_stream) try self.words.ensureUnusedCapacity(self.allocator, 1);
                         self.words.list.items.len += 1;
+
                         continue :state .array_value;
                     },
                     .array_value => {
@@ -716,6 +717,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                                         .len = @intCast(@min(scope.len, std.math.maxInt(u24))),
                                     },
                                 });
+
                                 continue :state .scope_end;
                             },
                             else => return error.ExpectedArrayCommaOrEnd,

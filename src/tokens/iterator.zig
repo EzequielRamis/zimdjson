@@ -20,7 +20,10 @@ pub fn Iterator(comptime options: Options) type {
         pub const Error = indexer.Error || std.mem.Allocator.Error;
 
         indexes: std.ArrayList(u32),
-        indexer: indexer.Indexer(.{ .aligned = options.aligned, .relative = false }),
+        indexer: indexer.Indexer(u32, .{
+            .aligned = options.aligned,
+            .relative = false,
+        }),
         document: Aligned.slice = undefined,
         token: u32 = undefined,
 
@@ -49,6 +52,7 @@ pub fn Iterator(comptime options: Options) type {
 
         pub inline fn build(self: *Self, document: Aligned.slice) Error!void {
             {
+                self.indexes.clearRetainingCapacity();
                 self.indexer = .init;
                 self.document = document;
 

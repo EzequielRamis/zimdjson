@@ -20,13 +20,13 @@ pub fn prerun() !void {
 
 pub fn run() !void {
     const doc = try parser.load(path);
-    const statuses = try doc.at("statuses").getArray();
+    const statuses = try doc.at("statuses").asArray();
     var it = statuses.iterator();
     while (it.next()) |tweet| {
-        try result.append(try tweet.at("user").at("id").getUnsigned());
+        try result.append(try tweet.at("user").at("id").asUnsigned());
         const retweet = tweet.at("retweeted_status");
         if (retweet.err != error.MissingField) {
-            try result.append(try retweet.at("user").at("id").getUnsigned());
+            try result.append(try retweet.at("user").at("id").asUnsigned());
         }
     }
 }

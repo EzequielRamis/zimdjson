@@ -33,25 +33,25 @@ pub fn prerun() !void {
 
 pub fn run() !void {
     const doc = try parser.load(path);
-    const statuses = try doc.at("statuses").getArray();
+    const statuses = try doc.at("statuses").asArray();
     while (try statuses.next()) |tweet| {
         try result.append(.{
-            .created_at = try tweet.at("created_at").getString(),
-            .id = try tweet.at("id").getUnsigned(),
-            .result = try tweet.at("text").getString(),
+            .created_at = try tweet.at("created_at").asString().get(),
+            .id = try tweet.at("id").asUnsigned(),
+            .result = try tweet.at("text").asString().get(),
             .in_reply_to_status_id = brk: {
                 const el = tweet.at("in_reply_to_status_id");
-                break :brk if (try el.isNull()) 0 else try el.getUnsigned();
+                break :brk if (try el.isNull()) 0 else try el.asUnsigned();
             },
             .user = brk: {
                 const user = tweet.at("user");
                 break :brk .{
-                    .id = try user.at("id").getUnsigned(),
-                    .screen_name = try user.at("screen_name").getString(),
+                    .id = try user.at("id").asUnsigned(),
+                    .screen_name = try user.at("screen_name").asString().get(),
                 };
             },
-            .retweet_count = try tweet.at("retweet_count").getUnsigned(),
-            .favorite_count = try tweet.at("favorite_count").getUnsigned(),
+            .retweet_count = try tweet.at("retweet_count").asUnsigned(),
+            .favorite_count = try tweet.at("favorite_count").asUnsigned(),
         });
     }
 }

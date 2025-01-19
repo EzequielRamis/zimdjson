@@ -213,7 +213,7 @@ pub fn BoundedMultiArrayList(comptime T: type, comptime initial_max_capacity: us
             allocator: Allocator,
             new_capacity: usize,
         ) Error!void {
-            if (new_capacity > self.max_capacity) return error.ExceededCapacity;
+            if (new_capacity > self.max_capacity) return error.ExceededDepth;
             try self.list.ensureTotalCapacity(allocator, new_capacity);
         }
 

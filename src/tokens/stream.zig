@@ -12,31 +12,33 @@ const Options = struct {
     Reader: type,
     chunk_len: u32,
     aligned: bool,
+    slots: usize,
 };
 
 pub fn Stream(comptime options: Options) type {
+    assert(options.slots >= 2 and options.slots & (options.slots - 1) == 0); // Must be a power of 2
     const chunk_len = options.chunk_len;
+    assert(chunk_len < 1024 * 1024 * 1024 * 4);
+    const index_type = if (chunk_len >= 1024 * 64) u32 else u16;
 
     return struct {
         const Self = @This();
 
         const Aligned = types.Aligned(options.aligned);
-        const Indexer = indexer.Indexer(.{
+        const Indexer = indexer.Indexer(index_type, .{
             .aligned = options.aligned,
             .relative = true,
         });
-        const DocumentStream = RingBuffer(u8, chunk_len * 2);
-        const IndexesStream = RingBuffer(u32, chunk_len * 2);
 
         pub const Error =
             options.Reader.Error ||
             indexer.Error ||
             ring_buffer.Error ||
-            error.BatchOverflow;
+            error{BatchOverflow};
 
         reader: options.Reader,
-        document: DocumentStream,
-        indexes: IndexesStream,
+        document: RingBuffer(u8, chunk_len * options.slots) = undefined,
+        indexes: RingBuffer(index_type, chunk_len * options.slots) = undefined,
         indexer: Indexer = .init,
         built: bool = false,
         first_chunk_visited: bool = false,
@@ -48,8 +50,8 @@ pub fn Stream(comptime options: Options) type {
         pub fn build(self: *Self, reader: options.Reader) Error!void {
             self.* = .{
                 .reader = reader,
-                .document = try DocumentStream.init(),
-                .indexes = try IndexesStream.init(),
+                .document = try .init(),
+                .indexes = try .init(),
             };
             try self.prefetch();
             self.built = true;
@@ -85,7 +87,7 @@ pub fn Stream(comptime options: Options) type {
             return self.document.unsafeSlice()[offset..];
         }
 
-        inline fn fetchOffset(self: *Self) Error!u32 {
+        pub inline fn fetchOffset(self: *Self) Error!u32 {
             if (self.indexes.len() == 1) {
                 const written = try self.indexNextChunk();
                 if (written == 0) return error.BatchOverflow;
@@ -95,7 +97,7 @@ pub fn Stream(comptime options: Options) type {
             return self.fetchLocalOffset();
         }
 
-        inline fn fetchLocalOffset(self: *Self) u32 {
+        pub inline fn fetchLocalOffset(self: *Self) u32 {
             assert(self.indexes.len() >= 1);
             const offset = self.indexes.unsafeSlice()[0];
             return offset;
@@ -117,7 +119,7 @@ pub fn Stream(comptime options: Options) type {
                 const padding = bogus_indexed_token ++ (" " ** (types.block_len - bogus_indexed_token.len));
                 self.document.writeSliceAssumeCapacity(padding);
 
-                const chunk = buf[0..common.roundUp(usize, read + bogus_indexed_token.len, types.block_len)];
+                const chunk = buf[0..std.mem.alignForward(usize, read + bogus_indexed_token.len, types.block_len)];
                 const indexes = self.indexes.reserveAssumeCapacity(chunk_len);
                 const written = self.indexChunk(@alignCast(chunk), indexes.ptr);
                 if (written == 0 and !self.first_chunk_visited) return error.Empty;
@@ -136,7 +138,7 @@ pub fn Stream(comptime options: Options) type {
             }
         }
 
-        fn indexChunk(self: *Self, chunk: Aligned.slice, dest: [*]u32) u32 {
+        fn indexChunk(self: *Self, chunk: Aligned.slice, dest: [*]index_type) u32 {
             var written: u32 = 0;
             for (0..chunk.len / types.block_len) |i| {
                 const block: Aligned.block = @alignCast(chunk[i * types.block_len ..][0..types.block_len]);

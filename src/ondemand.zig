@@ -74,7 +74,6 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
         max_capacity: usize,
         max_depth: usize,
         capacity: usize,
-        depth: usize,
 
         pub fn init(allocator: if (want_stream) ?Allocator else Allocator) Self {
             return .{
@@ -85,7 +84,6 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 .max_capacity = max_capacity_bound,
                 .max_depth = default_max_depth,
                 .capacity = 0,
-                .depth = 0,
             };
         }
 
@@ -99,7 +97,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             }
         }
 
-        pub fn setMaximumCapacity(self: *Self, new_capacity: usize, new_depth: usize) Error!void {
+        pub fn setMaximumCapacity(self: *Self, new_capacity: usize) Error!void {
             if (new_capacity > max_capacity_bound) return error.ExceededCapacity;
 
             if (!want_stream and new_capacity + 1 < self.tokens.indexes.items.len)
@@ -116,12 +114,10 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             }
 
             self.max_capacity = new_capacity;
-            self.max_depth = new_depth;
         }
 
-        pub fn ensureTotalCapacity(self: *Self, new_capacity: usize, new_depth: usize) Error!void {
+        pub fn ensureTotalCapacity(self: *Self, new_capacity: usize) Error!void {
             if (new_capacity > self.max_capacity) return error.ExceededCapacity;
-            if (new_depth > self.max_depth) return error.ExceededDepth;
 
             if (need_document_buffer) {
                 try self.document_buffer.ensureTotalCapacity(new_capacity + types.Vector.bytes_len);
@@ -139,7 +135,6 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             }
 
             self.capacity = new_capacity;
-            self.depth = new_depth;
         }
 
         pub fn parse(self: *Self, document: if (Reader) |reader| reader else Aligned.slice) Error!Document {
@@ -153,10 +148,10 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 )));
                 const len = self.document_buffer.items.len;
                 try self.document_buffer.appendNTimes(' ', types.Vector.bytes_len);
-                try self.ensureTotalCapacity(len, self.depth);
+                try self.ensureTotalCapacity(len);
                 try self.tokens.build(self.document_buffer.items[0..len]);
             } else {
-                if (!want_stream) try self.ensureTotalCapacity(document.len, self.depth);
+                if (!want_stream) try self.ensureTotalCapacity(document.len);
                 try self.tokens.build(document);
             }
             self.strings.list.clearRetainingCapacity();
@@ -173,9 +168,10 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
 
         pub fn parseAssumeCapacity(self: *Self, document: if (Reader) |reader| reader else Aligned.slice) Error!Document {
             if (need_document_buffer) {
-                self.document_buffer.clearRetainingCapacity();
+                self.document_buffer.expandToCapacity();
                 const len = try document.readAll(self.document_buffer.items);
                 if (len > self.capacity) return error.ExceededCapacity;
+                self.document_buffer.items.len = len;
                 try self.document_buffer.appendNTimes(' ', types.Vector.bytes_len);
                 try self.tokens.build(self.document_buffer.items[0..len]);
             } else {

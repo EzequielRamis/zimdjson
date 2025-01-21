@@ -52,7 +52,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 .assume_padding = Reader != null or options.assume_padding,
             });
 
-        pub const Error = Tokens.Error || types.ParseError || Allocator.Error;
+        pub const Error = Tokens.Error || types.ParseError || Allocator.Error || if (Reader) |reader| reader.Error else error{};
         pub const max_capacity_bound = if (want_stream) std.math.maxInt(u32) * @sizeOf(Tape.Word) else std.math.maxInt(u32);
         pub const default_max_depth = 1024;
 
@@ -62,7 +62,6 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
         max_capacity: usize,
         max_depth: usize,
         capacity: usize,
-        depth: usize,
 
         pub fn init(allocator: Allocator) Self {
             return .{
@@ -71,7 +70,6 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 .max_capacity = max_capacity_bound,
                 .max_depth = default_max_depth,
                 .capacity = 0,
-                .depth = 0,
             };
         }
 
@@ -80,7 +78,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             self.tape.deinit();
         }
 
-        pub fn setMaximumCapacity(self: *Self, new_capacity: usize, new_depth: usize) Error!void {
+        pub fn setMaximumCapacity(self: *Self, new_capacity: usize) Error!void {
             if (new_capacity > max_capacity_bound) return error.ExceededCapacity;
 
             if (!want_stream and new_capacity + 1 < self.tape.tokens.indexes.items.len)
@@ -101,18 +99,16 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 self.tape.numbers.max_capacity = new_capacity;
             }
 
-            if (new_depth < self.tape.stack.list.items.len) {
-                self.tape.stack.list.shrinkAndFree(self.tape.allocator, new_depth);
-                self.tape.stack.max_capacity = new_depth;
-            }
-
             self.max_capacity = new_capacity;
+        }
+
+        pub fn setMaximumDepth(self: *Self, new_depth: usize) Error!void {
+            try self.tape.stack.list.setCapacity(self.tape.allocator, new_depth);
             self.max_depth = new_depth;
         }
 
-        pub fn ensureTotalCapacity(self: *Self, new_capacity: usize, new_depth: usize) Error!void {
+        pub fn ensureTotalCapacity(self: *Self, new_capacity: usize) Error!void {
             if (new_capacity > self.max_capacity) return error.ExceededCapacity;
-            if (new_depth > self.max_depth) return error.ExceededDepth;
 
             if (need_document_buffer) {
                 try self.document_buffer.ensureTotalCapacity(new_capacity + types.Vector.bytes_len);
@@ -122,11 +118,10 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 try self.tape.tokens.ensureTotalCapacity(new_capacity);
             }
 
-            try self.tape.stack.ensureTotalCapacity(self.tape.allocator, new_depth);
+            try self.tape.stack.ensureTotalCapacity(self.tape.allocator, self.max_depth);
             try self.tape.strings.ensureTotalCapacity(self.tape.allocator, new_capacity + types.Vector.bytes_len);
 
             self.capacity = new_capacity;
-            self.depth = new_depth;
         }
 
         pub fn parse(self: *Self, document: if (Reader) |reader| reader else Aligned.slice) Error!Value {
@@ -140,10 +135,10 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 )));
                 const len = self.document_buffer.items.len;
                 try self.document_buffer.appendNTimes(' ', types.Vector.bytes_len);
-                try self.ensureTotalCapacity(len, self.depth);
+                try self.ensureTotalCapacity(len);
                 try self.tape.build(self.document_buffer.items[0..len]);
             } else {
-                if (!want_stream) try self.ensureTotalCapacity(document.len, self.depth);
+                if (!want_stream) try self.ensureTotalCapacity(document.len);
                 try self.tape.build(document);
             }
             return .{
@@ -154,9 +149,10 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
 
         pub fn parseAssumeCapacity(self: *Self, document: if (Reader) |reader| reader else Aligned.slice) Error!Value {
             if (need_document_buffer) {
-                self.document_buffer.clearRetainingCapacity();
+                self.document_buffer.expandToCapacity();
                 const len = try document.readAll(self.document_buffer.items);
                 if (len > self.capacity) return error.ExceededCapacity;
+                self.document_buffer.items.len = len;
                 try self.document_buffer.appendNTimes(' ', types.Vector.bytes_len);
                 try self.tape.build(self.document_buffer.items[0..len]);
             } else {
@@ -566,7 +562,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         }
                     },
                     .object_begin => {
-                        try self.stack.ensureUnusedCapacity(self.allocator, 1);
+                        if (self.stack.list.len > self.stack.max_capacity) return error.ExceededDepth;
 
                         const curr: u32 = @intCast(self.words.items().len);
                         self.stack.appendAssumeCapacity(.{
@@ -651,7 +647,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         }
                     },
                     .array_begin => {
-                        try self.stack.ensureUnusedCapacity(self.allocator, 1);
+                        if (self.stack.list.len > self.stack.max_capacity) return error.ExceededDepth;
 
                         const curr: u32 = @intCast(self.words.items().len);
                         self.stack.appendAssumeCapacity(.{

@@ -23,7 +23,7 @@ pub fn build(b: *std.Build) !void {
 
     // -- Testing
     {
-        var com = center.command("test", "Run all test suites");
+        var com = center.command("tests", "Run all test suites");
         const com_generate = try com.sub("generate", "Generate automated tests", .{ .propagate = false });
 
         const debugged_zimdjson = getZimdjsonModule(b, .{
@@ -199,8 +199,8 @@ pub fn build(b: *std.Build) !void {
                 };
                 const runner = suite.create(
                     &.{
-                        suite.addZigBenchmark("zimdjson_ondemand"),
-                        suite.addZigBenchmark("zimdjson_stream_ondemand"),
+                        // suite.addZigBenchmark("zimdjson_ondemand"),
+                        // suite.addZigBenchmark("zimdjson_stream_ondemand"),
                         suite.addCppBenchmark("simdjson_ondemand", p.simdjson),
                         suite.addZigBenchmark("zimdjson_dom"),
                         suite.addZigBenchmark("zimdjson_stream_dom"),
@@ -230,8 +230,8 @@ pub fn build(b: *std.Build) !void {
                 };
                 const runner = suite.create(
                     &.{
-                        suite.addZigBenchmark("zimdjson_ondemand"),
-                        suite.addZigBenchmark("zimdjson_stream_ondemand"),
+                        // suite.addZigBenchmark("zimdjson_ondemand"),
+                        // suite.addZigBenchmark("zimdjson_stream_ondemand"),
                         suite.addCppBenchmark("simdjson_ondemand", p.simdjson),
                         suite.addZigBenchmark("zimdjson_dom"),
                         suite.addZigBenchmark("zimdjson_stream_dom"),
@@ -261,8 +261,8 @@ pub fn build(b: *std.Build) !void {
                 };
                 const runner = suite.create(
                     &.{
-                        suite.addZigBenchmark("zimdjson_ondemand"),
-                        suite.addZigBenchmark("zimdjson_stream_ondemand"),
+                        // suite.addZigBenchmark("zimdjson_ondemand"),
+                        // suite.addZigBenchmark("zimdjson_stream_ondemand"),
                         suite.addCppBenchmark("simdjson_ondemand", p.simdjson),
                         suite.addZigBenchmark("zimdjson_dom"),
                         suite.addZigBenchmark("zimdjson_stream_dom"),
@@ -338,7 +338,7 @@ pub fn build(b: *std.Build) !void {
     // -- Tools
     {
         {
-            var com = center.command("tools/profile", "Profile with Tracy");
+            var com = center.command("tools/profile", "Profile a Zig program with Tracy");
             const file_path = try getProvidedPath(com, &path_buf, use_cwd);
 
             const traced_zimdjson = getZimdjsonModule(b, .{
@@ -357,9 +357,6 @@ pub fn build(b: *std.Build) !void {
             profile.root_module.addImport("zimdjson", traced_zimdjson);
             profile.root_module.addImport("tracy", traced_zimdjson.import_table.get("tracy").?);
 
-            // const tracy = try b.findProgram(&.{"tracy"}, &.{});
-            // const run_tracy = b.addSystemCommand(&.{tracy});
-
             const run_profile = b.addRunArtifact(profile);
             run_profile.addArg(file_path);
             // run_profile.step.dependOn(&run_tracy.step);
@@ -367,24 +364,47 @@ pub fn build(b: *std.Build) !void {
             com.dependOn(&run_profile.step);
         }
         {
-            var com = center.command("tools/stats", "Print statistics of a JSON file");
+            var com = center.command("tools/profile-cpp", "Profile a C++ program with Tracy");
+            const parsers = Parsers.get(com, target, optimize);
             const file_path = try getProvidedPath(com, &path_buf, use_cwd);
 
-            const exe = b.addExecutable(.{
-                .name = "stats",
-                .root_source_file = b.path("tools/stats.zig"),
-                .target = target,
-                .optimize = optimize,
-            });
+            if (parsers) |p| {
+                const profile = b.addExecutable(.{
+                    .name = "profile-cpp",
+                    .root_source_file = null,
+                    .target = target,
+                    .optimize = optimize,
+                });
 
-            exe.root_module.addImport("zimdjson", zimdjson);
+                profile.addCSourceFile(.{ .file = b.path("tools/profile.cpp"), .flags = &.{"-DTRACY_ENABLE"} });
+                profile.linkSystemLibrary("TracyClient");
+                profile.linkLibrary(p.simdjson);
+                profile.linkLibrary(p.yyjson);
 
-            const run_profile = b.addRunArtifact(exe);
-            run_profile.addArg(file_path);
-            com.dependOn(&run_profile.step);
+                const run_profile = b.addRunArtifact(profile);
+                run_profile.addArg(file_path);
+                com.dependOn(&run_profile.step);
+            }
         }
+        // {
+        //     var com = center.command("tools/stats", "Print statistics of a JSON file");
+        //     const file_path = try getProvidedPath(com, &path_buf, use_cwd);
+
+        //     const exe = b.addExecutable(.{
+        //         .name = "stats",
+        //         .root_source_file = b.path("tools/stats.zig"),
+        //         .target = target,
+        //         .optimize = optimize,
+        //     });
+
+        //     exe.root_module.addImport("zimdjson", zimdjson);
+
+        //     const run_profile = b.addRunArtifact(exe);
+        //     run_profile.addArg(file_path);
+        //     com.dependOn(&run_profile.step);
+        // }
         {
-            var com = center.command("tools/print", "Print DOM tape of a JSON file");
+            var com = center.command("tools/print", "Print a parsed JSON file");
             const file_path = try getProvidedPath(com, &path_buf, use_cwd);
 
             const exe = b.addExecutable(.{

@@ -145,6 +145,16 @@ pub fn main() !void {
         .ansi => .escape_codes,
     };
 
+    try stdout_w.writeAll("Benchmarking JSON Document ");
+    try tty_conf.setColor(stdout_w, .bold);
+    try stdout_w.writeAll(std.fs.path.basename(path));
+    try tty_conf.setColor(stdout_w, .reset);
+    try stdout_w.writeAll(" of size ");
+    try tty_conf.setColor(stdout_w, .bold);
+    try printUnit(stdout_w, @floatFromInt(file_size), .bytes, 0, false, false);
+    try stdout_w.writeAll("\n");
+    try tty_conf.setColor(stdout_w, .reset);
+
     var perf_fds = [1]fd_t{-1} ** perf_measurements.len;
     var perf_ids = [1]u64{0} ** perf_measurements.len;
     defer for (&perf_fds) |*perf_fd| {
@@ -188,14 +198,14 @@ pub fn main() !void {
         {
             if (tty_conf != .no_color) try bar.render();
 
-            try @call(.never_inline, command.events.prerun, .{});
+            std.mem.doNotOptimizeAway(command.events.prerun());
 
             _ = std.os.linux.ioctl(perf_fds[0], PERF.EVENT_IOC.RESET, PERF.IOC_FLAG_GROUP);
             _ = std.os.linux.ioctl(perf_fds[0], PERF.EVENT_IOC.ENABLE, PERF.IOC_FLAG_GROUP);
 
             const start = timer.read();
 
-            try @call(.never_inline, command.events.run, .{});
+            std.mem.doNotOptimizeAway(command.events.run());
 
             const end = timer.read();
 
@@ -203,7 +213,7 @@ pub fn main() !void {
 
             const mem_allocated = command.events.memusage() -| file_size;
 
-            try @call(.never_inline, command.events.postrun, .{});
+            std.mem.doNotOptimizeAway(command.events.postrun());
 
             const format = readPerfFd(perf_fds[0]);
 
@@ -254,9 +264,7 @@ pub fn main() !void {
             try tty_conf.setColor(stdout_w, .bold);
             try stdout_w.print("Benchmark {d}", .{i});
             try tty_conf.setColor(stdout_w, .dim);
-            try stdout_w.print(" ({d} runs, size of json: ", .{command.sample_count});
-            try printUnit(stdout_w, @floatFromInt(file_size), .bytes, 0, false, false);
-            try stdout_w.print(")", .{});
+            try stdout_w.print(" ({d} runs)", .{command.sample_count});
             try tty_conf.setColor(stdout_w, .reset);
             try stdout_w.writeAll(":");
             try stdout_w.print(" {s} ", .{command.name});
@@ -313,6 +321,7 @@ pub fn main() !void {
         }
     }
 
+    try stdout_w.writeAll("\n");
     try stdout_bw.flush(); // 💩
 
     var results_dir_buf: [256]u8 = undefined;

@@ -18,7 +18,7 @@ fn testFrom(comptime set: []const u8) !void {
         var actual_buf: [16]u8 = undefined;
         const str = line[4 + 8 + 16 + 3 ..];
         var document = try parser.parse(str);
-        const float = document.getFloat() catch |err| switch (err) {
+        const float = document.asFloat() catch |err| switch (err) {
             error.NumberOutOfRange => std.math.inf(f64),
             error.InvalidNumberLiteral, error.ExpectedValue => {
                 // std.debug.print("ignoring invalid number {:0>4}: {s}\n", .{ i, str });

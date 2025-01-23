@@ -9,258 +9,256 @@ const Error = types.ParseError;
 const Number = types.Number;
 const max_digits = number_common.max_digits;
 
-pub const Parser = struct {
-    pub inline fn parse(src: [*]const u8) Error!Number {
-        const is_negative = src[0] == '-';
-        var ptr = src + @intFromBool(is_negative);
+pub inline fn parse(comptime Expected: ?types.NumberType, src: [*]const u8) Error!Number {
+    @setEvalBranchQuota(5000);
+    const is_negative = src[0] == '-';
+    if (Expected == .unsigned and is_negative) return error.InvalidNumberLiteral;
 
-        var mantissa_10: u64 = 0;
+    var mantissa_10: u64 = 0;
 
-        const integer_ptr: [*]const u8 = ptr;
-        while (parseDigit(ptr)) |d| {
-            mantissa_10 = mantissa_10 *% 10 +% d;
-            ptr += 1;
-        }
-        const integer_len: usize = @intFromPtr(ptr) - @intFromPtr(integer_ptr);
-        if (integer_len == 0) return error.ExpectedValue;
-        if (integer_ptr[0] == '0' and integer_len > 1) return error.InvalidNumberLiteral;
+    const integer_ptr = src + @intFromBool(is_negative);
+    var integer_len: usize = undefined;
 
-        var exponent_10: i64 = 0;
-        var is_float = false;
-        var decimal_ptr: [*]const u8 = undefined;
-        var decimal_len: usize = 0;
-        if (ptr[0] == '.') {
-            ptr += 1;
-            decimal_ptr = ptr;
-            parseDecimal(&ptr, &mantissa_10);
-            decimal_len = @intCast(@intFromPtr(ptr) - @intFromPtr(decimal_ptr));
+    var decimal_ptr: [*]const u8 = undefined;
+    var decimal_len: usize = 0;
 
-            if (decimal_len == 0) {
-                return error.InvalidNumberLiteral;
+    var exponent_10: i64 = 0;
+    var is_float = false;
+    var many_digits = false;
+
+    remainding_digits: {
+        significant_digits: {
+            inline for (0..max_digits - 1) |i| {
+                const int_char = integer_ptr[i];
+                if (parseDigit(int_char)) |digit| {
+                    @branchHint(.likely);
+                    mantissa_10 = mantissa_10 *% 10 +% digit;
+                } else {
+                    if (i == 0) return error.ExpectedValue; // there is no digits
+                    if (i > 1 and integer_ptr[0] == '0') return error.InvalidNumberLiteral; // there is a leading zero
+
+                    if (common.tables.is_structural_or_whitespace_negated[int_char]) {
+                        if (Expected == null or Expected == .float) { // there can be a decimal point
+                            decimal_ptr = integer_ptr + i;
+                            integer_len = i;
+                            if (int_char == '.') {
+                                is_float = true;
+                                decimal_ptr += 1;
+                                if (i == 1 and integer_ptr[0] == '0') {
+                                    var significant_ptr = decimal_ptr;
+                                    while (significant_ptr[0] == '0') {
+                                        significant_ptr += 1;
+                                        decimal_len += 1;
+                                    }
+                                    inline for (0..max_digits - 1) |j| {
+                                        const dec_char = significant_ptr[j];
+                                        if (parseDigit(dec_char)) |digit| {
+                                            @branchHint(.likely);
+                                            mantissa_10 = mantissa_10 *% 10 +% digit;
+                                        } else {
+                                            if (j == 0 and decimal_len == 0) return error.InvalidNumberLiteral;
+                                            decimal_len += j;
+                                            break :remainding_digits;
+                                        }
+                                    }
+                                    decimal_len += max_digits - 1;
+                                    if (parseDigit(significant_ptr[max_digits - 1])) |_| {
+                                        many_digits = true;
+                                        decimal_len += 1;
+                                        exponent_10 += 1;
+                                        break :significant_digits;
+                                    }
+                                } else {
+                                    inline for (0..max_digits - 1 - i) |j| {
+                                        const dec_char = decimal_ptr[j];
+                                        if (parseDigit(dec_char)) |digit| {
+                                            @branchHint(.likely);
+                                            mantissa_10 = mantissa_10 *% 10 +% digit;
+                                        } else {
+                                            if (j == 0) return error.InvalidNumberLiteral;
+                                            decimal_len += j;
+                                            break :remainding_digits;
+                                        }
+                                    }
+                                    decimal_len += max_digits - 1 - i;
+                                    if (parseDigit(decimal_ptr[max_digits - 1 - i])) |_| {
+                                        many_digits = true;
+                                        decimal_len += 1;
+                                        exponent_10 += 1;
+                                        break :significant_digits;
+                                    }
+                                }
+                                break :remainding_digits;
+                            } else {
+                                break :remainding_digits;
+                            }
+                        } else { // there is an invalid suffix
+                            return error.InvalidNumberLiteral;
+                        }
+                    }
+
+                    // it is an integer of 18 digits or less
+                    if (Expected == null or Expected == .signed) {
+                        const n: i64 = @intCast(mantissa_10);
+                        return .{ .signed = if (is_negative) -n else n };
+                    } else {
+                        return .{ .unsigned = mantissa_10 };
+                    }
+                }
             }
-            is_float = true;
-            exponent_10 -= @intCast(decimal_len);
+            // at this point, there are 19 parsed digits
+            if (integer_ptr[0] == '0') return error.InvalidNumberLiteral; // there is a leading zero
+            if (Expected != null and Expected != .float) {
+                // remainder: there are 19 parsed digits and zero or more unparsed
+                if (Expected == .signed) {
+                    // trying to parse the 20th digit if it exists
+                    if (parseDigit(integer_ptr[max_digits - 1])) |digit| {
+                        if (common.tables.is_structural_or_whitespace_negated[integer_ptr[max_digits]]) return error.InvalidNumberLiteral;
+                        if (is_negative) return error.NumberOutOfRange;
+                        const maybe_mant_1 = @mulWithOverflow(mantissa_10, 10);
+                        const maybe_mant_2 = @addWithOverflow(maybe_mant_1[0], digit);
+                        if (@bitCast(maybe_mant_1[1] | maybe_mant_2[1])) return error.NumberOutOfRange;
+                        mantissa_10 = maybe_mant_2[0];
+                        return .{ .unsigned = mantissa_10 };
+                    }
+
+                    if (common.tables.is_structural_or_whitespace_negated[integer_ptr[max_digits - 1]]) return error.InvalidNumberLiteral;
+                    if (is_negative) {
+                        if (mantissa_10 > @as(u64, std.math.maxInt(i64)) + 1) return error.NumberOutOfRange;
+                        const signed: i64 = @intCast(mantissa_10);
+                        return .{ .signed = -signed };
+                    } else {
+                        if (mantissa_10 > std.math.maxInt(i64)) return .{ .unsigned = mantissa_10 };
+                        return .{ .signed = @intCast(mantissa_10) };
+                    }
+                } else {
+                    // trying to parse the 20th digit if it exists
+                    if (parseDigit(integer_ptr[max_digits - 1])) |digit| {
+                        if (common.tables.is_structural_or_whitespace_negated[integer_ptr[max_digits]]) return error.InvalidNumberLiteral;
+                        const maybe_mant_1 = @mulWithOverflow(mantissa_10, 10);
+                        const maybe_mant_2 = @addWithOverflow(maybe_mant_1[0], digit);
+                        if (@bitCast(maybe_mant_1[1] | maybe_mant_2[1])) return error.NumberOutOfRange;
+                        mantissa_10 = maybe_mant_2[0];
+                        return .{ .unsigned = mantissa_10 };
+                    }
+                    if (common.tables.is_structural_or_whitespace_negated[integer_ptr[max_digits - 1]]) return error.InvalidNumberLiteral;
+                    return .{ .unsigned = mantissa_10 };
+                }
+            }
+            integer_len = max_digits - 1;
+            while (number_common.isEightDigits(integer_ptr[integer_len..][0..8].*)) {
+                integer_len += 8;
+                exponent_10 += 8;
+            }
+            while (parseDigit(integer_ptr[integer_len])) |_| {
+                integer_len += 1;
+                exponent_10 += 1;
+            }
+            decimal_ptr = integer_ptr + integer_len;
+            if (decimal_ptr[0] == '.') {
+                is_float = true;
+                // a decimal digit must be taken into account
+                if (parseDigit(decimal_ptr[1])) |_| {
+                    many_digits = true;
+                    decimal_ptr += 1;
+                    decimal_len = 1;
+                    exponent_10 += 1;
+                    // but there can be more decimal digits
+                    break :significant_digits;
+                } else {
+                    return error.InvalidNumberLiteral;
+                }
+                break :significant_digits;
+            } else {
+                many_digits = integer_len > max_digits - 1;
+                break :remainding_digits;
+            }
+        }
+        while (number_common.isEightDigits(decimal_ptr[decimal_len..][0..8].*)) {
+            decimal_len += 8;
+            exponent_10 += 8;
+        }
+        while (parseDigit(decimal_ptr[decimal_len])) |_| {
+            decimal_len += 1;
+            exponent_10 += 1;
+        }
+    }
+
+    var exponent_ptr = decimal_ptr + decimal_len;
+    exponent_10 -= @intCast(decimal_len);
+
+    if (exponent_ptr[0] | 0x20 == 'e') {
+        is_float = true;
+        exponent_ptr += 1;
+        try parseExponent(&exponent_ptr, &exponent_10);
+    }
+
+    if (common.tables.is_structural_or_whitespace_negated[exponent_ptr[0]]) {
+        return error.InvalidNumberLiteral;
+    }
+
+    if (Expected == null and !is_float) {
+        // remainder: there are 19 parsed digits and zero or more unparsed
+        if (integer_len > max_digits) return error.NumberOutOfRange;
+        // trying to parse the 20th digit if it exists
+        if (parseDigit(integer_ptr[max_digits - 1])) |digit| {
+            if (is_negative) return error.NumberOutOfRange;
+            const maybe_mant_1 = @mulWithOverflow(mantissa_10, 10);
+            const maybe_mant_2 = @addWithOverflow(maybe_mant_1[0], digit);
+            if (@bitCast(maybe_mant_1[1] | maybe_mant_2[1])) return error.NumberOutOfRange;
+            mantissa_10 = maybe_mant_2[0];
+            return .{ .unsigned = mantissa_10 };
         }
 
-        if (ptr[0] | 0x20 == 'e') {
-            is_float = true;
-            ptr += 1;
-            try parseExponent(&ptr, &exponent_10);
+        if (is_negative) {
+            if (mantissa_10 > @as(u64, std.math.maxInt(i64)) + 1) return error.NumberOutOfRange;
+            const signed: i64 = @intCast(mantissa_10);
+            return .{ .signed = -signed };
+        } else {
+            if (mantissa_10 > std.math.maxInt(i64)) return .{ .unsigned = mantissa_10 };
+            return .{ .signed = @intCast(mantissa_10) };
+        }
+    } else {
+        @setFloatMode(.strict);
+
+        const fast_min_exp = -22;
+        const fast_max_exp = 22;
+        const fast_max_man = 2 << number_common.man_bits;
+
+        if (fast_min_exp <= exponent_10 and
+            exponent_10 <= fast_max_exp and
+            mantissa_10 <= fast_max_man and
+            !many_digits)
+        {
+            var answer: f64 = @floatFromInt(mantissa_10);
+            if (exponent_10 < 0)
+                answer /= power_of_ten[@intCast(-exponent_10)]
+            else
+                answer *= power_of_ten[@intCast(exponent_10)];
+            return .{ .float = if (is_negative) -answer else answer };
         }
 
-        if (common.tables.is_structural_or_whitespace_negated[ptr[0]]) {
-            return error.InvalidNumberLiteral;
+        var bf = eisel_lemire.compute(mantissa_10, exponent_10);
+        if (many_digits and bf.e >= 0) {
+            if (!bf.eql(eisel_lemire.compute(mantissa_10 + 1, exponent_10))) {
+                bf = eisel_lemire.computeError(mantissa_10, exponent_10);
+            }
         }
-
-        if (is_float) {
-            return .{ .float = try computeFloat(.{
+        if (bf.e < 0) {
+            @branchHint(.unlikely);
+            digit_comp.compute(.{
                 .integer = integer_ptr[0..integer_len],
                 .decimal = decimal_ptr[0..decimal_len],
-                .mantissa = mantissa_10,
                 .exponent = exponent_10,
+                .mantissa = mantissa_10,
                 .negative = is_negative,
-            }) };
+            }, &bf);
         }
 
-        const longest_digit_count: u32 = if (is_negative) max_digits - 1 else max_digits;
-        if (integer_len < longest_digit_count) {
-            if (std.math.cast(i64, mantissa_10)) |i| {
-                return .{ .signed = if (is_negative) -i else i };
-            }
-            return .{ .unsigned = mantissa_10 };
-        }
-        if (integer_len == longest_digit_count) {
-            if (is_negative) {
-                return .{ .signed = -(std.math.cast(i64, mantissa_10) orelse return error.NumberOutOfRange) };
-            }
-            const max_int: u64 = std.math.maxInt(i64);
-            if (integer_ptr[0] != '1' or mantissa_10 <= max_int) return error.NumberOutOfRange;
-            return .{ .unsigned = mantissa_10 };
-        }
-        return error.NumberOutOfRange;
+        if (bf.e == number_common.inf_exp) return error.NumberOutOfRange;
+
+        return .{ .float = bf.toFloat(is_negative) };
     }
-
-    pub inline fn parseSigned(src: [*]const u8) Error!i64 {
-        const is_negative = src[0] == '-';
-        var ptr = src + @intFromBool(is_negative);
-
-        var mantissa_10: u64 = 0;
-
-        const integer_ptr: [*]const u8 = ptr;
-        while (parseDigit(ptr)) |d| {
-            mantissa_10 = mantissa_10 *% 10 +% d;
-            ptr += 1;
-        }
-        const integer_len: usize = @intFromPtr(ptr) - @intFromPtr(integer_ptr);
-        if (integer_len == 0) return error.ExpectedValue;
-        if (integer_ptr[0] == '0' and integer_len > 1) return error.InvalidNumberLiteral;
-
-        if (common.tables.is_structural_or_whitespace_negated[ptr[0]]) {
-            return error.InvalidNumberLiteral;
-        }
-
-        const longest_digit_count = max_digits - 1;
-        if (integer_len <= longest_digit_count) {
-            if (mantissa_10 > std.math.maxInt(i64) + @as(u64, @intFromBool(is_negative))) return error.NumberOutOfRange;
-
-            const i: i64 = @intCast(mantissa_10);
-            return if (is_negative) -i else i;
-        }
-        return error.NumberOutOfRange;
-    }
-
-    pub inline fn parseUnsigned(src: [*]const u8) Error!u64 {
-        const is_negative = src[0] == '-';
-        if (is_negative) return error.InvalidNumberLiteral;
-        var ptr = src + @intFromBool(is_negative);
-
-        var mantissa_10: u64 = 0;
-
-        const integer_ptr: [*]const u8 = ptr;
-        while (parseDigit(ptr)) |d| {
-            mantissa_10 = mantissa_10 *% 10 +% d;
-            ptr += 1;
-        }
-        const integer_len: usize = @intFromPtr(ptr) - @intFromPtr(integer_ptr);
-        if (integer_len == 0) return error.ExpectedValue;
-        if (integer_ptr[0] == '0' and integer_len > 1) return error.InvalidNumberLiteral;
-
-        if (common.tables.is_structural_or_whitespace_negated[ptr[0]]) {
-            return error.InvalidNumberLiteral;
-        }
-
-        const longest_digit_count = max_digits;
-        if (integer_len < longest_digit_count) {
-            return mantissa_10;
-        }
-        if (integer_len == longest_digit_count) {
-            if (integer_ptr[0] != '1' or
-                mantissa_10 <= std.math.maxInt(i64)) return error.NumberOutOfRange;
-            return mantissa_10;
-        }
-        return error.NumberOutOfRange;
-    }
-
-    pub inline fn parseFloat(src: [*]const u8) Error!f64 {
-        const is_negative = src[0] == '-';
-        var ptr = src + @intFromBool(is_negative);
-
-        var mantissa_10: u64 = 0;
-
-        const integer_ptr: [*]const u8 = ptr;
-        while (parseDigit(ptr)) |d| {
-            mantissa_10 = mantissa_10 *% 10 +% d;
-            ptr += 1;
-        }
-        const integer_len: usize = @intFromPtr(ptr) - @intFromPtr(integer_ptr);
-        if (integer_len == 0) {
-            return error.ExpectedValue;
-        }
-        if (integer_ptr[0] == '0' and integer_len > 1) {
-            return error.InvalidNumberLiteral;
-        }
-
-        var exponent_10: i64 = 0;
-        var decimal_ptr: [*]const u8 = undefined;
-        var decimal_len: usize = 0;
-        if (ptr[0] == '.') {
-            ptr += 1;
-            decimal_ptr = ptr;
-            parseDecimal(&ptr, &mantissa_10);
-            decimal_len = @intCast(@intFromPtr(ptr) - @intFromPtr(decimal_ptr));
-
-            if (decimal_len == 0) {
-                return error.InvalidNumberLiteral;
-            }
-            exponent_10 -= @intCast(decimal_len);
-        }
-
-        if (ptr[0] | 0x20 == 'e') {
-            ptr += 1;
-            try parseExponent(&ptr, &exponent_10);
-        }
-
-        if (common.tables.is_structural_or_whitespace_negated[ptr[0]]) {
-            return error.InvalidNumberLiteral;
-        }
-
-        return computeFloat(.{
-            .integer = integer_ptr[0..integer_len],
-            .decimal = decimal_ptr[0..decimal_len],
-            .mantissa = mantissa_10,
-            .exponent = exponent_10,
-            .negative = is_negative,
-        });
-    }
-};
-
-inline fn computeFloat(_number: number_common.FromString) Error!f64 {
-    @setFloatMode(.strict);
-    var number = _number;
-
-    var many_digits = false;
-    if (number.integer.len + number.decimal.len >= max_digits) {
-        @branchHint(.unlikely);
-        if (number.integer[0] == '0') {
-            while (number.decimal.len > 0 and number.decimal[0] == '0') {
-                number.decimal = number.decimal[1..];
-            }
-            if (number.decimal.len >= max_digits) {
-                many_digits = true;
-                number.mantissa = 0;
-                const truncated_decimal_len = @min(number.decimal.len, max_digits - 1);
-                for (number.decimal[0..truncated_decimal_len]) |d| {
-                    number.mantissa = number.mantissa * 10 + (d - '0');
-                }
-                number.exponent += @intCast(number.decimal.len - truncated_decimal_len);
-            }
-        } else {
-            many_digits = true;
-            number.mantissa = 0;
-            const truncated_integer_len = @min(number.integer.len, max_digits - 1);
-            for (number.integer[0..truncated_integer_len]) |i| {
-                number.mantissa = number.mantissa * 10 + (i - '0');
-            }
-            number.exponent += @intCast(number.integer.len - truncated_integer_len);
-            const truncated_decimal_len = @min(number.decimal.len, max_digits - 1 - truncated_integer_len);
-            for (number.decimal[0..truncated_decimal_len]) |d| {
-                number.mantissa = number.mantissa * 10 + (d - '0');
-            }
-            number.exponent += @intCast(number.decimal.len - truncated_decimal_len);
-        }
-    }
-
-    const fast_min_exp = -22;
-    const fast_max_exp = 22;
-    const fast_max_man = 2 << number_common.man_bits;
-
-    if (fast_min_exp <= number.exponent and
-        number.exponent <= fast_max_exp and
-        number.mantissa <= fast_max_man and
-        !many_digits)
-    {
-        var answer: f64 = @floatFromInt(number.mantissa);
-        if (number.exponent < 0)
-            answer /= power_of_ten[@intCast(-number.exponent)]
-        else
-            answer *= power_of_ten[@intCast(number.exponent)];
-        return if (number.negative) -answer else answer;
-    }
-
-    var bf = eisel_lemire.compute(number.mantissa, number.exponent);
-    if (many_digits and bf.e >= 0) {
-        if (!bf.eql(eisel_lemire.compute(number.mantissa + 1, number.exponent))) {
-            bf = eisel_lemire.computeError(number.mantissa, number.exponent);
-        }
-    }
-    if (bf.e < 0) {
-        @branchHint(.unlikely);
-        digit_comp.compute(number, &bf);
-    }
-
-    if (bf.e == number_common.inf_exp) return error.NumberOutOfRange;
-
-    return bf.toFloat(number.negative);
 }
 
 const power_of_ten: [23]f64 = brk: {
@@ -272,21 +270,9 @@ const power_of_ten: [23]f64 = brk: {
     break :brk res;
 };
 
-inline fn parseDigit(ptr: [*]const u8) ?u8 {
-    const digit = ptr[0] -% '0';
+inline fn parseDigit(char: u8) ?u8 {
+    const digit = char -% '0';
     return if (digit < 10) digit else null;
-}
-
-inline fn parseDecimal(ptr: *[*]const u8, man: *u64) void {
-    while (number_common.isEightDigits(ptr.*[0..8].*)) {
-        man.* = man.* *% 100000000 +% number_common.parseEightDigits(ptr.*);
-        ptr.* += 8;
-    }
-
-    while (parseDigit(ptr.*)) |d| {
-        man.* = man.* *% 10 +% d;
-        ptr.* += 1;
-    }
 }
 
 inline fn parseExponent(ptr: *[*]const u8, exp: *i64) Error!void {
@@ -296,7 +282,7 @@ inline fn parseExponent(ptr: *[*]const u8, exp: *i64) Error!void {
     const start_exp = @intFromPtr(ptr.*);
 
     var exp_number: u64 = 0;
-    while (parseDigit(ptr.*)) |d| {
+    while (parseDigit(ptr.*[0])) |d| {
         if (exp_number < 0x10000000) {
             exp_number = exp_number * 10 + d;
         }

@@ -842,8 +842,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     try self.words.ensureUnusedCapacity(self.allocator, 1);
                     try self.numbers.ensureUnusedCapacity(self.allocator, 1);
                 }
-                const parser = @import("parsers/number/parser.zig").Parser;
-                const number = try parser.parse(ptr);
+                const number = try @import("parsers/number/parser.zig").parse(null, ptr);
                 self.words.appendAssumeCapacity(
                     @bitCast(Word{
                         .tag = @enumFromInt(@intFromEnum(number)),

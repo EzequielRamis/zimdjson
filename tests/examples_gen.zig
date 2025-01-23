@@ -84,7 +84,10 @@ pub fn main() !void {
             \\    defer parser.deinit();
             \\    const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonexamples/{[path]s}", .{{}});
             \\    defer file.close();
-            \\    _ = try parser.parse(file.reader());
+            \\    _ = parser.parse(file.reader()) catch |err| {{
+            \\        @breakpoint();
+            \\        return err;
+            \\    }};
             \\}}
             \\
             \\

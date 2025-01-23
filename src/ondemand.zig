@@ -5,7 +5,6 @@ const common = @import("common.zig");
 const types = @import("types.zig");
 const intr = @import("intrinsics.zig");
 const tokens = @import("tokens.zig");
-const NumberParser = @import("parsers/number/parser.zig").Parser;
 const Vector = types.Vector;
 const Pred = types.Predicate;
 const Allocator = std.mem.Allocator;
@@ -509,19 +508,25 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 }
 
                 fn parseNumber(_: Iterator, ptr: [*]const u8) Error!Number {
-                    return NumberParser.parse(ptr);
+                    return @import("parsers/number/parser.zig").parse(null, ptr);
                 }
 
                 fn parseUnsigned(_: Iterator, ptr: [*]const u8) Error!u64 {
-                    return NumberParser.parseUnsigned(ptr);
+                    const n = try @import("parsers/number/parser.zig").parse(.unsigned, ptr);
+                    return n.unsigned;
                 }
 
                 fn parseSigned(_: Iterator, ptr: [*]const u8) Error!i64 {
-                    return NumberParser.parseSigned(ptr);
+                    const n = try @import("parsers/number/parser.zig").parse(.signed, ptr);
+                    return n.signed;
                 }
 
                 fn parseFloat(_: Iterator, ptr: [*]const u8) Error!f64 {
-                    return NumberParser.parseFloat(ptr);
+                    const n = try @import("parsers/number/parser.zig").parse(.float, ptr);
+                    return switch (n) {
+                        .float => |v| v,
+                        inline else => |v| @floatFromInt(v),
+                    };
                 }
 
                 fn parseString(_: Iterator, ptr: [*]const u8, dst: [*]u8) Error![]const u8 {

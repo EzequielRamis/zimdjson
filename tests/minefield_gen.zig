@@ -84,7 +84,10 @@ pub fn main() !void {
                 try checker_zig_content.appendSlice(
                     \\", .{});
                     \\    defer file.close();
-                    \\    _ = try parser.parse(file.reader());
+                    \\    _ = parser.parse(file.reader()) catch |err| {
+                    \\        @breakpoint();
+                    \\        return err;
+                    \\    };
                 );
             } else {
                 try checker_zig_content.appendSlice(

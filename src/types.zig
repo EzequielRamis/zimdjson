@@ -25,7 +25,7 @@ pub fn Aligned(comptime aligned: bool) type {
     };
 }
 
-const NumberType = enum(u8) {
+pub const NumberType = enum(u8) {
     unsigned = 'u',
     signed = 'i',
     float = 'd',

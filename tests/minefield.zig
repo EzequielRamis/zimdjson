@@ -2671,7 +2671,10 @@ test "pass01" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass01.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "pass02" {
@@ -2680,7 +2683,10 @@ test "pass02" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass02.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "pass03" {
@@ -2689,7 +2695,10 @@ test "pass03" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass03.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "pass04" {
@@ -2698,7 +2707,10 @@ test "pass04" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass04.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "pass05" {
@@ -2707,7 +2719,10 @@ test "pass05" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass05.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "pass06" {
@@ -2716,7 +2731,10 @@ test "pass06" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass06.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "pass07" {
@@ -2725,7 +2743,10 @@ test "pass07" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass07.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "pass08" {
@@ -2734,7 +2755,10 @@ test "pass08" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass08.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "pass09" {
@@ -2743,7 +2767,10 @@ test "pass09" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass09.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "pass10" {
@@ -2752,7 +2779,10 @@ test "pass10" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass10.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "pass11" {
@@ -2761,7 +2791,10 @@ test "pass11" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass11.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "pass12" {
@@ -2770,7 +2803,10 @@ test "pass12" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass12.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "pass13" {
@@ -2779,7 +2815,10 @@ test "pass13" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass13.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "pass14" {
@@ -2788,7 +2827,10 @@ test "pass14" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass14.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "pass15" {
@@ -2797,7 +2839,10 @@ test "pass15" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass15.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "pass16" {
@@ -2806,7 +2851,10 @@ test "pass16" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass16.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "pass17" {
@@ -2815,7 +2863,10 @@ test "pass17" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass17.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "pass18" {
@@ -2824,7 +2875,10 @@ test "pass18" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass18.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "pass19" {
@@ -2833,7 +2887,10 @@ test "pass19" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass19.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "pass20" {
@@ -2842,7 +2899,10 @@ test "pass20" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass20.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "pass21" {
@@ -2851,7 +2911,10 @@ test "pass21" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass21.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "pass22" {
@@ -2860,7 +2923,10 @@ test "pass22" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass22.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "pass23" {
@@ -2869,7 +2935,10 @@ test "pass23" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass23.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "pass24" {
@@ -2878,7 +2947,10 @@ test "pass24" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass24.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "pass25" {
@@ -2887,7 +2959,10 @@ test "pass25" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass25.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "pass26" {
@@ -2896,7 +2971,10 @@ test "pass26" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass26.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "pass27" {
@@ -2905,7 +2983,10 @@ test "pass27" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass27.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_array_arraysWithSpaces" {
@@ -2914,7 +2995,10 @@ test "y_array_arraysWithSpaces" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_array_arraysWithSpaces.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_array_empty-string" {
@@ -2923,7 +3007,10 @@ test "y_array_empty-string" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_array_empty-string.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_array_empty" {
@@ -2932,7 +3019,10 @@ test "y_array_empty" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_array_empty.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_array_ending_with_newline" {
@@ -2941,7 +3031,10 @@ test "y_array_ending_with_newline" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_array_ending_with_newline.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_array_false" {
@@ -2950,7 +3043,10 @@ test "y_array_false" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_array_false.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_array_heterogeneous" {
@@ -2959,7 +3055,10 @@ test "y_array_heterogeneous" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_array_heterogeneous.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_array_null" {
@@ -2968,7 +3067,10 @@ test "y_array_null" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_array_null.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_array_with_1_and_newline" {
@@ -2977,7 +3079,10 @@ test "y_array_with_1_and_newline" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_array_with_1_and_newline.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_array_with_leading_space" {
@@ -2986,7 +3091,10 @@ test "y_array_with_leading_space" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_array_with_leading_space.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_array_with_several_null" {
@@ -2995,7 +3103,10 @@ test "y_array_with_several_null" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_array_with_several_null.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_array_with_trailing_space" {
@@ -3004,7 +3115,10 @@ test "y_array_with_trailing_space" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_array_with_trailing_space.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_number" {
@@ -3013,7 +3127,10 @@ test "y_number" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_number_0e+1" {
@@ -3022,7 +3139,10 @@ test "y_number_0e+1" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number_0e+1.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_number_0e1" {
@@ -3031,7 +3151,10 @@ test "y_number_0e1" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number_0e1.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_number_after_space" {
@@ -3040,7 +3163,10 @@ test "y_number_after_space" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number_after_space.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_number_double_close_to_zero" {
@@ -3049,7 +3175,10 @@ test "y_number_double_close_to_zero" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number_double_close_to_zero.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_number_int_with_exp" {
@@ -3058,7 +3187,10 @@ test "y_number_int_with_exp" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number_int_with_exp.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_number_minus_zero" {
@@ -3067,7 +3199,10 @@ test "y_number_minus_zero" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number_minus_zero.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_number_negative_int" {
@@ -3076,7 +3211,10 @@ test "y_number_negative_int" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number_negative_int.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_number_negative_one" {
@@ -3085,7 +3223,10 @@ test "y_number_negative_one" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number_negative_one.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_number_negative_zero" {
@@ -3094,7 +3235,10 @@ test "y_number_negative_zero" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number_negative_zero.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_number_real_capital_e" {
@@ -3103,7 +3247,10 @@ test "y_number_real_capital_e" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number_real_capital_e.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_number_real_capital_e_neg_exp" {
@@ -3112,7 +3259,10 @@ test "y_number_real_capital_e_neg_exp" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number_real_capital_e_neg_exp.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_number_real_capital_e_pos_exp" {
@@ -3121,7 +3271,10 @@ test "y_number_real_capital_e_pos_exp" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number_real_capital_e_pos_exp.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_number_real_exponent" {
@@ -3130,7 +3283,10 @@ test "y_number_real_exponent" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number_real_exponent.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_number_real_fraction_exponent" {
@@ -3139,7 +3295,10 @@ test "y_number_real_fraction_exponent" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number_real_fraction_exponent.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_number_real_neg_exp" {
@@ -3148,7 +3307,10 @@ test "y_number_real_neg_exp" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number_real_neg_exp.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_number_real_pos_exponent" {
@@ -3157,7 +3319,10 @@ test "y_number_real_pos_exponent" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number_real_pos_exponent.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_number_simple_int" {
@@ -3166,7 +3331,10 @@ test "y_number_simple_int" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number_simple_int.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_number_simple_real" {
@@ -3175,7 +3343,10 @@ test "y_number_simple_real" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number_simple_real.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_object" {
@@ -3184,7 +3355,10 @@ test "y_object" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_object.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_object_basic" {
@@ -3193,7 +3367,10 @@ test "y_object_basic" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_object_basic.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_object_duplicated_key" {
@@ -3202,7 +3379,10 @@ test "y_object_duplicated_key" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_object_duplicated_key.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_object_duplicated_key_and_value" {
@@ -3211,7 +3391,10 @@ test "y_object_duplicated_key_and_value" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_object_duplicated_key_and_value.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_object_empty" {
@@ -3220,7 +3403,10 @@ test "y_object_empty" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_object_empty.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_object_empty_key" {
@@ -3229,7 +3415,10 @@ test "y_object_empty_key" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_object_empty_key.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_object_escaped_null_in_key" {
@@ -3238,7 +3427,10 @@ test "y_object_escaped_null_in_key" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_object_escaped_null_in_key.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_object_extreme_numbers" {
@@ -3247,7 +3439,10 @@ test "y_object_extreme_numbers" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_object_extreme_numbers.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_object_long_strings" {
@@ -3256,7 +3451,10 @@ test "y_object_long_strings" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_object_long_strings.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_object_simple" {
@@ -3265,7 +3463,10 @@ test "y_object_simple" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_object_simple.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_object_string_unicode" {
@@ -3274,7 +3475,10 @@ test "y_object_string_unicode" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_object_string_unicode.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_object_with_newlines" {
@@ -3283,7 +3487,10 @@ test "y_object_with_newlines" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_object_with_newlines.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_1_2_3_bytes_UTF-8_sequences" {
@@ -3292,7 +3499,10 @@ test "y_string_1_2_3_bytes_UTF-8_sequences" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_1_2_3_bytes_UTF-8_sequences.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_accepted_surrogate_pair" {
@@ -3301,7 +3511,10 @@ test "y_string_accepted_surrogate_pair" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_accepted_surrogate_pair.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_accepted_surrogate_pairs" {
@@ -3310,7 +3523,10 @@ test "y_string_accepted_surrogate_pairs" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_accepted_surrogate_pairs.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_allowed_escapes" {
@@ -3319,7 +3535,10 @@ test "y_string_allowed_escapes" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_allowed_escapes.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_backslash_and_u_escaped_zero" {
@@ -3328,7 +3547,10 @@ test "y_string_backslash_and_u_escaped_zero" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_backslash_and_u_escaped_zero.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_backslash_doublequotes" {
@@ -3337,7 +3559,10 @@ test "y_string_backslash_doublequotes" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_backslash_doublequotes.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_comments" {
@@ -3346,7 +3571,10 @@ test "y_string_comments" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_comments.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_double_escape_a" {
@@ -3355,7 +3583,10 @@ test "y_string_double_escape_a" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_double_escape_a.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_double_escape_n" {
@@ -3364,7 +3595,10 @@ test "y_string_double_escape_n" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_double_escape_n.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_escaped_control_character" {
@@ -3373,7 +3607,10 @@ test "y_string_escaped_control_character" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_escaped_control_character.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_escaped_noncharacter" {
@@ -3382,7 +3619,10 @@ test "y_string_escaped_noncharacter" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_escaped_noncharacter.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_in_array" {
@@ -3391,7 +3631,10 @@ test "y_string_in_array" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_in_array.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_in_array_with_leading_space" {
@@ -3400,7 +3643,10 @@ test "y_string_in_array_with_leading_space" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_in_array_with_leading_space.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_last_surrogates_1_and_2" {
@@ -3409,7 +3655,10 @@ test "y_string_last_surrogates_1_and_2" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_last_surrogates_1_and_2.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_nbsp_uescaped" {
@@ -3418,7 +3667,10 @@ test "y_string_nbsp_uescaped" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_nbsp_uescaped.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_nonCharacterInUTF-8_U+10FFFF" {
@@ -3427,7 +3679,10 @@ test "y_string_nonCharacterInUTF-8_U+10FFFF" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_nonCharacterInUTF-8_U+10FFFF.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_nonCharacterInUTF-8_U+FFFF" {
@@ -3436,7 +3691,10 @@ test "y_string_nonCharacterInUTF-8_U+FFFF" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_nonCharacterInUTF-8_U+FFFF.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_null_escape" {
@@ -3445,7 +3703,10 @@ test "y_string_null_escape" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_null_escape.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_one-byte-utf-8" {
@@ -3454,7 +3715,10 @@ test "y_string_one-byte-utf-8" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_one-byte-utf-8.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_pi" {
@@ -3463,7 +3727,10 @@ test "y_string_pi" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_pi.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_reservedCharacterInUTF-8_U+1BFFF" {
@@ -3472,7 +3739,10 @@ test "y_string_reservedCharacterInUTF-8_U+1BFFF" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_reservedCharacterInUTF-8_U+1BFFF.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_simple_ascii" {
@@ -3481,7 +3751,10 @@ test "y_string_simple_ascii" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_simple_ascii.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_space" {
@@ -3490,7 +3763,10 @@ test "y_string_space" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_space.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_surrogates_U+1D11E_MUSICAL_SYMBOL_G_CLEF" {
@@ -3499,7 +3775,10 @@ test "y_string_surrogates_U+1D11E_MUSICAL_SYMBOL_G_CLEF" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_surrogates_U+1D11E_MUSICAL_SYMBOL_G_CLEF.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_three-byte-utf-8" {
@@ -3508,7 +3787,10 @@ test "y_string_three-byte-utf-8" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_three-byte-utf-8.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_two-byte-utf-8" {
@@ -3517,7 +3799,10 @@ test "y_string_two-byte-utf-8" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_two-byte-utf-8.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_u+2028_line_sep" {
@@ -3526,7 +3811,10 @@ test "y_string_u+2028_line_sep" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_u+2028_line_sep.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_u+2029_par_sep" {
@@ -3535,7 +3823,10 @@ test "y_string_u+2029_par_sep" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_u+2029_par_sep.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_uEscape" {
@@ -3544,7 +3835,10 @@ test "y_string_uEscape" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_uEscape.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_uescaped_newline" {
@@ -3553,7 +3847,10 @@ test "y_string_uescaped_newline" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_uescaped_newline.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_unescaped_char_delete" {
@@ -3562,7 +3859,10 @@ test "y_string_unescaped_char_delete" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_unescaped_char_delete.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_unicode" {
@@ -3571,7 +3871,10 @@ test "y_string_unicode" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_unicode.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_unicodeEscapedBackslash" {
@@ -3580,7 +3883,10 @@ test "y_string_unicodeEscapedBackslash" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_unicodeEscapedBackslash.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_unicode_2" {
@@ -3589,7 +3895,10 @@ test "y_string_unicode_2" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_unicode_2.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_unicode_U+10FFFE_nonchar" {
@@ -3598,7 +3907,10 @@ test "y_string_unicode_U+10FFFE_nonchar" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_unicode_U+10FFFE_nonchar.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_unicode_U+1FFFE_nonchar" {
@@ -3607,7 +3919,10 @@ test "y_string_unicode_U+1FFFE_nonchar" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_unicode_U+1FFFE_nonchar.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_unicode_U+200B_ZERO_WIDTH_SPACE" {
@@ -3616,7 +3931,10 @@ test "y_string_unicode_U+200B_ZERO_WIDTH_SPACE" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_unicode_U+200B_ZERO_WIDTH_SPACE.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_unicode_U+2064_invisible_plus" {
@@ -3625,7 +3943,10 @@ test "y_string_unicode_U+2064_invisible_plus" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_unicode_U+2064_invisible_plus.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_unicode_U+FDD0_nonchar" {
@@ -3634,7 +3955,10 @@ test "y_string_unicode_U+FDD0_nonchar" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_unicode_U+FDD0_nonchar.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_unicode_U+FFFE_nonchar" {
@@ -3643,7 +3967,10 @@ test "y_string_unicode_U+FFFE_nonchar" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_unicode_U+FFFE_nonchar.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_unicode_escaped_double_quote" {
@@ -3652,7 +3979,10 @@ test "y_string_unicode_escaped_double_quote" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_unicode_escaped_double_quote.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_utf8" {
@@ -3661,7 +3991,10 @@ test "y_string_utf8" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_utf8.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_string_with_del_character" {
@@ -3670,7 +4003,10 @@ test "y_string_with_del_character" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_with_del_character.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_structure_lonely_false" {
@@ -3679,7 +4015,10 @@ test "y_structure_lonely_false" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_structure_lonely_false.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_structure_lonely_int" {
@@ -3688,7 +4027,10 @@ test "y_structure_lonely_int" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_structure_lonely_int.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_structure_lonely_negative_real" {
@@ -3697,7 +4039,10 @@ test "y_structure_lonely_negative_real" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_structure_lonely_negative_real.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_structure_lonely_null" {
@@ -3706,7 +4051,10 @@ test "y_structure_lonely_null" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_structure_lonely_null.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_structure_lonely_string" {
@@ -3715,7 +4063,10 @@ test "y_structure_lonely_string" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_structure_lonely_string.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_structure_lonely_true" {
@@ -3724,7 +4075,10 @@ test "y_structure_lonely_true" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_structure_lonely_true.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_structure_string_empty" {
@@ -3733,7 +4087,10 @@ test "y_structure_string_empty" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_structure_string_empty.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_structure_trailing_newline" {
@@ -3742,7 +4099,10 @@ test "y_structure_trailing_newline" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_structure_trailing_newline.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_structure_true_in_array" {
@@ -3751,7 +4111,10 @@ test "y_structure_true_in_array" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_structure_true_in_array.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 
 test "y_structure_whitespace_array" {
@@ -3760,6 +4123,9 @@ test "y_structure_whitespace_array" {
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_structure_whitespace_array.json", .{});
     defer file.close();
-    _ = try parser.parse(file.reader());
+    _ = parser.parse(file.reader()) catch |err| {
+        @breakpoint();
+        return err;
+    };
 }
 

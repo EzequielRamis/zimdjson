@@ -27,7 +27,10 @@ fn testFrom(comptime set: []const u8) !void {
             else => return err,
         };
         const actual = try std.fmt.bufPrint(&actual_buf, "{X:0>16}", .{@as(u64, @bitCast(float))});
-        try std.testing.expectEqualStrings(expected, actual);
+        std.testing.expectEqualStrings(expected, actual) catch {
+            std.debug.print("FAIL: {} {s}\n", .{ i, str });
+            @breakpoint();
+        };
     }
     // std.debug.print("END:     {s}\n\n", .{set});
 }

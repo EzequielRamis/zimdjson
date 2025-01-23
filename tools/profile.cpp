@@ -16,13 +16,13 @@ using namespace simdjson;
 // }
 
 // yyjson
-// int main(int argc, char* argv[]) {
-//   while (true) {
-//     ZoneScopedN("parser");
-//     yyjson_doc *doc = yyjson_read_file(argv[1], 0, NULL, NULL);
-//     yyjson_doc_free(doc);
-//   }
-// }
+int main(int argc, char* argv[]) {
+  while (true) {
+    ZoneScopedN("parser");
+    yyjson_doc *doc = yyjson_read_file(argv[1], 0, NULL, NULL);
+    yyjson_doc_free(doc);
+  }
+}
 
 void * operator new ( std :: size_t count )
 {

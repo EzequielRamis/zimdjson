@@ -59,15 +59,15 @@ plt.show()
 
 pivot_df = data.pivot(index='suite', columns='name', values='perf')
 del pivot_df[better_names['rapidjson_dom']]
-pivot_df['relative simdjson'] = pivot_df[better_names['simdjson_dom']] / pivot_df[better_names['zimdjson_dom']]
-pivot_df['relative yyjson'] = pivot_df[better_names['yyjson']] / pivot_df[better_names['zimdjson_dom']]
+pivot_df['relative to simdjson'] = pivot_df[better_names['simdjson_dom']] / pivot_df[better_names['zimdjson_dom']]
+pivot_df['relative to yyjson'] = pivot_df[better_names['yyjson']] / pivot_df[better_names['zimdjson_dom']]
 
-rel_simd = pivot_df.sort_values(by='relative simdjson', ascending=False)
+rel_simd = pivot_df.sort_values(by='relative to simdjson', ascending=False)
 del rel_simd[better_names['yyjson']]
-del rel_simd['relative yyjson']
+del rel_simd['relative to yyjson']
 print(rel_simd)
 
-rel_yy = pivot_df.sort_values(by='relative yyjson', ascending=False)
+rel_yy = pivot_df.sort_values(by='relative to yyjson', ascending=False)
 del rel_yy[better_names['simdjson_dom']]
-del rel_yy['relative simdjson']
+del rel_yy['relative to simdjson']
 print(rel_yy)

@@ -58,8 +58,8 @@ pub const BiasedFp = struct {
     }
 };
 
-pub inline fn isEightDigits(src: [8]u8) bool {
-    const val = readInt(u64, &src, native_endian);
+pub inline fn isEightDigits(src: [*]const u8) bool {
+    const val = readInt(u64, src[0..8], native_endian);
     const a = val +% 0x4646464646464646;
     const b = val -% 0x3030303030303030;
     return (((a | b) & 0x8080808080808080)) == 0;

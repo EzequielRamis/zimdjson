@@ -50,15 +50,45 @@ pub inline fn parse(comptime Expected: ?types.NumberType, src: [*]const u8) Erro
                                         significant_ptr += 1;
                                         decimal_len += 1;
                                     }
-                                    inline for (0..max_digits - 1) |j| {
-                                        const dec_char = significant_ptr[j];
-                                        if (parseDigit(dec_char)) |digit| {
-                                            @branchHint(.likely);
-                                            mantissa_10 = mantissa_10 *% 10 +% digit;
+                                    if (number_common.isEightDigits(significant_ptr)) {
+                                        mantissa_10 = mantissa_10 *% 100000000 +% number_common.parseEightDigits(significant_ptr);
+                                        if (number_common.isEightDigits(significant_ptr[8..])) {
+                                            mantissa_10 = mantissa_10 *% 100000000 +% number_common.parseEightDigits(significant_ptr[8..]);
+                                            inline for (16..max_digits - 1) |j| {
+                                                const dec_char = significant_ptr[j];
+                                                if (parseDigit(dec_char)) |digit| {
+                                                    @branchHint(.likely);
+                                                    mantissa_10 = mantissa_10 *% 10 +% digit;
+                                                } else {
+                                                    if (j == 0 and decimal_len == 0) return error.InvalidNumberLiteral;
+                                                    decimal_len += j;
+                                                    break :remainding_digits;
+                                                }
+                                            }
                                         } else {
-                                            if (j == 0 and decimal_len == 0) return error.InvalidNumberLiteral;
-                                            decimal_len += j;
-                                            break :remainding_digits;
+                                            inline for (8..max_digits - 1) |j| {
+                                                const dec_char = significant_ptr[j];
+                                                if (parseDigit(dec_char)) |digit| {
+                                                    @branchHint(.likely);
+                                                    mantissa_10 = mantissa_10 *% 10 +% digit;
+                                                } else {
+                                                    if (j == 0 and decimal_len == 0) return error.InvalidNumberLiteral;
+                                                    decimal_len += j;
+                                                    break :remainding_digits;
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        inline for (0..max_digits - 1) |j| {
+                                            const dec_char = significant_ptr[j];
+                                            if (parseDigit(dec_char)) |digit| {
+                                                @branchHint(.likely);
+                                                mantissa_10 = mantissa_10 *% 10 +% digit;
+                                            } else {
+                                                if (j == 0 and decimal_len == 0) return error.InvalidNumberLiteral;
+                                                decimal_len += j;
+                                                break :remainding_digits;
+                                            }
                                         }
                                     }
                                     decimal_len += max_digits - 1;
@@ -69,15 +99,45 @@ pub inline fn parse(comptime Expected: ?types.NumberType, src: [*]const u8) Erro
                                         break :significant_digits;
                                     }
                                 } else {
-                                    inline for (0..max_digits - 1 - i) |j| {
-                                        const dec_char = decimal_ptr[j];
-                                        if (parseDigit(dec_char)) |digit| {
-                                            @branchHint(.likely);
-                                            mantissa_10 = mantissa_10 *% 10 +% digit;
+                                    if (8 <= max_digits - 1 - i and number_common.isEightDigits(decimal_ptr)) {
+                                        mantissa_10 = mantissa_10 *% 100000000 +% number_common.parseEightDigits(decimal_ptr);
+                                        if (16 <= max_digits - 1 - i and number_common.isEightDigits(decimal_ptr[8..])) {
+                                            mantissa_10 = mantissa_10 *% 100000000 +% number_common.parseEightDigits(decimal_ptr[8..]);
+                                            inline for (16..max_digits - 1 - i) |j| {
+                                                const dec_char = decimal_ptr[j];
+                                                if (parseDigit(dec_char)) |digit| {
+                                                    @branchHint(.likely);
+                                                    mantissa_10 = mantissa_10 *% 10 +% digit;
+                                                } else {
+                                                    if (j == 0) return error.InvalidNumberLiteral;
+                                                    decimal_len += j;
+                                                    break :remainding_digits;
+                                                }
+                                            }
                                         } else {
-                                            if (j == 0) return error.InvalidNumberLiteral;
-                                            decimal_len += j;
-                                            break :remainding_digits;
+                                            inline for (8..max_digits - 1 - i) |j| {
+                                                const dec_char = decimal_ptr[j];
+                                                if (parseDigit(dec_char)) |digit| {
+                                                    @branchHint(.likely);
+                                                    mantissa_10 = mantissa_10 *% 10 +% digit;
+                                                } else {
+                                                    if (j == 0) return error.InvalidNumberLiteral;
+                                                    decimal_len += j;
+                                                    break :remainding_digits;
+                                                }
+                                            }
+                                        }
+                                    } else {
+                                        inline for (0..max_digits - 1 - i) |j| {
+                                            const dec_char = decimal_ptr[j];
+                                            if (parseDigit(dec_char)) |digit| {
+                                                @branchHint(.likely);
+                                                mantissa_10 = mantissa_10 *% 10 +% digit;
+                                            } else {
+                                                if (j == 0) return error.InvalidNumberLiteral;
+                                                decimal_len += j;
+                                                break :remainding_digits;
+                                            }
                                         }
                                     }
                                     decimal_len += max_digits - 1 - i;
@@ -146,7 +206,7 @@ pub inline fn parse(comptime Expected: ?types.NumberType, src: [*]const u8) Erro
                 }
             }
             integer_len = max_digits - 1;
-            while (number_common.isEightDigits(integer_ptr[integer_len..][0..8].*)) {
+            while (number_common.isEightDigits(integer_ptr[integer_len..])) {
                 integer_len += 8;
                 exponent_10 += 8;
             }
@@ -174,7 +234,7 @@ pub inline fn parse(comptime Expected: ?types.NumberType, src: [*]const u8) Erro
                 break :remainding_digits;
             }
         }
-        while (number_common.isEightDigits(decimal_ptr[decimal_len..][0..8].*)) {
+        while (number_common.isEightDigits(decimal_ptr[decimal_len..])) {
             decimal_len += 8;
             exponent_10 += 8;
         }

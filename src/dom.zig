@@ -85,18 +85,13 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 self.tape.tokens.indexes.shrinkAndFree(new_capacity + 1);
 
             if (new_capacity < self.tape.words.list.items.len) {
-                self.tape.words.list.shrinkAndFree(self.tape.allocator, new_capacity);
+                self.tape.words.list.shrinkAndFree(self.tape.allocator, new_capacity + (new_capacity >> 1) + 1);
                 self.tape.words.max_capacity = new_capacity;
             }
 
             if (new_capacity + types.Vector.bytes_len < self.tape.strings.items().len) {
                 self.tape.strings.list.shrinkAndFree(self.tape.allocator, new_capacity + types.Vector.bytes_len);
                 self.tape.strings.max_capacity = new_capacity + types.Vector.bytes_len;
-            }
-
-            if (new_capacity < self.tape.numbers.list.items.len) {
-                self.tape.numbers.list.shrinkAndFree(self.tape.allocator, new_capacity);
-                self.tape.numbers.max_capacity = new_capacity;
             }
 
             self.max_capacity = new_capacity;
@@ -217,7 +212,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 if (self.err) |err| return err;
 
                 const w = self.tape.get(self.index);
-                const number = self.tape.numbers.items()[w.data.ptr];
+                const number = self.tape.get(self.index + 1);
                 return switch (w.tag) {
                     inline .unsigned, .signed, .float => |t| @unionInit(Number, @tagName(t), @bitCast(number)),
                     else => error.IncorrectType,
@@ -228,7 +223,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 if (self.err) |err| return err;
 
                 const w = self.tape.get(self.index);
-                const number = self.tape.numbers.items()[w.data.ptr];
+                const number = self.tape.get(self.index + 1);
                 return switch (w.tag) {
                     .unsigned => @bitCast(number),
                     .signed => std.math.cast(u64, @as(i64, @bitCast(number))) orelse error.NumberOutOfRange,
@@ -240,7 +235,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 if (self.err) |err| return err;
 
                 const w = self.tape.get(self.index);
-                const number = self.tape.numbers.items()[w.data.ptr];
+                const number = self.tape.get(self.index + 1);
                 return switch (w.tag) {
                     .signed => @bitCast(number),
                     .unsigned => std.math.cast(i64, @as(u64, @bitCast(number))) orelse error.NumberOutOfRange,
@@ -252,7 +247,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 if (self.err) |err| return err;
 
                 const w = self.tape.get(self.index);
-                const number = self.tape.numbers.items()[w.data.ptr];
+                const number = self.tape.get(self.index + 1);
                 return switch (w.tag) {
                     .float => @bitCast(number),
                     else => error.IncorrectType,
@@ -357,6 +352,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     if (curr.tag == .array_closing) return null;
                     defer self.curr = switch (curr.tag) {
                         .array_opening, .object_opening => curr.data.ptr,
+                        .unsigned, .signed, .float => self.curr + 2,
                         else => self.curr + 1,
                     };
                     return .{ .tape = self.tape, .index = self.curr };
@@ -407,6 +403,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     const curr = self.tape.get(self.curr + 1);
                     defer self.curr = switch (curr.tag) {
                         .array_opening, .object_opening => curr.data.ptr,
+                        .unsigned, .signed, .float => self.curr + 3,
                         else => self.curr + 2,
                     };
                     return .{
@@ -491,7 +488,6 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             stack: types.BoundedMultiArrayList(Context, default_max_depth),
 
             strings: types.BoundedArrayListUnmanaged(u8, max_capacity_bound),
-            numbers: types.BoundedArrayListUnmanaged(u64, max_capacity_bound),
 
             pub fn init(allocator: Allocator) Tape {
                 return .{
@@ -500,7 +496,6 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     .words = .empty,
                     .stack = .empty,
                     .strings = .empty,
-                    .numbers = .empty,
                 };
             }
 
@@ -509,7 +504,6 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 self.words.deinit(self.allocator);
                 self.stack.deinit(self.allocator);
                 self.strings.deinit(self.allocator);
-                self.numbers.deinit(self.allocator);
             }
 
             pub inline fn build(self: *Tape, document: if (want_stream) Reader.? else Aligned.slice) Error!void {
@@ -517,16 +511,13 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
 
                 if (!want_stream) {
                     const tokens_count = self.tokens.indexes.items.len;
-                    try self.words.ensureTotalCapacity(self.allocator, tokens_count);
-
                     // if there are only n numbers, there must be n - 1 commas plus an ending container token, so almost half of the tokens are numbers
-                    try self.numbers.ensureTotalCapacity(self.allocator, (tokens_count >> 1) + 1);
+                    try self.words.ensureTotalCapacity(self.allocator, tokens_count + (tokens_count >> 1) + 1);
                 }
 
                 self.words.list.clearRetainingCapacity();
                 self.stack.list.clearRetainingCapacity();
 
-                self.numbers.list.clearRetainingCapacity();
                 self.strings.list.clearRetainingCapacity();
 
                 return self.dispatch();
@@ -840,20 +831,16 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             inline fn visitNumber(self: *Tape, ptr: [*]const u8) Error!void {
                 if (want_stream) {
                     try self.words.ensureUnusedCapacity(self.allocator, 1);
-                    try self.numbers.ensureUnusedCapacity(self.allocator, 1);
                 }
                 const number = try @import("parsers/number/parser.zig").parse(null, ptr);
                 self.words.appendAssumeCapacity(
                     @bitCast(Word{
                         .tag = @enumFromInt(@intFromEnum(number)),
-                        .data = .{
-                            .ptr = @intCast(self.numbers.items().len),
-                            .len = undefined,
-                        },
+                        .data = undefined,
                     }),
                 );
                 switch (number) {
-                    inline else => |n| self.numbers.appendAssumeCapacity(@bitCast(n)),
+                    inline else => |n| self.words.appendAssumeCapacity(@bitCast(n)),
                 }
             }
 

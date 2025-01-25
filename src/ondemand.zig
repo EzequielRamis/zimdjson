@@ -41,6 +41,7 @@ pub fn parserFromFile(comptime options: ParserOptions(std.fs.File.Reader)) type 
 pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) type {
     const want_stream = Reader != null and options.stream != null;
     const need_document_buffer = Reader != null and options.stream == null;
+    const aligned = Reader != null or options.aligned;
 
     return struct {
         const Self = @This();
@@ -49,13 +50,13 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
         const Tokens = if (want_stream)
             tokens.Stream(.{
                 .Reader = Reader.?,
-                .aligned = options.aligned,
+                .aligned = aligned,
                 .chunk_len = options.stream.?.chunk_length,
                 .slots = 4,
             })
         else
             tokens.Iterator(.{
-                .aligned = options.aligned,
+                .aligned = aligned,
                 .assume_padding = Reader != null or options.assume_padding,
             });
 

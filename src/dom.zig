@@ -11,7 +11,6 @@ const native_endian = builtin.cpu.arch.endian();
 pub fn ParserOptions(comptime Reader: ?type) type {
     return if (Reader) |_| struct {
         pub const default: @This() = .{};
-        aligned: bool = false,
         stream: ?struct {
             pub const default: @This() = .{};
             chunk_length: u32 = tokens.ring_buffer.default_chunk_length,
@@ -34,21 +33,22 @@ pub fn parserFromFile(comptime options: ParserOptions(std.fs.File.Reader)) type 
 pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) type {
     const want_stream = Reader != null and options.stream != null;
     const need_document_buffer = Reader != null and options.stream == null;
+    const aligned = Reader != null or options.aligned;
 
     return struct {
         const Self = @This();
 
-        const Aligned = types.Aligned(options.aligned);
+        const Aligned = types.Aligned(aligned);
         const Tokens = if (want_stream)
             tokens.Stream(.{
                 .Reader = Reader.?,
-                .aligned = options.aligned,
+                .aligned = aligned,
                 .chunk_len = options.stream.?.chunk_length,
                 .slots = 2,
             })
         else
             tokens.Iterator(.{
-                .aligned = options.aligned,
+                .aligned = aligned,
                 .assume_padding = Reader != null or options.assume_padding,
             });
 
@@ -437,16 +437,16 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
         };
 
         const Tape = struct {
-            const State = enum {
-                start,
-                object_begin,
-                object_field,
-                object_continue,
-                array_begin,
-                array_value,
-                array_continue,
-                scope_end,
-                end,
+            const State = enum(u8) {
+                start = 0,
+                object_begin = '{',
+                object_field = 1,
+                object_continue = '{' + 1,
+                array_begin = '[',
+                array_value = 2,
+                array_continue = '[' + 1,
+                scope_end = 3,
+                end = 4,
             };
 
             const Tag = enum(u8) {
@@ -532,19 +532,12 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     .start => {
                         const t = try self.tokens.next();
                         switch (t[0]) {
-                            '{' => {
-                                if (self.tokens.peekChar() == '}') {
-                                    try self.visitEmptyObject();
+                            '{', '[' => |container_begin| {
+                                if (self.tokens.peekChar() == container_begin + 2) {
+                                    try self.visitEmptyContainer(container_begin);
                                     continue :state .end;
                                 }
-                                continue :state .object_begin;
-                            },
-                            '[' => {
-                                if (self.tokens.peekChar() == ']') {
-                                    try self.visitEmptyArray();
-                                    continue :state .end;
-                                }
-                                continue :state .array_begin;
+                                continue :state @enumFromInt(container_begin);
                             },
                             else => {
                                 try self.visitPrimitive(t);
@@ -581,19 +574,12 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         if ((try self.tokens.next())[0] == ':') {
                             const t = try self.tokens.next();
                             switch (t[0]) {
-                                '{' => {
-                                    if (self.tokens.peekChar() == '}') {
-                                        try self.visitEmptyObject();
+                                '{', '[' => |container_begin| {
+                                    if (self.tokens.peekChar() == container_begin + 2) {
+                                        try self.visitEmptyContainer(container_begin);
                                         continue :state .object_continue;
                                     }
-                                    continue :state .object_begin;
-                                },
-                                '[' => {
-                                    if (self.tokens.peekChar() == ']') {
-                                        try self.visitEmptyArray();
-                                        continue :state .object_continue;
-                                    }
-                                    continue :state .array_begin;
+                                    continue :state @enumFromInt(container_begin);
                                 },
                                 else => {
                                     try self.visitPrimitive(t);
@@ -657,19 +643,12 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     .array_value => {
                         const t = try self.tokens.next();
                         switch (t[0]) {
-                            '{' => {
-                                if (self.tokens.peekChar() == '}') {
-                                    try self.visitEmptyObject();
+                            '{', '[' => |container_begin| {
+                                if (self.tokens.peekChar() == container_begin + 2) {
+                                    try self.visitEmptyContainer(container_begin);
                                     continue :state .array_continue;
                                 }
-                                continue :state .object_begin;
-                            },
-                            '[' => {
-                                if (self.tokens.peekChar() == ']') {
-                                    try self.visitEmptyArray();
-                                    continue :state .array_continue;
-                                }
-                                continue :state .array_begin;
+                                continue :state @enumFromInt(container_begin);
                             },
                             else => {
                                 try self.visitPrimitive(t);
@@ -718,11 +697,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         }
                         assert(self.stack.list.capacity != 0);
                         const parent = self.stack.list.items(.tag)[self.stack.list.len - 1];
-                        switch (parent) {
-                            .array_opening => continue :state .array_continue,
-                            .object_opening => continue :state .object_continue,
-                            else => unreachable,
-                        }
+                        continue :state @enumFromInt(@intFromEnum(parent) + 1);
                     },
                     .end => {
                         const trail = try self.tokens.next();
@@ -755,12 +730,12 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 }
             }
 
-            inline fn visitEmptyObject(self: *Tape) Error!void {
+            inline fn visitEmptyContainer(self: *Tape, tag: u8) Error!void {
                 if (want_stream) try self.words.ensureUnusedCapacity(self.allocator, 2);
                 const curr: u32 = @intCast(self.words.items().len);
                 self.words.appendAssumeCapacity(
                     @bitCast(Word{
-                        .tag = .object_opening,
+                        .tag = @enumFromInt(tag),
                         .data = .{
                             .ptr = curr + 2,
                             .len = 0,
@@ -769,31 +744,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 );
                 self.words.appendAssumeCapacity(
                     @bitCast(Word{
-                        .tag = .object_closing,
-                        .data = .{
-                            .ptr = curr,
-                            .len = undefined,
-                        },
-                    }),
-                );
-                _ = try self.tokens.next();
-            }
-
-            inline fn visitEmptyArray(self: *Tape) Error!void {
-                if (want_stream) try self.words.ensureUnusedCapacity(self.allocator, 2);
-                const curr: u32 = @intCast(self.words.items().len);
-                self.words.appendAssumeCapacity(
-                    @bitCast(Word{
-                        .tag = .array_opening,
-                        .data = .{
-                            .ptr = curr + 2,
-                            .len = 0,
-                        },
-                    }),
-                );
-                self.words.appendAssumeCapacity(
-                    @bitCast(Word{
-                        .tag = .array_closing,
+                        .tag = @enumFromInt(tag + 2),
                         .data = .{
                             .ptr = curr,
                             .len = undefined,

@@ -458,7 +458,7 @@ const Utf8 = struct {
         const is_third_byte = prev2 -| @as(vector, @splat(0xE0 - 0x80));
         const is_fourth_byte = prev3 -| @as(vector, @splat(0xF0 - 0x80));
 
-        const must_be_2_3_continuation = is_third_byte ^ is_fourth_byte;
+        const must_be_2_3_continuation = is_third_byte | is_fourth_byte;
         const must_be_2_3_80 = must_be_2_3_continuation & @as(vector, @splat(0x80));
 
         self.err |= must_be_2_3_80 ^ special_cases;

@@ -19,7 +19,8 @@ pub fn Aligned(comptime aligned: bool) type {
     return struct {
         pub const alignment = if (aligned) Vector.bytes_len else @alignOf(u8);
         pub const slice = []align(alignment) const u8;
-        pub const vector = *align(alignment) const [Vector.bytes_len]u8;
+        pub const vector = *align(alignment) const @Vector(Vector.bytes_len, u8);
+        pub const vectors = [Mask.computed_vectors]@This().vector;
         pub const chunk = *align(alignment) const [Mask.bits_len]u8;
         pub const block = *align(alignment) const [block_len]u8;
     };

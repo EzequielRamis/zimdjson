@@ -57,15 +57,20 @@ pub fn Indexer(comptime T: type, comptime options: Options) type {
 
         pub inline fn index(self: *Self, block: Aligned.block, dest: [*]T) u32 {
             var written: u32 = 0;
+            var vectors: [types.masks_per_iter]types.vectors = undefined;
+            var blocks: [types.masks_per_iter]JsonBlock = undefined;
             inline for (0..types.masks_per_iter) |m| {
                 const offset = @as(comptime_int, m) * Mask.bits_len;
                 const chunk: Aligned.chunk = block[offset..][0..Mask.bits_len];
-                var vecs: types.vectors = undefined;
                 inline for (0..Mask.computed_vectors) |j| {
-                    vecs[j] = @as(Aligned.vector, chunk[j * Vector.bytes_len ..][0..Vector.bytes_len]).*;
+                    vectors[m][j] = @as(Aligned.vector, chunk[j * Vector.bytes_len ..][0..Vector.bytes_len]).*;
                 }
-                const tokens = self.identify(vecs);
-                written += self.next(vecs, tokens, dest + written);
+            }
+            inline for (0..types.masks_per_iter) |m| {
+                blocks[m] = self.identify(vectors[m]);
+            }
+            inline for (0..types.masks_per_iter) |m| {
+                written += self.next(vectors[m], blocks[m], dest + written);
             }
             return written;
         }

@@ -143,12 +143,29 @@ pub fn build(b: *std.Build) !void {
     // -- Benchmarking
     {
         {
-            const com = center.command("bench/full-parsing", "Run 'full parsing' benchmark");
+            const com = center.command("bench/index", "Run 'SIMD indexer' benchmark");
             const parsers = Parsers.get(com, target, optimize);
             const file_path = try getProvidedPath(com, &path_buf, use_cwd);
 
             if (parsers) |p| {
-                var suite_dom = bench.Suite("full_parsing"){ .zimdjson = zimdjson, .simdjson = p.simdjson, .target = target, .optimize = optimize };
+                var suite_dom = bench.Suite("index"){ .zimdjson = zimdjson, .simdjson = p.simdjson, .target = target, .optimize = optimize };
+                const runner_dom = suite_dom.create(
+                    &.{
+                        suite_dom.addZigBenchmark("zimdjson_ondemand"),
+                        suite_dom.addCppBenchmark("simdjson_ondemand", p.simdjson),
+                    },
+                    file_path,
+                );
+                com.dependOn(&runner_dom.step);
+            }
+        }
+        {
+            const com = center.command("bench/dom", "Run 'DOM parsing' benchmark");
+            const parsers = Parsers.get(com, target, optimize);
+            const file_path = try getProvidedPath(com, &path_buf, use_cwd);
+
+            if (parsers) |p| {
+                var suite_dom = bench.Suite("dom"){ .zimdjson = zimdjson, .simdjson = p.simdjson, .target = target, .optimize = optimize };
                 const runner_dom = suite_dom.create(
                     &.{
                         suite_dom.addZigBenchmark("zimdjson_dom"),
@@ -337,6 +354,55 @@ pub fn build(b: *std.Build) !void {
 
     // -- Tools
     {
+        {
+            var com = center.command("tools/emit", "Build a Zig program including low-level artifacts");
+
+            const traced_zimdjson = getZimdjsonModule(b, .{
+                .target = target,
+                .optimize = optimize,
+                .enable_tracy = true,
+            });
+
+            const exe = b.addExecutable(.{
+                .name = "exe",
+                .root_source_file = b.path("tools/exe.zig"),
+                .target = target,
+                .optimize = optimize,
+            });
+
+            exe.root_module.addImport("zimdjson", traced_zimdjson);
+
+            const build_exe = b.addInstallArtifact(exe, .{});
+            const write_asm = b.addInstallFile(exe.getEmittedAsm(), "exe.s");
+            const write_ir = b.addInstallFile(exe.getEmittedLlvmIr(), "exe.ir");
+            com.dependOn(&build_exe.step);
+            com.dependOn(&write_asm.step);
+            com.dependOn(&write_ir.step);
+        }
+        {
+            var com = center.command("tools/emit-cpp", "Build a C++ program including low-level artifacts");
+            const parsers = Parsers.get(com, target, optimize);
+
+            if (parsers) |p| {
+                const exe = b.addExecutable(.{
+                    .name = "exe-cpp",
+                    .root_source_file = null,
+                    .target = target,
+                    .optimize = optimize,
+                });
+
+                exe.addCSourceFile(.{ .file = b.path("tools/exe.cpp") });
+                exe.linkLibrary(p.simdjson);
+                exe.linkLibrary(p.yyjson);
+
+                const build_exe = b.addInstallArtifact(exe, .{});
+                // const write_asm = b.addInstallFile(exe.getEmittedAsm(), "exe-cpp.s");
+                // const write_ir = b.addInstallFile(exe.getEmittedLlvmIr(), "exe-cpp.ir");
+                com.dependOn(&build_exe.step);
+                // com.dependOn(&write_asm.step);
+                // com.dependOn(&write_ir.step);
+            }
+        }
         {
             var com = center.command("tools/profile", "Profile a Zig program with Tracy");
             const file_path = try getProvidedPath(com, &path_buf, use_cwd);

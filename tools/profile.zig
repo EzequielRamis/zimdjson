@@ -16,21 +16,25 @@ pub fn main() !void {
     const allocator = tracy_alloc.allocator();
 
     const path = args[1];
-    const temp = try std.fs.openFileAbsolute(path, .{});
-    const size = (try temp.stat()).size;
-    temp.close();
+    const file = try std.fs.openFileAbsolute(path, .{});
+    defer file.close();
 
-    var parser = dom.parserFromFile(.default).init(allocator);
+    const json = try allocator.alloc(u8, (try file.stat()).size + zimdjson.recommended_padding);
+    _ = try file.readAll(json);
+
+    var parser = ondemand.parserFromSlice(.{
+        .assume_padding = true,
+    }).init(allocator);
     defer parser.deinit();
-
-    try parser.ensureTotalCapacity(size);
 
     // const rand = std.crypto.random;
     while (true) {
-        const file = try std.fs.openFileAbsolute(path, .{});
-        defer file.close();
+        var tracer = tracy.traceNamed(@src(), "parser");
+        defer tracer.end();
+        // const file = try std.fs.openFileAbsolute(path, .{});
+        // defer file.close();
         // const index = rand.uintLessThan(u8, 100);
-        _ = try parser.parseAssumeCapacity(file.reader());
+        _ = try parser.parse(json);
         // const created_at = try document.at(index).at("reportedOn").getString();
         // tracy.messageCopy(created_at);
     }

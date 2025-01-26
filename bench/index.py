@@ -23,20 +23,18 @@ files = [
 ]
 
 better_names = {
-    'simdjson_dom': 'simdjson (DOM)',
-    'zimdjson_dom': 'zimdjson (DOM)',
-    'yyjson': 'yyjson',
-    'rapidjson_dom': 'rapidjson',
+    'simdjson_ondemand': 'simdjson',
+    'zimdjson_ondemand': 'zimdjson',
 }
 
 flags = sys.argv[1:]
 if '--run' in flags:
     for file in files:
         for i in range(0, 2): # warmup
-            subprocess.run("zig build bench/full-parsing --release=fast -- " + file + '.json', shell=True)
+            subprocess.run("zig build bench/index --release=fast -- " + file + '.json', shell=True)
 
 def suite_dataframe(name):
-    json = pd.read_json('bench/full_parsing/results/' + name + '.json')
+    json = pd.read_json('bench/index/results/' + name + '.json')
     data = pd.DataFrame({
         'suite': name,
         'name': json['name'],
@@ -58,16 +56,7 @@ g.legend.set_title("")
 plt.show()
 
 pivot_df = data.pivot(index='suite', columns='name', values='perf')
-del pivot_df[better_names['rapidjson_dom']]
-pivot_df['relative to simdjson'] = pivot_df[better_names['simdjson_dom']] / pivot_df[better_names['zimdjson_dom']]
-pivot_df['relative to yyjson'] = pivot_df[better_names['yyjson']] / pivot_df[better_names['zimdjson_dom']]
+pivot_df['relative to simdjson'] = pivot_df['simdjson'] / pivot_df['zimdjson']
 
 rel_simd = pivot_df.sort_values(by='relative to simdjson', ascending=False)
-del rel_simd[better_names['yyjson']]
-del rel_simd['relative to yyjson']
 print(rel_simd)
-
-rel_yy = pivot_df.sort_values(by='relative to yyjson', ascending=False)
-del rel_yy[better_names['simdjson_dom']]
-del rel_yy['relative to simdjson']
-print(rel_yy)

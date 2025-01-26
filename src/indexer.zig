@@ -78,17 +78,13 @@ pub fn Indexer(comptime T: type, comptime options: Options) type {
         inline fn identify(self: *Self, vecs: types.vectors) JsonBlock {
             const vec = vecs[0];
             var quotes: umask = Predicate.pack(vec == Vector.quote);
-            var backslash: umask = Predicate.pack(vec == Vector.slash);
             inline for (1..Mask.computed_vectors) |i| {
                 const offset = i * Vector.bytes_len;
                 const _vec = vecs[i];
                 const q = Predicate.pack(_vec == Vector.quote);
-                const b = Predicate.pack(_vec == Vector.slash);
                 quotes |= @as(umask, q) << @truncate(offset);
-                backslash |= @as(umask, b) << @truncate(offset);
             }
-
-            const unescaped_quotes = quotes & ~self.escapedChars(backslash);
+            const unescaped_quotes = quotes & ~self.escapedChars(vecs);
             const clmul_ranges = intr.clmul(unescaped_quotes);
             const inside_string = clmul_ranges ^ self.prev_inside_string;
             self.prev_inside_string = @bitCast(@as(imask, @bitCast(inside_string)) >> Mask.last_bit);
@@ -124,12 +120,16 @@ pub fn Indexer(comptime T: type, comptime options: Options) type {
                 inline for (1..Mask.computed_vectors) |i| {
                     const offset = i * Vector.bytes_len;
                     const _vec = vecs[i];
-                    const w: umask = Predicate.pack(_vec == intr.lookupTable(whitespace_table, _vec));
                     const s: umask = Predicate.pack(_vec | @as(vector, @splat(0x20)) == intr.lookupTable(structural_table, _vec));
-                    whitespace |= w << @truncate(offset);
                     structural |= s << @truncate(offset);
                 }
 
+                inline for (1..Mask.computed_vectors) |i| {
+                    const offset = i * Vector.bytes_len;
+                    const _vec = vecs[i];
+                    const w: umask = Predicate.pack(_vec == intr.lookupTable(whitespace_table, _vec));
+                    whitespace |= w << @truncate(offset);
+                }
                 return .{ .structural = structural, .whitespace = whitespace };
             } else {
                 const ln_table: vector = simd.repeat(Vector.bytes_len, [_]u8{ 16, 0, 0, 0, 0, 0, 0, 0, 0, 8, 10, 4, 1, 12, 0, 0 });
@@ -161,20 +161,29 @@ pub fn Indexer(comptime T: type, comptime options: Options) type {
             }
         }
 
-        inline fn escapedChars(self: *Self, backs: umask) umask {
-            if (backs == 0) {
-                const escaped = self.next_is_escaped;
+        inline fn escapedChars(self: *Self, vecs: types.vectors) umask {
+            const next_is_escaped = self.next_is_escaped;
+            const vec = vecs[0];
+            var backslash: umask = Predicate.pack(vec == Vector.slash);
+            inline for (1..Mask.computed_vectors) |i| {
+                const offset = i * Vector.bytes_len;
+                const _vec = vecs[i];
+                const b = Predicate.pack(_vec == Vector.slash);
+                backslash |= @as(umask, b) << @truncate(offset);
+            }
+            if (backslash == 0) {
+                const escaped = next_is_escaped;
                 self.next_is_escaped = 0;
                 return escaped;
             }
             const odd_mask: umask = @bitCast(simd.repeat(Mask.bits_len, [_]u1{ 0, 1 }));
-            const potential_escape = backs & ~self.next_is_escaped;
+            const potential_escape = backslash & ~next_is_escaped;
             const maybe_escaped = potential_escape << 1;
             const maybe_escaped_and_odd_bits = maybe_escaped | odd_mask;
             const even_series_codes_and_odd_bits = maybe_escaped_and_odd_bits -% potential_escape;
             const escape_and_terminal_code = even_series_codes_and_odd_bits ^ odd_mask;
-            const escaped = escape_and_terminal_code ^ (backs | self.next_is_escaped);
-            const escape = escape_and_terminal_code & backs;
+            const escaped = escape_and_terminal_code ^ (backslash | next_is_escaped);
+            const escape = escape_and_terminal_code & backslash;
             self.next_is_escaped = escape >> Mask.last_bit;
             return escaped;
         }
@@ -204,15 +213,16 @@ pub fn Indexer(comptime T: type, comptime options: Options) type {
             var offsets: RelativeOffsetBuffer = undefined;
             if (options.relative) offsets[0] = 0;
 
+            const prev_offset = self.prev_offset;
+
             inline for (0..steps_until / steps) |u| {
                 if (u * steps < pop_count) {
-                    @branchHint(.unlikely);
-                    inline for (0..steps) |j| self.writeIndexAt(&s, j + u * steps, dest, &offsets);
+                    inline for (0..steps) |j| self.writeIndexAt(&s, j + u * steps, dest, &offsets, prev_offset);
                 }
             }
             if (steps_until < pop_count) {
                 @branchHint(.unlikely);
-                for (steps_until..pop_count) |j| self.writeIndexAt(&s, j, dest, &offsets);
+                for (steps_until..pop_count) |j| self.writeIndexAt(&s, j, dest, &offsets, prev_offset);
             }
 
             if (options.relative) {
@@ -225,7 +235,7 @@ pub fn Indexer(comptime T: type, comptime options: Options) type {
             return pop_count;
         }
 
-        inline fn writeIndexAt(self: Self, mask: *umask, i: usize, dest: [*]T, offsets: *RelativeOffsetBuffer) void {
+        inline fn writeIndexAt(_: Self, mask: *umask, i: usize, dest: [*]T, offsets: *RelativeOffsetBuffer, prev_offset: anytype) void {
             const offset: if (options.relative) u8 else T =
                 if (cpu.arch.isArm())
                 @clz(mask.*)
@@ -236,7 +246,7 @@ pub fn Indexer(comptime T: type, comptime options: Options) type {
                 dest[i] = offset - offsets[i];
                 offsets[i + 1] = offset;
             } else {
-                dest[i] = offset +% self.prev_offset;
+                dest[i] = offset +% prev_offset;
             }
 
             if (cpu.arch.isArm()) {
@@ -353,6 +363,7 @@ const Utf8 = struct {
 
     inline fn checkUTF8Bytes(self: *Self, vec: vector) void {
         @setEvalBranchQuota(10000);
+        const prev_vec = self.prev_vec;
         const len = Vector.bytes_len;
         const prev1_mask: @Vector(len, i32) = [_]i32{len} ++ ([_]i32{0} ** (len - 1));
         const prev2_mask: @Vector(len, i32) = [_]i32{ len - 1, len } ++ ([_]i32{0} ** (len - 2));
@@ -360,7 +371,7 @@ const Utf8 = struct {
         const shift1_mask = comptime simd.shiftElementsRight(simd.iota(i32, len), 1, 0) - prev1_mask;
         const shift2_mask = comptime simd.shiftElementsRight(simd.iota(i32, len), 2, 0) - prev2_mask;
         const shift3_mask = comptime simd.shiftElementsRight(simd.iota(i32, len), 3, 0) - prev3_mask;
-        const prev1 = @shuffle(u8, vec, self.prev_vec, shift1_mask);
+        const prev1 = @shuffle(u8, vec, prev_vec, shift1_mask);
 
         // zig fmt: off
         // Bit 0 = Too Short (lead byte/ASCII followed by lead byte/ASCII)
@@ -457,8 +468,8 @@ const Utf8 = struct {
 
         const special_cases = byte_1_high & byte_1_low & byte_2_high;
 
-        const prev2 = @shuffle(u8, vec, self.prev_vec, shift2_mask);
-        const prev3 = @shuffle(u8, vec, self.prev_vec, shift3_mask);
+        const prev2 = @shuffle(u8, vec, prev_vec, shift2_mask);
+        const prev3 = @shuffle(u8, vec, prev_vec, shift3_mask);
 
         const is_third_byte = prev2 -| @as(vector, @splat(0xE0 - 0x80));
         const is_fourth_byte = prev3 -| @as(vector, @splat(0xF0 - 0x80));

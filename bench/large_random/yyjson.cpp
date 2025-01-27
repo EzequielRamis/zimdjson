@@ -48,15 +48,17 @@ struct yyjson {
   void run() {
     doc = yyjson_read_file(path.data(), 0, NULL, NULL);
     if (!doc) { return; }
-    yyjson_val *coords = yyjson_doc_get_root(doc);
-    if (!yyjson_is_arr(coords)) { return; }
+    yyjson_val *systems = yyjson_doc_get_root(doc);
+    if (!yyjson_is_arr(systems)) { return; }
 
     // Walk the document, parsing the tweets as we go
     size_t idx, max;
-    yyjson_val *coord;
-    yyjson_arr_foreach(coords, idx, max, coord) {
-      if (!yyjson_is_obj(coord)) { return; }
-      result.emplace_back(point{get_double(coord, "x"), get_double(coord, "y"), get_double(coord, "z")});
+    yyjson_val *sys;
+    yyjson_arr_foreach(systems, idx, max, sys) {
+      if (!yyjson_is_obj(sys)) { return; }
+      yyjson_val *coords = yyjson_obj_get(sys, "coords");
+      if (!yyjson_is_obj(coords)) { return; }
+      result.emplace_back(point{get_double(coords, "x"), get_double(coords, "y"), get_double(coords, "z")});
     }
   }
 

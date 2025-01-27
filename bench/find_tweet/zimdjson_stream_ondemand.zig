@@ -10,7 +10,7 @@ const allocator = traced.allocator();
 
 var file: std.fs.File = undefined;
 var path: []const u8 = undefined;
-var parser = zimdjson.ondemand.Parser(.{ .stream = .default }).init(allocator);
+var parser = zimdjson.ondemand.parserFromFile(.{ .stream = .default }).init(allocator);
 var result: []const u8 = undefined;
 
 pub fn init(_path: []const u8) !void {
@@ -21,7 +21,7 @@ pub fn prerun() !void {}
 
 pub fn run() !void {
     file = try std.fs.openFileAbsolute(path, .{});
-    const doc = try parser.load(file);
+    const doc = try parser.parse(file.reader());
     const tweet = try doc.at("statuses").asArray();
     while (try tweet.next()) |t| {
         if (try t.at("id").asUnsigned() == find_id) {
@@ -33,7 +33,7 @@ pub fn run() !void {
 }
 
 pub fn postrun() !void {
-    // file.close();
+    file.close();
 }
 
 pub fn deinit() void {

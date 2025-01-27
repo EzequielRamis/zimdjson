@@ -26,8 +26,10 @@ struct simdjson_dom {
   }
 
   void run() {
-    for (auto point : parser.load(path)) {
-      result.emplace_back(point{point["x"], point["y"], point["z"]});
+    auto doc = parser.load(path);
+    for (dom::object sys: doc) {
+      auto coords = sys["coords"];
+      result.emplace_back(point{coords["x"], coords["y"], coords["z"]});
     }
   }
 

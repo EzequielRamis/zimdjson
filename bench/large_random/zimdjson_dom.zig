@@ -13,7 +13,7 @@ const allocator = traced.allocator();
 
 var file: std.fs.File = undefined;
 var path: []const u8 = undefined;
-var parser = zimdjson.dom.Parser(.default).init(allocator);
+var parser = zimdjson.dom.parserFromFile(.default).init(allocator);
 var result = std.ArrayList(Point).init(allocator);
 
 pub fn init(_path: []const u8) !void {
@@ -25,20 +25,23 @@ pub fn prerun() !void {
 }
 
 pub fn run() !void {
-    const doc = try parser.parseFromFile(path);
+    file = try std.fs.openFileAbsolute(path, .{});
+    const doc = try parser.parse(file.reader());
     const systems = try doc.asArray();
     var it = systems.iterator();
     while (it.next()) |sys| {
-        const point = try sys.at("coords").asObject();
+        const coords = try sys.at("coords").asObject();
         try result.append(.{
-            .x = try point.at("x").asFloat(),
-            .y = try point.at("y").asFloat(),
-            .z = try point.at("z").asFloat(),
+            .x = try coords.at("x").asFloat(),
+            .y = try coords.at("y").asFloat(),
+            .z = try coords.at("z").asFloat(),
         });
     }
 }
 
-pub fn postrun() !void {}
+pub fn postrun() !void {
+    file.close();
+}
 
 pub fn deinit() void {
     parser.deinit();

@@ -20,7 +20,7 @@ const allocator = traced.allocator();
 
 var file: std.fs.File = undefined;
 var path: []const u8 = undefined;
-var parser = zimdjson.dom.Parser(.{ .stream = .default }).init(allocator);
+var parser = zimdjson.dom.parserFromFile(.{ .stream = .default }).init(allocator);
 var result = std.ArrayList(PartialTweet).init(allocator);
 
 pub fn init(_path: []const u8) !void {
@@ -32,22 +32,23 @@ pub fn prerun() !void {
 }
 
 pub fn run() !void {
-    const doc = try parser.load(path);
+    file = try std.fs.openFileAbsolute(path, .{});
+    const doc = try parser.parse(file.reader());
     const statuses = try doc.at("statuses").asArray();
     var it = statuses.iterator();
     while (it.next()) |tweet| {
         const user = tweet.at("user");
         try result.append(.{
-            .created_at = try tweet.at("created_at").asString().get(),
+            .created_at = try tweet.at("created_at").asString(),
             .id = try tweet.at("id").asUnsigned(),
-            .result = try tweet.at("text").asString().get(),
+            .result = try tweet.at("text").asString(),
             .in_reply_to_status_id = brk: {
                 const el = tweet.at("in_reply_to_status_id");
                 break :brk if (try el.isNull()) 0 else try el.asUnsigned();
             },
             .user = .{
                 .id = try user.at("id").asUnsigned(),
-                .screen_name = try user.at("screen_name").asString().get(),
+                .screen_name = try user.at("screen_name").asString(),
             },
             .retweet_count = try tweet.at("retweet_count").asUnsigned(),
             .favorite_count = try tweet.at("favorite_count").asUnsigned(),
@@ -55,7 +56,9 @@ pub fn run() !void {
     }
 }
 
-pub fn postrun() !void {}
+pub fn postrun() !void {
+    file.close();
+}
 
 pub fn deinit() void {
     parser.deinit();

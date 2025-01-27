@@ -176,6 +176,10 @@ pub fn BoundedArrayListUnmanaged(comptime T: type, comptime initial_max_capacity
             self.list.appendAssumeCapacity(item);
         }
 
+        pub fn appendSliceAssumeCapacity(self: *Self, _items: []const T) void {
+            self.list.appendSliceAssumeCapacity(_items);
+        }
+
         pub fn items(self: Self) []T {
             return self.list.items;
         }

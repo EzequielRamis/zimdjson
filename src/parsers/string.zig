@@ -11,64 +11,60 @@ const Error = types.ParseError;
 const readInt = std.mem.readInt;
 const native_endian = builtin.cpu.arch.endian();
 
-pub inline fn writeString(src: [*]const u8, _dst: [*]u8) Error![*]u8 {
-    var ptr = src + 1;
-    var dst = _dst;
+pub inline fn writeString(noalias src: [*]const u8, noalias dst: [*]u8) Error!u32 {
+    var read: u32 = 1;
+    var written: u32 = 0;
     while (true) {
-        const chunk = ptr[0..Vector.bytes_len];
-        const slash = Predicate.pack(Vector.slash == chunk.*);
-        const quote = Predicate.pack(Vector.quote == chunk.*);
-        @memcpy(dst[0..Vector.bytes_len], chunk);
+        const chunk = src[read..][0..Vector.bytes_len].*;
+        @memcpy(dst[written..][0..Vector.bytes_len], &chunk);
+
+        const slash = Predicate.pack(Vector.slash == chunk);
+        const quote = Predicate.pack(Vector.quote == chunk);
 
         const has_quote_first = ((slash -% 1) & quote) != 0;
         if (has_quote_first) {
             const quote_index: u8 = @ctz(quote);
-            return dst + quote_index;
+            return written + quote_index;
         }
 
         const has_any_slash = ((quote -% 1) & slash) != 0;
         if (has_any_slash) {
             const slash_index: u8 = @ctz(slash);
-            const escape_char = ptr[slash_index + 1];
+            const escape_char = src[read..][slash_index + 1];
             if (escape_char == 'u') {
-                ptr += slash_index;
-                const codepoint = try handleUnicodeCodepoint(&ptr);
-                dst += slash_index + try utf8Encode(codepoint, dst);
+                read += slash_index;
+                written += slash_index;
+                try handleUnicodeCodepoint(src, dst, &read, &written);
             } else {
                 const escaped = escape_map[escape_char];
                 if (escaped == 0) return error.InvalidEscape;
-                dst[slash_index] = escaped;
-                ptr += slash_index + 2;
-                dst += slash_index + 1;
+                dst[written..][slash_index] = escaped;
+                read += slash_index + 2;
+                written += slash_index + 1;
             }
         } else {
-            dst += Vector.bytes_len;
-            ptr += Vector.bytes_len;
+            written += Vector.bytes_len;
+            read += Vector.bytes_len;
         }
     }
 }
 
-inline fn handleUnicodeCodepoint(ptr: *[*]const u8) Error!u32 {
-    const first_literal = ptr.*[2..][0..4].*;
-    const first_codepoint = parseHexDword(first_literal);
-    if (utf16IsHighSurrogate(first_codepoint)) {
-        if (readInt(u16, ptr.*[2..][4..][0..2], native_endian) == readInt(u16, "\\u", native_endian)) {
-            const high_surrogate = first_codepoint;
-            const second_literal = ptr.*[2..][4..][2..][0..4].*;
-            const low_surrogate = parseHexDword(second_literal);
+inline fn handleUnicodeCodepoint(noalias src: [*]const u8, noalias dst: [*]u8, noalias read: *u32, noalias written: *u32) Error!void {
+    var codepoint = parseHexDword(src[read.*..][2..]);
+    read.* += 6;
+    if (utf16IsHighSurrogate(codepoint)) {
+        if (readInt(u16, src[read.*..][0..2], native_endian) == readInt(u16, "\\u", native_endian)) {
+            const low_surrogate = parseHexDword(src[read.*..][2..]);
             if (!utf16IsLowSurrogate(low_surrogate)) return error.InvalidUnicodeCodePoint;
-            ptr.* += 12;
-            const h = high_surrogate;
-            const l = low_surrogate;
-            return 0x10000 + ((h & 0x03ff) << 10) | (l & 0x03ff);
+            codepoint = (((codepoint - 0xd800) << 10) | low_surrogate) + 0x10000;
+            read.* += 6;
         } else {
             return error.InvalidUnicodeCodePoint;
         }
-    } else if (utf16IsLowSurrogate(first_codepoint)) {
+    } else if (utf16IsLowSurrogate(codepoint)) {
         return error.InvalidUnicodeCodePoint;
     }
-    ptr.* += 6;
-    return first_codepoint;
+    written.* += try utf8Encode(codepoint, dst[written.*..]);
 }
 
 inline fn utf8Encode(c: u32, dst: [*]u8) Error!u8 {
@@ -105,7 +101,7 @@ inline fn utf16IsLowSurrogate(c: u32) bool {
     return c & ~@as(u32, 0x03ff) == 0xdc00;
 }
 
-inline fn parseHexDword(src: [4]u8) u32 {
+inline fn parseHexDword(src: [*]const u8) u32 {
     const v1 = hex_digit_map[@as(usize, src[0]) + 624];
     const v2 = hex_digit_map[@as(usize, src[1]) + 416];
     const v3 = hex_digit_map[@as(usize, src[2]) + 208];

@@ -66,6 +66,6 @@ pub fn main() !void {
 
     const file = try std.fs.openFileAbsolute(args[1], .{});
     const json = try parser.parse(file.reader());
-    try walk(Parser.Value.from(json));
+    try walk(json.asValue());
     try buf.flush();
 }

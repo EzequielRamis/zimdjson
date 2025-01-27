@@ -72,8 +72,8 @@ pub const tables = struct {
 pub inline fn isString(comptime T: type) bool {
     return switch (@typeInfo(T)) {
         .pointer => |info| switch (info.size) {
-            .One => isString(info.child),
-            .Many, .C, .Slice => info.child == u8,
+            .one => isString(info.child),
+            .many, .c, .slice => info.child == u8,
         },
         .array => |info| info.child == u8,
         else => false,

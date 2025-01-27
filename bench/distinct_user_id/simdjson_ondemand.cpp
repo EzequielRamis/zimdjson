@@ -5,7 +5,7 @@
 using namespace std;
 using namespace simdjson;
 
-struct simdjson_dom {
+struct simdjson_ondemand {
 
   string path;
   ondemand::parser parser;
@@ -44,4 +44,4 @@ struct simdjson_dom {
   void deinit() {}
 };
 
-BENCHMARK_TEMPLATE(simdjson_dom);
+BENCHMARK_TEMPLATE(simdjson_ondemand);

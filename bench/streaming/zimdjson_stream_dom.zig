@@ -7,7 +7,7 @@ const allocator = traced.allocator();
 
 var file: std.fs.File = undefined;
 var path: []const u8 = undefined;
-var parser = zimdjson.dom.Parser(.{ .stream = .default }).init(allocator);
+var parser = zimdjson.dom.parserFromFile(.{ .stream = .default }).init(allocator);
 
 pub fn init(_path: []const u8) !void {
     path = _path;
@@ -17,7 +17,8 @@ pub fn prerun() !void {}
 
 pub fn run() !void {
     file = try std.fs.openFileAbsolute(path, .{});
-    _ = try parser.load(file);
+    try parser.ensureTotalCapacity((try file.stat()).size);
+    _ = try parser.parseAssumeCapacity(file.reader());
 }
 
 pub fn postrun() !void {

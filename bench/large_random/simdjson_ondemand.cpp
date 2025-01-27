@@ -11,7 +11,7 @@ struct point {
   double z;
 };
 
-struct simdjson_dom {
+struct simdjson_ondemand {
 
   string path;
   ondemand::parser parser;
@@ -31,8 +31,9 @@ struct simdjson_dom {
     if (err = padded_string::load(path).get(json)) throw runtime_error("file not found");
 
     auto doc = parser.iterate(json);
-    for (ondemand::object coord : doc) {
-      result.emplace_back(point{coord.find_field("x"), coord.find_field("y"), coord.find_field("z")});
+    for (ondemand::object sys: doc) {
+      auto coords = sys["coords"];
+      result.emplace_back(point{coords["x"], coords["y"], coords["z"]});
     }
   }
 
@@ -41,4 +42,4 @@ struct simdjson_dom {
   void deinit() {}
 };
 
-BENCHMARK_TEMPLATE(simdjson_dom);
+BENCHMARK_TEMPLATE(simdjson_ondemand);

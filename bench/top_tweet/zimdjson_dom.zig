@@ -47,8 +47,8 @@ pub fn run() !void {
         }
     }
 
-    result.text = try top_tweet.at("text").asString().get();
-    result.screen_name = try top_tweet.at("user").at("screen_name").asString().get();
+    result.text = try top_tweet.at("text").asString();
+    result.screen_name = try top_tweet.at("user").at("screen_name").asString();
 }
 
 pub fn postrun() !void {

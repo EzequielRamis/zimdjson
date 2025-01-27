@@ -26,7 +26,7 @@ pub fn run() !void {
     var it = tweet.iterator();
     while (it.next()) |t| {
         if (try t.at("id").asUnsigned() == find_id) {
-            result = try t.at("text").asString().get();
+            result = try t.at("text").asString();
             return;
         }
     }

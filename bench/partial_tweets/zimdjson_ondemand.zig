@@ -20,7 +20,7 @@ const allocator = traced.allocator();
 
 var file: std.fs.File = undefined;
 var path: []const u8 = undefined;
-var parser = zimdjson.ondemand.Parser(.default).init(allocator);
+var parser = zimdjson.ondemand.parserFromFile(.default).init(allocator);
 var result = std.ArrayList(PartialTweet).init(allocator);
 
 pub fn init(_path: []const u8) !void {
@@ -32,7 +32,8 @@ pub fn prerun() !void {
 }
 
 pub fn run() !void {
-    const doc = try parser.load(path);
+    file = try std.fs.openFileAbsolute(path, .{});
+    const doc = try parser.parse(file.reader());
     const statuses = try doc.at("statuses").asArray();
     while (try statuses.next()) |tweet| {
         try result.append(.{
@@ -56,7 +57,9 @@ pub fn run() !void {
     }
 }
 
-pub fn postrun() !void {}
+pub fn postrun() !void {
+    file.close();
+}
 
 pub fn deinit() void {
     parser.deinit();

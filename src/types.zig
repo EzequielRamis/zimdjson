@@ -39,13 +39,15 @@ pub const Number = union(NumberType) {
 
     pub fn lossyCast(self: Number, comptime T: type) T {
         return switch (self) {
-            inline else => |_, n| std.math.lossyCast(T, n),
+            inline else => |n| std.math.lossyCast(T, n),
         };
     }
 
     pub fn cast(self: Number, comptime T: type) ?T {
+        assert(self != .float); // must pass an integer
         return switch (self) {
-            inline else => |_, n| std.math.cast(T, n),
+            .float => unreachable,
+            inline else => |n| std.math.cast(T, n),
         };
     }
 };
@@ -76,10 +78,7 @@ pub const ParseError = error{
     IndexOutOfBounds,
     TrailingContent,
     IncorrectType,
-    UnknownVariant,
-    UnknownField,
     MissingField,
-    DuplicateField,
 };
 
 pub const Vector = struct {

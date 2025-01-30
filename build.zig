@@ -160,12 +160,13 @@ pub fn build(b: *std.Build) !void {
             }
         }
         {
-            const com = center.command("bench/dom", "Run 'DOM parsing' benchmark");
+            const name = "dom";
+            const com = center.command("bench/" ++ name, "Run 'DOM parsing' benchmark");
             const parsers = Parsers.get(com, target, optimize);
             const file_path = try getProvidedPath(com, &path_buf, use_cwd);
 
             if (parsers) |p| {
-                var suite_dom = bench.Suite("dom"){ .zimdjson = zimdjson, .simdjson = p.simdjson, .target = target, .optimize = optimize };
+                var suite_dom = bench.Suite(name){ .zimdjson = zimdjson, .simdjson = p.simdjson, .target = target, .optimize = optimize };
                 const runner_dom = suite_dom.create(
                     &.{
                         suite_dom.addZigBenchmark("zimdjson_dom"),
@@ -179,12 +180,13 @@ pub fn build(b: *std.Build) !void {
             }
         }
         {
-            const com = center.command("bench/streaming", "Run 'streaming' benchmark");
+            const name = "streaming";
+            const com = center.command("bench/" ++ name, "Run 'streaming' benchmark");
             const parsers = Parsers.get(com, target, optimize);
             const file_path = try getProvidedPath(com, &path_buf, use_cwd);
 
             if (parsers) |p| {
-                var suite_dom = bench.Suite("streaming"){ .zimdjson = zimdjson, .simdjson = p.simdjson, .target = target, .optimize = optimize };
+                var suite_dom = bench.Suite(name){ .zimdjson = zimdjson, .simdjson = p.simdjson, .target = target, .optimize = optimize };
                 const runner_dom = suite_dom.create(
                     &.{
                         suite_dom.addZigBenchmark("zimdjson_stream_dom"),
@@ -199,7 +201,8 @@ pub fn build(b: *std.Build) !void {
             }
         }
         {
-            const com = center.command("bench/find-tweet", "Run 'find tweet' benchmark");
+            const name = "find-tweet";
+            const com = center.command("bench/" ++ name, "Run 'find tweet' benchmark");
             const parsers = Parsers.get(com, target, optimize);
             const file_path = path: {
                 if (com.with("simdjson-data")) |dep| {
@@ -208,7 +211,7 @@ pub fn build(b: *std.Build) !void {
             };
 
             if (parsers) |p| {
-                var suite = bench.Suite("find_tweet"){
+                var suite = bench.Suite(name){
                     .zimdjson = zimdjson,
                     .simdjson = p.simdjson,
                     .target = target,
@@ -230,7 +233,8 @@ pub fn build(b: *std.Build) !void {
             }
         }
         {
-            const com = center.command("bench/top-tweet", "Run 'top tweet' benchmark");
+            const name = "top-tweet";
+            const com = center.command("bench/" ++ name, "Run 'top tweet' benchmark");
             const parsers = Parsers.get(com, target, optimize);
             const file_path = path: {
                 if (com.with("simdjson-data")) |dep| {
@@ -239,7 +243,7 @@ pub fn build(b: *std.Build) !void {
             };
 
             if (parsers) |p| {
-                var suite = bench.Suite("top_tweet"){
+                var suite = bench.Suite(name){
                     .zimdjson = zimdjson,
                     .simdjson = p.simdjson,
                     .target = target,
@@ -261,7 +265,8 @@ pub fn build(b: *std.Build) !void {
             }
         }
         {
-            const com = center.command("bench/partial-tweets", "Run 'partial tweets' benchmark");
+            const name = "partial-tweets";
+            const com = center.command("bench/" ++ name, "Run 'partial tweets' benchmark");
             const parsers = Parsers.get(com, target, optimize);
             const file_path = path: {
                 if (com.with("simdjson-data")) |dep| {
@@ -270,7 +275,7 @@ pub fn build(b: *std.Build) !void {
             };
 
             if (parsers) |p| {
-                var suite = bench.Suite("partial_tweets"){
+                var suite = bench.Suite(name){
                     .zimdjson = zimdjson,
                     .simdjson = p.simdjson,
                     .target = target,
@@ -292,7 +297,8 @@ pub fn build(b: *std.Build) !void {
             }
         }
         {
-            const com = center.command("bench/distinct-user-id", "Run 'distinct user id' benchmark");
+            const name = "distinct-user-id";
+            const com = center.command("bench/" ++ name, "Run 'distinct user id' benchmark");
             const parsers = Parsers.get(com, target, optimize);
             const file_path = path: {
                 if (com.with("simdjson-data")) |dep| {
@@ -301,7 +307,7 @@ pub fn build(b: *std.Build) !void {
             };
 
             if (parsers) |p| {
-                var suite = bench.Suite("distinct_user_id"){
+                var suite = bench.Suite(name){
                     .zimdjson = zimdjson,
                     .simdjson = p.simdjson,
                     .target = target,
@@ -323,12 +329,69 @@ pub fn build(b: *std.Build) !void {
             }
         }
         {
-            const com = center.command("bench/large-random", "Run 'large random' benchmark");
+            const name = "find-system";
+            const com = center.command("bench/" ++ name, "Run 'find system' benchmark");
             const parsers = Parsers.get(com, target, optimize);
             const file_path = try getProvidedPath(com, &path_buf, use_cwd);
 
             if (parsers) |p| {
-                var suite = bench.Suite("large_random"){
+                var suite = bench.Suite(name){
+                    .zimdjson = zimdjson,
+                    .simdjson = p.simdjson,
+                    .target = target,
+                    .optimize = optimize,
+                };
+                const runner = suite.create(
+                    &.{
+                        suite.addZigBenchmark("zimdjson_ondemand"),
+                        suite.addZigBenchmark("zimdjson_stream_ondemand"),
+                        suite.addCppBenchmark("simdjson_ondemand", p.simdjson),
+                        suite.addZigBenchmark("zimdjson_dom"),
+                        suite.addZigBenchmark("zimdjson_stream_dom"),
+                        suite.addCppBenchmark("simdjson_dom", p.simdjson),
+                        suite.addCppBenchmark("yyjson", p.yyjson),
+                    },
+                    file_path,
+                );
+                com.dependOn(&runner.step);
+            }
+        }
+        {
+            const name = "top-factions";
+            const com = center.command("bench/" ++ name, "Run 'top factions' benchmark");
+            const parsers = Parsers.get(com, target, optimize);
+            const file_path = try getProvidedPath(com, &path_buf, use_cwd);
+
+            if (parsers) |p| {
+                var suite = bench.Suite(name){
+                    .zimdjson = zimdjson,
+                    .simdjson = p.simdjson,
+                    .target = target,
+                    .optimize = optimize,
+                };
+                const runner = suite.create(
+                    &.{
+                        suite.addZigBenchmark("zimdjson_ondemand"),
+                        suite.addZigBenchmark("zimdjson_stream_ondemand"),
+                        suite.addCppBenchmark("simdjson_ondemand", p.simdjson),
+                        suite.addZigBenchmark("zimdjson_dom"),
+                        suite.addZigBenchmark("zimdjson_stream_dom"),
+                        suite.addCppBenchmark("simdjson_dom", p.simdjson),
+                        suite.addCppBenchmark("yyjson", p.yyjson),
+                    },
+                    file_path,
+                );
+                com.dependOn(&runner.step);
+            }
+        }
+        {
+            const name = "coordinates";
+            const com = center.command("bench/" ++ name, "Run 'coordinates' benchmark");
+            const parsers = Parsers.get(com, target, optimize);
+            const file_path = try getProvidedPath(com, &path_buf, use_cwd);
+
+            if (parsers) |p| {
+                var suite = bench.Suite(name){
                     .zimdjson = zimdjson,
                     .simdjson = p.simdjson,
                     .target = target,

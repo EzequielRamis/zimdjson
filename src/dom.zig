@@ -250,6 +250,8 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 const number = self.tape.get(self.index + 1);
                 return switch (w.tag) {
                     .float => @bitCast(number),
+                    .unsigned => @floatFromInt(@as(u64, @bitCast(number))),
+                    .signed => @floatFromInt(@as(i64, @bitCast(number))),
                     else => error.IncorrectType,
                 };
             }
@@ -284,6 +286,29 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     .array_opening => .{ .array = .{ .tape = self.tape, .root = self.index } },
                     else => unreachable,
                 };
+            }
+
+            pub fn as(self: Value, comptime T: type) Error!T {
+                const info = @typeInfo(T);
+                switch (info) {
+                    .int => {
+                        const n = try self.asNumber();
+                        return switch (n) {
+                            .float => error.IncorrectType,
+                            inline else => n.cast(T) orelse error.NumberOutOfRange,
+                        };
+                    },
+                    .float => return @floatCast(try self.asFloat()),
+                    .bool => return self.asBool(),
+                    .optional => |opt| {
+                        if (try self.isNull()) return null;
+                        const child = try self.as(opt.child);
+                        return child;
+                    },
+                    else => {
+                        if (T == []const u8) return self.asString() else @compileError(std.fmt.comptimePrint("it is not possible to automagically cast a JSON value to type {s}", .{@typeName(T)}));
+                    },
+                }
             }
 
             pub fn getType(self: Value) Error!types.ElementType {
@@ -323,11 +348,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     }
                     @compileError(common.error_messages.at_type);
                 };
-                return query catch |err| .{
-                    .tape = self.tape,
-                    .index = self.index,
-                    .err = err,
-                };
+                return query;
             }
 
             pub fn getSize(self: Value) Error!u24 {
@@ -366,11 +387,15 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
-            pub fn at(self: Array, index: u32) Error!Value {
+            pub fn at(self: Array, index: u32) Value {
                 var it = self.iterator();
                 var i: u32 = 0;
                 while (it.next()) |v| : (i += 1) if (i == index) return v;
-                return error.IndexOutOfBounds;
+                return .{
+                    .tape = self.tape,
+                    .index = self.root,
+                    .err = error.IndexOutOfBounds,
+                };
             }
 
             pub fn isEmpty(self: Array) bool {
@@ -420,10 +445,14 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
-            pub fn at(self: Object, key: []const u8) Error!Value {
+            pub fn at(self: Object, key: []const u8) Value {
                 var it = self.iterator();
                 while (it.next()) |field| if (std.mem.eql(u8, field.key, key)) return field.value;
-                return error.MissingField;
+                return .{
+                    .tape = self.tape,
+                    .index = self.root,
+                    .err = error.MissingField,
+                };
             }
 
             pub fn isEmpty(self: Object) bool {
@@ -523,7 +552,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 return self.dispatch();
             }
 
-            pub inline fn as(self: Tape, index: u32) Word {
+            pub inline fn get(self: Tape, index: u32) Word {
                 return @bitCast(self.words.items()[index]);
             }
 

@@ -70,7 +70,7 @@ pub fn Indexer(comptime T: type, comptime options: Options) type {
                 blocks[m] = self.identify(vectors[m]);
             }
             inline for (0..types.masks_per_iter) |m| {
-                written += self.next(vectors[m], blocks[m], dest + written);
+                written += self.next(vectors[m], blocks[m], dest[written..]);
             }
             return written;
         }
@@ -176,12 +176,11 @@ pub fn Indexer(comptime T: type, comptime options: Options) type {
                 self.next_is_escaped = 0;
                 return escaped;
             }
-            const odd_mask: umask = @bitCast(simd.repeat(Mask.bits_len, [_]u1{ 0, 1 }));
             const potential_escape = backslash & ~next_is_escaped;
             const maybe_escaped = potential_escape << 1;
-            const maybe_escaped_and_odd_bits = maybe_escaped | odd_mask;
+            const maybe_escaped_and_odd_bits = maybe_escaped | types.Mask.odd;
             const even_series_codes_and_odd_bits = maybe_escaped_and_odd_bits -% potential_escape;
-            const escape_and_terminal_code = even_series_codes_and_odd_bits ^ odd_mask;
+            const escape_and_terminal_code = even_series_codes_and_odd_bits ^ types.Mask.odd;
             const escaped = escape_and_terminal_code ^ (backslash | next_is_escaped);
             const escape = escape_and_terminal_code & backslash;
             self.next_is_escaped = escape >> Mask.last_bit;

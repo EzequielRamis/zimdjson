@@ -36,7 +36,7 @@ pub fn run() !void {
     var top_tweet: Parser.Value = undefined;
 
     file = try std.fs.openFileAbsolute(path, .{});
-    const doc = try parser.parse(file.reader());
+    const doc = try parser.parseWithCapacity(file.reader(), (try file.stat()).size);
     const tweet = try doc.at("statuses").asArray();
     var it = tweet.iterator();
     while (it.next()) |t| {

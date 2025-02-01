@@ -8,11 +8,11 @@ import pandas as pd
 better_names = {
     'simdjson_dom': 'simdjson (DOM)',
     'zimdjson_dom': 'zimdjson (DOM)',
+    'yyjson': 'yyjson',
     'zimdjson_stream_dom': 'zimdjson (Streaming DOM)',
     'simdjson_ondemand': 'simdjson (On-Demand)',
     'zimdjson_ondemand': 'zimdjson (On-Demand)',
     'zimdjson_stream_ondemand': 'zimdjson (Streaming On-Demand)',
-    'yyjson': 'yyjson',
 }
 
 large_file = 'systemsPopulated' # from https://www.edsm.net/en/nightly-dumps
@@ -69,3 +69,13 @@ g.legend.set_title("")
 
 # plt.xticks(rotation=45)
 plt.show()
+
+pivot_df = data.pivot(index='suite', columns='name', values='perf')
+pivot_df['relative to simdjson'] = pivot_df[better_names['simdjson_ondemand']] / pivot_df[better_names['zimdjson_ondemand']]
+
+rel_simd = pivot_df.sort_values(by='relative to simdjson', ascending=False)
+for name in better_names.values():
+    if name != better_names['simdjson_ondemand'] and name != better_names['zimdjson_ondemand']:
+        del rel_simd[name]
+
+print(rel_simd)

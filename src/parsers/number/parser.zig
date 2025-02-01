@@ -26,8 +26,8 @@ pub inline fn parse(comptime Expected: ?types.NumberType, src: [*]const u8) Erro
     var is_float = false;
     var many_digits = false;
 
-    remainding_digits: {
-        significant_digits: {
+    parse_remainding_digits: {
+        parse_significant_digits: {
             inline for (0..max_digits - 1) |i| {
                 const int_char = integer_ptr[i];
                 if (parseDigit(int_char)) |digit| {
@@ -62,7 +62,7 @@ pub inline fn parse(comptime Expected: ?types.NumberType, src: [*]const u8) Erro
                                                 } else {
                                                     if (j == 0 and decimal_len == 0) return error.InvalidNumberLiteral;
                                                     decimal_len += j;
-                                                    break :remainding_digits;
+                                                    break :parse_remainding_digits;
                                                 }
                                             }
                                         } else {
@@ -74,7 +74,7 @@ pub inline fn parse(comptime Expected: ?types.NumberType, src: [*]const u8) Erro
                                                 } else {
                                                     if (j == 0 and decimal_len == 0) return error.InvalidNumberLiteral;
                                                     decimal_len += j;
-                                                    break :remainding_digits;
+                                                    break :parse_remainding_digits;
                                                 }
                                             }
                                         }
@@ -87,7 +87,7 @@ pub inline fn parse(comptime Expected: ?types.NumberType, src: [*]const u8) Erro
                                             } else {
                                                 if (j == 0 and decimal_len == 0) return error.InvalidNumberLiteral;
                                                 decimal_len += j;
-                                                break :remainding_digits;
+                                                break :parse_remainding_digits;
                                             }
                                         }
                                     }
@@ -96,7 +96,7 @@ pub inline fn parse(comptime Expected: ?types.NumberType, src: [*]const u8) Erro
                                         many_digits = true;
                                         decimal_len += 1;
                                         exponent_10 += 1;
-                                        break :significant_digits;
+                                        break :parse_significant_digits;
                                     }
                                 } else {
                                     if (8 <= max_digits - 1 - i and number_common.isEightDigits(decimal_ptr)) {
@@ -111,7 +111,7 @@ pub inline fn parse(comptime Expected: ?types.NumberType, src: [*]const u8) Erro
                                                 } else {
                                                     if (j == 0) return error.InvalidNumberLiteral;
                                                     decimal_len += j;
-                                                    break :remainding_digits;
+                                                    break :parse_remainding_digits;
                                                 }
                                             }
                                         } else {
@@ -123,7 +123,7 @@ pub inline fn parse(comptime Expected: ?types.NumberType, src: [*]const u8) Erro
                                                 } else {
                                                     if (j == 0) return error.InvalidNumberLiteral;
                                                     decimal_len += j;
-                                                    break :remainding_digits;
+                                                    break :parse_remainding_digits;
                                                 }
                                             }
                                         }
@@ -136,7 +136,7 @@ pub inline fn parse(comptime Expected: ?types.NumberType, src: [*]const u8) Erro
                                             } else {
                                                 if (j == 0) return error.InvalidNumberLiteral;
                                                 decimal_len += j;
-                                                break :remainding_digits;
+                                                break :parse_remainding_digits;
                                             }
                                         }
                                     }
@@ -145,12 +145,12 @@ pub inline fn parse(comptime Expected: ?types.NumberType, src: [*]const u8) Erro
                                         many_digits = true;
                                         decimal_len += 1;
                                         exponent_10 += 1;
-                                        break :significant_digits;
+                                        break :parse_significant_digits;
                                     }
                                 }
-                                break :remainding_digits;
+                                break :parse_remainding_digits;
                             } else {
-                                break :remainding_digits;
+                                break :parse_remainding_digits;
                             }
                         } else { // there is an invalid suffix
                             return error.InvalidNumberLiteral;
@@ -224,14 +224,14 @@ pub inline fn parse(comptime Expected: ?types.NumberType, src: [*]const u8) Erro
                     decimal_len = 1;
                     exponent_10 += 1;
                     // but there can be more decimal digits
-                    break :significant_digits;
+                    break :parse_significant_digits;
                 } else {
                     return error.InvalidNumberLiteral;
                 }
-                break :significant_digits;
+                break :parse_significant_digits;
             } else {
                 many_digits = integer_len > max_digits - 1;
-                break :remainding_digits;
+                break :parse_remainding_digits;
             }
         }
         while (number_common.isEightDigits(decimal_ptr[decimal_len..])) {
@@ -257,28 +257,31 @@ pub inline fn parse(comptime Expected: ?types.NumberType, src: [*]const u8) Erro
         return error.InvalidNumberLiteral;
     }
 
-    if (Expected == null and !is_float) {
-        // remainder: there are 19 parsed digits and zero or more unparsed
-        if (integer_len > max_digits) return error.NumberOutOfRange;
-        // trying to parse the 20th digit if it exists
-        if (parseDigit(integer_ptr[max_digits - 1])) |digit| {
-            if (is_negative) return error.NumberOutOfRange;
-            const maybe_mant_1 = @mulWithOverflow(mantissa_10, 10);
-            const maybe_mant_2 = @addWithOverflow(maybe_mant_1[0], digit);
-            if (@bitCast(maybe_mant_1[1] | maybe_mant_2[1])) return error.NumberOutOfRange;
-            mantissa_10 = maybe_mant_2[0];
-            return .{ .unsigned = mantissa_10 };
-        }
+    fits_as_integer: {
+        if (Expected == null and !is_float) {
+            // remainder: there are 19 parsed digits and zero or more unparsed
+            if (integer_len > max_digits) break :fits_as_integer;
+            // trying to parse the 20th digit if it exists
+            if (parseDigit(integer_ptr[max_digits - 1])) |digit| {
+                if (is_negative) break :fits_as_integer;
+                const maybe_mant_1 = @mulWithOverflow(mantissa_10, 10);
+                const maybe_mant_2 = @addWithOverflow(maybe_mant_1[0], digit);
+                if (@bitCast(maybe_mant_1[1] | maybe_mant_2[1])) break :fits_as_integer;
+                mantissa_10 = maybe_mant_2[0];
+                return .{ .unsigned = mantissa_10 };
+            }
 
-        if (is_negative) {
-            if (mantissa_10 > @as(u64, std.math.maxInt(i64)) + 1) return error.NumberOutOfRange;
-            const signed: i64 = @intCast(mantissa_10);
-            return .{ .signed = -signed };
-        } else {
-            if (mantissa_10 > std.math.maxInt(i64)) return .{ .unsigned = mantissa_10 };
-            return .{ .signed = @intCast(mantissa_10) };
+            if (is_negative) {
+                if (mantissa_10 > @as(u64, std.math.maxInt(i64)) + 1) break :fits_as_integer;
+                const signed: i64 = @intCast(mantissa_10);
+                return .{ .signed = -signed };
+            } else {
+                if (mantissa_10 > std.math.maxInt(i64)) return .{ .unsigned = mantissa_10 };
+                return .{ .signed = @intCast(mantissa_10) };
+            }
         }
-    } else {
+    }
+    {
         @setFloatMode(.strict);
 
         const fast_min_exp = -22;

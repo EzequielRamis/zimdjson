@@ -1,5 +1,4 @@
 // TODO: agregar dev_checks
-// TODO: agregar algun logger bien hecho
 const std = @import("std");
 const common = @import("common.zig");
 const types = @import("types.zig");
@@ -60,7 +59,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 .assume_padding = Reader != null or options.assume_padding,
             });
 
-        pub const Error = Tokens.Error || types.ParseError || Allocator.Error || error{ExpectedAllocator};
+        pub const Error = Tokens.Error || types.ParseError || Allocator.Error || error{ExpectedAllocator} || if (Reader) |reader| reader.Error else error{};
         pub const max_capacity_bound = if (want_stream) std.math.maxInt(usize) else std.math.maxInt(u32);
         pub const default_max_depth = 1024;
 
@@ -69,6 +68,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
 
         tokens: Tokens,
         strings: types.BoundedArrayListUnmanaged(u8, max_capacity_bound),
+
         cursor: Cursor = undefined,
 
         max_capacity: usize,
@@ -155,11 +155,16 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 try self.tokens.build(document);
             }
             self.strings.list.clearRetainingCapacity();
-            self.cursor = .{ .document = self };
+            self.cursor = .{
+                .document = self,
+                .tokens = self.tokens,
+                .strings = self.strings.items().ptr,
+                .root = if (want_stream) 0 else @intFromPtr(self.tokens.indexes.items.ptr),
+            };
             return .{
                 .iter = .{
                     .cursor = &self.cursor,
-                    .start_position = 0,
+                    .start_position = self.cursor.root,
                     .start_depth = 1,
                     .start_char = try self.cursor.peekChar(),
                 },
@@ -179,15 +184,25 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 try self.tokens.build(document);
             }
             self.strings.list.clearRetainingCapacity();
-            self.cursor = .{ .document = self };
+            self.cursor = .{
+                .document = self,
+                .tokens = self.tokens,
+                .strings = self.strings.items().ptr,
+                .root = if (want_stream) 0 else @intFromPtr(self.tokens.indexes.items.ptr),
+            };
             return .{
                 .iter = .{
                     .cursor = &self.cursor,
-                    .start_position = 0,
+                    .start_position = self.cursor.root,
                     .start_depth = 1,
                     .start_char = try self.cursor.peekChar(),
                 },
             };
+        }
+
+        pub fn parseWithCapacity(self: *Self, document: if (Reader) |reader| reader else Aligned.slice, capacity: usize) Error!Document {
+            try self.ensureTotalCapacity(capacity);
+            return self.parseAssumeCapacity(document);
         }
 
         pub const Element = union(types.ElementType) {
@@ -201,27 +216,32 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
 
         const Cursor = struct {
             document: *Self,
-            position: usize = 0,
+            tokens: Tokens,
+            strings: [*]u8,
             depth: u32 = 1,
+            root: usize,
             err: ?Error = null,
 
-            inline fn tokens(self: Cursor) *Tokens {
-                return &self.document.tokens;
+            const position_size = if (want_stream) 1 else @sizeOf(u32);
+
+            inline fn position(self: Cursor) usize {
+                return if (want_stream) self.tokens.indexes.tail else @intFromPtr(self.tokens.token);
+            }
+
+            inline fn offset(self: Cursor) usize {
+                return if (want_stream) self.tokens.document.tail else self.tokens.token[0];
             }
 
             inline fn next(self: *Cursor) Error![*]const u8 {
-                if (self.err) |err| return err;
-
-                defer self.position += 1;
-                return self.tokens().next();
+                return self.tokens.next();
             }
 
             inline fn peekChar(self: *Cursor) Error!u8 {
-                return self.tokens().peekChar();
+                return self.tokens.peekChar();
             }
 
             inline fn peek(self: *Cursor) Error![*]const u8 {
-                return self.tokens().peek();
+                return self.tokens.peek();
             }
 
             inline fn ascend(self: *Cursor, parent_depth: u32) void {
@@ -271,8 +291,8 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 }
 
                 brk: while (true) {
-                    const ptr = try self.next();
-                    switch (ptr[0]) {
+                    const ptr = (try self.next())[0];
+                    switch (ptr) {
                         '[', '{' => {
                             try Logger.logStart(self.document, ptr, "skip  ", self.depth);
                             self.depth += 1;
@@ -348,7 +368,11 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     .raw_str = undefined,
                     .err = err,
                 };
-                return self.iter.asRootString();
+                return self.iter.asRootString() catch |err| .{
+                    .iter = self.iter,
+                    .raw_str = undefined,
+                    .err = err,
+                };
             }
 
             pub inline fn asBool(self: Document) Error!bool {
@@ -425,7 +449,8 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 return self.iter.skipChild();
             }
 
-            pub fn at(self: Document, ptr: anytype) Value {
+            pub inline fn at(self: Document, ptr: anytype) Value {
+                @setEvalBranchQuota(2000000);
                 if (self.err) |_| return .{ .iter = self.iter };
 
                 const query = brk: {
@@ -492,9 +517,11 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 }
 
                 inline fn asString(self: Iterator) Error!String {
+                    const raw_str = try self.peekNonRootScalar();
+                    if (raw_str[0] != '"') return error.IncorrectType;
                     const str = String{
                         .iter = self,
-                        .raw_str = try self.peekNonRootScalar(),
+                        .raw_str = raw_str,
                     };
                     try self.advanceNonRootScalar();
                     return str;
@@ -543,9 +570,11 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 }
 
                 inline fn asRootString(self: Iterator) Error!String {
+                    const raw_str = try self.peekRootScalar();
+                    if (raw_str[0] != '"') return error.IncorrectType;
                     const str = String{
                         .iter = self,
-                        .raw_str = try self.peekRootScalar(),
+                        .raw_str = raw_str,
                     };
                     try self.advanceRootScalar();
                     return str;
@@ -597,7 +626,6 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
 
                 fn parseString(self: Iterator, ptr: [*]const u8, dst: [*]u8) Error![]const u8 {
                     try Logger.log(self.cursor.document, ptr, "string", self.start_depth);
-                    if (ptr[0] != '"') return error.IncorrectType;
                     const write = @import("parsers/string.zig").writeString;
                     const next_len = try write(ptr, dst);
                     return dst[0..next_len];
@@ -620,15 +648,15 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 }
 
                 inline fn isAtStart(self: Iterator) bool {
-                    return self.cursor.position == self.start_position;
+                    return self.cursor.position() == self.start_position;
                 }
 
                 inline fn isAtRoot(self: Iterator) bool {
-                    return self.cursor.position == 0;
+                    return self.cursor.position() == self.cursor.root;
                 }
 
                 inline fn isAtContainerStart(self: Iterator) bool {
-                    const delta = self.cursor.position - self.start_position;
+                    const delta = self.cursor.position() - self.start_position;
                     return delta == 1 or delta == 2;
                 }
 
@@ -637,13 +665,13 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 }
 
                 inline fn isAtFirstValue(self: Iterator) bool {
-                    assert(self.cursor.position > self.start_position);
-                    return self.cursor.position == self.start_position + 1 and self.cursor.depth == self.start_depth;
+                    assert(self.cursor.position() > self.start_position);
+                    return self.cursor.position() == self.start_position + Cursor.position_size and self.cursor.depth == self.start_depth;
                 }
 
                 inline fn isAtFirstField(self: Iterator) bool {
-                    assert(self.cursor.position > self.start_position);
-                    return self.cursor.position == self.start_position + 1;
+                    assert(self.cursor.position() > self.start_position);
+                    return self.cursor.position() == self.start_position + Cursor.position_size;
                 }
 
                 inline fn isOpen(self: Iterator) bool {
@@ -756,7 +784,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         if (try self.cursor.peekChar() != start_char) return error.IncorrectType;
                         const iter: Iterator = .{
                             .cursor = self.cursor,
-                            .start_position = self.cursor.position,
+                            .start_position = self.cursor.position(),
                             .start_depth = self.cursor.depth,
                             .start_char = start_char,
                         };
@@ -797,7 +825,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 }
 
                 inline fn skipChild(self: Iterator) Error!void {
-                    assert(self.cursor.position > self.start_position);
+                    assert(self.cursor.position() > self.start_position);
                     assert(self.cursor.depth >= self.start_depth);
 
                     return self.cursor.skip(self.start_depth, self.start_char);
@@ -807,7 +835,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     self.assertAtChild();
                     return .{
                         .cursor = self.cursor,
-                        .start_position = self.cursor.position,
+                        .start_position = self.cursor.position(),
                         .start_depth = self.start_depth + 1,
                         .start_char = try self.cursor.peekChar(),
                     };
@@ -832,25 +860,25 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 }
 
                 inline fn assertAtStart(self: Iterator) void {
-                    assert(self.cursor.position == self.start_position);
+                    assert(self.cursor.position() == self.start_position);
                     assert(self.cursor.depth == self.start_depth);
                     assert(self.start_depth > 0);
                 }
 
                 inline fn assertAtContainerStart(self: Iterator) void {
-                    assert(self.cursor.position == self.start_position + 1);
+                    assert(self.cursor.position() == self.start_position + Cursor.position_size);
                     assert(self.cursor.depth == self.start_depth);
                     assert(self.start_depth > 0);
                 }
 
                 inline fn assertAtNext(self: Iterator) void {
-                    assert(self.cursor.position > self.start_position);
+                    assert(self.cursor.position() > self.start_position);
                     assert(self.cursor.depth == self.start_depth);
                     assert(self.start_depth > 0);
                 }
 
                 inline fn assertAtChild(self: Iterator) void {
-                    assert(self.cursor.position > self.start_position);
+                    assert(self.cursor.position() > self.start_position);
                     assert(self.cursor.depth == self.start_depth + 1);
                     assert(self.start_depth > 0);
                 }
@@ -982,7 +1010,8 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 return self.iter.skipChild();
             }
 
-            pub fn at(self: Value, ptr: anytype) Value {
+            pub inline fn at(self: Value, ptr: anytype) Value {
+                @setEvalBranchQuota(2000000);
                 if (self.err) |_| return self;
 
                 const query = brk: {
@@ -1022,15 +1051,14 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             pub inline fn get(self: String) Error![]const u8 {
                 if (self.err) |err| return err;
 
-                if (want_stream) {
-                    if (self.iter.cursor.document.allocator) |alloc|
-                        try self.iter.cursor.document.strings.ensureUnusedCapacity(alloc, options.stream.?.chunk_length)
-                    else
-                        return error.ExpectedAllocator;
-                }
-                const strings = self.iter.cursor.document.strings.items();
-                const str = try self.iter.parseString(self.raw_str, strings[strings.len..].ptr);
-                self.iter.cursor.document.strings.list.items.len += str.len;
+                // if (want_stream) {
+                //     if (self.iter.cursor.document.allocator) |alloc|
+                //         try self.iter.cursor.document.strings.ensureUnusedCapacity(alloc, options.stream.?.chunk_length)
+                //     else
+                //         return error.ExpectedAllocator;
+                // }
+                const str = try self.iter.parseString(self.raw_str, self.iter.cursor.strings);
+                self.iter.cursor.strings += str.len;
                 return str;
             }
 
@@ -1073,7 +1101,8 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 return .{ .iter = try iter.startRootArray() };
             }
 
-            pub fn at(self: Array, index: usize) Value {
+            pub inline fn at(self: Array, index: usize) Value {
+                @setEvalBranchQuota(2000000);
                 var i: usize = 0;
                 while (self.next() catch |err| return .{
                     .iter = self.iter,
@@ -1157,7 +1186,8 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 return .{ .iter = try iter.startRootObject() };
             }
 
-            pub fn at(self: Object, key: []const u8) Value {
+            pub inline fn at(self: Object, key: []const u8) Value {
+                @setEvalBranchQuota(2000000);
                 return if (self.iter.findField(key) catch |err| return .{
                     .iter = self.iter,
                     .err = err,

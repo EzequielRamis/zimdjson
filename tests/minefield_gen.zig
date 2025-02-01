@@ -63,7 +63,10 @@ pub fn main() !void {
     std.sort.insertion([]const u8, files.items, {}, lessThanSlice);
     for (files.items) |file| {
         const is_pass = std.mem.startsWith(u8, file, "pass") or std.mem.startsWith(u8, file, "y_");
-        const is_excluded = std.mem.endsWith(u8, file, "EXCLUDE.json") or std.mem.startsWith(u8, file, "i_");
+        const is_excluded =
+            std.mem.endsWith(u8, file, "EXCLUDE.json") or
+            std.mem.startsWith(u8, file, "i_") or
+            std.mem.endsWith(u8, file, "_toolarge.json");
         const is_minefield = std.mem.startsWith(u8, file, "y_") or std.mem.startsWith(u8, file, "n_");
         const identifier = file[0 .. file.len - 5];
         if (!is_excluded) {

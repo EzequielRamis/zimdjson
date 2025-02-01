@@ -21,7 +21,7 @@ fn testFrom(comptime set: []const u8) !void {
         const float = document.asFloat() catch |err| switch (err) {
             error.NumberOutOfRange => std.math.inf(f64),
             error.InvalidNumberLiteral, error.ExpectedValue => {
-                // std.debug.print("ignoring invalid number {:0>4}: {s}\n", .{ i, str });
+                // std.debug.print("ignoring invalid number {:0>6}: {s}\n", .{ i, str });
                 continue;
             },
             else => return err,

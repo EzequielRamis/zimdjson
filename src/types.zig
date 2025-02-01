@@ -100,6 +100,7 @@ pub const Mask = struct {
 
     pub const zer: umask = 0;
     pub const one: umask = @bitCast(@as(imask, -1));
+    pub const odd: umask = 0xAAAA_AAAA_AAAA_AAAA;
 
     pub inline fn allSet(m: umask) bool {
         return @as(imask, @bitCast(m)) == -1;

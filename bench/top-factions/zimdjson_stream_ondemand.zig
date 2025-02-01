@@ -32,7 +32,7 @@ pub fn run() !void {
     result.factions_count = 0;
 
     file = try std.fs.openFileAbsolute(path, .{});
-    const doc = try parser.parse(file.reader());
+    const doc = try parser.parseWithCapacity(file.reader(), (try file.stat()).size);
     const systems = try doc.asArray();
     while (try systems.next()) |system| {
         const id = try system.at("id64").asUnsigned();

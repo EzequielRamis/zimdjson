@@ -30,17 +30,20 @@ pub inline fn writeString(noalias src: [*]const u8, noalias dst: [*]u8) Error!u3
         const has_any_slash = ((quote -% 1) & slash) != 0;
         if (has_any_slash) {
             const slash_index: u8 = @ctz(slash);
-            const escape_char = src[read..][slash_index + 1];
-            if (escape_char == 'u') {
-                read += slash_index;
-                written += slash_index;
-                try handleUnicodeCodepoint(src, dst, &read, &written);
-            } else {
-                const escaped = escape_map[escape_char];
-                if (escaped == 0) return error.InvalidEscape;
-                dst[written..][slash_index] = escaped;
-                read += slash_index + 2;
-                written += slash_index + 1;
+            read += slash_index;
+            written += slash_index;
+            escapes: while (true) {
+                const escape_char = src[read..][1];
+                if (escape_char == 'u') {
+                    try handleUnicodeCodepoint(src, dst, &read, &written);
+                } else {
+                    const escaped = escape_map[escape_char];
+                    if (escaped == 0) return error.InvalidEscape;
+                    dst[written] = escaped;
+                    read += 2;
+                    written += 1;
+                }
+                if (src[read] != '\\') break :escapes;
             }
         } else {
             written += Vector.bytes_len;
@@ -52,16 +55,17 @@ pub inline fn writeString(noalias src: [*]const u8, noalias dst: [*]u8) Error!u3
 inline fn handleUnicodeCodepoint(noalias src: [*]const u8, noalias dst: [*]u8, noalias read: *u32, noalias written: *u32) Error!void {
     var codepoint = parseHexDword(src[read.*..][2..]);
     read.* += 6;
-    if (utf16IsHighSurrogate(codepoint)) {
+    if (codepoint >= 0xd800 and codepoint < 0xdc00) {
         if (readInt(u16, src[read.*..][0..2], native_endian) == readInt(u16, "\\u", native_endian)) {
-            const low_surrogate = parseHexDword(src[read.*..][2..]);
-            if (!utf16IsLowSurrogate(low_surrogate)) return error.InvalidUnicodeCodePoint;
-            codepoint = (((codepoint - 0xd800) << 10) | low_surrogate) + 0x10000;
+            const codepoint_2 = parseHexDword(src[read.*..][2..]);
+            const low_bit = codepoint_2 -% 0xdc00;
+            if (low_bit >> 10 != 0) return error.InvalidUnicodeCodePoint;
+            codepoint = (((codepoint - 0xd800) << 10) | low_bit) +% 0x10000;
             read.* += 6;
         } else {
             return error.InvalidUnicodeCodePoint;
         }
-    } else if (utf16IsLowSurrogate(codepoint)) {
+    } else if (codepoint >= 0xdc00 and codepoint <= 0xdfff) {
         return error.InvalidUnicodeCodePoint;
     }
     written.* += try utf8Encode(codepoint, dst[written.*..]);

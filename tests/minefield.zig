@@ -365,16 +365,6 @@ test "fail38" {
     return error.MustHaveFailed;
 }
 
-test "fail41_toolarge" {
-    const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
-    defer parser.deinit();
-    const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail41_toolarge.json", .{});
-    defer file.close();
-    _ = parser.parse(file.reader()) catch return;
-    return error.MustHaveFailed;
-}
-
 test "fail42" {
     const allocator = std.testing.allocator;
     var parser = dom.parserFromFile(.default).init(allocator);

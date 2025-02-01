@@ -20,7 +20,7 @@ pub fn prerun() !void {
 
 pub fn run() !void {
     file = try std.fs.openFileAbsolute(path, .{});
-    const doc = try parser.parse(file.reader());
+    const doc = try parser.parseWithCapacity(file.reader(), (try file.stat()).size);
     const statuses = try doc.at("statuses").asArray();
     while (try statuses.next()) |tweet| {
         try result.append(try tweet.at("user").at("id").asUnsigned());

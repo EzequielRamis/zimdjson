@@ -34,7 +34,7 @@ pub fn run() !void {
     result.retweet_count = -1;
 
     file = try std.fs.openFileAbsolute(path, .{});
-    const doc = try parser.parse(file.reader());
+    const doc = try parser.parseWithCapacity(file.reader(), (try file.stat()).size);
     const tweet = try doc.at("statuses").asArray();
     while (try tweet.next()) |t| {
         const text = try t.at("text").asString().get();

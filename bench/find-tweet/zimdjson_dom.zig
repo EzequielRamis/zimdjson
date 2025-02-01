@@ -21,7 +21,7 @@ pub fn prerun() !void {}
 
 pub fn run() !void {
     file = try std.fs.openFileAbsolute(path, .{});
-    const doc = try parser.parse(file.reader());
+    const doc = try parser.parseWithCapacity(file.reader(), (try file.stat()).size);
     const tweet = try doc.at("statuses").asArray();
     var it = tweet.iterator();
     while (it.next()) |t| {

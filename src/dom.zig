@@ -54,13 +54,11 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
 
         pub const Error = Tokens.Error || types.ParseError || Allocator.Error || if (Reader) |reader| reader.Error else error{};
         pub const max_capacity_bound = if (want_stream) std.math.maxInt(u32) * @sizeOf(Tape.Word) else std.math.maxInt(u32);
-        pub const default_max_depth = 1024;
 
         document_buffer: if (need_document_buffer) std.ArrayListAligned(u8, types.Aligned(true).alignment) else void,
         tape: Tape,
 
         max_capacity: usize,
-        max_depth: usize,
         capacity: usize,
 
         pub fn init(allocator: Allocator) Self {
@@ -68,7 +66,6 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 .document_buffer = if (need_document_buffer) .init(allocator) else {},
                 .tape = .init(allocator),
                 .max_capacity = max_capacity_bound,
-                .max_depth = default_max_depth,
                 .capacity = 0,
             };
         }
@@ -98,8 +95,8 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
         }
 
         pub fn setMaximumDepth(self: *Self, new_depth: usize) Error!void {
-            try self.tape.stack.list.setCapacity(self.tape.allocator, new_depth);
-            self.max_depth = new_depth;
+            if (new_depth > std.math.maxInt(u32)) return error.ExceededDepth;
+            try self.tape.stack.setMaxDepth(self.tape.allocator, new_depth);
         }
 
         pub fn ensureTotalCapacity(self: *Self, new_capacity: usize) Error!void {
@@ -158,6 +155,11 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 .tape = &self.tape,
                 .index = 0,
             };
+        }
+
+        pub fn parseWithCapacity(self: *Self, document: if (Reader) |reader| reader else Aligned.slice, capacity: usize) Error!Value {
+            try self.ensureTotalCapacity(capacity);
+            return self.parseAssumeCapacity(document);
         }
 
         pub const Element = union(types.ElementType) {
@@ -326,7 +328,8 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
-            pub fn at(self: Value, ptr: anytype) Value {
+            pub inline fn at(self: Value, ptr: anytype) Value {
+                @setEvalBranchQuota(10000);
                 if (self.err) |_| return self;
 
                 const query = brk: {
@@ -387,7 +390,8 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
-            pub fn at(self: Array, index: u32) Value {
+            pub inline fn at(self: Array, index: u32) Value {
+                @setEvalBranchQuota(10000);
                 var it = self.iterator();
                 var i: u32 = 0;
                 while (it.next()) |v| : (i += 1) if (i == index) return v;
@@ -445,7 +449,8 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
-            pub fn at(self: Object, key: []const u8) Value {
+            pub inline fn at(self: Object, key: []const u8) Value {
+                @setEvalBranchQuota(2000000);
                 var it = self.iterator();
                 while (it.next()) |field| if (std.mem.eql(u8, field.key, key)) return field.value;
                 return .{
@@ -471,11 +476,12 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 object_begin = '{',
                 object_field = 1,
                 object_continue = '{' + 1,
+                object_end = '}',
                 array_begin = '[',
                 array_value = 2,
                 array_continue = '[' + 1,
-                scope_end = 3,
-                end = 4,
+                array_end = ']',
+                end = 3,
             };
 
             const Tag = enum(u8) {
@@ -514,7 +520,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             tokens: Tokens,
 
             words: types.BoundedArrayListUnmanaged(u64, max_capacity_bound),
-            stack: types.BoundedMultiArrayList(Context, default_max_depth),
+            stack: Stack,
 
             strings: types.BoundedArrayListUnmanaged(u8, max_capacity_bound),
 
@@ -537,6 +543,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
 
             pub inline fn build(self: *Tape, document: if (want_stream) Reader.? else Aligned.slice) Error!void {
                 try self.tokens.build(document);
+                try self.stack.ensureTotalCapacity(self.allocator, self.stack.max_depth);
 
                 if (!want_stream) {
                     const tokens_count = self.tokens.indexes.items.len;
@@ -563,6 +570,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         switch (t[0]) {
                             '{', '[' => |container_begin| {
                                 if (self.tokens.peekChar() == container_begin + 2) {
+                                    @branchHint(.unlikely);
                                     try self.visitEmptyContainer(container_begin);
                                     continue :state .end;
                                 }

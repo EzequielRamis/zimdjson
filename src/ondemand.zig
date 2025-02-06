@@ -291,8 +291,8 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 }
 
                 brk: while (true) {
-                    const ptr = (try self.next())[0];
-                    switch (ptr) {
+                    const ptr = try self.next();
+                    switch (ptr[0]) {
                         '[', '{' => {
                             try Logger.logStart(self.document, ptr, "skip  ", self.depth);
                             self.depth += 1;
@@ -627,7 +627,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 fn parseString(self: Iterator, ptr: [*]const u8, dst: [*]u8) Error![]const u8 {
                     try Logger.log(self.cursor.document, ptr, "string", self.start_depth);
                     const write = @import("parsers/string.zig").writeString;
-                    const next_len = try write(ptr, dst);
+                    const next_len = (try write(ptr, dst)) - dst;
                     return dst[0..next_len];
                 }
 

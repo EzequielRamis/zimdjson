@@ -111,7 +111,14 @@ pub fn Iterator(comptime options: Options) type {
             if (options.assume_padding) {
                 return self.document.ptr[self.token[0]..];
             } else {
-                const offset = if (@intFromPtr(self.token) < @intFromPtr(self.padding_token)) self.document.ptr else self.padding_offset;
+                const offset = brk: {
+                    if (@intFromPtr(self.token) < @intFromPtr(self.padding_token)) {
+                        break :brk self.document.ptr;
+                    } else {
+                        @branchHint(.unlikely);
+                        break :brk self.padding_offset;
+                    }
+                };
                 return offset[self.token[0]..];
             }
         }

@@ -206,22 +206,23 @@ pub fn Indexer(comptime T: type, comptime options: Options) type {
         inline fn extract(self: *Self, tokens: umask, dest: [*]T) u32 {
             const steps = 4;
             const steps_until = 24;
+            assert(steps_until < types.Mask.bits_len);
+
             const pop_count: u8 = @popCount(tokens);
-            var s = if (cpu.arch.isArm()) @bitReverse(tokens) else tokens;
+            var mask = if (cpu.arch.isArm()) @bitReverse(tokens) else tokens;
 
             var offsets: RelativeOffsetBuffer = undefined;
             if (options.relative) offsets[0] = 0;
 
             const prev_offset = self.prev_offset;
 
-            inline for (0..steps_until / steps) |u| {
-                if (u * steps < pop_count) {
-                    inline for (0..steps) |j| self.writeIndexAt(&s, j + u * steps, dest, &offsets, prev_offset);
+            if (0 < pop_count) {
+                inline for (0..steps) |j| self.writeIndexAt(j, &mask, dest, &offsets, prev_offset);
+                self.recursiveWrites(1, steps, (steps_until / steps) - 1, pop_count, &mask, dest, &offsets, prev_offset);
+                if (steps_until < pop_count) {
+                    @branchHint(.unlikely);
+                    for (steps_until..pop_count) |j| self.writeIndexAt(j, &mask, dest, &offsets, prev_offset);
                 }
-            }
-            if (steps_until < pop_count) {
-                @branchHint(.unlikely);
-                for (steps_until..pop_count) |j| self.writeIndexAt(&s, j, dest, &offsets, prev_offset);
             }
 
             if (options.relative) {
@@ -234,7 +235,43 @@ pub fn Indexer(comptime T: type, comptime options: Options) type {
             return pop_count;
         }
 
-        inline fn writeIndexAt(_: Self, mask: *umask, i: usize, dest: [*]T, offsets: *RelativeOffsetBuffer, prev_offset: anytype) void {
+        inline fn recursiveWrites(
+            self: Self,
+            i: comptime_int,
+            steps: comptime_int,
+            until: comptime_int,
+            pop_count: u8,
+            mask: *umask,
+            dest: [*]T,
+            offsets: *RelativeOffsetBuffer,
+            prev_offset: anytype,
+        ) void {
+            if (i * steps < pop_count) {
+                @branchHint(.unlikely);
+                inline for (0..steps) |j| self.writeIndexAt(j + i * steps, mask, dest, offsets, prev_offset);
+                if (i < until) {
+                    self.recursiveWrites(
+                        i + 1,
+                        steps,
+                        until,
+                        pop_count,
+                        mask,
+                        dest,
+                        offsets,
+                        prev_offset,
+                    );
+                }
+            }
+        }
+
+        inline fn writeIndexAt(
+            _: Self,
+            i: usize,
+            mask: *umask,
+            dest: [*]T,
+            offsets: *RelativeOffsetBuffer,
+            prev_offset: anytype,
+        ) void {
             const offset: if (options.relative) u8 else T =
                 if (cpu.arch.isArm())
                 @clz(mask.*)

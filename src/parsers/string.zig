@@ -11,12 +11,12 @@ const Error = types.ParseError;
 const readInt = std.mem.readInt;
 const native_endian = builtin.cpu.arch.endian();
 
-pub inline fn writeString(noalias src: [*]const u8, noalias dst: [*]u8) Error!u32 {
-    var read: u32 = 1;
-    var written: u32 = 0;
+pub inline fn writeString(noalias src: [*]const u8, noalias dst: [*]u8) Error![*]const u8 {
+    var read = src[1..];
+    var written = dst;
     while (true) {
-        const chunk = src[read..][0..Vector.bytes_len].*;
-        @memcpy(dst[written..][0..Vector.bytes_len], &chunk);
+        const chunk = read[0..Vector.bytes_len].*;
+        @memcpy(written[0..Vector.bytes_len], &chunk);
 
         const slash = Predicate.pack(Vector.slash == chunk);
         const quote = Predicate.pack(Vector.quote == chunk);
@@ -33,17 +33,17 @@ pub inline fn writeString(noalias src: [*]const u8, noalias dst: [*]u8) Error!u3
             read += slash_index;
             written += slash_index;
             escapes: while (true) {
-                const escape_char = src[read..][1];
+                const escape_char = read[1];
                 if (escape_char == 'u') {
-                    try handleUnicodeCodepoint(src, dst, &read, &written);
+                    try handleUnicodeCodepoint(&read, &written);
                 } else {
                     const escaped = escape_map[escape_char];
                     if (escaped == 0) return error.InvalidEscape;
-                    dst[written] = escaped;
+                    written[0] = escaped;
                     read += 2;
                     written += 1;
                 }
-                if (src[read] != '\\') break :escapes;
+                if (read[0] != '\\') break :escapes;
             }
         } else {
             written += Vector.bytes_len;
@@ -52,12 +52,12 @@ pub inline fn writeString(noalias src: [*]const u8, noalias dst: [*]u8) Error!u3
     }
 }
 
-inline fn handleUnicodeCodepoint(noalias src: [*]const u8, noalias dst: [*]u8, noalias read: *u32, noalias written: *u32) Error!void {
-    var codepoint = parseHexDword(src[read.*..][2..]);
+inline fn handleUnicodeCodepoint(noalias read: *[*]const u8, noalias written: *[*]u8) Error!void {
+    var codepoint = parseHexDword(read.*[2..]);
     read.* += 6;
     if (codepoint >= 0xd800 and codepoint < 0xdc00) {
-        if (readInt(u16, src[read.*..][0..2], native_endian) == readInt(u16, "\\u", native_endian)) {
-            const codepoint_2 = parseHexDword(src[read.*..][2..]);
+        if (readInt(u16, read.*[0..2], native_endian) == readInt(u16, "\\u", native_endian)) {
+            const codepoint_2 = parseHexDword(read.*[2..]);
             const low_bit = codepoint_2 -% 0xdc00;
             if (low_bit >> 10 != 0) return error.InvalidUnicodeCodePoint;
             codepoint = (((codepoint - 0xd800) << 10) | low_bit) +% 0x10000;
@@ -68,7 +68,7 @@ inline fn handleUnicodeCodepoint(noalias src: [*]const u8, noalias dst: [*]u8, n
     } else if (codepoint >= 0xdc00 and codepoint <= 0xdfff) {
         return error.InvalidUnicodeCodePoint;
     }
-    written.* += try utf8Encode(codepoint, dst[written.*..]);
+    written.* += try utf8Encode(codepoint, written.*);
 }
 
 inline fn utf8Encode(c: u32, dst: [*]u8) Error!u8 {

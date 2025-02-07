@@ -51,15 +51,14 @@ pub fn Stream(comptime options: Options) type {
         head: atomic.Value(std.meta.Int(.unsigned, @bitSizeOf(Cursor))) align(atomic.cache_line) = .init(0),
         tail: atomic.Value(std.meta.Int(.unsigned, @bitSizeOf(Cursor))) align(atomic.cache_line) = .init(0),
 
-        // there is no need to cache the other values
-        ixs_head_cached: usize align(atomic.cache_line) = 0,
-        doc_tail_cached: usize align(atomic.cache_line) = 0,
+        head_cached: std.meta.Int(.unsigned, @bitSizeOf(Cursor)) align(atomic.cache_line) = 0,
+        tail_cached: std.meta.Int(.unsigned, @bitSizeOf(Cursor)) align(atomic.cache_line) = 0,
 
         err: atomic.Value(std.meta.Int(.unsigned, @bitSizeOf(Error))) = .init(0),
-        status: atomic.Value(enum(u8) { sleeping, starting, running, killed }) = .init(.sleeping),
+        status: atomic.Value(enum(u8) { sleeping, starting, running, stopped, killed }) = .init(.sleeping),
 
         // local worker variable
-        work: bool = false,
+        keep_indexing: bool = false,
 
         const bogus_token = ' ';
         pub const init = std.mem.zeroInit(Self, .{});
@@ -68,9 +67,11 @@ pub fn Stream(comptime options: Options) type {
             if (self.status.load(.acquire) == .sleeping) {
                 self.document = try .init();
                 self.indexes = try .init();
+            } else {
+                self.status.store(.stopped, .release);
             }
             self.reader = reader;
-            self.ixs_head_cached = 0;
+            self.head_cached = 0;
             self.tail.store(0, .release);
             self.status.store(.starting, .release);
             if (self.worker == null) self.worker = try std.Thread.spawn(.{}, startWorker, .{self});
@@ -90,10 +91,8 @@ pub fn Stream(comptime options: Options) type {
             return self.fetch(true);
         }
 
-        pub inline fn peekChar(self: *Self) u8 {
-            const tail: Cursor = @bitCast(self.tail.load(.acquire));
-            const offset = self.indexes.ptr()[self.indexes.mask(tail.ixs)];
-            const ptr = self.document.ptr()[self.document.mask(tail.doc)..][offset..];
+        pub inline fn peekChar(self: *Self) Error!u8 {
+            const ptr = try self.peek();
             return ptr[0];
         }
 
@@ -101,20 +100,20 @@ pub fn Stream(comptime options: Options) type {
             return self.fetch(false);
         }
 
-        inline fn isFetchable(l: usize) bool {
-            return l > 1; // two indexes must be present to check chunk bounds
+        inline fn isFetchable(tail: Cursor, head: Cursor) bool {
+            return head.ixs - tail.ixs > 1; // two indexes must be present to check chunk bounds
         }
 
         inline fn fetch(self: *Self, comptime then_add: bool) Error![*]const u8 {
             var tail: Cursor = undefined;
             while (true) {
                 tail = @bitCast(self.tail.load(.monotonic));
-                if (!isFetchable(self.ixs_head_cached - tail.ixs)) {
-                    self.ixs_head_cached = @as(Cursor, @bitCast(self.head.load(.acquire))).ixs;
-                    if (!isFetchable(self.ixs_head_cached - tail.ixs)) {
+                if (!isFetchable(tail, @bitCast(self.head_cached))) {
+                    self.head_cached = self.head.load(.acquire);
+                    if (!isFetchable(tail, @bitCast(self.head_cached))) {
                         const err = self.err.load(.acquire);
                         if (err != 0) return @errorCast(@as(anyerror![*]const u8, @errorFromInt(err)));
-                        std.atomic.spinLoopHint();
+                        atomic.spinLoopHint();
                         continue;
                     }
                 }
@@ -133,43 +132,48 @@ pub fn Stream(comptime options: Options) type {
 
         fn startWorker(self: *Self) void {
             while (true) {
-                const status = self.status.load(.acquire);
-                if (status == .running) {
-                    @branchHint(.likely);
-                    if (self.work) {
-                        while (self.canIndex() catch |err| {
-                            self.work = false;
-                            self.err.store(@intFromError(err), .release);
-                            break;
-                        }) {}
-                    }
-                } else if (status == .starting) {
-                    self.work = true;
-                    self.doc_tail_cached = 0;
-                    self.err.store(0, .release);
-                    self.head.store(0, .release);
-                    self.status.store(.running, .release);
-                } else if (status == .killed) {
-                    @branchHint(.unlikely);
-                    return;
+                switch (self.status.load(.acquire)) {
+                    .starting => {
+                        self.err.store(0, .release);
+                        self.head.store(0, .release);
+                        self.status.store(.running, .release);
+                        self.indexer = .init;
+                        self.tail_cached = 0;
+                        self.keep_indexing = true;
+                    },
+                    .running => {
+                        @branchHint(.likely);
+                        if (self.keep_indexing) {
+                            while (self.index() catch |err| {
+                                self.keep_indexing = false;
+                                self.err.store(@intFromError(err), .release);
+                                break;
+                            }) {}
+                        }
+                    },
+                    .killed => {
+                        @branchHint(.unlikely);
+                        return;
+                    },
+                    else => {},
                 }
-                std.atomic.spinLoopHint();
+                atomic.spinLoopHint();
             }
         }
 
-        inline fn isIndexable(l: usize) bool {
-            return l < chunk_len * (options.slots - 1); // a special slot must be preserved so the revert feature can work
+        inline fn isIndexable(tail: Cursor, head: Cursor) bool {
+            return head.doc - tail.doc < chunk_len * (options.slots - 1); // a special slot must be preserved so the revert feature can work
         }
 
-        inline fn canIndex(self: *Self) Error!bool {
-            if (!self.work) return false;
+        inline fn index(self: *Self) Error!bool {
+            if (!self.keep_indexing) return false;
 
             // check whether there are slots available to index
             const head: Cursor = @bitCast(self.head.load(.monotonic));
 
-            if (!isIndexable(head.doc - self.doc_tail_cached)) {
-                self.doc_tail_cached = @as(Cursor, @bitCast(self.tail.load(.acquire))).doc;
-                if (!isIndexable(head.doc - self.doc_tail_cached)) {
+            if (!isIndexable(@bitCast(self.tail_cached), head)) {
+                self.tail_cached = self.tail.load(.acquire);
+                if (!isIndexable(@bitCast(self.tail_cached), head)) {
                     return false;
                 }
             }
@@ -177,6 +181,7 @@ pub fn Stream(comptime options: Options) type {
             // a slot can be indexed
             const buf = self.document.ptr()[self.document.mask(head.doc)..][0..chunk_len];
             const read: u32 = @intCast(try self.reader.readAll(buf));
+
             if (read < chunk_len) {
                 @branchHint(.unlikely);
 
@@ -204,9 +209,9 @@ pub fn Stream(comptime options: Options) type {
                     buf[read + bogus_indexed_tokens.len - 1] = bogus_token;
                     buf[read + bogus_indexed_tokens.len - 3] = bogus_token;
 
-                    self.work = false;
+                    self.keep_indexing = false;
                     self.head.store(@bitCast(Cursor{
-                        .doc = head.doc + read,
+                        .doc = head.doc + chunk_len,
                         .ixs = head.ixs + written,
                     }), .release);
                     return false;

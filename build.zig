@@ -38,6 +38,7 @@ pub fn build(b: *std.Build) !void {
                 .root_source_file = b.path("tests/float_parsing.zig"),
                 .target = target,
                 .optimize = optimize,
+                .sanitize_thread = true,
             });
             if (com_float_parsing.with("parse_number_fxx")) |dep| {
                 addEmbeddedPath(b, float_parsing, dep, "parse_number_fxx");
@@ -62,6 +63,7 @@ pub fn build(b: *std.Build) !void {
                 .root_source_file = path,
                 .target = target,
                 .optimize = optimize,
+                .sanitize_thread = true,
             });
             if (com_minefield.with("simdjson-data")) |dep| {
                 addEmbeddedPath(b, minefield, dep, "simdjson-data");
@@ -90,6 +92,7 @@ pub fn build(b: *std.Build) !void {
                 .root_source_file = path,
                 .target = target,
                 .optimize = optimize,
+                .sanitize_thread = true,
             });
             if (com_adversarial.with("simdjson-data")) |dep| {
                 addEmbeddedPath(b, adversarial, dep, "simdjson-data");
@@ -118,6 +121,7 @@ pub fn build(b: *std.Build) !void {
                 .root_source_file = path,
                 .target = target,
                 .optimize = optimize,
+                .sanitize_thread = true,
             });
             if (com_examples.with("simdjson-data")) |dep| {
                 addEmbeddedPath(b, examples, dep, "simdjson-data");

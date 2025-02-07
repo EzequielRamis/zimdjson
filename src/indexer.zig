@@ -223,11 +223,13 @@ pub fn Indexer(comptime T: type, comptime options: Options) type {
                     @branchHint(.unlikely);
                     for (steps_until..pop_count) |j| self.writeIndexAt(j, &mask, dest, &offsets, prev_offset);
                 }
+                if (options.relative) {
+                    dest[0] = @intCast(@as(i64, @intCast(dest[0])) - prev_offset);
+                    self.prev_offset = offsets[pop_count];
+                }
             }
 
             if (options.relative) {
-                dest[0] = @intCast(@as(i64, @intCast(dest[0])) - self.prev_offset);
-                if (pop_count != 0) self.prev_offset = offsets[pop_count];
                 self.prev_offset -= Mask.bits_len;
             } else {
                 self.prev_offset +%= Mask.bits_len;

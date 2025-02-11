@@ -50,6 +50,14 @@ pub fn Iterator(comptime options: Options) type {
             try self.indexes.ensureTotalCapacity(capacity + 1); // + 1 because of the bogus index
         }
 
+        pub inline fn position(self: Self) usize {
+            return @intFromPtr(self.token);
+        }
+
+        pub inline fn offset(self: Self) usize {
+            return self.token[0];
+        }
+
         pub inline fn build(self: *Self, document: Aligned.slice) Error!void {
             {
                 self.indexer = .init;
@@ -103,15 +111,15 @@ pub fn Iterator(comptime options: Options) type {
             return self.peek();
         }
 
-        pub inline fn peekChar(self: Self) u8 {
+        pub inline fn peekChar(self: Self) !u8 { // same here
             return (self.peek() catch unreachable)[0];
         }
 
         pub inline fn peek(self: Self) ![*]const u8 {
             if (options.assume_padding) {
-                return self.document.ptr[self.token[0]..];
+                return self.document.ptr[self.offset()..];
             } else {
-                const offset = brk: {
+                const curr_source = brk: {
                     if (@intFromPtr(self.token) < @intFromPtr(self.padding_token)) {
                         break :brk self.document.ptr;
                     } else {
@@ -119,7 +127,7 @@ pub fn Iterator(comptime options: Options) type {
                         break :brk self.padding_offset;
                     }
                 };
-                return offset[self.token[0]..];
+                return curr_source[self.offset()..];
             }
         }
 

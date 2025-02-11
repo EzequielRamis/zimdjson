@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const tracy = @import("../tracy");
 const common = @import("../common.zig");
 const types = @import("../types.zig");
@@ -38,53 +39,122 @@ pub fn Stream(comptime options: Options) type {
             std.Thread.SpawnError;
 
         pub const Cursor = extern struct {
-            doc: usize,
-            ixs: usize,
+            pub const init = Cursor{};
+            doc: usize = 0,
+            ixs: usize = 0,
+        };
+
+        const IndexingResults = struct {
+            written: usize,
+            finished: bool,
         };
 
         reader: options.Reader,
         document: RingBuffer(u8, chunk_len * options.slots) = undefined,
         indexes: RingBuffer(index_type, chunk_len * options.slots) = undefined,
         indexer: Indexer = .init,
+
         worker: ?std.Thread = null,
 
-        head: atomic.Value(std.meta.Int(.unsigned, @bitSizeOf(Cursor))) align(atomic.cache_line) = .init(0),
-        tail: atomic.Value(std.meta.Int(.unsigned, @bitSizeOf(Cursor))) align(atomic.cache_line) = .init(0),
+        queue: Queue = .init,
+        mutex: std.Thread.Mutex = .{},
 
-        head_cached: std.meta.Int(.unsigned, @bitSizeOf(Cursor)) align(atomic.cache_line) = 0,
-        tail_cached: std.meta.Int(.unsigned, @bitSizeOf(Cursor)) align(atomic.cache_line) = 0,
+        waken: std.Thread.ResetEvent = .{},
+        killed: atomic.Value(bool) = .init(false),
 
-        err: atomic.Value(std.meta.Int(.unsigned, @bitSizeOf(Error))) = .init(0),
-        status: atomic.Value(enum(u8) { sleeping, starting, running, stopped, killed }) = .init(.sleeping),
+        const Queue = struct {
+            pub const init = Queue{};
 
-        // local worker variable
-        keep_indexing: bool = false,
+            head: atomic.Value(std.meta.Int(.unsigned, @bitSizeOf(Cursor))) align(atomic.cache_line) = .init(0),
+            tail: atomic.Value(std.meta.Int(.unsigned, @bitSizeOf(Cursor))) align(atomic.cache_line) = .init(0),
+
+            head_cached: Cursor align(atomic.cache_line) = .init,
+            tail_cached: Cursor align(atomic.cache_line) = .init,
+
+            err: atomic.Value(std.meta.Int(.unsigned, @bitSizeOf(Error))) = .init(0),
+
+            pub fn consume(self: *Queue, curr_offset: usize, tail: Cursor) void {
+                const new_tail: Cursor = .{
+                    .doc = tail.doc + curr_offset,
+                    .ixs = tail.ixs + 1,
+                };
+                self.tail.store(@bitCast(new_tail), .release);
+            }
+
+            pub fn commit(self: *Queue, status: IndexingResults, head: Cursor) void {
+                const new_head: Cursor = .{
+                    .doc = head.doc + chunk_len,
+                    .ixs = head.ixs + status.written,
+                };
+                self.head.store(@bitCast(new_head), .release);
+            }
+
+            pub fn canFetchIndex(self: *Queue, tail: Cursor) bool {
+                if (!isFetchableIndex(self.head_cached, tail)) {
+                    self.head_cached = @bitCast(self.head.load(.acquire));
+                    if (!isFetchableIndex(self.head_cached, tail)) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            pub fn canIndexChunk(self: *Queue, head: Cursor) bool {
+                if (!isIndexableChunk(head, self.tail_cached)) {
+                    self.tail_cached = @bitCast(self.tail.load(.acquire));
+                    if (!isIndexableChunk(head, self.tail_cached)) {
+                        return false;
+                    }
+                }
+                return true;
+            }
+
+            fn isFetchableIndex(head: Cursor, tail: Cursor) bool {
+                return head.ixs - tail.ixs > 1;
+            }
+
+            fn isIndexableChunk(head: Cursor, tail: Cursor) bool {
+                return head.doc - tail.doc < chunk_len * (options.slots - 1);
+            }
+        };
 
         const bogus_token = ' ';
         pub const init = std.mem.zeroInit(Self, .{});
 
         pub fn build(self: *Self, reader: options.Reader) Error!void {
-            if (self.status.load(.acquire) == .sleeping) {
+            {
+                self.mutex.lock();
+                defer self.mutex.unlock();
+                self.indexer = .init;
+                self.reader = reader;
+                self.queue = .init;
+                self.waken.set();
+            }
+            if (self.worker == null) {
                 self.document = try .init();
                 self.indexes = try .init();
-            } else {
-                self.status.store(.stopped, .release);
+                self.worker = try std.Thread.spawn(.{}, startWorker, .{self});
             }
-            self.reader = reader;
-            self.head_cached = 0;
-            self.tail.store(0, .release);
-            self.status.store(.starting, .release);
-            if (self.worker == null) self.worker = try std.Thread.spawn(.{}, startWorker, .{self});
         }
 
         pub fn deinit(self: *Self) void {
-            const status = self.status.load(.acquire);
-            self.status.store(.killed, .release);
-            if (self.worker) |w| w.join();
-            if (status != .sleeping) {
+            if (self.worker) |w| {
+                self.killed.store(true, .monotonic);
+                self.waken.set();
+                w.join();
                 self.document.deinit();
                 self.indexes.deinit();
             }
+        }
+
+        pub inline fn position(self: Self) usize {
+            const tail: Cursor = @bitCast(self.queue.tail.load(.monotonic));
+            return tail.ixs;
+        }
+
+        pub inline fn offset(self: Self) usize {
+            const tail: Cursor = @bitCast(self.queue.tail.load(.monotonic));
+            return tail.doc;
         }
 
         pub inline fn next(self: *Self) Error![*]const u8 {
@@ -100,98 +170,62 @@ pub fn Stream(comptime options: Options) type {
             return self.fetch(false);
         }
 
-        inline fn isFetchable(tail: Cursor, head: Cursor) bool {
-            return head.ixs - tail.ixs > 1; // two indexes must be present to check chunk bounds
-        }
+        inline fn fetch(self: *Self, comptime and_consume: bool) Error![*]const u8 {
+            const tail: Cursor = @bitCast(self.queue.tail.load(.monotonic));
+            while (!self.queue.canFetchIndex(tail)) {
+                if (!self.waken.isSet()) break;
+                atomic.spinLoopHint();
+            }
+            const err = self.queue.err.load(.acquire);
+            if (err != 0) return @errorCast(@as(anyerror![*]const u8, @errorFromInt(err)));
 
-        inline fn fetch(self: *Self, comptime then_add: bool) Error![*]const u8 {
-            var tail: Cursor = undefined;
-            while (true) {
-                tail = @bitCast(self.tail.load(.monotonic));
-                if (!isFetchable(tail, @bitCast(self.head_cached))) {
-                    self.head_cached = self.head.load(.acquire);
-                    if (!isFetchable(tail, @bitCast(self.head_cached))) {
-                        const err = self.err.load(.acquire);
-                        if (err != 0) return @errorCast(@as(anyerror![*]const u8, @errorFromInt(err)));
-                        atomic.spinLoopHint();
-                        continue;
-                    }
-                }
-                break;
-            }
-            const offset = self.indexes.ptr()[self.indexes.mask(tail.ixs)];
-            const ptr = self.document.ptr()[self.document.mask(tail.doc)..][offset..];
-            if (then_add) {
-                self.tail.store(@bitCast(Cursor{
-                    .doc = tail.doc + offset,
-                    .ixs = tail.ixs + 1,
-                }), .release);
-            }
+            const curr_offset = self.indexes.ptr()[self.indexes.mask(tail.ixs)];
+            const ptr = self.document.ptr()[self.document.mask(tail.doc)..][curr_offset..];
+            if (and_consume) self.queue.consume(curr_offset, tail);
             return ptr;
         }
 
         fn startWorker(self: *Self) void {
-            while (true) {
-                switch (self.status.load(.acquire)) {
-                    .starting => {
-                        self.err.store(0, .release);
-                        self.head.store(0, .release);
-                        self.status.store(.running, .release);
-                        self.indexer = .init;
-                        self.tail_cached = 0;
-                        self.keep_indexing = true;
-                    },
-                    .running => {
-                        @branchHint(.likely);
-                        if (self.keep_indexing) {
-                            while (self.index() catch |err| {
-                                self.keep_indexing = false;
-                                self.err.store(@intFromError(err), .release);
-                                break;
-                            }) {}
-                        }
-                    },
-                    .killed => {
+            sleeping: while (true) {
+                self.waken.wait();
+                running: while (!self.killed.load(.monotonic)) {
+                    @branchHint(.likely);
+
+                    const head: Cursor = @bitCast(self.queue.head.load(.monotonic));
+                    if (!self.queue.canIndexChunk(head)) {
+                        if (!self.waken.isSet()) continue :sleeping;
+                        atomic.spinLoopHint();
+                        continue :running;
+                    }
+                    const index_status = self.index(head) catch |err| {
                         @branchHint(.unlikely);
-                        return;
-                    },
-                    else => {},
+                        self.queue.err.store(@intFromError(err), .release);
+                        self.waken.reset();
+                        continue :sleeping;
+                    };
+
+                    self.queue.commit(index_status, head);
+                    if (index_status.finished) {
+                        self.waken.reset();
+                        continue :sleeping;
+                    }
                 }
-                atomic.spinLoopHint();
+                return;
             }
         }
 
-        inline fn isIndexable(tail: Cursor, head: Cursor) bool {
-            return head.doc - tail.doc < chunk_len * (options.slots - 1); // a special slot must be preserved so the revert feature can work
-        }
-
-        inline fn index(self: *Self) Error!bool {
-            if (!self.keep_indexing) return false;
-
-            // check whether there are slots available to index
-            const head: Cursor = @bitCast(self.head.load(.monotonic));
-
-            if (!isIndexable(@bitCast(self.tail_cached), head)) {
-                self.tail_cached = self.tail.load(.acquire);
-                if (!isIndexable(@bitCast(self.tail_cached), head)) {
-                    return false;
-                }
-            }
-
-            // a slot can be indexed
+        inline fn index(self: *Self, head: Cursor) Error!IndexingResults {
             const buf = self.document.ptr()[self.document.mask(head.doc)..][0..chunk_len];
             const read: u32 = @intCast(try self.reader.readAll(buf));
 
             if (read < chunk_len) {
                 @branchHint(.unlikely);
 
-                const bogus_indexed_tokens = " $ $";
                 // here we'll insert not one, but two bogus tokens
                 // this is because the fetch function always expects two available indexes
-                if (read >= chunk_len - bogus_indexed_tokens.len) {
-                    @branchHint(.unlikely);
-                    // it is not possible to insert the bogus tokens without a whitespace prefix and pretend the indexing is correct
-                    // a solution to this is to insert those at another slot, knowing that the next readAll returns 0
+                const bogus_indexed_tokens = ",,"; // commas are always indexed
+                if (read > chunk_len - bogus_indexed_tokens.len) {
+                    // skip to the next slot
                     @memset(buf[read..chunk_len], ' ');
                 } else {
                     const padding = bogus_indexed_tokens ++ (" " ** (types.block_len - bogus_indexed_tokens.len));
@@ -207,14 +241,12 @@ pub fn Stream(comptime options: Options) type {
                     try self.indexer.validate();
                     try self.indexer.validateEof();
                     buf[read + bogus_indexed_tokens.len - 1] = bogus_token;
-                    buf[read + bogus_indexed_tokens.len - 3] = bogus_token;
+                    buf[read + bogus_indexed_tokens.len - 2] = bogus_token;
 
-                    self.keep_indexing = false;
-                    self.head.store(@bitCast(Cursor{
-                        .doc = head.doc + chunk_len,
-                        .ixs = head.ixs + written,
-                    }), .release);
-                    return false;
+                    return .{
+                        .written = written,
+                        .finished = true,
+                    };
                 }
             }
 
@@ -226,11 +258,10 @@ pub fn Stream(comptime options: Options) type {
             if (first_offset > chunk_len) return error.BatchOverflow;
             try self.indexer.validate();
 
-            self.head.store(@bitCast(Cursor{
-                .doc = head.doc + chunk_len,
-                .ixs = head.ixs + written,
-            }), .release);
-            return true;
+            return .{
+                .written = written,
+                .finished = false,
+            };
         }
 
         fn indexChunk(self: *Self, chunk: Aligned.slice, dest: [*]index_type) u32 {

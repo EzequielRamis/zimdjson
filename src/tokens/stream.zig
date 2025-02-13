@@ -55,68 +55,23 @@ pub fn Stream(comptime options: Options) type {
         indexer: Indexer = .init,
 
         worker: ?std.Thread = null,
-
-        queue: Queue = .init,
         mutex: std.Thread.Mutex = .{},
 
-        waken: std.Thread.ResetEvent = .{},
+        wakened: std.Thread.ResetEvent = .{},
         killed: atomic.Value(bool) = .init(false),
 
-        const Queue = struct {
-            pub const init = Queue{};
+        can_fetch: std.Thread.Semaphore = .{},
+        can_index: std.Thread.Semaphore = .{ .permits = options.slots - 3 },
 
-            head: atomic.Value(std.meta.Int(.unsigned, @bitSizeOf(Cursor))) align(atomic.cache_line) = .init(0),
-            tail: atomic.Value(std.meta.Int(.unsigned, @bitSizeOf(Cursor))) align(atomic.cache_line) = .init(0),
+        breakpoint: [options.slots]usize align(atomic.cache_line) = @splat(0),
+        break_head: usize = 0,
+        break_tail: usize = 0,
+        curr_break: usize = 0,
 
-            head_cached: Cursor align(atomic.cache_line) = .init,
-            tail_cached: Cursor align(atomic.cache_line) = .init,
+        head: Cursor = .init,
+        tail: Cursor = .init,
 
-            err: atomic.Value(std.meta.Int(.unsigned, @bitSizeOf(Error))) = .init(0),
-
-            pub fn consume(self: *Queue, curr_offset: usize, tail: Cursor) void {
-                const new_tail: Cursor = .{
-                    .doc = tail.doc + curr_offset,
-                    .ixs = tail.ixs + 1,
-                };
-                self.tail.store(@bitCast(new_tail), .release);
-            }
-
-            pub fn commit(self: *Queue, status: IndexingResults, head: Cursor) void {
-                const new_head: Cursor = .{
-                    .doc = head.doc + chunk_len,
-                    .ixs = head.ixs + status.written,
-                };
-                self.head.store(@bitCast(new_head), .release);
-            }
-
-            pub fn canFetchIndex(self: *Queue, tail: Cursor) bool {
-                if (!isFetchableIndex(self.head_cached, tail)) {
-                    self.head_cached = @bitCast(self.head.load(.acquire));
-                    if (!isFetchableIndex(self.head_cached, tail)) {
-                        return false;
-                    }
-                }
-                return true;
-            }
-
-            pub fn canIndexChunk(self: *Queue, head: Cursor) bool {
-                if (!isIndexableChunk(head, self.tail_cached)) {
-                    self.tail_cached = @bitCast(self.tail.load(.acquire));
-                    if (!isIndexableChunk(head, self.tail_cached)) {
-                        return false;
-                    }
-                }
-                return true;
-            }
-
-            fn isFetchableIndex(head: Cursor, tail: Cursor) bool {
-                return head.ixs - tail.ixs > 1;
-            }
-
-            fn isIndexableChunk(head: Cursor, tail: Cursor) bool {
-                return head.doc - tail.doc < chunk_len * (options.slots - 1);
-            }
-        };
+        err: ?Error = null,
 
         const bogus_token = ' ';
         pub const init = std.mem.zeroInit(Self, .{});
@@ -125,10 +80,19 @@ pub fn Stream(comptime options: Options) type {
             {
                 self.mutex.lock();
                 defer self.mutex.unlock();
+                if (self.wakened.isSet()) self.wakened.reset();
+                self.can_index.post();
                 self.indexer = .init;
                 self.reader = reader;
-                self.queue = .init;
-                self.waken.set();
+                self.can_fetch.permits = 0;
+                self.can_index.permits = options.slots - 3;
+                self.break_head = 0;
+                self.break_tail = 0;
+                self.curr_break = 0;
+                self.head = .init;
+                self.tail = .init;
+                self.err = null;
+                self.wakened.set();
             }
             if (self.worker == null) {
                 self.document = try .init();
@@ -139,8 +103,9 @@ pub fn Stream(comptime options: Options) type {
 
         pub fn deinit(self: *Self) void {
             if (self.worker) |w| {
-                self.killed.store(true, .monotonic);
-                self.waken.set();
+                self.killed.store(true, .release);
+                self.can_index.post();
+                self.wakened.set();
                 w.join();
                 self.document.deinit();
                 self.indexes.deinit();
@@ -148,13 +113,11 @@ pub fn Stream(comptime options: Options) type {
         }
 
         pub inline fn position(self: Self) usize {
-            const tail: Cursor = @bitCast(self.queue.tail.load(.monotonic));
-            return tail.ixs;
+            return self.tail.ixs;
         }
 
         pub inline fn offset(self: Self) usize {
-            const tail: Cursor = @bitCast(self.queue.tail.load(.monotonic));
-            return tail.doc;
+            return self.tail.doc;
         }
 
         pub inline fn next(self: *Self) Error![*]const u8 {
@@ -171,42 +134,66 @@ pub fn Stream(comptime options: Options) type {
         }
 
         inline fn fetch(self: *Self, comptime and_consume: bool) Error![*]const u8 {
-            const tail: Cursor = @bitCast(self.queue.tail.load(.monotonic));
-            while (!self.queue.canFetchIndex(tail)) {
-                if (!self.waken.isSet()) break;
-                atomic.spinLoopHint();
+            const tail = self.tail;
+            if (tail.ixs == self.curr_break) {
+                @branchHint(.unlikely);
+                self.can_fetch.wait();
+                self.mutex.lock();
+                defer self.mutex.unlock();
+                if (self.err) |err| {
+                    self.wakened.reset();
+                    return err;
+                }
+                defer self.can_index.post();
+                const iter = self.break_tail & (options.slots - 1);
+                self.break_tail += 1;
+                self.curr_break = self.breakpoint[iter] - 1;
             }
-            const err = self.queue.err.load(.acquire);
-            if (err != 0) return @errorCast(@as(anyerror![*]const u8, @errorFromInt(err)));
 
-            const curr_offset = self.indexes.ptr()[self.indexes.mask(tail.ixs)];
-            const ptr = self.document.ptr()[self.document.mask(tail.doc)..][curr_offset..];
-            if (and_consume) self.queue.consume(curr_offset, tail);
+            const doc_mask = self.document.mask(tail.doc);
+            const ixs_mask = self.indexes.mask(tail.ixs);
+            const docu_prefix = self.document.ptr()[doc_mask..];
+            const curr_offset = self.indexes.ptr()[ixs_mask];
+            // @prefetch(self.indexes.ptr()[ixs_mask + atomic.cache_line * 2 ..], .{ .locality = 2 });
+            // @prefetch(self.document.ptr()[doc_mask + atomic.cache_line * 2 ..], .{ .locality = 2 });
+            const ptr = docu_prefix[curr_offset..];
+            if (and_consume) {
+                self.tail.doc += curr_offset;
+                self.tail.ixs += 1;
+            }
             return ptr;
         }
 
         fn startWorker(self: *Self) void {
             sleeping: while (true) {
-                self.waken.wait();
-                running: while (!self.killed.load(.monotonic)) {
-                    @branchHint(.likely);
+                self.wakened.wait();
+                while (true) {
+                    self.can_index.wait();
+                    self.mutex.lock();
+                    defer self.mutex.unlock();
 
-                    const head: Cursor = @bitCast(self.queue.head.load(.monotonic));
-                    if (!self.queue.canIndexChunk(head)) {
-                        if (!self.waken.isSet()) continue :sleeping;
-                        atomic.spinLoopHint();
-                        continue :running;
+                    if (self.killed.load(.acquire)) {
+                        @branchHint(.cold);
+                        return;
                     }
-                    const index_status = self.index(head) catch |err| {
+                    const index_status = self.index(self.head) catch |err| {
                         @branchHint(.unlikely);
-                        self.queue.err.store(@intFromError(err), .release);
-                        self.waken.reset();
+                        self.err = err;
+                        self.wakened.reset();
                         continue :sleeping;
                     };
+                    defer self.can_fetch.post();
 
-                    self.queue.commit(index_status, head);
+                    self.head.doc += chunk_len;
+                    self.head.ixs += index_status.written;
+
+                    self.breakpoint[self.break_head & (options.slots - 1)] = self.head.ixs;
+                    self.break_head += 1;
+
                     if (index_status.finished) {
-                        self.waken.reset();
+                        @branchHint(.unlikely);
+                        self.wakened.reset();
+                        self.can_fetch.post();
                         continue :sleeping;
                     }
                 }
@@ -264,7 +251,7 @@ pub fn Stream(comptime options: Options) type {
             };
         }
 
-        fn indexChunk(self: *Self, chunk: Aligned.slice, dest: [*]index_type) u32 {
+        inline fn indexChunk(self: *Self, chunk: Aligned.slice, dest: [*]index_type) u32 {
             var written: u32 = 0;
             for (0..chunk.len / types.block_len) |i| {
                 const block: Aligned.block = @alignCast(chunk[i * types.block_len ..][0..types.block_len]);

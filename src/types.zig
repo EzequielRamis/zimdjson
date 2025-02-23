@@ -52,7 +52,7 @@ pub const Number = union(NumberType) {
     }
 };
 
-pub const ElementType = enum {
+pub const ValueType = enum {
     null,
     bool,
     number,
@@ -154,7 +154,7 @@ pub fn BoundedArrayListUnmanaged(comptime T: type, comptime initial_max_capacity
             self.list.deinit(allocator);
         }
 
-        pub fn ensureUnusedCapacity(
+        pub inline fn ensureUnusedCapacity(
             self: *Self,
             allocator: Allocator,
             additional_count: usize,
@@ -163,7 +163,7 @@ pub fn BoundedArrayListUnmanaged(comptime T: type, comptime initial_max_capacity
             try self.list.ensureUnusedCapacity(allocator, additional_count);
         }
 
-        pub fn ensureTotalCapacity(
+        pub inline fn ensureTotalCapacity(
             self: *Self,
             allocator: Allocator,
             new_capacity: usize,
@@ -172,58 +172,16 @@ pub fn BoundedArrayListUnmanaged(comptime T: type, comptime initial_max_capacity
             try self.list.ensureTotalCapacity(allocator, new_capacity);
         }
 
-        pub fn appendAssumeCapacity(self: *Self, item: T) void {
+        pub inline fn appendAssumeCapacity(self: *Self, item: T) void {
             self.list.appendAssumeCapacity(item);
         }
 
-        pub fn appendSliceAssumeCapacity(self: *Self, _items: []const T) void {
+        pub inline fn appendSliceAssumeCapacity(self: *Self, _items: []const T) void {
             self.list.appendSliceAssumeCapacity(_items);
         }
 
         pub fn items(self: Self) []T {
             return self.list.items;
-        }
-    };
-}
-
-pub fn BoundedMultiArrayList(comptime T: type, comptime initial_max_capacity: usize) type {
-    const Error = ParseError || Allocator.Error;
-
-    return struct {
-        const Self = @This();
-
-        max_capacity: usize,
-        list: std.MultiArrayList(T),
-
-        pub const empty = Self{
-            .list = .empty,
-            .max_capacity = initial_max_capacity,
-        };
-
-        pub fn deinit(self: *Self, allocator: Allocator) void {
-            self.list.deinit(allocator);
-        }
-
-        pub fn ensureUnusedCapacity(
-            self: *Self,
-            allocator: Allocator,
-            additional_count: usize,
-        ) Error!void {
-            if (self.list.len + additional_count > self.max_capacity) return error.ExceededDepth;
-            try self.list.ensureTotalCapacity(allocator, self.list.len + additional_count);
-        }
-
-        pub fn ensureTotalCapacity(
-            self: *Self,
-            allocator: Allocator,
-            new_capacity: usize,
-        ) Error!void {
-            if (new_capacity > self.max_capacity) return error.ExceededDepth;
-            try self.list.ensureTotalCapacity(allocator, new_capacity);
-        }
-
-        pub fn appendAssumeCapacity(self: *Self, item: T) void {
-            self.list.appendAssumeCapacity(item);
         }
     };
 }

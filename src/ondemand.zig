@@ -1,4 +1,4 @@
-// TODO: agregar dev_checks
+// TODO: add dev_checks
 const std = @import("std");
 const common = @import("common.zig");
 const types = @import("types.zig");
@@ -22,10 +22,12 @@ pub fn ParserOptions(comptime Reader: ?type) type {
             pub const default: @This() = .{};
             chunk_length: u32 = default_stream_chunk_length,
         } = null,
+        schema_identifier: []const u8 = "schema",
     } else struct {
         pub const default: @This() = .{};
         aligned: bool = false,
         assume_padding: bool = false,
+        schema_identifier: []const u8 = "schema",
     };
 }
 
@@ -59,17 +61,21 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 .assume_padding = Reader != null or options.assume_padding,
             });
 
-        pub const Error = Tokens.Error || types.ParseError || Allocator.Error || error{ExpectedAllocator} || if (Reader) |reader| reader.Error else error{};
+        pub const Error = Tokens.Error || types.ParseError || Allocator.Error || error{
+            ExpectedAllocator,
+            IncorrectSchema,
+            UnknownField,
+            UnknownEnum,
+        } || if (Reader) |reader| reader.Error else error{};
         pub const max_capacity_bound = if (want_stream) std.math.maxInt(usize) else std.math.maxInt(u32);
         pub const default_max_depth = 1024;
 
         allocator: if (want_stream) ?Allocator else Allocator,
         document_buffer: if (need_document_buffer) std.ArrayListAligned(u8, types.Aligned(true).alignment) else void,
 
-        tokens: Tokens,
         strings: types.BoundedArrayListUnmanaged(u8, max_capacity_bound),
 
-        cursor: Cursor = undefined,
+        cursor: Cursor,
 
         max_capacity: usize,
         max_depth: usize,
@@ -77,9 +83,9 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
 
         pub fn init(allocator: if (want_stream) ?Allocator else Allocator) Self {
             return .{
+                .cursor = .init(allocator),
                 .allocator = allocator,
                 .document_buffer = if (need_document_buffer) .init(allocator) else {},
-                .tokens = if (want_stream) .init else .init(allocator),
                 .strings = .empty,
                 .max_capacity = max_capacity_bound,
                 .max_depth = default_max_depth,
@@ -88,7 +94,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
         }
 
         pub fn deinit(self: *Self) void {
-            self.tokens.deinit();
+            self.cursor.deinit();
             if (need_document_buffer) self.document_buffer.deinit();
             if (want_stream) {
                 if (self.allocator) |alloc| self.strings.deinit(alloc);
@@ -124,7 +130,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             }
 
             if (!want_stream) {
-                try self.tokens.ensureTotalCapacity(new_capacity);
+                try self.cursor.tokens.ensureTotalCapacity(new_capacity);
             }
 
             if (want_stream) {
@@ -149,24 +155,23 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 const len = self.document_buffer.items.len;
                 try self.document_buffer.appendNTimes(' ', types.Vector.bytes_len);
                 try self.ensureTotalCapacity(len);
-                try self.tokens.build(self.document_buffer.items[0..len]);
+                try self.cursor.tokens.build(self.document_buffer.items[0..len]);
             } else {
                 if (!want_stream) try self.ensureTotalCapacity(document.len);
-                try self.tokens.build(document);
+                try self.cursor.tokens.build(document);
             }
             self.strings.list.clearRetainingCapacity();
-            self.cursor = .{
-                .document = self,
-                .tokens = self.tokens,
-                .strings = self.strings.items().ptr,
-                .root = if (want_stream) 0 else @intFromPtr(self.tokens.indexes.items.ptr),
-            };
+            self.cursor.document = self;
+            self.cursor.strings = self.strings.items().ptr;
+            self.cursor.depth = 1;
+            self.cursor.root = if (want_stream) 0 else @intFromPtr(self.cursor.tokens.indexes.items.ptr);
+            self.cursor.err = null;
             return .{
                 .iter = .{
                     .cursor = &self.cursor,
                     .start_position = self.cursor.root,
                     .start_depth = 1,
-                    .start_char = try self.cursor.peekChar(),
+                    .start_char = self.cursor.peekChar(),
                 },
             };
         }
@@ -178,24 +183,23 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 if (len > self.capacity) return error.ExceededCapacity;
                 self.document_buffer.items.len = len;
                 try self.document_buffer.appendNTimes(' ', types.Vector.bytes_len);
-                try self.tokens.build(self.document_buffer.items[0..len]);
+                try self.cursor.tokens.build(self.document_buffer.items[0..len]);
             } else {
                 if (!want_stream) if (document.len > self.capacity) return error.ExceededCapacity;
-                try self.tokens.build(document);
+                try self.cursor.tokens.build(document);
             }
             self.strings.list.clearRetainingCapacity();
-            self.cursor = .{
-                .document = self,
-                .tokens = self.tokens,
-                .strings = self.strings.items().ptr,
-                .root = if (want_stream) 0 else @intFromPtr(self.tokens.indexes.items.ptr),
-            };
+            self.cursor.document = self;
+            self.cursor.strings = self.strings.items().ptr;
+            self.cursor.depth = 1;
+            self.cursor.root = if (want_stream) 0 else @intFromPtr(self.cursor.tokens.indexes.items.ptr);
+            self.cursor.err = null;
             return .{
                 .iter = .{
                     .cursor = &self.cursor,
                     .start_position = self.cursor.root,
                     .start_depth = 1,
-                    .start_char = try self.cursor.peekChar(),
+                    .start_char = self.cursor.peekChar(),
                 },
             };
         }
@@ -205,7 +209,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             return self.parseAssumeCapacity(document);
         }
 
-        pub const Element = union(types.ElementType) {
+        pub const AnyValue = union(types.ValueType) {
             null,
             bool: bool,
             number: Number,
@@ -215,28 +219,38 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
         };
 
         const Cursor = struct {
-            document: *Self,
+            document: *Self = undefined,
             tokens: Tokens,
-            strings: [*]u8,
+            strings: [*]u8 = undefined,
             depth: u32 = 1,
-            root: usize,
+            root: usize = undefined,
             err: ?Error = null,
+
+            pub fn init(allocator: if (want_stream) ?Allocator else Allocator) Cursor {
+                return .{
+                    .tokens = if (want_stream) .init else .init(allocator),
+                };
+            }
+
+            pub fn deinit(self: *Cursor) void {
+                self.tokens.deinit();
+            }
 
             const position_size = if (want_stream) 1 else @sizeOf(u32);
 
             inline fn position(self: Cursor) usize {
-                return if (want_stream) self.tokens.indexes.tail else @intFromPtr(self.tokens.token);
+                return self.tokens.position();
             }
 
             inline fn offset(self: Cursor) usize {
-                return if (want_stream) self.tokens.document.tail else self.tokens.token[0];
+                return self.tokens.offset();
             }
 
             inline fn next(self: *Cursor) Error![*]const u8 {
                 return self.tokens.next();
             }
 
-            inline fn peekChar(self: *Cursor) Error!u8 {
+            inline fn peekChar(self: *Cursor) u8 {
                 return self.tokens.peekChar();
             }
 
@@ -274,7 +288,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             self.depth -= 1;
                             if (self.depth <= parent_depth) return;
                         },
-                        '"' => if (try self.peekChar() == ':') {
+                        '"' => if (self.peekChar() == ':') {
                             try Logger.log(self.document, ptr, "key   ", self.depth);
                             _ = try self.next();
                         } else {
@@ -385,10 +399,10 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 return self.iter.isRootNull();
             }
 
-            pub inline fn asAny(self: Document) Error!Element {
+            pub inline fn asAny(self: Document) Error!AnyValue {
                 if (self.err) |err| return err;
                 self.iter.assertAtRoot();
-                return switch (try self.iter.cursor.peekChar()) {
+                return switch (self.iter.cursor.peekChar()) {
                     't', 'f' => .{ .bool = try self.asBool() },
                     'n' => .{ .null = brk: {
                         _ = try self.isNull();
@@ -408,9 +422,9 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
-            pub inline fn getType(self: Document) Error!types.ElementType {
+            pub inline fn getType(self: Document) Error!types.ValueType {
                 if (self.err) |err| return err;
-                return switch (try self.iter.cursor.peekChar()) {
+                return switch (self.iter.cursor.peekChar()) {
                     't', 'f' => .bool,
                     'n' => .null,
                     '"' => .string,
@@ -421,7 +435,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
-            pub fn as(self: Document, comptime T: type) Error!T {
+            pub inline fn as(self: Document, comptime T: type) Error!T {
                 const info = @typeInfo(T);
                 switch (info) {
                     .int => {
@@ -439,7 +453,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         return child;
                     },
                     else => {
-                        if (T == []const u8) return self.asString() else @compileError(std.fmt.comptimePrint("it is not possible to automagically cast a JSON value to type {s}", .{@typeName(T)}));
+                        if (T == []const u8) return self.asString() else @compileError(std.fmt.comptimePrint("it is not possible to automatically cast a JSON value to type {s}", .{@typeName(T)}));
                     },
                 }
             }
@@ -661,7 +675,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 }
 
                 inline fn isAtKey(self: Iterator) Error!bool {
-                    return self.start_depth == self.cursor.depth and try self.cursor.peekChar() == '"';
+                    return self.start_depth == self.cursor.depth and self.cursor.peekChar() == '"';
                 }
 
                 inline fn isAtFirstValue(self: Iterator) bool {
@@ -679,7 +693,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 }
 
                 inline fn isAtEnd(self: Iterator) Error!bool {
-                    return common.tables.is_whitespace[try self.cursor.peekChar()];
+                    return common.tables.is_whitespace[self.cursor.peekChar()];
                 }
 
                 inline fn hasNextField(self: Iterator) Error!bool {
@@ -722,7 +736,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
 
                 inline fn startedObject(self: Iterator) Error!bool {
                     self.assertAtContainerStart();
-                    if (try self.cursor.peekChar() == '}') {
+                    if (self.cursor.peekChar() == '}') {
                         const ptr = try self.cursor.next();
                         self.endContainer();
                         try Logger.log(self.cursor.document, ptr, "object", self.start_depth);
@@ -733,7 +747,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
 
                 inline fn startedRootObject(self: Iterator) Error!bool {
                     self.assertAtContainerStart();
-                    if (try self.cursor.peekChar() == '}') {
+                    if (self.cursor.peekChar() == '}') {
                         const ptr = try self.cursor.next();
                         self.endContainer();
                         try Logger.log(self.cursor.document, ptr, "object", self.start_depth);
@@ -757,7 +771,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
 
                 inline fn startedArray(self: Iterator) Error!bool {
                     self.assertAtContainerStart();
-                    if (try self.cursor.peekChar() == ']') {
+                    if (self.cursor.peekChar() == ']') {
                         const ptr = try self.cursor.next();
                         self.endContainer();
                         try Logger.log(self.cursor.document, ptr, "array ", self.start_depth);
@@ -768,7 +782,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
 
                 inline fn startedRootArray(self: Iterator) Error!bool {
                     self.assertAtContainerStart();
-                    if (try self.cursor.peekChar() == ']') {
+                    if (self.cursor.peekChar() == ']') {
                         const ptr = try self.cursor.next();
                         self.endContainer();
                         try Logger.log(self.cursor.document, ptr, "array ", self.start_depth);
@@ -781,7 +795,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 inline fn startContainer(self: Iterator, start_char: u8) Error!Iterator {
                     if (self.isAtStart()) {
                         self.assertAtStart();
-                        if (try self.cursor.peekChar() != start_char) return error.IncorrectType;
+                        if (self.cursor.peekChar() != start_char) return error.IncorrectType;
                         const iter: Iterator = .{
                             .cursor = self.cursor,
                             .start_position = self.cursor.position(),
@@ -837,26 +851,58 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         .cursor = self.cursor,
                         .start_position = self.cursor.position(),
                         .start_depth = self.start_depth + 1,
-                        .start_char = try self.cursor.peekChar(),
+                        .start_char = self.cursor.peekChar(),
                     };
                 }
 
-                inline fn findField(self: Iterator, key: []const u8) Error!bool {
+                inline fn findField(self: Iterator, key: []const u8, comptime unordered: bool) Error!bool {
+                    // TODO: important dev checks
+                    const at_first = self.isAtFirstField();
                     var has_value = false;
-                    if (self.isAtFirstField()) {
+                    var search_start = self.cursor.position();
+                    if (at_first) {
                         has_value = true;
-                    } else if (!self.isOpen()) {
-                        return false;
-                    } else {
+                    } else if (self.isOpen()) {
                         try self.skipChild();
                         has_value = try self.hasNextField();
+                    } else {
+                        try self.skipChild();
+                        if (unordered) search_start = self.cursor.position();
+                        has_value = try self.hasNextField();
                     }
+
                     while (has_value) : (has_value = try self.hasNextField()) {
                         const field = try Object.Field.start(self);
                         if (try field.key.eqlRaw(key)) return true;
                         try self.skipChild();
                     }
-                    return false;
+
+                    if (!unordered or at_first) return false;
+                    has_value = try self.resetObject();
+                    while (true) : (has_value = try self.hasNextField()) {
+                        assert(has_value);
+                        const field = try Object.Field.start(self);
+                        if (try field.key.eqlRaw(key)) return true;
+                        try self.skipChild();
+                        if (self.cursor.position() == search_start) return false;
+                    }
+
+                    unreachable;
+                }
+
+                inline fn resetObject(self: Iterator) Error!bool {
+                    try self.resetContainer();
+                    return self.startedObject();
+                }
+
+                inline fn resetArray(self: Iterator) Error!bool {
+                    try self.resetContainer();
+                    return self.startedArray();
+                }
+
+                inline fn resetContainer(self: Iterator) Error!void {
+                    try self.cursor.tokens.revert(self.start_position + 1);
+                    self.cursor.depth = self.start_depth;
                 }
 
                 inline fn assertAtStart(self: Iterator) void {
@@ -951,9 +997,9 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 return self.iter.isNull();
             }
 
-            pub inline fn asAny(self: Value) Error!Element {
+            pub inline fn asAny(self: Value) Error!AnyValue {
                 if (self.err) |err| return err;
-                return switch (try self.iter.cursor.peekChar()) {
+                return switch (self.iter.cursor.peekChar()) {
                     't', 'f' => .{ .bool = try self.asBool() },
                     'n' => .{ .null = brk: {
                         _ = try self.isNull();
@@ -969,9 +1015,9 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
-            pub inline fn getType(self: Value) Error!types.ElementType {
+            pub inline fn getType(self: Value) Error!types.ValueType {
                 if (self.err) |err| return err;
-                return switch (try self.iter.cursor.peekChar()) {
+                return switch (self.iter.cursor.peekChar()) {
                     't', 'f' => .bool,
                     'n' => .null,
                     '"' => .string,
@@ -982,27 +1028,58 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
-            pub fn as(self: Value, comptime T: type) Error!T {
+            pub inline fn as(self: Value, comptime T: type) Error!T {
+                var dest: T = undefined;
+                try self.asRef(T, &dest);
+                return dest;
+            }
+
+            pub inline fn asAdvanced(self: Value, comptime T: type, comptime S: ?schema.Auto(T), allocator: ?Allocator) Error!T {
+                var dest: T = undefined;
+                try self.asRefAdvanced(T, S, allocator, &dest);
+                return dest;
+            }
+
+            pub inline fn asRef(self: Value, comptime T: type, dest: *T) Error!void {
+                return self.asRefAdvanced(T, null, null, dest);
+            }
+
+            pub inline fn asRefAdvanced(self: Value, comptime T: type, comptime S: ?schema.Auto(T), allocator: ?Allocator, dest: *T) Error!void {
                 const info = @typeInfo(T);
-                switch (info) {
+                dest.* = brk: switch (info) {
                     .int => {
                         const n = try self.asNumber();
-                        return switch (n) {
-                            .float => error.IncorrectType,
-                            inline else => n.cast(T) orelse error.NumberOutOfRange,
+                        break :brk switch (n) {
+                            .float => return error.IncorrectType,
+                            inline else => break :brk n.cast(T) orelse return error.NumberOutOfRange,
                         };
                     },
-                    .float => return @floatCast(try self.asFloat()),
-                    .bool => return self.asBool(),
+                    .float => break :brk @floatCast(try self.asFloat()),
+                    .bool => break :brk try self.asBool(),
                     .optional => |opt| {
-                        if (try self.isNull()) return null;
+                        if (try self.isNull()) break :brk null;
                         const child = try self.as(opt.child);
-                        return child;
+                        break :brk child;
+                    },
+                    .null => {
+                        if (try self.isNull()) break :brk null;
+                        return error.IncorrectType;
+                    },
+                    .@"struct" => {
+                        if (T == String) break :brk self.asString();
+                        return schema.parseStruct(T, S, allocator, self, dest);
+                    },
+                    // .@"union" => {
+                    //     if (T == Number) break :brk try self.asNumber();
+                    //     return schema.parseUnion(T, S, allocator, self, dest);
+                    // },
+                    .@"enum" => {
+                        return schema.parseEnum(T, S, allocator, self, dest);
                     },
                     else => {
-                        if (T == []const u8) return self.asString() else @compileError(std.fmt.comptimePrint("it is not possible to automagically cast a JSON value to type {s}", .{@typeName(T)}));
+                        if (T == []const u8) break :brk try self.asString().get() else @compileError(std.fmt.comptimePrint("it is not possible to automatically cast a JSON value to type {s}", .{@typeName(T)}));
                     },
-                }
+                };
             }
 
             pub inline fn skip(self: Value) Error!void {
@@ -1012,20 +1089,24 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
 
             pub inline fn at(self: Value, ptr: anytype) Value {
                 @setEvalBranchQuota(2000000);
-                if (self.err) |_| return self;
+                if (common.isString(@TypeOf(ptr))) {
+                    return self.atKey(ptr);
+                } else if (common.isIndex(@TypeOf(ptr))) {
+                    return self.atIndex(ptr);
+                }
+                @compileError(common.error_messages.at_type);
+            }
 
-                const query = brk: {
-                    if (common.isString(@TypeOf(ptr))) {
-                        const obj = self.startOrResumeObject() catch |err| return .{ .iter = self.iter, .err = err };
-                        break :brk obj.at(ptr);
-                    }
-                    if (common.isIndex(@TypeOf(ptr))) {
-                        const arr = self.startOrResumeArray() catch |err| return .{ .iter = self.iter, .err = err };
-                        break :brk arr.at(ptr);
-                    }
-                    @compileError(common.error_messages.at_type);
-                };
-                return query;
+            inline fn atKey(self: Value, key: []const u8) Value {
+                if (self.err) |_| return self;
+                const obj = self.startOrResumeObject() catch |err| return .{ .iter = self.iter, .err = err };
+                return obj.at(key);
+            }
+
+            inline fn atIndex(self: Value, index: usize) Value {
+                if (self.err) |_| return self;
+                const arr = self.startOrResumeArray() catch |err| return .{ .iter = self.iter, .err = err };
+                return arr.at(index);
             }
 
             inline fn startOrResumeObject(self: Value) Error!Object {
@@ -1123,6 +1204,10 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             pub inline fn skip(self: Array) Error!void {
                 return self.iter.cursor.skip(self.iter.start_depth - 1, '[');
             }
+
+            pub inline fn reset(self: Array) Error!void {
+                _ = try self.iter.resetArray();
+            }
         };
 
         const Object = struct {
@@ -1187,8 +1272,16 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             }
 
             pub inline fn at(self: Object, key: []const u8) Value {
+                return self.atRaw(key, false);
+            }
+
+            pub inline fn atUnordered(self: Object, key: []const u8) Value {
+                return self.atRaw(key, true);
+            }
+
+            inline fn atRaw(self: Object, key: []const u8, comptime unordered: bool) Value {
                 @setEvalBranchQuota(2000000);
-                return if (self.iter.findField(key) catch |err| return .{
+                return if (self.iter.findField(key, unordered) catch |err| return .{
                     .iter = self.iter,
                     .err = err,
                 })
@@ -1213,6 +1306,201 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 }
                 return self.iter.cursor.skip(self.iter.start_depth - 1, '{');
             }
+
+            pub inline fn reset(self: Object) Error!void {
+                _ = try self.iter.resetObject();
+            }
+        };
+
+        pub const schema = struct {
+            const inner = @import("std");
+
+            pub const std = struct {
+                pub fn ArrayList(comptime T: type) type {
+                    return struct {
+                        pub fn parse(allocator: ?Allocator, value: Value, dest: *inner.ArrayList(T)) Error!void {
+                            if (allocator) |alloc| {
+                                dest.* = .init(alloc);
+                                const arr = try value.asArray();
+                                while (try arr.next()) |child| {
+                                    const item = try child.as(T);
+                                    try dest.append(item);
+                                }
+                            } else {
+                                return error.ExpectedAllocator;
+                            }
+                        }
+                    };
+                }
+                pub fn ArrayListUnmanaged(comptime T: type) type {
+                    return struct {
+                        pub fn parse(allocator: ?Allocator, value: Value, dest: *inner.ArrayListUnmanaged(T)) Error!void {
+                            if (allocator) |alloc| {
+                                dest.* = .empty;
+                                const arr = try value.asArray();
+                                while (try arr.next()) |child| {
+                                    const item = try child.as(T);
+                                    try dest.append(alloc, item);
+                                }
+                            } else {
+                                return error.ExpectedAllocator;
+                            }
+                        }
+                    };
+                }
+            };
+
+            pub fn Auto(comptime T: type) type {
+                return switch (@typeInfo(T)) {
+                    .@"struct" => schema.Struct(T),
+                    .@"enum" => schema.Enum(T),
+                    else => struct {
+                        parse_with: fn (allocator: ?Allocator, value: Value, dest: *T) Error!void,
+                    },
+                };
+            }
+
+            pub fn Struct(comptime T: type) type {
+                return struct {
+                    assume_ordering: bool = false,
+                    ignore_unknown_fields: bool = true,
+                    duplicate_field_behavior: schema_utils.DuplicateField = .@"error", // TODO
+
+                    parse_with: ?fn (allocator: ?Allocator, value: Value, dest: *T) Error!void = null,
+                    rename_all: schema_utils.FieldsRenaming = .snake_case,
+                    fields: StructFields(T) = .{},
+                };
+            }
+
+            pub fn StructFields(comptime T: type) type {
+                assert(@typeInfo(T) == .@"struct");
+                const fields = inner.meta.fields(T);
+                comptime var schema_fields: [fields.len]inner.builtin.Type.StructField = undefined;
+                for (0..fields.len) |i| {
+                    const field = fields[i];
+                    const schema_field = StructField(field.type);
+                    schema_fields[i] = .{
+                        .type = schema_field,
+                        .name = field.name,
+                        .default_value_ptr = &schema_field{},
+                        .is_comptime = false,
+                        .alignment = @alignOf(schema_field),
+                    };
+                }
+                const sf = schema_fields;
+                return @Type(.{
+                    .@"struct" = .{
+                        .fields = &sf,
+                        .layout = .auto,
+                        .decls = &.{},
+                        .is_tuple = false,
+                    },
+                });
+            }
+
+            pub fn StructField(comptime T: type) type {
+                return struct {
+                    alias: ?[]const u8 = null,
+                    skip: bool = false,
+                    schema: ?schema.Auto(T) = null,
+                };
+            }
+
+            fn parseStruct(comptime T: type, comptime S: ?schema.Struct(T), allocator: ?Allocator, value: Value, dest: *T) Error!void {
+                const sch: schema.Struct(T) =
+                    if (S) |s| s else if (@hasDecl(T, options.schema_identifier)) @field(T, options.schema_identifier) else .{};
+                const fields = inner.meta.fields(@TypeOf(sch.fields));
+                if (sch.parse_with) |customParseFn| {
+                    try customParseFn(allocator, value, dest);
+                    return;
+                }
+                const object = try value.asObject();
+                if (sch.assume_ordering) {
+                    inline for (fields) |field| {
+                        const field_opts = @field(sch.fields, field.name);
+                        if (field_opts.skip) continue;
+                        const renamed_key: []const u8 = if (field_opts.alias) |alias| alias else comptime schema_utils.renameField(sch.rename_all, field.name);
+                        const field_value = object.at(renamed_key);
+                        const field_ty = @FieldType(T, field.name);
+                        try AutoParser(field_ty, field_opts.schema).parse(allocator, field_value, &@field(dest, field.name));
+                    }
+                } else {
+                    comptime var dispatches_mut: [fields.len]struct { []const u8, Dispatch } = undefined;
+                    inline for (fields, 0..) |field, i| {
+                        const field_opts = @field(sch.fields, field.name);
+                        const field_ty = @FieldType(T, field.name);
+                        const renamed_key: []const u8 = if (field_opts.alias) |alias| alias else comptime schema_utils.renameField(sch.rename_all, field.name);
+                        dispatches_mut[i] = .{ renamed_key, .{
+                            .offset = @offsetOf(T, field.name),
+                            .parse_fn = if (field_opts.skip) skip else AutoParser(field_ty, field_opts.schema).parseTypeErased,
+                        } };
+                    }
+                    const dispatches = dispatches_mut;
+                    const struct_map = comptime schema_utils.Map(Dispatch, &dispatches);
+                    while (try object.next()) |field| {
+                        const key = try field.key.get();
+                        const dispatch = struct_map.get(key) orelse if (sch.ignore_unknown_fields) continue else return error.UnknownField;
+                        try dispatch.parse_fn(allocator, field.value, @ptrFromInt(@intFromPtr(dest) + dispatch.offset));
+                    }
+                }
+            }
+
+            pub fn Enum(comptime T: type) type {
+                return struct {
+                    parse_with: ?fn (allocator: ?Allocator, value: Value, dest: *T) Error!void = null,
+                    rename_all: schema_utils.FieldsRenaming = .snake_case,
+                    aliases: schema_utils.EnumFields(T) = .{},
+                };
+            }
+
+            fn parseEnum(comptime T: type, comptime S: ?schema.Enum(T), allocator: ?Allocator, value: Value, dest: *T) Error!void {
+                const sch: schema.Enum(T) =
+                    if (S) |s| s else if (@hasDecl(T, options.schema_identifier)) @field(T, options.schema_identifier) else .{};
+                if (sch.parse_with) |customParseFn| {
+                    try customParseFn(allocator, value, dest);
+                    return;
+                }
+                const fields = inner.meta.fields(T);
+                comptime var dispatches_mut: [fields.len]struct { []const u8, T } = undefined;
+                inline for (fields, 0..) |field, i| {
+                    const field_rename = @field(sch.aliases, field.name);
+                    const renamed_key: []const u8 = if (field_rename) |rename| rename else comptime schema_utils.renameField(sch.rename_all, field.name);
+                    dispatches_mut[i] = .{ renamed_key, @field(T, field.name) };
+                }
+                const dispatches = dispatches_mut;
+                const enum_map = comptime schema_utils.Map(T, &dispatches);
+                const str = try value.asString().get();
+                const enum_literal = enum_map.get(str) orelse return error.UnknownEnum;
+                dest.* = enum_literal;
+            }
+
+            fn skip(_: ?Allocator, value: Value, _: *anyopaque) Error!void {
+                return value.skip();
+            }
+
+            const Dispatch = struct {
+                offset: usize,
+                parse_fn: *const fn (?Allocator, Value, *anyopaque) Error!void,
+            };
+
+            fn AutoParser(comptime T: type, comptime S: ?schema.Auto(T)) type {
+                return struct {
+                    pub fn parse(allocator: ?Allocator, value: Value, dest: *T) Error!void {
+                        if (S) |s| {
+                            if (@typeInfo(T) == .@"struct") return parseStruct(T, S, allocator, value, dest);
+                            if (@typeInfo(T) == .@"enum") return parseEnum(T, S, allocator, value, dest);
+                            return s.parse_with(allocator, value, dest);
+                        } else {
+                            try value.asRef(T, dest);
+                        }
+                    }
+
+                    pub fn parseTypeErased(allocator: ?Allocator, value: Value, dest: *anyopaque) Error!void {
+                        const typed_dest: *T = @alignCast(@ptrCast(dest));
+                        return @This().parse(allocator, value, typed_dest);
+                    }
+                };
+            }
         };
 
         const Logger = struct {
@@ -1233,7 +1521,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     label,
                     buffer,
                     depth,
-                    try parser.cursor.peekChar(),
+                    parser.cursor.peekChar(),
                 });
             }
             fn log(parser: *Self, ptr: [*]const u8, label: []const u8, depth: u32) !void {
@@ -1248,7 +1536,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     label,
                     buffer,
                     depth,
-                    try parser.cursor.peekChar(),
+                    parser.cursor.peekChar(),
                 });
             }
             fn logEnd(parser: *Self, ptr: [*]const u8, label: []const u8, depth: u32) !void {
@@ -1263,9 +1551,90 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     label,
                     buffer,
                     depth,
-                    try parser.cursor.peekChar(),
+                    parser.cursor.peekChar(),
                 });
             }
         };
     };
 }
+
+pub const schema_utils = struct {
+    pub const Map = @import("schema_map.zig").SchemaMap;
+
+    const FieldsRenaming = enum {
+        lowercase,
+        UPPERCASE,
+        PascalCase,
+        camelCase,
+        snake_case,
+        SCREAMING_SNAKE_CASE,
+        @"kebab-case",
+        @"SCREAMING-KEBAB-CASE",
+    };
+
+    const DuplicateField = enum {
+        use_first,
+        @"error",
+        use_last,
+    };
+
+    pub fn renameField(case: FieldsRenaming, name: []const u8) []const u8 {
+        const name_copy = std.fmt.comptimePrint("{s}", .{name});
+        var output = name_copy.*;
+        var output_len = name.len;
+        switch (case) {
+            .lowercase, .snake_case => {},
+            .UPPERCASE, .SCREAMING_SNAKE_CASE => _ = std.ascii.upperString(&output, name),
+            .@"kebab-case" => std.mem.replaceScalar(u8, &output, '_', '-'),
+            .@"SCREAMING-KEBAB-CASE" => {
+                _ = std.ascii.upperString(&output, name);
+                std.mem.replaceScalar(u8, &output, '_', '-');
+            },
+            .camelCase, .PascalCase => {
+                var capitalize = case == .PascalCase;
+                var i: usize = 0;
+                for (name) |c| {
+                    if (c == '_') {
+                        capitalize = true;
+                    } else if (capitalize) {
+                        output[i] = std.ascii.toUpper(c);
+                        i += 1;
+                        capitalize = false;
+                    } else {
+                        output[i] = c;
+                        i += 1;
+                    }
+                }
+                output_len = i;
+            },
+        }
+        const output_copy = output;
+        return output_copy[0..output_len];
+    }
+
+    pub fn EnumFields(comptime T: type) type {
+        assert(@typeInfo(T) == .@"enum");
+        const fields = std.meta.fields(T);
+        comptime var schema_fields: [fields.len]std.builtin.Type.StructField = undefined;
+        for (0..fields.len) |i| {
+            const field = fields[i];
+            const schema_field = ?[]const u8;
+            schema_fields[i] = .{
+                .type = schema_field,
+                .name = field.name,
+                .default_value_ptr = &@as(schema_field, null),
+                .is_comptime = false,
+                .alignment = @alignOf(schema_field),
+            };
+        }
+        const sf = schema_fields;
+        return @Type(.{
+            .@"struct" = .{
+                .fields = &sf,
+                .layout = .auto,
+                .decls = &.{},
+                .is_tuple = false,
+            },
+        });
+    }
+};

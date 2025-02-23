@@ -13,16 +13,16 @@
           inherit system;
           overlays = [
             (final: prev: rec {
-              zig = inputs.zig.packages.${system}."master";
-              zls = inputs.zls.packages.${system}.default;
+              zig-master = inputs.zig.packages.${system}."master";
+              zls-master = inputs.zls.packages.${system}.default;
             })
           ];
         };
       in {
         devShell = pkgs.mkShell {
           buildInputs = with pkgs; [
-            zig
-            zls
+            zig-master
+            zls-master
             tracy-glfw
             ccls
             (python3.withPackages (p: with p; [ seaborn python-lsp-server ]))

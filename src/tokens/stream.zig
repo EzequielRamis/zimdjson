@@ -35,78 +35,47 @@ pub fn Stream(comptime options: Options) type {
             options.Reader.Error ||
             indexer.Error ||
             ring_buffer.Error ||
-            error{BatchOverflow} ||
-            std.Thread.SpawnError;
+            error{BatchOverflow};
 
-        pub const Cursor = extern struct {
-            pub const init = Cursor{};
+        const Cursor = struct {
             doc: usize = 0,
             ixs: usize = 0,
         };
 
-        const IndexingResults = struct {
-            written: usize,
-            finished: bool,
-        };
-
-        reader: options.Reader,
+        reader: options.Reader = undefined,
         document: RingBuffer(u8, chunk_len * options.slots) = undefined,
         indexes: RingBuffer(index_type, chunk_len * options.slots) = undefined,
         indexer: Indexer = .init,
 
-        worker: ?std.Thread = null,
-        mutex: std.Thread.Mutex = .{},
+        head: Cursor align(atomic.cache_line) = .{},
+        tail: Cursor align(atomic.cache_line) = .{},
 
-        wakened: std.Thread.ResetEvent = .{},
-        killed: atomic.Value(bool) = .init(false),
-
-        can_fetch: std.Thread.Semaphore = .{},
-        can_index: std.Thread.Semaphore = .{ .permits = options.slots - 3 },
-
-        breakpoint: [options.slots]usize align(atomic.cache_line) = @splat(0),
-        break_head: usize = 0,
-        break_tail: usize = 0,
-        curr_break: usize = 0,
-
-        head: Cursor = .init,
-        tail: Cursor = .init,
-
-        err: ?Error = null,
+        built: bool = false,
 
         const bogus_token = ' ';
         pub const init = std.mem.zeroInit(Self, .{});
 
         pub fn build(self: *Self, reader: options.Reader) Error!void {
-            {
-                self.mutex.lock();
-                defer self.mutex.unlock();
-                if (self.wakened.isSet()) self.wakened.reset();
-                self.can_index.post();
-                self.indexer = .init;
-                self.reader = reader;
-                self.can_fetch.permits = 0;
-                self.can_index.permits = options.slots - 3;
-                self.break_head = 0;
-                self.break_tail = 0;
-                self.curr_break = 0;
-                self.head = .init;
-                self.tail = .init;
-                self.err = null;
-                self.wakened.set();
-            }
-            if (self.worker == null) {
+            if (self.built) {
+                const document = self.document;
+                const indexes = self.indexes;
+                self.* = .{};
+                self.document = document;
+                self.indexes = indexes;
+            } else {
+                self.* = .{};
                 self.document = try .init();
                 self.indexes = try .init();
-                self.worker = try std.Thread.spawn(.{}, startWorker, .{self});
+                self.built = true;
             }
+            self.reader = reader;
+            const written = try self.index(self.head);
+            self.head.doc += chunk_len;
+            self.head.ixs += written;
         }
 
         pub fn deinit(self: *Self) void {
-            if (self.worker) |w| {
-                self.killed.store(true, .release);
-                self.can_index.post();
-                self.wakened.set();
-                w.join();
+            if (self.built) {
                 self.document.deinit();
                 self.indexes.deinit();
             }
@@ -124,84 +93,45 @@ pub fn Stream(comptime options: Options) type {
             return self.fetch(true);
         }
 
-        pub inline fn peekChar(self: *Self) Error!u8 {
-            const ptr = try self.peek();
-            return ptr[0];
+        pub inline fn peekChar(self: *Self) u8 {
+            const tail = self.tail;
+            const doc_prefix = self.document.ptr()[self.document.mask(tail.doc)..];
+            const ixs_offset = self.indexes.ptr()[self.indexes.mask(tail.ixs)];
+            return doc_prefix[ixs_offset];
         }
 
         pub inline fn peek(self: *Self) Error![*]const u8 {
             return self.fetch(false);
         }
 
+        pub inline fn revert(self: *Self, pos: usize) Error!void {
+            if (self.head.ixs - pos > chunk_len) return error.BatchOverflow;
+            var revert_offset: usize = 0;
+            for (pos..self.tail.ixs) |i| revert_offset += self.indexes.ptr()[self.indexes.mask(i)];
+            self.tail.ixs = pos;
+            self.tail.doc -= revert_offset;
+        }
+
         inline fn fetch(self: *Self, comptime and_consume: bool) Error![*]const u8 {
             const tail = self.tail;
-            if (tail.ixs == self.curr_break) {
+            if (self.head.ixs - tail.ixs == 1) {
                 @branchHint(.unlikely);
-                self.can_fetch.wait();
-                self.mutex.lock();
-                defer self.mutex.unlock();
-                if (self.err) |err| {
-                    self.wakened.reset();
-                    return err;
-                }
-                defer self.can_index.post();
-                const iter = self.break_tail & (options.slots - 1);
-                self.break_tail += 1;
-                self.curr_break = self.breakpoint[iter] - 1;
+                const written = try self.index(self.head);
+                self.head.doc += chunk_len;
+                self.head.ixs += written;
             }
 
-            const doc_mask = self.document.mask(tail.doc);
-            const ixs_mask = self.indexes.mask(tail.ixs);
-            const docu_prefix = self.document.ptr()[doc_mask..];
-            const curr_offset = self.indexes.ptr()[ixs_mask];
-            // @prefetch(self.indexes.ptr()[ixs_mask + atomic.cache_line * 2 ..], .{ .locality = 2 });
-            // @prefetch(self.document.ptr()[doc_mask + atomic.cache_line * 2 ..], .{ .locality = 2 });
-            const ptr = docu_prefix[curr_offset..];
+            const doc_prefix = self.document.ptr()[self.document.mask(tail.doc)..];
+            const ixs_offset = self.indexes.ptr()[self.indexes.mask(tail.ixs)];
+            const ptr = doc_prefix[ixs_offset..];
             if (and_consume) {
-                self.tail.doc += curr_offset;
+                self.tail.doc += ixs_offset;
                 self.tail.ixs += 1;
             }
             return ptr;
         }
 
-        fn startWorker(self: *Self) void {
-            sleeping: while (true) {
-                self.wakened.wait();
-                while (true) {
-                    self.can_index.wait();
-                    self.mutex.lock();
-                    defer self.mutex.unlock();
-
-                    if (self.killed.load(.acquire)) {
-                        @branchHint(.cold);
-                        return;
-                    }
-                    const index_status = self.index(self.head) catch |err| {
-                        @branchHint(.unlikely);
-                        self.err = err;
-                        self.wakened.reset();
-                        continue :sleeping;
-                    };
-                    defer self.can_fetch.post();
-
-                    self.head.doc += chunk_len;
-                    self.head.ixs += index_status.written;
-
-                    self.breakpoint[self.break_head & (options.slots - 1)] = self.head.ixs;
-                    self.break_head += 1;
-
-                    if (index_status.finished) {
-                        @branchHint(.unlikely);
-                        self.wakened.reset();
-                        self.can_fetch.post();
-                        continue :sleeping;
-                    }
-                }
-                return;
-            }
-        }
-
-        inline fn index(self: *Self, head: Cursor) Error!IndexingResults {
+        fn index(self: *Self, head: Cursor) Error!usize {
             const buf = self.document.ptr()[self.document.mask(head.doc)..][0..chunk_len];
             const read: u32 = @intCast(try self.reader.readAll(buf));
 
@@ -230,10 +160,7 @@ pub fn Stream(comptime options: Options) type {
                     buf[read + bogus_indexed_tokens.len - 1] = bogus_token;
                     buf[read + bogus_indexed_tokens.len - 2] = bogus_token;
 
-                    return .{
-                        .written = written,
-                        .finished = true,
-                    };
+                    return written;
                 }
             }
 
@@ -245,10 +172,7 @@ pub fn Stream(comptime options: Options) type {
             if (first_offset > chunk_len) return error.BatchOverflow;
             try self.indexer.validate();
 
-            return .{
-                .written = written,
-                .finished = false,
-            };
+            return written;
         }
 
         inline fn indexChunk(self: *Self, chunk: Aligned.slice, dest: [*]index_type) u32 {

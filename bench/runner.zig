@@ -198,14 +198,14 @@ pub fn main() !void {
         {
             if (tty_conf != .no_color) try bar.render();
 
-            std.mem.doNotOptimizeAway(command.events.prerun());
+            try @call(.never_inline, command.events.prerun, .{});
 
             _ = std.os.linux.ioctl(perf_fds[0], PERF.EVENT_IOC.RESET, PERF.IOC_FLAG_GROUP);
             _ = std.os.linux.ioctl(perf_fds[0], PERF.EVENT_IOC.ENABLE, PERF.IOC_FLAG_GROUP);
 
             const start = timer.read();
 
-            std.mem.doNotOptimizeAway(command.events.run());
+            try @call(.never_inline, command.events.run, .{});
 
             const end = timer.read();
 
@@ -213,7 +213,7 @@ pub fn main() !void {
 
             const mem_allocated = command.events.memusage() -| file_size;
 
-            std.mem.doNotOptimizeAway(command.events.postrun());
+            try @call(.never_inline, command.events.postrun, .{});
 
             const format = readPerfFd(perf_fds[0]);
 

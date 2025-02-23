@@ -111,7 +111,7 @@ pub fn Iterator(comptime options: Options) type {
             return self.peek();
         }
 
-        pub inline fn peekChar(self: Self) !u8 { // same here
+        pub inline fn peekChar(self: Self) u8 {
             return (self.peek() catch unreachable)[0];
         }
 
@@ -131,8 +131,8 @@ pub fn Iterator(comptime options: Options) type {
             }
         }
 
-        pub inline fn revert(self: *Self) void {
-            self.token -= 1;
+        pub inline fn revert(self: *Self, pos: usize) !void {
+            self.token = @ptrFromInt(pos);
         }
     };
 }

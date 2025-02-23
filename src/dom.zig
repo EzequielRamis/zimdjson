@@ -71,8 +71,8 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
         }
 
         pub fn deinit(self: *Self) void {
-            if (need_document_buffer) self.document_buffer.deinit();
             self.tape.deinit();
+            if (need_document_buffer) self.document_buffer.deinit();
         }
 
         pub fn setMaximumCapacity(self: *Self, new_capacity: usize) Error!void {
@@ -110,7 +110,6 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 try self.tape.tokens.ensureTotalCapacity(new_capacity);
             }
 
-            try self.tape.stack.ensureTotalCapacity(self.tape.allocator, self.max_depth);
             try self.tape.strings.ensureTotalCapacity(self.tape.allocator, new_capacity + types.Vector.bytes_len);
 
             self.capacity = new_capacity;
@@ -162,7 +161,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             return self.parseAssumeCapacity(document);
         }
 
-        pub const Element = union(types.ElementType) {
+        pub const AnyValue = union(types.ValueType) {
             null,
             bool: bool,
             number: Number,
@@ -200,10 +199,10 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 const w = self.tape.get(self.index);
                 return switch (w.tag) {
                     .string => brk: {
-                        const low_bits = std.mem.readInt(u16, self.tape.strings.items()[w.data.ptr..][0..@sizeOf(u16)], native_endian);
+                        const low_bits = std.mem.readInt(u16, self.tape.strings.items().ptr[w.data.ptr..][0..@sizeOf(u16)], native_endian);
                         const high_bits: u64 = w.data.len;
-                        const len = high_bits << @bitSizeOf(Tape.StringHighBits) | low_bits;
-                        const ptr = self.tape.strings.items()[w.data.ptr + @sizeOf(u16) ..];
+                        const len = high_bits << 16 | low_bits;
+                        const ptr = self.tape.strings.items().ptr[w.data.ptr + @sizeOf(u16) ..];
                         break :brk ptr[0..len];
                     },
                     else => error.IncorrectType,
@@ -274,7 +273,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 return self.tape.get(self.index).tag == .null;
             }
 
-            pub fn asAny(self: Value) Error!Element {
+            pub fn asAny(self: Value) Error!AnyValue {
                 if (self.err) |err| return err;
 
                 const w = self.tape.get(self.index);
@@ -313,7 +312,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 }
             }
 
-            pub fn getType(self: Value) Error!types.ElementType {
+            pub fn getType(self: Value) Error!types.ValueType {
                 if (self.err) |err| return err;
 
                 const w = self.tape.get(self.index);
@@ -499,22 +498,80 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             };
 
             const Word = packed struct(u64) {
+                tag: Tag,
                 data: packed struct {
                     ptr: u32,
                     len: u24,
                 },
-                tag: Tag,
             };
 
-            const Context = struct {
-                tag: Tag,
-                data: struct {
-                    len: u32,
-                    ptr: u32,
-                },
-            };
+            const Stack = struct {
+                const Context = struct {
+                    pub const Data = struct {
+                        len: u32,
+                        ptr: u32,
+                    };
+                    tag: Tag,
+                    data: Data,
+                };
 
-            const StringHighBits = if (want_stream) u24 else u16;
+                max_depth: usize = 1024,
+                multi: std.MultiArrayList(Context) = .empty,
+
+                pub const empty: @This() = .{};
+
+                pub fn deinit(self: *Stack, allocator: Allocator) void {
+                    self.multi.deinit(allocator);
+                }
+
+                pub inline fn ensureTotalCapacity(
+                    self: *Stack,
+                    allocator: Allocator,
+                    new_depth: usize,
+                ) Error!void {
+                    if (new_depth > self.max_depth) return error.ExceededDepth;
+                    return self.setMaxDepth(allocator, new_depth);
+                }
+
+                pub inline fn setMaxDepth(self: *Stack, allocator: Allocator, new_depth: usize) Error!void {
+                    try self.multi.setCapacity(allocator, new_depth);
+                    self.max_depth = new_depth;
+                }
+
+                pub inline fn push(self: *Stack, item: Context) Error!void {
+                    if (self.multi.len >= self.multi.capacity) return error.ExceededDepth;
+                    assert(self.multi.capacity != 0);
+                    self.multi.appendAssumeCapacity(item);
+                }
+
+                pub inline fn pop(self: *Stack) void {
+                    self.multi.len -= 1;
+                }
+
+                pub inline fn len(self: Stack) usize {
+                    return self.multi.len;
+                }
+
+                pub inline fn clearRetainingCapacity(self: *Stack) void {
+                    self.multi.clearRetainingCapacity();
+                }
+
+                pub inline fn incrementContainerCount(self: *Stack) void {
+                    assert(self.multi.capacity != 0);
+                    const scope = &self.multi.items(.data)[self.multi.len - 1];
+                    scope.len += 1;
+                }
+
+                pub inline fn getScopeData(self: Stack) Context.Data {
+                    assert(self.multi.capacity != 0);
+                    return self.multi.items(.data)[self.multi.len - 1];
+                }
+
+                pub inline fn getScopeType(self: Stack) Tag {
+                    assert(self.multi.capacity != 0);
+                    return self.multi.items(.tag)[self.multi.len - 1];
+                }
+            };
 
             allocator: Allocator,
             tokens: Tokens,
@@ -522,7 +579,10 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             words: types.BoundedArrayListUnmanaged(u64, max_capacity_bound),
             stack: Stack,
 
-            strings: types.BoundedArrayListUnmanaged(u8, max_capacity_bound),
+            strings: types.BoundedArrayListUnmanaged(u8, max_capacity_bound + types.Vector.bytes_len),
+
+            words_ptr: if (want_stream) void else [*]u64 = undefined,
+            strings_ptr: if (want_stream) void else [*]u8 = undefined,
 
             pub fn init(allocator: Allocator) Tape {
                 return .{
@@ -535,10 +595,10 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             }
 
             pub fn deinit(self: *Tape) void {
-                self.tokens.deinit();
                 self.words.deinit(self.allocator);
                 self.stack.deinit(self.allocator);
                 self.strings.deinit(self.allocator);
+                self.tokens.deinit();
             }
 
             pub inline fn build(self: *Tape, document: if (want_stream) Reader.? else Aligned.slice) Error!void {
@@ -552,18 +612,81 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 }
 
                 self.words.list.clearRetainingCapacity();
-                self.stack.list.clearRetainingCapacity();
+                self.stack.clearRetainingCapacity();
 
                 self.strings.list.clearRetainingCapacity();
+
+                if (!want_stream) {
+                    self.words_ptr = self.words.items().ptr;
+                    self.strings_ptr = self.strings.items().ptr;
+                }
 
                 return self.dispatch();
             }
 
             pub inline fn get(self: Tape, index: u32) Word {
-                return @bitCast(self.words.items()[index]);
+                return @bitCast(self.words.items().ptr[index]);
+            }
+
+            inline fn currentWord(self: Tape) u32 {
+                if (want_stream) {
+                    return @intCast(self.words.items().len);
+                } else {
+                    return @intCast((@intFromPtr(self.words_ptr) - @intFromPtr(self.words.items().ptr)) / @sizeOf(Word));
+                }
+            }
+
+            inline fn advanceWord(self: *Tape, len: usize) void {
+                if (want_stream) {
+                    self.words.list.items.len += len;
+                } else {
+                    self.words_ptr += len;
+                }
+            }
+
+            inline fn appendWordAssumeCapacity(self: *Tape, word: Word) void {
+                if (want_stream) {
+                    self.words.appendAssumeCapacity(@bitCast(word));
+                } else {
+                    self.words_ptr[0] = @bitCast(word);
+                    self.advanceWord(1);
+                }
+            }
+
+            inline fn appendTwoWordsAssumeCapacity(self: *Tape, words: [2]Word) void {
+                const vec: @Vector(2, u64) = @bitCast(words);
+                const slice: *const [2]u64 = &vec;
+                if (want_stream) {
+                    const arr = self.words.list.addManyAsArrayAssumeCapacity(2);
+                    @memcpy(arr, slice);
+                } else {
+                    @memcpy(self.words_ptr, slice);
+                    self.advanceWord(2);
+                }
+            }
+
+            inline fn currentString(self: Tape) [*]u8 {
+                if (want_stream) {
+                    const strings = self.strings.items();
+                    return strings.ptr[strings.len..];
+                } else {
+                    return self.strings_ptr;
+                }
+            }
+
+            inline fn advanceString(self: *Tape, len: usize) void {
+                if (want_stream) {
+                    self.strings.list.items.len += len;
+                } else {
+                    self.strings_ptr += len;
+                }
             }
 
             fn dispatch(self: *Tape) Error!void {
+                // const tracy = @import("tracy");
+                // var tracer = tracy.traceNamed(@src(), "dispatch");
+                // defer tracer.end();
+
                 state: switch (State.start) {
                     .start => {
                         const t = try self.tokens.next();
@@ -583,19 +706,16 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         }
                     },
                     .object_begin => {
-                        if (self.stack.list.len > self.stack.max_capacity) return error.ExceededDepth;
-
-                        const curr: u32 = @intCast(self.words.items().len);
-                        self.stack.appendAssumeCapacity(.{
+                        try self.stack.push(.{
                             .tag = .object_opening,
                             .data = .{
-                                .ptr = curr,
+                                .ptr = self.currentWord(),
                                 .len = 1,
                             },
                         });
 
                         if (want_stream) try self.words.ensureUnusedCapacity(self.allocator, 1);
-                        self.words.list.items.len += 1;
+                        self.advanceWord(1);
 
                         continue :state .object_field;
                     },
@@ -630,50 +750,24 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     .object_continue => {
                         switch ((try self.tokens.next())[0]) {
                             ',' => {
-                                self.incrementContainerCount();
+                                self.stack.incrementContainerCount();
                                 continue :state .object_field;
                             },
-                            '}' => {
-                                assert(self.stack.list.items(.tag)[self.stack.list.len - 1] == .object_opening);
-                                assert(self.stack.list.capacity != 0);
-                                const scope = self.stack.list.items(.data)[self.stack.list.len - 1];
-                                if (want_stream) try self.words.ensureUnusedCapacity(self.allocator, 1);
-                                self.words.appendAssumeCapacity(
-                                    @bitCast(Word{
-                                        .tag = .object_closing,
-                                        .data = .{
-                                            .ptr = scope.ptr,
-                                            .len = undefined,
-                                        },
-                                    }),
-                                );
-                                const curr: u32 = @intCast(self.words.items().len);
-                                self.words.items()[scope.ptr] = @bitCast(Word{
-                                    .tag = .object_opening,
-                                    .data = .{
-                                        .ptr = curr,
-                                        .len = @intCast(@min(scope.len, std.math.maxInt(u24))),
-                                    },
-                                });
-                                continue :state .scope_end;
-                            },
+                            '}' => continue :state .object_end,
                             else => return error.ExpectedObjectCommaOrEnd,
                         }
                     },
                     .array_begin => {
-                        if (self.stack.list.len > self.stack.max_capacity) return error.ExceededDepth;
-
-                        const curr: u32 = @intCast(self.words.items().len);
-                        self.stack.appendAssumeCapacity(.{
+                        try self.stack.push(.{
                             .tag = .array_opening,
                             .data = .{
-                                .ptr = curr,
+                                .ptr = self.currentWord(),
                                 .len = 1,
                             },
                         });
 
                         if (want_stream) try self.words.ensureUnusedCapacity(self.allocator, 1);
-                        self.words.list.items.len += 1;
+                        self.advanceWord(1);
 
                         continue :state .array_value;
                     },
@@ -694,60 +788,46 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         }
                     },
                     .array_continue => {
-                        const t = try self.tokens.next();
-                        switch (t[0]) {
+                        switch ((try self.tokens.next())[0]) {
                             ',' => {
-                                self.incrementContainerCount();
+                                self.stack.incrementContainerCount();
                                 continue :state .array_value;
                             },
-                            ']' => {
-                                assert(self.stack.list.items(.tag)[self.stack.list.len - 1] == .array_opening);
-                                assert(self.stack.list.capacity != 0);
-                                const scope = self.stack.list.items(.data)[self.stack.list.len - 1];
-                                if (want_stream) try self.words.ensureUnusedCapacity(self.allocator, 1);
-                                self.words.appendAssumeCapacity(@bitCast(Word{
-                                    .tag = .array_closing,
-                                    .data = .{
-                                        .ptr = scope.ptr,
-                                        .len = undefined,
-                                    },
-                                }));
-                                const curr: u32 = @intCast(self.words.items().len);
-                                self.words.items()[scope.ptr] = @bitCast(Word{
-                                    .tag = .array_opening,
-                                    .data = .{
-                                        .ptr = curr,
-                                        .len = @intCast(@min(scope.len, std.math.maxInt(u24))),
-                                    },
-                                });
-
-                                continue :state .scope_end;
-                            },
+                            ']' => continue :state .array_end,
                             else => return error.ExpectedArrayCommaOrEnd,
                         }
                     },
-                    .scope_end => {
-                        self.stack.list.len -= 1;
-                        if (self.stack.list.len == 0) {
+                    .object_end, .array_end => |tag| {
+                        const scope = self.stack.getScopeData();
+                        if (want_stream) try self.words.ensureUnusedCapacity(self.allocator, 1);
+                        self.appendWordAssumeCapacity(.{
+                            .tag = @enumFromInt(@intFromEnum(tag)),
+                            .data = .{
+                                .ptr = scope.ptr,
+                                .len = undefined,
+                            },
+                        });
+                        self.words.items().ptr[scope.ptr] = @bitCast(Word{
+                            .tag = @enumFromInt(@intFromEnum(tag) - 2),
+                            .data = .{
+                                .ptr = self.currentWord(),
+                                .len = @intCast(@min(scope.len, std.math.maxInt(u24))),
+                            },
+                        });
+                        self.stack.pop();
+                        if (self.stack.len() == 0) {
                             @branchHint(.unlikely);
                             continue :state .end;
                         }
-                        assert(self.stack.list.capacity != 0);
-                        const parent = self.stack.list.items(.tag)[self.stack.list.len - 1];
+                        const parent = self.stack.getScopeType();
                         continue :state @enumFromInt(@intFromEnum(parent) + 1);
                     },
                     .end => {
                         const trail = try self.tokens.next();
                         if (!common.tables.is_whitespace[trail[0]]) return error.TrailingContent;
-                        if (self.words.items().len == 0) return error.Empty;
+                        if (self.currentWord() == 0) return error.Empty;
                     },
                 }
-            }
-
-            inline fn incrementContainerCount(self: *Tape) void {
-                assert(self.stack.list.capacity != 0);
-                const scope = &self.stack.list.items(.data)[self.stack.list.len - 1];
-                scope.len += 1;
             }
 
             inline fn visitPrimitive(self: *Tape, ptr: [*]const u8) Error!void {
@@ -769,25 +849,23 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
 
             inline fn visitEmptyContainer(self: *Tape, tag: u8) Error!void {
                 if (want_stream) try self.words.ensureUnusedCapacity(self.allocator, 2);
-                const curr: u32 = @intCast(self.words.items().len);
-                self.words.appendAssumeCapacity(
-                    @bitCast(Word{
+                const curr = self.currentWord();
+                self.appendTwoWordsAssumeCapacity(.{
+                    .{
                         .tag = @enumFromInt(tag),
                         .data = .{
                             .ptr = curr + 2,
                             .len = 0,
                         },
-                    }),
-                );
-                self.words.appendAssumeCapacity(
-                    @bitCast(Word{
+                    },
+                    .{
                         .tag = @enumFromInt(tag + 2),
                         .data = .{
                             .ptr = curr,
                             .len = undefined,
                         },
-                    }),
-                );
+                    },
+                });
                 _ = try self.tokens.next();
             }
 
@@ -797,38 +875,35 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     try self.strings.ensureUnusedCapacity(self.allocator, options.stream.?.chunk_length);
                 }
                 const writeString = @import("parsers/string.zig").writeString;
-                const curr: u32 = @intCast(self.strings.items().len);
-                const low_bits = self.strings.items()[curr..].ptr;
-                const next_str = low_bits + @sizeOf(u16);
-                const sentinel = try writeString(ptr, next_str);
-                const next_len: u32 = @intCast(@intFromPtr(sentinel) - @intFromPtr(next_str));
-                std.mem.writeInt(u16, low_bits[0..@sizeOf(u16)], @truncate(next_len), native_endian);
-                const high_bits: StringHighBits = @truncate(next_len >> @bitSizeOf(StringHighBits));
-                self.words.appendAssumeCapacity(
-                    @bitCast(Word{
-                        .tag = .string,
-                        .data = .{
-                            .ptr = curr,
-                            .len = high_bits,
-                        },
-                    }),
-                );
-                self.strings.list.items.len += next_len + @sizeOf(u16);
+                const curr_str = self.currentString();
+                const next_str = curr_str + @sizeOf(u16);
+                const next_len = (try writeString(ptr, next_str)) - next_str;
+                self.appendWordAssumeCapacity(.{
+                    .tag = .string,
+                    .data = .{
+                        .ptr = @intCast(curr_str - self.strings.items().ptr),
+                        .len = @intCast(next_len >> 16),
+                    },
+                });
+                std.mem.writeInt(u16, curr_str[0..@sizeOf(u16)], @truncate(next_len), native_endian);
+                self.advanceString(next_len + @sizeOf(u16));
             }
 
             inline fn visitNumber(self: *Tape, ptr: [*]const u8) Error!void {
                 if (want_stream) {
-                    try self.words.ensureUnusedCapacity(self.allocator, 1);
+                    try self.words.ensureUnusedCapacity(self.allocator, 2);
                 }
                 const number = try @import("parsers/number/parser.zig").parse(null, ptr);
-                self.words.appendAssumeCapacity(
-                    @bitCast(Word{
-                        .tag = @enumFromInt(@intFromEnum(number)),
-                        .data = undefined,
-                    }),
-                );
                 switch (number) {
-                    inline else => |n| self.words.appendAssumeCapacity(@bitCast(n)),
+                    inline else => |n| {
+                        self.appendTwoWordsAssumeCapacity(.{
+                            .{
+                                .tag = @enumFromInt(@intFromEnum(number)),
+                                .data = undefined,
+                            },
+                            @bitCast(n),
+                        });
+                    },
                 }
             }
 
@@ -836,36 +911,30 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 if (want_stream) try self.words.ensureUnusedCapacity(self.allocator, 1);
                 const check = @import("parsers/atoms.zig").checkTrue;
                 try check(ptr);
-                self.words.appendAssumeCapacity(
-                    @bitCast(Word{
-                        .tag = .true,
-                        .data = undefined,
-                    }),
-                );
+                self.appendWordAssumeCapacity(.{
+                    .tag = .true,
+                    .data = undefined,
+                });
             }
 
             inline fn visitFalse(self: *Tape, ptr: [*]const u8) Error!void {
                 if (want_stream) try self.words.ensureUnusedCapacity(self.allocator, 1);
                 const check = @import("parsers/atoms.zig").checkFalse;
                 try check(ptr);
-                self.words.appendAssumeCapacity(
-                    @bitCast(Word{
-                        .tag = .false,
-                        .data = undefined,
-                    }),
-                );
+                self.appendWordAssumeCapacity(.{
+                    .tag = .false,
+                    .data = undefined,
+                });
             }
 
             inline fn visitNull(self: *Tape, ptr: [*]const u8) Error!void {
                 if (want_stream) try self.words.ensureUnusedCapacity(self.allocator, 1);
                 const check = @import("parsers/atoms.zig").checkNull;
                 try check(ptr);
-                self.words.appendAssumeCapacity(
-                    @bitCast(Word{
-                        .tag = .null,
-                        .data = undefined,
-                    }),
-                );
+                self.appendWordAssumeCapacity(.{
+                    .tag = .null,
+                    .data = undefined,
+                });
             }
         };
     };

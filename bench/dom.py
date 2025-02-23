@@ -25,6 +25,7 @@ files = [
 better_names = {
     'simdjson_dom': 'simdjson (DOM)',
     'zimdjson_dom': 'zimdjson (DOM)',
+    'zimdjson_padless_dom': 'zimdjson (DOM without padding)',
     'yyjson': 'yyjson',
     'rapidjson_dom': 'rapidjson',
 }

@@ -24,8 +24,8 @@ pub fn main() !void {
         \\//! This file is auto-generated with `zig build test/generate`
         \\
         \\const std = @import("std");
-        \\const dom = @import("zimdjson").dom;
-        \\const Reader = @import("zimdjson").io.Reader(.{});
+        \\const zimdjson = @import("zimdjson");
+        \\const Parser = zimdjson.dom.parserFromFile(.default);
         \\const simdjson_data = @embedFile("simdjson-data");
         \\
         \\
@@ -74,7 +74,7 @@ pub fn main() !void {
             try checker_zig_content.appendSlice(try std.fmt.bufPrint(&buf,
                 \\test "{[id]s}" {{
                 \\    const allocator = std.testing.allocator;
-                \\    var parser = dom.parserFromFile(.default).init(allocator);
+                \\    var parser = Parser.init(allocator);
                 \\    defer parser.deinit();
                 \\
             , .{ .id = identifier }));
@@ -87,10 +87,7 @@ pub fn main() !void {
                 try checker_zig_content.appendSlice(
                     \\", .{});
                     \\    defer file.close();
-                    \\    _ = parser.parse(file.reader()) catch |err| {
-                    \\        @breakpoint();
-                    \\        return err;
-                    \\    };
+                    \\    _ = try parser.parse(file.reader());
                 );
             } else {
                 try checker_zig_content.appendSlice(

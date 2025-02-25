@@ -61,12 +61,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 .assume_padding = Reader != null or options.assume_padding,
             });
 
-        pub const Error = Tokens.Error || types.ParseError || Allocator.Error || error{
-            ExpectedAllocator,
-            IncorrectSchema,
-            UnknownField,
-            UnknownEnum,
-        } || if (Reader) |reader| reader.Error else error{};
+        pub const Error = Tokens.Error || types.ParseError || Allocator.Error || if (Reader) |reader| reader.Error else error{};
         pub const max_capacity_bound = if (want_stream) std.math.maxInt(usize) else std.math.maxInt(u32);
         pub const default_max_depth = 1024;
 
@@ -328,7 +323,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 return self.reportError(switch (parent_char) {
                     '{' => error.IncompleteObject,
                     '[' => error.IncompleteArray,
-                    else => unreachable,
+                    else => error.TrailingContent,
                 });
             }
 
@@ -340,68 +335,89 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
 
         pub const Document = struct {
             iter: Value.Iterator,
-            err: ?Error = null,
 
             pub inline fn asValue(self: Document) Value {
-                return .{ .iter = self.iter, .err = self.err };
+                self.iter.assertAtRoot();
+                return .{ .iter = self.iter };
             }
 
             pub inline fn asObject(self: Document) Error!Object {
-                if (self.err) |err| return err;
-                return Object.startRoot(self.iter);
+                self.iter.assertAtRoot();
+                const started, const object = try Object.start(self.iter);
+                if (started or try self.iter.isAtEnd()) return object;
+                return error.TrailingContent;
             }
 
             pub inline fn asArray(self: Document) Error!Array {
-                if (self.err) |err| return err;
-                return Array.startRoot(self.iter);
+                self.iter.assertAtRoot();
+                const started, const array = try Array.start(self.iter);
+                if (started or try self.iter.isAtEnd()) return array;
+                return error.TrailingContent;
             }
 
             pub inline fn asNumber(self: Document) Error!Number {
-                if (self.err) |err| return err;
-                return self.iter.asRootNumber();
+                self.iter.assertAtRoot();
+                const n = try self.iter.asNumber();
+                if (try self.iter.isAtEnd()) return n;
+                return error.TrailingContent;
             }
 
             pub inline fn asUnsigned(self: Document) Error!u64 {
-                if (self.err) |err| return err;
-                return self.iter.asRootUnsigned();
+                self.iter.assertAtRoot();
+                const n = try self.iter.asUnsigned();
+                if (try self.iter.isAtEnd()) return n;
+                return error.TrailingContent;
             }
 
             pub inline fn asSigned(self: Document) Error!i64 {
-                if (self.err) |err| return err;
-                return self.iter.asRootSigned();
+                self.iter.assertAtRoot();
+                const n = try self.iter.asSigned();
+                if (try self.iter.isAtEnd()) return n;
+                return error.TrailingContent;
             }
 
             pub inline fn asFloat(self: Document) Error!f64 {
-                if (self.err) |err| return err;
-                return self.iter.asRootFloat();
+                self.iter.assertAtRoot();
+                const n = try self.iter.asFloat();
+                if (try self.iter.isAtEnd()) return n;
+                return error.TrailingContent;
             }
 
             pub inline fn asString(self: Document) String {
-                if (self.err) |err| return .{
+                self.iter.assertAtRoot();
+                const str = self.iter.asString() catch |err| .{
                     .iter = self.iter,
                     .raw_str = undefined,
                     .err = err,
                 };
-                return self.iter.asRootString() catch |err| .{
+                const at_end = self.iter.isAtEnd() catch |err| return .{
                     .iter = self.iter,
                     .raw_str = undefined,
                     .err = err,
+                };
+                if (at_end) return str;
+                return .{
+                    .iter = self.iter,
+                    .raw_str = undefined,
+                    .err = error.TrailingContent,
                 };
             }
 
             pub inline fn asBool(self: Document) Error!bool {
-                if (self.err) |err| return err;
-                return self.iter.asRootBool();
+                self.iter.assertAtRoot();
+                const b = try self.iter.asBool();
+                if (try self.iter.isAtEnd()) return b;
+                return error.TrailingContent;
             }
 
             pub inline fn isNull(self: Document) Error!bool {
-                if (self.err) |err| return err;
-                return self.iter.isRootNull();
+                self.iter.assertAtRoot();
+                const n = try self.iter.isNull();
+                if (try self.iter.isAtEnd()) return n;
+                return error.TrailingContent;
             }
 
             pub inline fn asAny(self: Document) Error!AnyValue {
-                if (self.err) |err| return err;
-                self.iter.assertAtRoot();
                 return switch (self.iter.cursor.peekChar()) {
                     't', 'f' => .{ .bool = try self.asBool() },
                     'n' => .{ .null = brk: {
@@ -423,7 +439,6 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             }
 
             pub inline fn getType(self: Document) Error!types.ValueType {
-                if (self.err) |err| return err;
                 return switch (self.iter.cursor.peekChar()) {
                     't', 'f' => .bool,
                     'n' => .null,
@@ -436,37 +451,44 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             }
 
             pub inline fn as(self: Document, comptime T: type) Error!T {
-                const info = @typeInfo(T);
-                switch (info) {
-                    .int => {
-                        const n = try self.asNumber();
-                        return switch (n) {
-                            .float => error.IncorrectType,
-                            inline else => n.cast(T) orelse error.NumberOutOfRange,
-                        };
-                    },
-                    .float => return @floatCast(try self.asFloat()),
-                    .bool => return self.asBool(),
-                    .optional => |opt| {
-                        if (try self.isNull()) return null;
-                        const child = try self.as(opt.child);
-                        return child;
-                    },
-                    else => {
-                        if (T == []const u8) return self.asString() else @compileError(std.fmt.comptimePrint("it is not possible to automatically cast a JSON value to type {s}", .{@typeName(T)}));
-                    },
-                }
+                self.iter.assertAtRoot();
+                const data = try self.asValue().as(T);
+                if (try self.atEnd()) return data;
+                return error.TrailingContent;
+            }
+
+            pub inline fn asAdvanced(self: Document, comptime T: type, comptime S: ?schema.Auto(T), allocator: ?Allocator) schema.Error!T {
+                self.iter.assertAtRoot();
+                const data = try self.asValue().asAdvanced(T, S, allocator);
+                if (try self.atEnd()) return data;
+                return error.TrailingContent;
+            }
+
+            pub inline fn asRef(self: Document, comptime T: type, dest: *T) schema.Error!void {
+                self.iter.assertAtRoot();
+                try self.asValue().asRef(T, dest);
+                if (try self.atEnd()) return;
+                return error.TrailingContent;
+            }
+
+            pub inline fn asRefAdvanced(self: Document, comptime T: type, comptime S: ?schema.Auto(T), allocator: ?Allocator, dest: *T) schema.Error!void {
+                self.iter.assertAtRoot();
+                try self.asValue().asRefAdvanced(T, S, allocator, dest);
+                if (try self.atEnd()) return;
+                return error.TrailingContent;
             }
 
             pub inline fn skip(self: Document) Error!void {
-                if (self.err) |err| return err;
-                return self.iter.skipChild();
+                return self.iter.cursor.skip(0, self.iter.start_char);
+            }
+
+            pub inline fn atEnd(self: Document) Error!bool {
+                try self.skip();
+                return self.iter.isAtEnd();
             }
 
             pub inline fn at(self: Document, ptr: anytype) Value {
                 @setEvalBranchQuota(2000000);
-                if (self.err) |_| return .{ .iter = self.iter };
-
                 const query = brk: {
                     if (common.isString(@TypeOf(ptr))) {
                         const obj = self.startOrResumeObject() catch |err| return .{ .iter = self.iter, .err = err };
@@ -482,14 +504,14 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             }
 
             inline fn startOrResumeObject(self: Document) Error!Object {
-                if (self.iter.isAtRoot()) {
+                if (self.iter.isAtStart()) {
                     return self.asObject();
                 }
                 return .{ .iter = self.iter };
             }
 
             inline fn startOrResumeArray(self: Document) Error!Array {
-                if (self.iter.isAtRoot()) {
+                if (self.iter.isAtStart()) {
                     return self.asArray();
                 }
                 return .{ .iter = self.iter };
@@ -507,104 +529,51 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 start_char: u8,
 
                 inline fn asNumber(self: Iterator) Error!Number {
-                    const n = try self.parseNumber(try self.peekNonRootScalar());
-                    try self.advanceNonRootScalar();
+                    const n = try self.parseNumber(try self.peekScalar());
+                    try self.advanceScalar();
                     return n;
                 }
 
                 inline fn asUnsigned(self: Iterator) Error!u64 {
-                    const n = try self.parseUnsigned(try self.peekNonRootScalar());
-                    try self.advanceNonRootScalar();
+                    const n = try self.parseUnsigned(try self.peekScalar());
+                    try self.advanceScalar();
                     return n;
                 }
 
                 inline fn asSigned(self: Iterator) Error!i64 {
-                    const n = try self.parseSigned(try self.peekNonRootScalar());
-                    try self.advanceNonRootScalar();
+                    const n = try self.parseSigned(try self.peekScalar());
+                    try self.advanceScalar();
                     return n;
                 }
 
                 inline fn asFloat(self: Iterator) Error!f64 {
-                    const n = try self.parseFloat(try self.peekNonRootScalar());
-                    try self.advanceNonRootScalar();
+                    const n = try self.parseFloat(try self.peekScalar());
+                    try self.advanceScalar();
                     return n;
                 }
 
                 inline fn asString(self: Iterator) Error!String {
-                    const raw_str = try self.peekNonRootScalar();
+                    const raw_str = try self.peekScalar();
                     if (raw_str[0] != '"') return error.IncorrectType;
                     const str = String{
                         .iter = self,
                         .raw_str = raw_str,
                     };
-                    try self.advanceNonRootScalar();
+                    try self.advanceScalar();
                     return str;
                 }
 
                 inline fn asBool(self: Iterator) Error!bool {
-                    const is_true = try self.parseBool(try self.peekNonRootScalar());
-                    try self.advanceNonRootScalar();
+                    const is_true = try self.parseBool(try self.peekScalar());
+                    try self.advanceScalar();
                     return is_true;
                 }
 
                 inline fn isNull(self: Iterator) Error!bool {
                     var is_null = false;
-                    if (self.parseNull(try self.peekNonRootScalar())) {
+                    if (self.parseNull(try self.peekScalar())) {
                         is_null = true;
-                        try self.advanceNonRootScalar();
-                    } else |err| switch (err) {
-                        error.ExpectedValue => {},
-                        else => return err,
-                    }
-                    return is_null;
-                }
-
-                inline fn asRootNumber(self: Iterator) Error!Number {
-                    const n = try self.parseNumber(try self.peekRootScalar());
-                    try self.advanceRootScalar();
-                    return n;
-                }
-
-                inline fn asRootUnsigned(self: Iterator) Error!u64 {
-                    const n = try self.parseUnsigned(try self.peekRootScalar());
-                    try self.advanceRootScalar();
-                    return n;
-                }
-
-                inline fn asRootSigned(self: Iterator) Error!i64 {
-                    const n = try self.parseSigned(try self.peekRootScalar());
-                    try self.advanceRootScalar();
-                    return n;
-                }
-
-                inline fn asRootFloat(self: Iterator) Error!f64 {
-                    const n = try self.parseFloat(try self.peekRootScalar());
-                    try self.advanceRootScalar();
-                    return n;
-                }
-
-                inline fn asRootString(self: Iterator) Error!String {
-                    const raw_str = try self.peekRootScalar();
-                    if (raw_str[0] != '"') return error.IncorrectType;
-                    const str = String{
-                        .iter = self,
-                        .raw_str = raw_str,
-                    };
-                    try self.advanceRootScalar();
-                    return str;
-                }
-
-                inline fn asRootBool(self: Iterator) Error!bool {
-                    const is_true = try self.parseBool(try self.peekRootScalar());
-                    try self.advanceRootScalar();
-                    return is_true;
-                }
-
-                inline fn isRootNull(self: Iterator) Error!bool {
-                    var is_null = false;
-                    if (self.parseNull(try self.peekRootScalar())) {
-                        is_null = true;
-                        try self.advanceRootScalar();
+                        try self.advanceScalar();
                     } else |err| switch (err) {
                         error.ExpectedValue => {},
                         else => return err,
@@ -613,23 +582,27 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 }
 
                 fn parseNumber(self: Iterator, ptr: [*]const u8) Error!Number {
+                    if (!(ptr[0] -% '0' < 10 or ptr[0] == '-')) return error.IncorrectType;
                     try Logger.log(self.cursor.document, ptr, "number", self.start_depth);
                     return @import("parsers/number/parser.zig").parse(null, ptr);
                 }
 
                 fn parseUnsigned(self: Iterator, ptr: [*]const u8) Error!u64 {
+                    if (!(ptr[0] -% '0' < 10)) return error.IncorrectType;
                     try Logger.log(self.cursor.document, ptr, "u64   ", self.start_depth);
                     const n = try @import("parsers/number/parser.zig").parse(.unsigned, ptr);
                     return n.unsigned;
                 }
 
                 fn parseSigned(self: Iterator, ptr: [*]const u8) Error!i64 {
+                    if (!(ptr[0] -% '0' < 10 or ptr[0] == '-')) return error.IncorrectType;
                     try Logger.log(self.cursor.document, ptr, "i64   ", self.start_depth);
                     const n = try @import("parsers/number/parser.zig").parse(.signed, ptr);
                     return n.signed;
                 }
 
                 fn parseFloat(self: Iterator, ptr: [*]const u8) Error!f64 {
+                    if (!(ptr[0] -% '0' < 10 or ptr[0] == '-')) return error.IncorrectType;
                     try Logger.log(self.cursor.document, ptr, "f64   ", self.start_depth);
                     const n = try @import("parsers/number/parser.zig").parse(.float, ptr);
                     return switch (n) {
@@ -646,12 +619,14 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 }
 
                 inline fn parseBool(self: Iterator, ptr: [*]const u8) Error!bool {
+                    if (!(ptr[0] == 't' or ptr[0] == 'f')) return error.IncorrectType;
                     try Logger.log(self.cursor.document, ptr, "bool  ", self.start_depth);
                     const check = @import("parsers/atoms.zig").checkBool;
                     return check(ptr);
                 }
 
                 inline fn parseNull(self: Iterator, ptr: [*]const u8) Error!void {
+                    if (ptr[0] != 'n') return error.IncorrectType;
                     try Logger.log(self.cursor.document, ptr, "null  ", self.start_depth);
                     const check = @import("parsers/atoms.zig").checkNull;
                     return check(ptr);
@@ -663,10 +638,6 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
 
                 inline fn isAtStart(self: Iterator) bool {
                     return self.cursor.position() == self.start_position;
-                }
-
-                inline fn isAtRoot(self: Iterator) bool {
-                    return self.cursor.position() == self.cursor.root;
                 }
 
                 inline fn isAtContainerStart(self: Iterator) bool {
@@ -693,7 +664,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 }
 
                 inline fn isAtEnd(self: Iterator) Error!bool {
-                    return common.tables.is_whitespace[self.cursor.peekChar()];
+                    return self.cursor.peekChar() == ' ';
                 }
 
                 inline fn hasNextField(self: Iterator) Error!bool {
@@ -722,16 +693,9 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     }
                 }
 
-                inline fn startObject(self: Iterator) Error!Iterator {
+                inline fn startObject(self: Iterator) Error!struct { bool, Iterator } {
                     const iter = try self.startContainer('{');
-                    _ = try self.startedObject();
-                    return iter;
-                }
-
-                inline fn startRootObject(self: Iterator) Error!Iterator {
-                    const iter = try self.startContainer('{');
-                    _ = try self.startedRootObject();
-                    return iter;
+                    return .{ try self.startedObject(), iter };
                 }
 
                 inline fn startedObject(self: Iterator) Error!bool {
@@ -745,28 +709,9 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     return true;
                 }
 
-                inline fn startedRootObject(self: Iterator) Error!bool {
-                    self.assertAtContainerStart();
-                    if (self.cursor.peekChar() == '}') {
-                        const ptr = try self.cursor.next();
-                        self.endContainer();
-                        try Logger.log(self.cursor.document, ptr, "object", self.start_depth);
-                        if (try self.isAtEnd()) return false;
-                        return error.TrailingContent;
-                    }
-                    return true;
-                }
-
-                inline fn startArray(self: Iterator) Error!Iterator {
+                inline fn startArray(self: Iterator) Error!struct { bool, Iterator } {
                     const iter = try self.startContainer('[');
-                    _ = try self.startedArray();
-                    return iter;
-                }
-
-                inline fn startRootArray(self: Iterator) Error!Iterator {
-                    const iter = try self.startContainer('[');
-                    _ = try self.startedRootArray();
-                    return iter;
+                    return .{ try self.startedArray(), iter };
                 }
 
                 inline fn startedArray(self: Iterator) Error!bool {
@@ -776,18 +721,6 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         self.endContainer();
                         try Logger.log(self.cursor.document, ptr, "array ", self.start_depth);
                         return false;
-                    }
-                    return true;
-                }
-
-                inline fn startedRootArray(self: Iterator) Error!bool {
-                    self.assertAtContainerStart();
-                    if (self.cursor.peekChar() == ']') {
-                        const ptr = try self.cursor.next();
-                        self.endContainer();
-                        try Logger.log(self.cursor.document, ptr, "array ", self.start_depth);
-                        if (try self.isAtEnd()) return false;
-                        return error.TrailingContent;
                     }
                     return true;
                 }
@@ -812,28 +745,15 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     }
                 }
 
-                inline fn peekNonRootScalar(self: Iterator) Error![*]const u8 {
+                inline fn peekScalar(self: Iterator) Error![*]const u8 {
                     // if (!self.isAtStart()) return error.OutOfOrderIteration;
-                    self.assertAtNonRootStart();
+                    self.assertAtStart();
                     return self.cursor.peek();
                 }
 
-                inline fn peekRootScalar(self: Iterator) Error![*]const u8 {
-                    // if (!self.isAtStart()) return error.OutOfOrderIteration;
-                    self.assertAtRoot();
-                    return self.cursor.peek();
-                }
-
-                inline fn advanceNonRootScalar(self: Iterator) Error!void {
+                inline fn advanceScalar(self: Iterator) Error!void {
                     if (!self.isAtStart()) return;
-                    self.assertAtNonRootStart();
-                    _ = try self.cursor.next();
-                    self.cursor.ascend(self.start_depth - 1);
-                }
-
-                inline fn advanceRootScalar(self: Iterator) Error!void {
-                    if (!self.isAtStart()) return;
-                    self.assertAtRoot();
+                    self.assertAtStart();
                     _ = try self.cursor.next();
                     self.cursor.ascend(self.start_depth - 1);
                 }
@@ -946,12 +866,12 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
 
             pub inline fn asObject(self: Value) Error!Object {
                 if (self.err) |err| return err;
-                return Object.start(self.iter);
+                return (try Object.start(self.iter))[1];
             }
 
             pub inline fn asArray(self: Value) Error!Array {
                 if (self.err) |err| return err;
-                return Array.start(self.iter);
+                return (try Array.start(self.iter))[1];
             }
 
             pub inline fn asNumber(self: Value) Error!Number {
@@ -998,7 +918,6 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             }
 
             pub inline fn asAny(self: Value) Error!AnyValue {
-                if (self.err) |err| return err;
                 return switch (self.iter.cursor.peekChar()) {
                     't', 'f' => .{ .bool = try self.asBool() },
                     'n' => .{ .null = brk: {
@@ -1028,23 +947,23 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
-            pub inline fn as(self: Value, comptime T: type) Error!T {
-                var dest: T = undefined;
+            pub inline fn as(self: Value, comptime T: type) schema.Error!T {
+                var dest = schema_utils.undefinedInit(T);
                 try self.asRef(T, &dest);
                 return dest;
             }
 
-            pub inline fn asAdvanced(self: Value, comptime T: type, comptime S: ?schema.Auto(T), allocator: ?Allocator) Error!T {
-                var dest: T = undefined;
+            pub inline fn asAdvanced(self: Value, comptime T: type, comptime S: ?schema.Auto(T), allocator: ?Allocator) schema.Error!T {
+                var dest = schema_utils.undefinedInit(T);
                 try self.asRefAdvanced(T, S, allocator, &dest);
                 return dest;
             }
 
-            pub inline fn asRef(self: Value, comptime T: type, dest: *T) Error!void {
+            pub inline fn asRef(self: Value, comptime T: type, dest: *T) schema.Error!void {
                 return self.asRefAdvanced(T, null, null, dest);
             }
 
-            pub inline fn asRefAdvanced(self: Value, comptime T: type, comptime S: ?schema.Auto(T), allocator: ?Allocator, dest: *T) Error!void {
+            pub inline fn asRefAdvanced(self: Value, comptime T: type, comptime S: ?schema.Auto(T), allocator: ?Allocator, dest: *T) schema.Error!void {
                 const info = @typeInfo(T);
                 dest.* = brk: switch (info) {
                     .int => {
@@ -1069,22 +988,38 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         if (T == String) break :brk self.asString();
                         return schema.parseStruct(T, S, allocator, self, dest);
                     },
-                    // .@"union" => {
-                    //     if (T == Number) break :brk try self.asNumber();
-                    //     return schema.parseUnion(T, S, allocator, self, dest);
-                    // },
+                    .@"union" => {
+                        if (T == Number) break :brk try self.asNumber();
+                        return schema.parseUnion(T, S, allocator, self, dest);
+                    },
                     .@"enum" => {
                         return schema.parseEnum(T, S, allocator, self, dest);
                     },
+                    .void => {
+                        const o = try self.asObject();
+                        if (try o.isEmpty()) break :brk {} else return error.IncorrectType;
+                    },
+                    inline .array, .vector => |ty| {
+                        if (ty == .array) assert(ty.sentinel_ptr == null);
+                        const arr = try self.asArray();
+                        for (0..ty.len) |i| {
+                            if (try arr.next()) |item| {
+                                try item.asRef(ty.child, &dest.*[i]);
+                            } else {
+                                return error.IncompleteArray;
+                            }
+                        }
+                        if (try arr.next()) |_| return error.ExpectedArrayEnd;
+                    },
                     else => {
-                        if (T == []const u8) break :brk try self.asString().get() else @compileError(std.fmt.comptimePrint("it is not possible to automatically cast a JSON value to type {s}", .{@typeName(T)}));
+                        if (T == []const u8) break :brk try self.asString().get() else @compileError("Unable to parse into type '" ++ @typeName(T) ++ "'");
                     },
                 };
             }
 
             pub inline fn skip(self: Value) Error!void {
                 if (self.err) |err| return err;
-                return self.iter.skipChild();
+                return self.iter.cursor.skip(self.iter.start_depth - 1, 0);
             }
 
             pub inline fn at(self: Value, ptr: anytype) Value {
@@ -1174,12 +1109,9 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 return null;
             }
 
-            inline fn start(iter: Value.Iterator) Error!Array {
-                return .{ .iter = try iter.startArray() };
-            }
-
-            inline fn startRoot(iter: Value.Iterator) Error!Array {
-                return .{ .iter = try iter.startRootArray() };
+            inline fn start(iter: Value.Iterator) Error!struct { bool, Array } {
+                const started, const array = try iter.startArray();
+                return .{ started, .{ .iter = array } };
             }
 
             pub inline fn at(self: Array, index: usize) Value {
@@ -1263,12 +1195,9 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 return null;
             }
 
-            inline fn start(iter: Value.Iterator) Error!Object {
-                return .{ .iter = try iter.startObject() };
-            }
-
-            inline fn startRoot(iter: Value.Iterator) Error!Object {
-                return .{ .iter = try iter.startRootObject() };
+            inline fn start(iter: Value.Iterator) Error!struct { bool, Object } {
+                const started, const object = try iter.startObject();
+                return .{ started, .{ .iter = object } };
             }
 
             pub inline fn at(self: Object, key: []const u8) Value {
@@ -1314,11 +1243,20 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
 
         pub const schema = struct {
             const inner = @import("std");
+            pub const Error = Self.Error || error{
+                ExpectedAllocator,
+                ExpectedObjectEnd,
+                ExpectedArrayEnd,
+                UnknownField,
+                UnknownEnumLiteral,
+                UnknownUnionVariant,
+                DuplicateField,
+            };
 
             pub const std = struct {
                 pub fn ArrayList(comptime T: type) type {
                     return struct {
-                        pub fn parse(allocator: ?Allocator, value: Value, dest: *inner.ArrayList(T)) Error!void {
+                        pub fn parse(allocator: ?Allocator, value: Value, dest: *inner.ArrayList(T)) schema.Error!void {
                             if (allocator) |alloc| {
                                 dest.* = .init(alloc);
                                 const arr = try value.asArray();
@@ -1332,9 +1270,25 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         }
                     };
                 }
-                pub fn ArrayListUnmanaged(comptime T: type) type {
+                pub fn ArrayListAligned(comptime T: type, comptime alignment: ?u29) type {
                     return struct {
-                        pub fn parse(allocator: ?Allocator, value: Value, dest: *inner.ArrayListUnmanaged(T)) Error!void {
+                        pub fn parse(allocator: ?Allocator, value: Value, dest: *inner.ArrayListAligned(T, alignment)) schema.Error!void {
+                            if (allocator) |alloc| {
+                                dest.* = .init(alloc);
+                                const arr = try value.asArray();
+                                while (try arr.next()) |child| {
+                                    const item = try child.as(T);
+                                    try dest.append(item);
+                                }
+                            } else {
+                                return error.ExpectedAllocator;
+                            }
+                        }
+                    };
+                }
+                pub fn ArrayListAlignedUnmanaged(comptime T: type, comptime alignment: ?u29) type {
+                    return struct {
+                        pub fn parse(allocator: ?Allocator, value: Value, dest: *inner.ArrayListAlignedUnmanaged(T, alignment)) schema.Error!void {
                             if (allocator) |alloc| {
                                 dest.* = .empty;
                                 const arr = try value.asArray();
@@ -1348,14 +1302,237 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         }
                     };
                 }
+                pub fn ArrayListUnmanaged(comptime T: type) type {
+                    return struct {
+                        pub fn parse(allocator: ?Allocator, value: Value, dest: *inner.ArrayListUnmanaged(T)) schema.Error!void {
+                            if (allocator) |alloc| {
+                                dest.* = .empty;
+                                const arr = try value.asArray();
+                                while (try arr.next()) |child| {
+                                    const item = try child.as(T);
+                                    try dest.append(alloc, item);
+                                }
+                            } else {
+                                return error.ExpectedAllocator;
+                            }
+                        }
+                    };
+                }
+                pub const BitStack = struct {
+                    pub fn parse(allocator: ?Allocator, value: Value, dest: *inner.BitStack) schema.Error!void {
+                        if (allocator) |alloc| {
+                            dest.* = .init(alloc);
+                            const arr = try value.asArray();
+                            while (try arr.next()) |child| {
+                                const item = try child.as(u1);
+                                try dest.push(item);
+                            }
+                        } else {
+                            return error.ExpectedAllocator;
+                        }
+                    }
+                };
+                pub fn BoundedArray(comptime T: type, comptime buffer_capacity: usize) type {
+                    return struct {
+                        pub fn parse(_: ?Allocator, value: Value, dest: *inner.BoundedArray(T, buffer_capacity)) schema.Error!void {
+                            dest.* = try .init(0);
+                            const arr = try value.asArray();
+                            while (try arr.next()) |child| {
+                                const item = try child.as(T);
+                                try dest.append(item);
+                            }
+                        }
+                    };
+                }
+                pub fn BoundedArrayAligned(comptime T: type, comptime alignment: u29, comptime buffer_capacity: usize) type {
+                    return struct {
+                        pub fn parse(_: ?Allocator, value: Value, dest: *inner.BoundedArrayAligned(T, alignment, buffer_capacity)) schema.Error!void {
+                            dest.* = try .init(0);
+                            const arr = try value.asArray();
+                            while (try arr.next()) |child| {
+                                const item = try child.as(T);
+                                try dest.append(item);
+                            }
+                        }
+                    };
+                }
+                pub const BufMap = struct {
+                    pub fn parse(allocator: ?Allocator, value: Value, dest: *inner.BufMap) schema.Error!void {
+                        if (allocator) |alloc| {
+                            dest.* = .init(alloc);
+                            const obj = try value.asObject();
+                            while (try obj.next()) |field| {
+                                const key = try field.key.get();
+                                const str = try field.value.asString().get();
+                                try dest.put(key, str);
+                            }
+                        } else {
+                            return error.ExpectedAllocator;
+                        }
+                    }
+                };
+                pub const BufSet = struct {
+                    pub fn parse(allocator: ?Allocator, value: Value, dest: *inner.BufSet) schema.Error!void {
+                        if (allocator) |alloc| {
+                            dest.* = .init(alloc);
+                            const arr = try value.asArray();
+                            while (try arr.next()) |child| {
+                                const item = try child.asString().get();
+                                try dest.insert(item);
+                            }
+                        } else {
+                            return error.ExpectedAllocator;
+                        }
+                    }
+                };
+                pub fn DoublyLinkedList(comptime T: type) type {
+                    return struct {
+                        pub fn parse(_: ?Allocator, value: Value, dest: *inner.DoublyLinkedList(T)) schema.Error!void {
+                            dest.* = .{};
+                            const arr = try value.asArray();
+                            while (try arr.next()) |child| {
+                                const item = try child.as(T);
+                                try dest.append(item);
+                            }
+                        }
+                    };
+                }
+                pub fn EnumMap(comptime E: type, comptime V: type) type {
+                    return struct {
+                        pub fn parse(_: ?Allocator, value: Value, dest: *inner.EnumMap(E, V)) schema.Error!void {
+                            dest.* = .init(.{});
+                            const obj = try value.asObject();
+                            while (try obj.next()) |field| {
+                                const variant = try field.key.get();
+                                var enum_literal = schema_utils.undefinedInit(E);
+                                try parseEnumFromSlice(E, null, variant, &enum_literal);
+                                const enum_value = try field.value.as(V);
+                                try dest.put(enum_literal, enum_value);
+                            }
+                        }
+                    };
+                }
+                pub fn MultiArrayList(comptime T: type) type {
+                    return struct {
+                        pub fn parse(allocator: ?Allocator, value: Value, dest: *inner.MultiArrayList(T)) schema.Error!void {
+                            if (allocator) |alloc| {
+                                dest.* = .empty;
+                                const arr = try value.asArray();
+                                while (try arr.next()) |child| {
+                                    const item = try child.as(T);
+                                    try dest.append(alloc, item);
+                                }
+                            } else {
+                                return error.ExpectedAllocator;
+                            }
+                        }
+                    };
+                }
+                pub fn SegmentedList(comptime T: type, comptime prealloc_item_count: usize) type {
+                    return struct {
+                        pub fn parse(allocator: ?Allocator, value: Value, dest: *inner.SegmentedList(T, prealloc_item_count)) schema.Error!void {
+                            if (allocator) |alloc| {
+                                dest.* = .{};
+                                const arr = try value.asArray();
+                                while (try arr.next()) |child| {
+                                    const item = try child.as(T);
+                                    try dest.append(alloc, item);
+                                }
+                            } else {
+                                return error.ExpectedAllocator;
+                            }
+                        }
+                    };
+                }
+                pub fn SinglyLinkedList(comptime T: type) type {
+                    return struct {
+                        pub fn parse(_: ?Allocator, value: Value, dest: *inner.SinglyLinkedList(T)) schema.Error!void {
+                            dest.* = .{};
+                            const arr = try value.asArray();
+                            while (try arr.next()) |child| {
+                                const item = try child.as(T);
+                                try dest.prepend(item);
+                            }
+                        }
+                    };
+                }
+                pub fn StringArrayHashMap(comptime V: type) type {
+                    return struct {
+                        pub fn parse(allocator: ?Allocator, value: Value, dest: *inner.StringArrayHashMap(V)) schema.Error!void {
+                            if (allocator) |alloc| {
+                                dest.* = .init(alloc);
+                                const obj = try value.asObject();
+                                while (try obj.next()) |field| {
+                                    const key = try field.key.get();
+                                    const val = try field.value.as(V);
+                                    try dest.put(key, val);
+                                }
+                            } else {
+                                return error.ExpectedAllocator;
+                            }
+                        }
+                    };
+                }
+                pub fn StringArrayHashMapUnmanaged(comptime V: type) type {
+                    return struct {
+                        pub fn parse(allocator: ?Allocator, value: Value, dest: *inner.StringArrayHashMapUnmanaged(V)) schema.Error!void {
+                            if (allocator) |alloc| {
+                                dest.* = .empty;
+                                const obj = try value.asObject();
+                                while (try obj.next()) |field| {
+                                    const key = try field.key.get();
+                                    const val = try field.value.as(V);
+                                    try dest.put(alloc, key, val);
+                                }
+                            } else {
+                                return error.ExpectedAllocator;
+                            }
+                        }
+                    };
+                }
+                pub fn StringHashMap(comptime V: type) type {
+                    return struct {
+                        pub fn parse(allocator: ?Allocator, value: Value, dest: *inner.StringHashMap(V)) schema.Error!void {
+                            if (allocator) |alloc| {
+                                dest.* = .init(alloc);
+                                const obj = try value.asObject();
+                                while (try obj.next()) |field| {
+                                    const key = try field.key.get();
+                                    const val = try field.value.as(V);
+                                    try dest.put(key, val);
+                                }
+                            } else {
+                                return error.ExpectedAllocator;
+                            }
+                        }
+                    };
+                }
+                pub fn StringHashMapUnmanaged(comptime V: type) type {
+                    return struct {
+                        pub fn parse(allocator: ?Allocator, value: Value, dest: *inner.StringHashMapUnmanaged(V)) schema.Error!void {
+                            if (allocator) |alloc| {
+                                dest.* = .empty;
+                                const obj = try value.asObject();
+                                while (try obj.next()) |field| {
+                                    const key = try field.key.get();
+                                    const val = try field.value.as(V);
+                                    try dest.put(alloc, key, val);
+                                }
+                            } else {
+                                return error.ExpectedAllocator;
+                            }
+                        }
+                    };
+                }
             };
 
             pub fn Auto(comptime T: type) type {
                 return switch (@typeInfo(T)) {
                     .@"struct" => schema.Struct(T),
                     .@"enum" => schema.Enum(T),
+                    .@"union" => schema.Union(T),
                     else => struct {
-                        parse_with: fn (allocator: ?Allocator, value: Value, dest: *T) Error!void,
+                        parse_with: fn (allocator: ?Allocator, value: Value, dest: *T) schema.Error!void,
                     },
                 };
             }
@@ -1364,20 +1541,21 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 return struct {
                     assume_ordering: bool = false,
                     ignore_unknown_fields: bool = true,
-                    duplicate_field_behavior: schema_utils.DuplicateField = .@"error", // TODO
+                    duplicate_field_behavior: schema_utils.DuplicateField = .@"error",
 
-                    parse_with: ?fn (allocator: ?Allocator, value: Value, dest: *T) Error!void = null,
+                    parse_with: ?fn (allocator: ?Allocator, value: Value, dest: *T) schema.Error!void = null,
                     rename_all: schema_utils.FieldsRenaming = .snake_case,
                     fields: StructFields(T) = .{},
                 };
             }
 
-            pub fn StructFields(comptime T: type) type {
+            fn StructFields(comptime T: type) type {
                 assert(@typeInfo(T) == .@"struct");
                 const fields = inner.meta.fields(T);
                 comptime var schema_fields: [fields.len]inner.builtin.Type.StructField = undefined;
                 for (0..fields.len) |i| {
                     const field = fields[i];
+                    if (field.is_comptime) @compileError("comptime fields are not supported: " ++ @typeName(T) ++ "." ++ field.name);
                     const schema_field = StructField(field.type);
                     schema_fields[i] = .{
                         .type = schema_field,
@@ -1398,7 +1576,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 });
             }
 
-            pub fn StructField(comptime T: type) type {
+            fn StructField(comptime T: type) type {
                 return struct {
                     alias: ?[]const u8 = null,
                     skip: bool = false,
@@ -1406,96 +1584,301 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
-            fn parseStruct(comptime T: type, comptime S: ?schema.Struct(T), allocator: ?Allocator, value: Value, dest: *T) Error!void {
-                const sch: schema.Struct(T) =
-                    if (S) |s| s else if (@hasDecl(T, options.schema_identifier)) @field(T, options.schema_identifier) else .{};
-                const fields = inner.meta.fields(@TypeOf(sch.fields));
+            fn parseStruct(comptime T: type, comptime S: ?schema.Struct(T), allocator: ?Allocator, value: Value, dest: *T) schema.Error!void {
+                const sch: schema.Struct(T) = if (S) |s| s else if (@hasDecl(T, options.schema_identifier)) @field(T, options.schema_identifier) else .{};
                 if (sch.parse_with) |customParseFn| {
                     try customParseFn(allocator, value, dest);
                     return;
                 }
-                const object = try value.asObject();
-                if (sch.assume_ordering) {
-                    inline for (fields) |field| {
-                        const field_opts = @field(sch.fields, field.name);
-                        if (field_opts.skip) continue;
-                        const renamed_key: []const u8 = if (field_opts.alias) |alias| alias else comptime schema_utils.renameField(sch.rename_all, field.name);
-                        const field_value = object.at(renamed_key);
-                        const field_ty = @FieldType(T, field.name);
-                        try AutoParser(field_ty, field_opts.schema).parse(allocator, field_value, &@field(dest, field.name));
+                if (@typeInfo(T).@"struct".is_tuple) {
+                    const fields = inner.meta.fields(T);
+                    const array = try value.asArray();
+                    for (fields) |field| {
+                        if (try array.next()) |item| {
+                            const field_schema = @field(sch.fields, field.name);
+                            try AutoParser(field.type, field_schema.schema).parse(allocator, item, &@field(dest, field.name));
+                        } else {
+                            return error.IncompleteArray;
+                        }
                     }
+                    if (try array.next()) |_| return error.ExpectedArrayEnd;
+                    return;
+                }
+                const object = try value.asObject();
+                return parseStructWithObject(T, S, allocator, object, dest);
+            }
+
+            fn parseStructWithObject(comptime T: type, comptime S: ?schema.Struct(T), allocator: ?Allocator, object: Object, dest: *T) schema.Error!void {
+                const sch: schema.Struct(T) = if (S) |s| s else if (@hasDecl(T, options.schema_identifier)) @field(T, options.schema_identifier) else .{};
+                const fields = inner.meta.fields(T);
+                if (sch.assume_ordering) {
+                    for (fields) |field| {
+                        const field_schema = @field(sch.fields, field.name);
+                        if (field_schema.skip) continue;
+                        const renamed_key: []const u8 = if (field_schema.alias) |alias| alias else comptime schema_utils.renameField(sch.rename_all, field.name);
+                        if (sch.ignore_unknown_fields) {
+                            const field_value = object.at(renamed_key);
+                            try AutoParser(field.type, field_schema.schema).parse(allocator, field_value, &@field(dest, field.name));
+                        } else {
+                            if (try object.next()) |next_field| {
+                                const field_key = try next_field.key.get();
+                                if (!inner.mem.eql(u8, field_key, renamed_key)) return error.UnknownField;
+                                const field_value = next_field.value;
+                                try AutoParser(field.type, field_schema.schema).parse(allocator, field_value, &@field(dest, field.name));
+                            } else return error.MissingField;
+                        }
+                    }
+                    if (!sch.ignore_unknown_fields) if (try object.next()) |_| return error.UnknownField;
                 } else {
-                    comptime var dispatches_mut: [fields.len]struct { []const u8, Dispatch } = undefined;
+                    var seen: [fields.len]bool = @splat(false);
+                    comptime var undefined_count: u16 = 0;
+                    comptime var dispatches_mut: [fields.len]struct { []const u8, StructDispatch } = undefined;
                     inline for (fields, 0..) |field, i| {
-                        const field_opts = @field(sch.fields, field.name);
-                        const field_ty = @FieldType(T, field.name);
-                        const renamed_key: []const u8 = if (field_opts.alias) |alias| alias else comptime schema_utils.renameField(sch.rename_all, field.name);
+                        const field_schema = @field(sch.fields, field.name);
+                        const renamed_key: []const u8 = if (field_schema.alias) |alias| alias else comptime schema_utils.renameField(sch.rename_all, field.name);
+                        const has_default_value = field.default_value_ptr != null;
+                        if (has_default_value and !field_schema.skip) undefined_count += 1;
                         dispatches_mut[i] = .{ renamed_key, .{
                             .offset = @offsetOf(T, field.name),
-                            .parse_fn = if (field_opts.skip) skip else AutoParser(field_ty, field_opts.schema).parseTypeErased,
+                            .has_default_value = has_default_value and !field_schema.skip,
+                            .parse_fn = if (field_schema.skip) skip else AutoParser(field.type, field_schema.schema).parseTypeErased,
                         } };
                     }
                     const dispatches = dispatches_mut;
-                    const struct_map = comptime schema_utils.Map(Dispatch, &dispatches);
+                    const struct_map = comptime schema_utils.Map(StructDispatch, &dispatches);
+                    var undefined_count_runtime = undefined_count;
                     while (try object.next()) |field| {
                         const key = try field.key.get();
-                        const dispatch = struct_map.get(key) orelse if (sch.ignore_unknown_fields) continue else return error.UnknownField;
+                        const field_index = struct_map.getIndex(key) orelse if (sch.ignore_unknown_fields) continue else return error.UnknownField;
+                        if (sch.duplicate_field_behavior != .use_last) {
+                            if (seen[field_index]) {
+                                if (sch.duplicate_field_behavior == .@"error") return error.DuplicateField else continue;
+                            } else {
+                                seen[field_index] = true;
+                            }
+                        }
+                        const dispatch = struct_map.atIndex(field_index);
                         try dispatch.parse_fn(allocator, field.value, @ptrFromInt(@intFromPtr(dest) + dispatch.offset));
+                        if (dispatch.has_default_value) undefined_count_runtime -= 1;
                     }
+                    if (undefined_count_runtime > 0) return error.MissingField;
                 }
             }
 
+            const StructDispatch = struct {
+                offset: u16,
+                has_default_value: bool,
+                parse_fn: *const fn (?Allocator, Value, *anyopaque) schema.Error!void,
+            };
+
             pub fn Enum(comptime T: type) type {
                 return struct {
-                    parse_with: ?fn (allocator: ?Allocator, value: Value, dest: *T) Error!void = null,
+                    parse_with: ?fn (allocator: ?Allocator, value: Value, dest: *T) schema.Error!void = null,
                     rename_all: schema_utils.FieldsRenaming = .snake_case,
                     aliases: schema_utils.EnumFields(T) = .{},
                 };
             }
 
-            fn parseEnum(comptime T: type, comptime S: ?schema.Enum(T), allocator: ?Allocator, value: Value, dest: *T) Error!void {
-                const sch: schema.Enum(T) =
-                    if (S) |s| s else if (@hasDecl(T, options.schema_identifier)) @field(T, options.schema_identifier) else .{};
+            fn parseEnum(comptime T: type, comptime S: ?schema.Enum(T), allocator: ?Allocator, value: Value, dest: *T) schema.Error!void {
+                const sch: schema.Enum(T) = if (S) |s| s else if (@hasDecl(T, options.schema_identifier)) @field(T, options.schema_identifier) else .{};
                 if (sch.parse_with) |customParseFn| {
                     try customParseFn(allocator, value, dest);
                     return;
                 }
+                const variant = try value.asString().get();
+                return parseEnumFromSlice(T, S, variant, dest);
+            }
+
+            fn parseEnumFromSlice(comptime T: type, comptime S: ?schema.Enum(T), slice: []const u8, dest: *T) schema.Error!void {
+                const sch: schema.Enum(T) = if (S) |s| s else if (@hasDecl(T, options.schema_identifier)) @field(T, options.schema_identifier) else .{};
                 const fields = inner.meta.fields(T);
                 comptime var dispatches_mut: [fields.len]struct { []const u8, T } = undefined;
-                inline for (fields, 0..) |field, i| {
+                for (fields, 0..) |field, i| {
                     const field_rename = @field(sch.aliases, field.name);
-                    const renamed_key: []const u8 = if (field_rename) |rename| rename else comptime schema_utils.renameField(sch.rename_all, field.name);
-                    dispatches_mut[i] = .{ renamed_key, @field(T, field.name) };
+                    const renamed_variant: []const u8 = if (field_rename) |rename| rename else comptime schema_utils.renameField(sch.rename_all, field.name);
+                    dispatches_mut[i] = .{ renamed_variant, @field(T, field.name) };
                 }
                 const dispatches = dispatches_mut;
                 const enum_map = comptime schema_utils.Map(T, &dispatches);
-                const str = try value.asString().get();
-                const enum_literal = enum_map.get(str) orelse return error.UnknownEnum;
+                const enum_literal = enum_map.get(slice) orelse return error.UnknownEnumLiteral;
                 dest.* = enum_literal;
             }
 
-            fn skip(_: ?Allocator, value: Value, _: *anyopaque) Error!void {
+            pub fn Union(comptime T: type) type {
+                return struct {
+                    parse_with: ?fn (allocator: ?Allocator, value: Value, dest: *T) schema.Error!void = null,
+                    rename_all: schema_utils.FieldsRenaming = .snake_case,
+                    representation: schema_utils.UnionRepresentation = .externally_tagged,
+                    fields: UnionFields(T) = .{},
+                };
+            }
+
+            fn UnionFields(comptime T: type) type {
+                assert(@typeInfo(T) == .@"union");
+                const fields = inner.meta.fields(T);
+                comptime var schema_fields: [fields.len]inner.builtin.Type.StructField = undefined;
+                for (0..fields.len) |i| {
+                    const field = fields[i];
+                    const schema_field = UnionField(field.type);
+                    schema_fields[i] = .{
+                        .type = schema_field,
+                        .name = field.name,
+                        .default_value_ptr = &schema_field{},
+                        .is_comptime = false,
+                        .alignment = @alignOf(schema_field),
+                    };
+                }
+                const sf = schema_fields;
+                return @Type(.{
+                    .@"struct" = .{
+                        .fields = &sf,
+                        .layout = .auto,
+                        .decls = &.{},
+                        .is_tuple = false,
+                    },
+                });
+            }
+
+            fn UnionField(comptime T: type) type {
+                return struct {
+                    alias: ?[]const u8 = null,
+                    schema: ?schema.Auto(T) = null,
+                };
+            }
+
+            fn parseUnion(comptime T: type, comptime S: ?schema.Union(T), allocator: ?Allocator, value: Value, dest: *T) schema.Error!void {
+                const sch: schema.Union(T) = if (S) |s| s else if (@hasDecl(T, options.schema_identifier)) @field(T, options.schema_identifier) else .{};
+                const fields = inner.meta.fields(T);
+                if (sch.parse_with) |customParseFn| {
+                    try customParseFn(allocator, value, dest);
+                    return;
+                }
+                if (sch.representation == .untagged) {
+                    const last_cursor_strings = value.iter.cursor.strings;
+                    for (fields) |field| {
+                        const field_schema = @field(sch.fields, field.name);
+                        var payload = schema_utils.undefinedInit(field.type);
+                        AutoParser(field.type, field_schema.schema).parse(allocator, value, &payload) catch {
+                            try value.iter.cursor.tokens.revert(value.iter.start_position);
+                            value.iter.cursor.depth = value.iter.start_depth;
+                            value.iter.cursor.strings = last_cursor_strings;
+                            continue;
+                        };
+                        dest.* = @unionInit(T, field.name, payload);
+                        return;
+                    }
+                    return error.UnknownUnionVariant;
+                } else {
+                    const tag_sch = brk: {
+                        if (@typeInfo(T).@"union".tag_type) |tag_type| {
+                            break :brk @as(?schema.Enum(tag_type), if (@hasDecl(tag_type, options.schema_identifier)) @field(tag_type, options.schema_identifier) else .{});
+                        } else {
+                            break :brk null;
+                        }
+                    };
+                    comptime var dispatches_mut: [fields.len]struct { []const u8, UnionDispatch } = undefined;
+                    inline for (fields, 0..) |field, i| {
+                        const field_schema = @field(sch.fields, field.name);
+                        const renamed_variant: []const u8 = brk: {
+                            const tag_alias: ?[]const u8 = if (tag_sch) |tag| if (@field(tag.aliases, field.name)) |tag_alias| tag_alias else null else null;
+                            if (tag_alias) |alias| break :brk alias;
+                            break :brk if (field_schema.alias) |alias| alias else comptime schema_utils.renameField(sch.rename_all, field.name);
+                        };
+                        dispatches_mut[i] = .{ renamed_variant, .{
+                            .parse_fn = TaggedUnionParser(T, sch.representation, field, field_schema.schema).parseTypeErased,
+                        } };
+                    }
+                    const dispatches = dispatches_mut;
+                    const union_map = comptime schema_utils.Map(UnionDispatch, &dispatches);
+                    switch (sch.representation) {
+                        .externally_tagged => {
+                            const object = try value.asObject();
+                            if (try object.next()) |content| {
+                                const tag_key = try content.key.get();
+                                const dispatch = union_map.get(tag_key) orelse return error.UnknownUnionVariant;
+                                try dispatch.parse_fn(allocator, content.value, dest);
+                            } else return error.MissingField;
+                            if (try object.next()) |_| return error.ExpectedObjectEnd;
+                        },
+                        .internally_tagged => |t| {
+                            const object = try value.asObject();
+                            if (try object.next()) |tag| {
+                                const tag_key = try tag.key.get();
+                                if (!inner.mem.eql(u8, tag_key, t)) return error.UnknownField;
+                                const tag_value = try tag.value.asString().get();
+                                const dispatch = union_map.get(tag_value) orelse return error.UnknownUnionVariant;
+                                try dispatch.parse_fn(allocator, value, dest);
+                            } else return error.MissingField;
+                        },
+                        .adjacently_tagged => |a| {
+                            const object = try value.asObject();
+                            if (try object.next()) |tag| {
+                                const tag_key = try tag.key.get();
+                                if (!inner.mem.eql(u8, tag_key, a.tag)) return error.UnknownField;
+                                if (try object.next()) |content| {
+                                    const content_key = try content.key.get();
+                                    if (!inner.mem.eql(u8, content_key, a.content)) return error.UnknownField;
+                                    const tag_value = try tag.value.asString().get();
+                                    const dispatch = union_map.get(tag_value) orelse return error.UnknownUnionVariant;
+                                    try dispatch.parse_fn(allocator, content.value, dest);
+                                } else return error.MissingField;
+                                if (try object.next()) |_| return error.ExpectedObjectEnd;
+                            } else return error.MissingField;
+                        },
+                        else => unreachable,
+                    }
+                }
+            }
+
+            const UnionDispatch = struct {
+                parse_fn: *const fn (?Allocator, Value, *anyopaque) schema.Error!void,
+            };
+
+            fn TaggedUnionParser(
+                comptime T: type,
+                comptime repr: schema_utils.UnionRepresentation,
+                comptime F: inner.builtin.Type.UnionField,
+                comptime G: ?schema.Auto(F.type),
+            ) type {
+                return struct {
+                    pub fn parse(allocator: ?Allocator, value: Value, dest: *T) schema.Error!void {
+                        if (repr == .internally_tagged) {
+                            assert(@typeInfo(F.type) == .@"struct");
+                            var payload = schema_utils.undefinedInit(F.type);
+                            try parseStructWithObject(F.type, G, allocator, .{ .iter = value.iter }, &payload);
+                            dest.* = @unionInit(T, F.name, payload);
+                        } else {
+                            var payload = schema_utils.undefinedInit(F.type);
+                            try AutoParser(F.type, G).parse(allocator, value, &payload);
+                            dest.* = @unionInit(T, F.name, payload);
+                        }
+                    }
+
+                    pub fn parseTypeErased(allocator: ?Allocator, value: Value, dest: *anyopaque) schema.Error!void {
+                        const typed_dest: *T = @alignCast(@ptrCast(dest));
+                        return @This().parse(allocator, value, typed_dest);
+                    }
+                };
+            }
+
+            fn skip(_: ?Allocator, value: Value, _: *anyopaque) schema.Error!void {
                 return value.skip();
             }
 
-            const Dispatch = struct {
-                offset: usize,
-                parse_fn: *const fn (?Allocator, Value, *anyopaque) Error!void,
-            };
-
             fn AutoParser(comptime T: type, comptime S: ?schema.Auto(T)) type {
                 return struct {
-                    pub fn parse(allocator: ?Allocator, value: Value, dest: *T) Error!void {
+                    pub fn parse(allocator: ?Allocator, value: Value, dest: *T) schema.Error!void {
                         if (S) |s| {
                             if (@typeInfo(T) == .@"struct") return parseStruct(T, S, allocator, value, dest);
                             if (@typeInfo(T) == .@"enum") return parseEnum(T, S, allocator, value, dest);
+                            if (@typeInfo(T) == .@"union") return parseUnion(T, S, allocator, value, dest);
                             return s.parse_with(allocator, value, dest);
                         } else {
                             try value.asRef(T, dest);
                         }
                     }
 
-                    pub fn parseTypeErased(allocator: ?Allocator, value: Value, dest: *anyopaque) Error!void {
+                    pub fn parseTypeErased(allocator: ?Allocator, value: Value, dest: *anyopaque) schema.Error!void {
                         const typed_dest: *T = @alignCast(@ptrCast(dest));
                         return @This().parse(allocator, value, typed_dest);
                     }
@@ -1560,6 +1943,16 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
 
 pub const schema_utils = struct {
     pub const Map = @import("schema_map.zig").SchemaMap;
+
+    const UnionRepresentation = union(enum) {
+        externally_tagged,
+        internally_tagged: []const u8,
+        adjacently_tagged: struct {
+            tag: []const u8,
+            content: []const u8,
+        },
+        untagged,
+    };
 
     const FieldsRenaming = enum {
         lowercase,
@@ -1636,5 +2029,16 @@ pub const schema_utils = struct {
                 .is_tuple = false,
             },
         });
+    }
+
+    fn undefinedInit(comptime T: type) T {
+        const info = @typeInfo(T);
+        if (info != .@"struct") return undefined;
+        comptime var result: T = undefined;
+        inline for (std.meta.fields(T)) |field| {
+            const default_value: *field.type = @alignCast(@ptrCast(field.default_value_ptr orelse continue));
+            @field(result, field.name) = default_value.*;
+        }
+        return result;
     }
 };

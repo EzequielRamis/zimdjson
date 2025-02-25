@@ -44,13 +44,29 @@ fn StaticHashTable(comptime T: type, comptime n: usize) type {
         pub fn get(self: Self, key: []const u8) ?T {
             const index: layout.index = @intCast(hash(self.seed, key) & (layout.table_len - 1));
             const buckets = self.table[index];
-            inline for (buckets) |offset| {
+            for (buckets) |offset| {
                 const kv = self.kvs[offset];
                 if (std.mem.eql(u8, key, kv[0])) {
                     return kv[1];
                 }
             }
             return null;
+        }
+
+        pub fn getIndex(self: Self, key: []const u8) ?usize {
+            const index: layout.index = @intCast(hash(self.seed, key) & (layout.table_len - 1));
+            const buckets = self.table[index];
+            for (buckets) |offset| {
+                const kv = self.kvs[offset];
+                if (std.mem.eql(u8, key, kv[0])) {
+                    return offset;
+                }
+            }
+            return null;
+        }
+
+        pub fn atIndex(self: Self, index: usize) T {
+            return self.kvs[index][1];
         }
     };
 }

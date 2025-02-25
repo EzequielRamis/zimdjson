@@ -1,13 +1,13 @@
 //! This file is auto-generated with `zig build test/generate`
 
 const std = @import("std");
-const dom = @import("zimdjson").dom;
-const Reader = @import("zimdjson").io.Reader(.{});
+const zimdjson = @import("zimdjson");
+const Parser = zimdjson.dom.parserFromFile(.default);
 const simdjson_data = @embedFile("simdjson-data");
 
 test "1" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1.json", .{});
     defer file.close();
@@ -17,7 +17,7 @@ test "1" {
 
 test "10" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/10.json", .{});
     defer file.close();
@@ -27,7 +27,7 @@ test "10" {
 
 test "100" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/100.json", .{});
     defer file.close();
@@ -37,7 +37,7 @@ test "100" {
 
 test "1000" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1000.json", .{});
     defer file.close();
@@ -47,7 +47,7 @@ test "1000" {
 
 test "1001" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1001.json", .{});
     defer file.close();
@@ -57,7 +57,7 @@ test "1001" {
 
 test "1002" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1002.json", .{});
     defer file.close();
@@ -67,7 +67,7 @@ test "1002" {
 
 test "1003" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1003.json", .{});
     defer file.close();
@@ -77,7 +77,7 @@ test "1003" {
 
 test "1004" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1004.json", .{});
     defer file.close();
@@ -87,7 +87,7 @@ test "1004" {
 
 test "1005" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1005.json", .{});
     defer file.close();
@@ -97,7 +97,7 @@ test "1005" {
 
 test "1006" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1006.json", .{});
     defer file.close();
@@ -107,7 +107,7 @@ test "1006" {
 
 test "1007" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1007.json", .{});
     defer file.close();
@@ -117,7 +117,7 @@ test "1007" {
 
 test "1008" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1008.json", .{});
     defer file.close();
@@ -127,7 +127,7 @@ test "1008" {
 
 test "1009" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1009.json", .{});
     defer file.close();
@@ -137,7 +137,7 @@ test "1009" {
 
 test "101" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/101.json", .{});
     defer file.close();
@@ -147,7 +147,7 @@ test "101" {
 
 test "1010" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1010.json", .{});
     defer file.close();
@@ -157,7 +157,7 @@ test "1010" {
 
 test "1011" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1011.json", .{});
     defer file.close();
@@ -167,7 +167,7 @@ test "1011" {
 
 test "1012" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1012.json", .{});
     defer file.close();
@@ -177,7 +177,7 @@ test "1012" {
 
 test "1013" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1013.json", .{});
     defer file.close();
@@ -187,7 +187,7 @@ test "1013" {
 
 test "1014" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1014.json", .{});
     defer file.close();
@@ -197,7 +197,7 @@ test "1014" {
 
 test "1015" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1015.json", .{});
     defer file.close();
@@ -207,7 +207,7 @@ test "1015" {
 
 test "1016" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1016.json", .{});
     defer file.close();
@@ -217,7 +217,7 @@ test "1016" {
 
 test "1017" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1017.json", .{});
     defer file.close();
@@ -227,7 +227,7 @@ test "1017" {
 
 test "1018" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1018.json", .{});
     defer file.close();
@@ -237,7 +237,7 @@ test "1018" {
 
 test "1019" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1019.json", .{});
     defer file.close();
@@ -247,7 +247,7 @@ test "1019" {
 
 test "102" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/102.json", .{});
     defer file.close();
@@ -257,7 +257,7 @@ test "102" {
 
 test "1020" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1020.json", .{});
     defer file.close();
@@ -267,7 +267,7 @@ test "1020" {
 
 test "1021" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1021.json", .{});
     defer file.close();
@@ -277,7 +277,7 @@ test "1021" {
 
 test "1022" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1022.json", .{});
     defer file.close();
@@ -287,7 +287,7 @@ test "1022" {
 
 test "1023" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1023.json", .{});
     defer file.close();
@@ -297,7 +297,7 @@ test "1023" {
 
 test "1024" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1024.json", .{});
     defer file.close();
@@ -307,7 +307,7 @@ test "1024" {
 
 test "1025" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1025.json", .{});
     defer file.close();
@@ -317,7 +317,7 @@ test "1025" {
 
 test "1026" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1026.json", .{});
     defer file.close();
@@ -327,7 +327,7 @@ test "1026" {
 
 test "1027" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1027.json", .{});
     defer file.close();
@@ -337,7 +337,7 @@ test "1027" {
 
 test "1028" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1028.json", .{});
     defer file.close();
@@ -347,7 +347,7 @@ test "1028" {
 
 test "1029" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1029.json", .{});
     defer file.close();
@@ -357,7 +357,7 @@ test "1029" {
 
 test "103" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/103.json", .{});
     defer file.close();
@@ -367,7 +367,7 @@ test "103" {
 
 test "1030" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1030.json", .{});
     defer file.close();
@@ -377,7 +377,7 @@ test "1030" {
 
 test "1031" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1031.json", .{});
     defer file.close();
@@ -387,7 +387,7 @@ test "1031" {
 
 test "1032" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1032.json", .{});
     defer file.close();
@@ -397,7 +397,7 @@ test "1032" {
 
 test "1033" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1033.json", .{});
     defer file.close();
@@ -407,7 +407,7 @@ test "1033" {
 
 test "1034" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1034.json", .{});
     defer file.close();
@@ -417,7 +417,7 @@ test "1034" {
 
 test "1035" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1035.json", .{});
     defer file.close();
@@ -427,7 +427,7 @@ test "1035" {
 
 test "1036" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1036.json", .{});
     defer file.close();
@@ -437,7 +437,7 @@ test "1036" {
 
 test "1037" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1037.json", .{});
     defer file.close();
@@ -447,7 +447,7 @@ test "1037" {
 
 test "1038" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1038.json", .{});
     defer file.close();
@@ -457,7 +457,7 @@ test "1038" {
 
 test "1039" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1039.json", .{});
     defer file.close();
@@ -467,7 +467,7 @@ test "1039" {
 
 test "104" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/104.json", .{});
     defer file.close();
@@ -477,7 +477,7 @@ test "104" {
 
 test "1040" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1040.json", .{});
     defer file.close();
@@ -487,7 +487,7 @@ test "1040" {
 
 test "1041" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1041.json", .{});
     defer file.close();
@@ -497,7 +497,7 @@ test "1041" {
 
 test "1042" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1042.json", .{});
     defer file.close();
@@ -507,7 +507,7 @@ test "1042" {
 
 test "1043" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1043.json", .{});
     defer file.close();
@@ -517,7 +517,7 @@ test "1043" {
 
 test "1044" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1044.json", .{});
     defer file.close();
@@ -527,7 +527,7 @@ test "1044" {
 
 test "1045" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1045.json", .{});
     defer file.close();
@@ -537,7 +537,7 @@ test "1045" {
 
 test "1046" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1046.json", .{});
     defer file.close();
@@ -547,7 +547,7 @@ test "1046" {
 
 test "1047" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1047.json", .{});
     defer file.close();
@@ -557,7 +557,7 @@ test "1047" {
 
 test "1048" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1048.json", .{});
     defer file.close();
@@ -567,7 +567,7 @@ test "1048" {
 
 test "1049" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1049.json", .{});
     defer file.close();
@@ -577,7 +577,7 @@ test "1049" {
 
 test "105" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/105.json", .{});
     defer file.close();
@@ -587,7 +587,7 @@ test "105" {
 
 test "1050" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1050.json", .{});
     defer file.close();
@@ -597,7 +597,7 @@ test "1050" {
 
 test "1051" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1051.json", .{});
     defer file.close();
@@ -607,7 +607,7 @@ test "1051" {
 
 test "1052" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1052.json", .{});
     defer file.close();
@@ -617,7 +617,7 @@ test "1052" {
 
 test "1053" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1053.json", .{});
     defer file.close();
@@ -627,7 +627,7 @@ test "1053" {
 
 test "1054" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1054.json", .{});
     defer file.close();
@@ -637,7 +637,7 @@ test "1054" {
 
 test "1055" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1055.json", .{});
     defer file.close();
@@ -647,7 +647,7 @@ test "1055" {
 
 test "1056" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1056.json", .{});
     defer file.close();
@@ -657,7 +657,7 @@ test "1056" {
 
 test "1057" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1057.json", .{});
     defer file.close();
@@ -667,7 +667,7 @@ test "1057" {
 
 test "1058" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1058.json", .{});
     defer file.close();
@@ -677,7 +677,7 @@ test "1058" {
 
 test "1059" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1059.json", .{});
     defer file.close();
@@ -687,7 +687,7 @@ test "1059" {
 
 test "106" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/106.json", .{});
     defer file.close();
@@ -697,7 +697,7 @@ test "106" {
 
 test "1060" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1060.json", .{});
     defer file.close();
@@ -707,7 +707,7 @@ test "1060" {
 
 test "1061" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1061.json", .{});
     defer file.close();
@@ -717,7 +717,7 @@ test "1061" {
 
 test "1062" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1062.json", .{});
     defer file.close();
@@ -727,7 +727,7 @@ test "1062" {
 
 test "1063" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1063.json", .{});
     defer file.close();
@@ -737,7 +737,7 @@ test "1063" {
 
 test "1064" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1064.json", .{});
     defer file.close();
@@ -747,7 +747,7 @@ test "1064" {
 
 test "1065" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1065.json", .{});
     defer file.close();
@@ -757,7 +757,7 @@ test "1065" {
 
 test "1066" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1066.json", .{});
     defer file.close();
@@ -767,7 +767,7 @@ test "1066" {
 
 test "1067" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1067.json", .{});
     defer file.close();
@@ -777,7 +777,7 @@ test "1067" {
 
 test "1068" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1068.json", .{});
     defer file.close();
@@ -787,7 +787,7 @@ test "1068" {
 
 test "1069" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1069.json", .{});
     defer file.close();
@@ -797,7 +797,7 @@ test "1069" {
 
 test "107" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/107.json", .{});
     defer file.close();
@@ -807,7 +807,7 @@ test "107" {
 
 test "1070" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1070.json", .{});
     defer file.close();
@@ -817,7 +817,7 @@ test "1070" {
 
 test "1071" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1071.json", .{});
     defer file.close();
@@ -827,7 +827,7 @@ test "1071" {
 
 test "1072" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1072.json", .{});
     defer file.close();
@@ -837,7 +837,7 @@ test "1072" {
 
 test "1073" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1073.json", .{});
     defer file.close();
@@ -847,7 +847,7 @@ test "1073" {
 
 test "1074" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1074.json", .{});
     defer file.close();
@@ -857,7 +857,7 @@ test "1074" {
 
 test "1075" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1075.json", .{});
     defer file.close();
@@ -867,7 +867,7 @@ test "1075" {
 
 test "1076" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1076.json", .{});
     defer file.close();
@@ -877,7 +877,7 @@ test "1076" {
 
 test "1077" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1077.json", .{});
     defer file.close();
@@ -887,7 +887,7 @@ test "1077" {
 
 test "1078" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1078.json", .{});
     defer file.close();
@@ -897,7 +897,7 @@ test "1078" {
 
 test "1079" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1079.json", .{});
     defer file.close();
@@ -907,7 +907,7 @@ test "1079" {
 
 test "108" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/108.json", .{});
     defer file.close();
@@ -917,7 +917,7 @@ test "108" {
 
 test "1080" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1080.json", .{});
     defer file.close();
@@ -927,7 +927,7 @@ test "1080" {
 
 test "1081" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1081.json", .{});
     defer file.close();
@@ -937,7 +937,7 @@ test "1081" {
 
 test "1082" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1082.json", .{});
     defer file.close();
@@ -947,7 +947,7 @@ test "1082" {
 
 test "1083" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1083.json", .{});
     defer file.close();
@@ -957,7 +957,7 @@ test "1083" {
 
 test "1084" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1084.json", .{});
     defer file.close();
@@ -967,7 +967,7 @@ test "1084" {
 
 test "1085" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1085.json", .{});
     defer file.close();
@@ -977,7 +977,7 @@ test "1085" {
 
 test "1086" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1086.json", .{});
     defer file.close();
@@ -987,7 +987,7 @@ test "1086" {
 
 test "1087" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1087.json", .{});
     defer file.close();
@@ -997,7 +997,7 @@ test "1087" {
 
 test "1088" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1088.json", .{});
     defer file.close();
@@ -1007,7 +1007,7 @@ test "1088" {
 
 test "1089" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1089.json", .{});
     defer file.close();
@@ -1017,7 +1017,7 @@ test "1089" {
 
 test "109" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/109.json", .{});
     defer file.close();
@@ -1027,7 +1027,7 @@ test "109" {
 
 test "1090" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1090.json", .{});
     defer file.close();
@@ -1037,7 +1037,7 @@ test "1090" {
 
 test "1091" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1091.json", .{});
     defer file.close();
@@ -1047,7 +1047,7 @@ test "1091" {
 
 test "1092" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1092.json", .{});
     defer file.close();
@@ -1057,7 +1057,7 @@ test "1092" {
 
 test "1093" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1093.json", .{});
     defer file.close();
@@ -1067,7 +1067,7 @@ test "1093" {
 
 test "1094" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1094.json", .{});
     defer file.close();
@@ -1077,7 +1077,7 @@ test "1094" {
 
 test "1095" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1095.json", .{});
     defer file.close();
@@ -1087,7 +1087,7 @@ test "1095" {
 
 test "1096" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1096.json", .{});
     defer file.close();
@@ -1097,7 +1097,7 @@ test "1096" {
 
 test "1097" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1097.json", .{});
     defer file.close();
@@ -1107,7 +1107,7 @@ test "1097" {
 
 test "1098" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1098.json", .{});
     defer file.close();
@@ -1117,7 +1117,7 @@ test "1098" {
 
 test "1099" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1099.json", .{});
     defer file.close();
@@ -1127,7 +1127,7 @@ test "1099" {
 
 test "11" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/11.json", .{});
     defer file.close();
@@ -1137,7 +1137,7 @@ test "11" {
 
 test "110" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/110.json", .{});
     defer file.close();
@@ -1147,7 +1147,7 @@ test "110" {
 
 test "1100" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1100.json", .{});
     defer file.close();
@@ -1157,7 +1157,7 @@ test "1100" {
 
 test "1101" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1101.json", .{});
     defer file.close();
@@ -1167,7 +1167,7 @@ test "1101" {
 
 test "1102" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1102.json", .{});
     defer file.close();
@@ -1177,7 +1177,7 @@ test "1102" {
 
 test "1103" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1103.json", .{});
     defer file.close();
@@ -1187,7 +1187,7 @@ test "1103" {
 
 test "1104" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1104.json", .{});
     defer file.close();
@@ -1197,7 +1197,7 @@ test "1104" {
 
 test "1105" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1105.json", .{});
     defer file.close();
@@ -1207,7 +1207,7 @@ test "1105" {
 
 test "1106" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1106.json", .{});
     defer file.close();
@@ -1217,7 +1217,7 @@ test "1106" {
 
 test "1107" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1107.json", .{});
     defer file.close();
@@ -1227,7 +1227,7 @@ test "1107" {
 
 test "1108" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1108.json", .{});
     defer file.close();
@@ -1237,7 +1237,7 @@ test "1108" {
 
 test "1109" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1109.json", .{});
     defer file.close();
@@ -1247,7 +1247,7 @@ test "1109" {
 
 test "111" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/111.json", .{});
     defer file.close();
@@ -1257,7 +1257,7 @@ test "111" {
 
 test "1110" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1110.json", .{});
     defer file.close();
@@ -1267,7 +1267,7 @@ test "1110" {
 
 test "1111" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1111.json", .{});
     defer file.close();
@@ -1277,7 +1277,7 @@ test "1111" {
 
 test "1112" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1112.json", .{});
     defer file.close();
@@ -1287,7 +1287,7 @@ test "1112" {
 
 test "1113" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1113.json", .{});
     defer file.close();
@@ -1297,7 +1297,7 @@ test "1113" {
 
 test "1114" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1114.json", .{});
     defer file.close();
@@ -1307,7 +1307,7 @@ test "1114" {
 
 test "1115" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1115.json", .{});
     defer file.close();
@@ -1317,7 +1317,7 @@ test "1115" {
 
 test "1116" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1116.json", .{});
     defer file.close();
@@ -1327,7 +1327,7 @@ test "1116" {
 
 test "1117" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1117.json", .{});
     defer file.close();
@@ -1337,7 +1337,7 @@ test "1117" {
 
 test "1118" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1118.json", .{});
     defer file.close();
@@ -1347,7 +1347,7 @@ test "1118" {
 
 test "1119" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1119.json", .{});
     defer file.close();
@@ -1357,7 +1357,7 @@ test "1119" {
 
 test "112" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/112.json", .{});
     defer file.close();
@@ -1367,7 +1367,7 @@ test "112" {
 
 test "1120" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1120.json", .{});
     defer file.close();
@@ -1377,7 +1377,7 @@ test "1120" {
 
 test "1121" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1121.json", .{});
     defer file.close();
@@ -1387,7 +1387,7 @@ test "1121" {
 
 test "1122" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1122.json", .{});
     defer file.close();
@@ -1397,7 +1397,7 @@ test "1122" {
 
 test "1123" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1123.json", .{});
     defer file.close();
@@ -1407,7 +1407,7 @@ test "1123" {
 
 test "1124" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1124.json", .{});
     defer file.close();
@@ -1417,7 +1417,7 @@ test "1124" {
 
 test "1125" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1125.json", .{});
     defer file.close();
@@ -1427,7 +1427,7 @@ test "1125" {
 
 test "1126" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1126.json", .{});
     defer file.close();
@@ -1437,7 +1437,7 @@ test "1126" {
 
 test "1127" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1127.json", .{});
     defer file.close();
@@ -1447,7 +1447,7 @@ test "1127" {
 
 test "1128" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1128.json", .{});
     defer file.close();
@@ -1457,7 +1457,7 @@ test "1128" {
 
 test "1129" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1129.json", .{});
     defer file.close();
@@ -1467,7 +1467,7 @@ test "1129" {
 
 test "113" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/113.json", .{});
     defer file.close();
@@ -1477,7 +1477,7 @@ test "113" {
 
 test "1130" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1130.json", .{});
     defer file.close();
@@ -1487,7 +1487,7 @@ test "1130" {
 
 test "1131" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1131.json", .{});
     defer file.close();
@@ -1497,7 +1497,7 @@ test "1131" {
 
 test "1132" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1132.json", .{});
     defer file.close();
@@ -1507,7 +1507,7 @@ test "1132" {
 
 test "1133" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1133.json", .{});
     defer file.close();
@@ -1517,7 +1517,7 @@ test "1133" {
 
 test "1134" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1134.json", .{});
     defer file.close();
@@ -1527,7 +1527,7 @@ test "1134" {
 
 test "1135" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1135.json", .{});
     defer file.close();
@@ -1537,7 +1537,7 @@ test "1135" {
 
 test "1136" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1136.json", .{});
     defer file.close();
@@ -1547,7 +1547,7 @@ test "1136" {
 
 test "1137" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1137.json", .{});
     defer file.close();
@@ -1557,7 +1557,7 @@ test "1137" {
 
 test "1138" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1138.json", .{});
     defer file.close();
@@ -1567,7 +1567,7 @@ test "1138" {
 
 test "1139" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1139.json", .{});
     defer file.close();
@@ -1577,7 +1577,7 @@ test "1139" {
 
 test "114" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/114.json", .{});
     defer file.close();
@@ -1587,7 +1587,7 @@ test "114" {
 
 test "1140" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1140.json", .{});
     defer file.close();
@@ -1597,7 +1597,7 @@ test "1140" {
 
 test "1141" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1141.json", .{});
     defer file.close();
@@ -1607,7 +1607,7 @@ test "1141" {
 
 test "1142" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1142.json", .{});
     defer file.close();
@@ -1617,7 +1617,7 @@ test "1142" {
 
 test "1143" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1143.json", .{});
     defer file.close();
@@ -1627,7 +1627,7 @@ test "1143" {
 
 test "1144" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1144.json", .{});
     defer file.close();
@@ -1637,7 +1637,7 @@ test "1144" {
 
 test "1145" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1145.json", .{});
     defer file.close();
@@ -1647,7 +1647,7 @@ test "1145" {
 
 test "1146" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1146.json", .{});
     defer file.close();
@@ -1657,7 +1657,7 @@ test "1146" {
 
 test "1147" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1147.json", .{});
     defer file.close();
@@ -1667,7 +1667,7 @@ test "1147" {
 
 test "1148" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1148.json", .{});
     defer file.close();
@@ -1677,7 +1677,7 @@ test "1148" {
 
 test "1149" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1149.json", .{});
     defer file.close();
@@ -1687,7 +1687,7 @@ test "1149" {
 
 test "115" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/115.json", .{});
     defer file.close();
@@ -1697,7 +1697,7 @@ test "115" {
 
 test "1150" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1150.json", .{});
     defer file.close();
@@ -1707,7 +1707,7 @@ test "1150" {
 
 test "1151" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1151.json", .{});
     defer file.close();
@@ -1717,7 +1717,7 @@ test "1151" {
 
 test "1152" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1152.json", .{});
     defer file.close();
@@ -1727,7 +1727,7 @@ test "1152" {
 
 test "1153" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1153.json", .{});
     defer file.close();
@@ -1737,7 +1737,7 @@ test "1153" {
 
 test "1154" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1154.json", .{});
     defer file.close();
@@ -1747,7 +1747,7 @@ test "1154" {
 
 test "1155" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1155.json", .{});
     defer file.close();
@@ -1757,7 +1757,7 @@ test "1155" {
 
 test "1156" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1156.json", .{});
     defer file.close();
@@ -1767,7 +1767,7 @@ test "1156" {
 
 test "1157" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1157.json", .{});
     defer file.close();
@@ -1777,7 +1777,7 @@ test "1157" {
 
 test "1158" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1158.json", .{});
     defer file.close();
@@ -1787,7 +1787,7 @@ test "1158" {
 
 test "1159" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1159.json", .{});
     defer file.close();
@@ -1797,7 +1797,7 @@ test "1159" {
 
 test "116" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/116.json", .{});
     defer file.close();
@@ -1807,7 +1807,7 @@ test "116" {
 
 test "1160" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1160.json", .{});
     defer file.close();
@@ -1817,7 +1817,7 @@ test "1160" {
 
 test "1161" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1161.json", .{});
     defer file.close();
@@ -1827,7 +1827,7 @@ test "1161" {
 
 test "1162" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1162.json", .{});
     defer file.close();
@@ -1837,7 +1837,7 @@ test "1162" {
 
 test "1163" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1163.json", .{});
     defer file.close();
@@ -1847,7 +1847,7 @@ test "1163" {
 
 test "1164" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1164.json", .{});
     defer file.close();
@@ -1857,7 +1857,7 @@ test "1164" {
 
 test "1165" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1165.json", .{});
     defer file.close();
@@ -1867,7 +1867,7 @@ test "1165" {
 
 test "1166" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1166.json", .{});
     defer file.close();
@@ -1877,7 +1877,7 @@ test "1166" {
 
 test "1167" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1167.json", .{});
     defer file.close();
@@ -1887,7 +1887,7 @@ test "1167" {
 
 test "1168" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1168.json", .{});
     defer file.close();
@@ -1897,7 +1897,7 @@ test "1168" {
 
 test "1169" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1169.json", .{});
     defer file.close();
@@ -1907,7 +1907,7 @@ test "1169" {
 
 test "117" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/117.json", .{});
     defer file.close();
@@ -1917,7 +1917,7 @@ test "117" {
 
 test "1170" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1170.json", .{});
     defer file.close();
@@ -1927,7 +1927,7 @@ test "1170" {
 
 test "1171" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1171.json", .{});
     defer file.close();
@@ -1937,7 +1937,7 @@ test "1171" {
 
 test "1172" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1172.json", .{});
     defer file.close();
@@ -1947,7 +1947,7 @@ test "1172" {
 
 test "1173" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1173.json", .{});
     defer file.close();
@@ -1957,7 +1957,7 @@ test "1173" {
 
 test "1174" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1174.json", .{});
     defer file.close();
@@ -1967,7 +1967,7 @@ test "1174" {
 
 test "1175" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1175.json", .{});
     defer file.close();
@@ -1977,7 +1977,7 @@ test "1175" {
 
 test "1176" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1176.json", .{});
     defer file.close();
@@ -1987,7 +1987,7 @@ test "1176" {
 
 test "1177" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1177.json", .{});
     defer file.close();
@@ -1997,7 +1997,7 @@ test "1177" {
 
 test "1178" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1178.json", .{});
     defer file.close();
@@ -2007,7 +2007,7 @@ test "1178" {
 
 test "1179" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1179.json", .{});
     defer file.close();
@@ -2017,7 +2017,7 @@ test "1179" {
 
 test "118" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/118.json", .{});
     defer file.close();
@@ -2027,7 +2027,7 @@ test "118" {
 
 test "1180" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1180.json", .{});
     defer file.close();
@@ -2037,7 +2037,7 @@ test "1180" {
 
 test "1181" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1181.json", .{});
     defer file.close();
@@ -2047,7 +2047,7 @@ test "1181" {
 
 test "1182" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1182.json", .{});
     defer file.close();
@@ -2057,7 +2057,7 @@ test "1182" {
 
 test "1183" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1183.json", .{});
     defer file.close();
@@ -2067,7 +2067,7 @@ test "1183" {
 
 test "1184" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1184.json", .{});
     defer file.close();
@@ -2077,7 +2077,7 @@ test "1184" {
 
 test "1185" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1185.json", .{});
     defer file.close();
@@ -2087,7 +2087,7 @@ test "1185" {
 
 test "1186" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1186.json", .{});
     defer file.close();
@@ -2097,7 +2097,7 @@ test "1186" {
 
 test "1187" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1187.json", .{});
     defer file.close();
@@ -2107,7 +2107,7 @@ test "1187" {
 
 test "1188" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1188.json", .{});
     defer file.close();
@@ -2117,7 +2117,7 @@ test "1188" {
 
 test "1189" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1189.json", .{});
     defer file.close();
@@ -2127,7 +2127,7 @@ test "1189" {
 
 test "119" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/119.json", .{});
     defer file.close();
@@ -2137,7 +2137,7 @@ test "119" {
 
 test "1190" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1190.json", .{});
     defer file.close();
@@ -2147,7 +2147,7 @@ test "1190" {
 
 test "1191" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1191.json", .{});
     defer file.close();
@@ -2157,7 +2157,7 @@ test "1191" {
 
 test "1192" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1192.json", .{});
     defer file.close();
@@ -2167,7 +2167,7 @@ test "1192" {
 
 test "1193" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1193.json", .{});
     defer file.close();
@@ -2177,7 +2177,7 @@ test "1193" {
 
 test "1194" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1194.json", .{});
     defer file.close();
@@ -2187,7 +2187,7 @@ test "1194" {
 
 test "1195" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1195.json", .{});
     defer file.close();
@@ -2197,7 +2197,7 @@ test "1195" {
 
 test "1196" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1196.json", .{});
     defer file.close();
@@ -2207,7 +2207,7 @@ test "1196" {
 
 test "1197" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1197.json", .{});
     defer file.close();
@@ -2217,7 +2217,7 @@ test "1197" {
 
 test "1198" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1198.json", .{});
     defer file.close();
@@ -2227,7 +2227,7 @@ test "1198" {
 
 test "1199" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1199.json", .{});
     defer file.close();
@@ -2237,7 +2237,7 @@ test "1199" {
 
 test "12" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/12.json", .{});
     defer file.close();
@@ -2247,7 +2247,7 @@ test "12" {
 
 test "120" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/120.json", .{});
     defer file.close();
@@ -2257,7 +2257,7 @@ test "120" {
 
 test "1200" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1200.json", .{});
     defer file.close();
@@ -2267,7 +2267,7 @@ test "1200" {
 
 test "1201" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1201.json", .{});
     defer file.close();
@@ -2277,7 +2277,7 @@ test "1201" {
 
 test "1202" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1202.json", .{});
     defer file.close();
@@ -2287,7 +2287,7 @@ test "1202" {
 
 test "1203" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1203.json", .{});
     defer file.close();
@@ -2297,7 +2297,7 @@ test "1203" {
 
 test "1204" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1204.json", .{});
     defer file.close();
@@ -2307,7 +2307,7 @@ test "1204" {
 
 test "1205" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1205.json", .{});
     defer file.close();
@@ -2317,7 +2317,7 @@ test "1205" {
 
 test "1206" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1206.json", .{});
     defer file.close();
@@ -2327,7 +2327,7 @@ test "1206" {
 
 test "1207" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1207.json", .{});
     defer file.close();
@@ -2337,7 +2337,7 @@ test "1207" {
 
 test "1208" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1208.json", .{});
     defer file.close();
@@ -2347,7 +2347,7 @@ test "1208" {
 
 test "1209" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1209.json", .{});
     defer file.close();
@@ -2357,7 +2357,7 @@ test "1209" {
 
 test "121" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/121.json", .{});
     defer file.close();
@@ -2367,7 +2367,7 @@ test "121" {
 
 test "1210" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1210.json", .{});
     defer file.close();
@@ -2377,7 +2377,7 @@ test "1210" {
 
 test "1211" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1211.json", .{});
     defer file.close();
@@ -2387,7 +2387,7 @@ test "1211" {
 
 test "1212" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1212.json", .{});
     defer file.close();
@@ -2397,7 +2397,7 @@ test "1212" {
 
 test "1213" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1213.json", .{});
     defer file.close();
@@ -2407,7 +2407,7 @@ test "1213" {
 
 test "1214" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1214.json", .{});
     defer file.close();
@@ -2417,7 +2417,7 @@ test "1214" {
 
 test "1215" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1215.json", .{});
     defer file.close();
@@ -2427,7 +2427,7 @@ test "1215" {
 
 test "1216" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1216.json", .{});
     defer file.close();
@@ -2437,7 +2437,7 @@ test "1216" {
 
 test "1217" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1217.json", .{});
     defer file.close();
@@ -2447,7 +2447,7 @@ test "1217" {
 
 test "1218" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1218.json", .{});
     defer file.close();
@@ -2457,7 +2457,7 @@ test "1218" {
 
 test "1219" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1219.json", .{});
     defer file.close();
@@ -2467,7 +2467,7 @@ test "1219" {
 
 test "122" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/122.json", .{});
     defer file.close();
@@ -2477,7 +2477,7 @@ test "122" {
 
 test "1220" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1220.json", .{});
     defer file.close();
@@ -2487,7 +2487,7 @@ test "1220" {
 
 test "1221" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1221.json", .{});
     defer file.close();
@@ -2497,7 +2497,7 @@ test "1221" {
 
 test "1222" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1222.json", .{});
     defer file.close();
@@ -2507,7 +2507,7 @@ test "1222" {
 
 test "1223" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1223.json", .{});
     defer file.close();
@@ -2517,7 +2517,7 @@ test "1223" {
 
 test "1224" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1224.json", .{});
     defer file.close();
@@ -2527,7 +2527,7 @@ test "1224" {
 
 test "1225" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1225.json", .{});
     defer file.close();
@@ -2537,7 +2537,7 @@ test "1225" {
 
 test "1226" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1226.json", .{});
     defer file.close();
@@ -2547,7 +2547,7 @@ test "1226" {
 
 test "1227" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1227.json", .{});
     defer file.close();
@@ -2557,7 +2557,7 @@ test "1227" {
 
 test "1228" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1228.json", .{});
     defer file.close();
@@ -2567,7 +2567,7 @@ test "1228" {
 
 test "1229" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1229.json", .{});
     defer file.close();
@@ -2577,7 +2577,7 @@ test "1229" {
 
 test "123" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/123.json", .{});
     defer file.close();
@@ -2587,7 +2587,7 @@ test "123" {
 
 test "1230" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1230.json", .{});
     defer file.close();
@@ -2597,7 +2597,7 @@ test "1230" {
 
 test "1231" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1231.json", .{});
     defer file.close();
@@ -2607,7 +2607,7 @@ test "1231" {
 
 test "1232" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1232.json", .{});
     defer file.close();
@@ -2617,7 +2617,7 @@ test "1232" {
 
 test "1233" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1233.json", .{});
     defer file.close();
@@ -2627,7 +2627,7 @@ test "1233" {
 
 test "1234" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1234.json", .{});
     defer file.close();
@@ -2637,7 +2637,7 @@ test "1234" {
 
 test "1235" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1235.json", .{});
     defer file.close();
@@ -2647,7 +2647,7 @@ test "1235" {
 
 test "1236" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1236.json", .{});
     defer file.close();
@@ -2657,7 +2657,7 @@ test "1236" {
 
 test "1237" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1237.json", .{});
     defer file.close();
@@ -2667,7 +2667,7 @@ test "1237" {
 
 test "1238" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1238.json", .{});
     defer file.close();
@@ -2677,7 +2677,7 @@ test "1238" {
 
 test "1239" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1239.json", .{});
     defer file.close();
@@ -2687,7 +2687,7 @@ test "1239" {
 
 test "124" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/124.json", .{});
     defer file.close();
@@ -2697,7 +2697,7 @@ test "124" {
 
 test "1240" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1240.json", .{});
     defer file.close();
@@ -2707,7 +2707,7 @@ test "1240" {
 
 test "1241" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1241.json", .{});
     defer file.close();
@@ -2717,7 +2717,7 @@ test "1241" {
 
 test "1242" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1242.json", .{});
     defer file.close();
@@ -2727,7 +2727,7 @@ test "1242" {
 
 test "1243" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1243.json", .{});
     defer file.close();
@@ -2737,7 +2737,7 @@ test "1243" {
 
 test "1244" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1244.json", .{});
     defer file.close();
@@ -2747,7 +2747,7 @@ test "1244" {
 
 test "1245" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1245.json", .{});
     defer file.close();
@@ -2757,7 +2757,7 @@ test "1245" {
 
 test "1246" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1246.json", .{});
     defer file.close();
@@ -2767,7 +2767,7 @@ test "1246" {
 
 test "1247" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1247.json", .{});
     defer file.close();
@@ -2777,7 +2777,7 @@ test "1247" {
 
 test "1248" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1248.json", .{});
     defer file.close();
@@ -2787,7 +2787,7 @@ test "1248" {
 
 test "1249" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1249.json", .{});
     defer file.close();
@@ -2797,7 +2797,7 @@ test "1249" {
 
 test "125" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/125.json", .{});
     defer file.close();
@@ -2807,7 +2807,7 @@ test "125" {
 
 test "1250" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1250.json", .{});
     defer file.close();
@@ -2817,7 +2817,7 @@ test "1250" {
 
 test "1251" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1251.json", .{});
     defer file.close();
@@ -2827,7 +2827,7 @@ test "1251" {
 
 test "1252" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1252.json", .{});
     defer file.close();
@@ -2837,7 +2837,7 @@ test "1252" {
 
 test "1253" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1253.json", .{});
     defer file.close();
@@ -2847,7 +2847,7 @@ test "1253" {
 
 test "1254" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1254.json", .{});
     defer file.close();
@@ -2857,7 +2857,7 @@ test "1254" {
 
 test "1255" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1255.json", .{});
     defer file.close();
@@ -2867,7 +2867,7 @@ test "1255" {
 
 test "1256" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1256.json", .{});
     defer file.close();
@@ -2877,7 +2877,7 @@ test "1256" {
 
 test "1257" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1257.json", .{});
     defer file.close();
@@ -2887,7 +2887,7 @@ test "1257" {
 
 test "1258" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1258.json", .{});
     defer file.close();
@@ -2897,7 +2897,7 @@ test "1258" {
 
 test "1259" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1259.json", .{});
     defer file.close();
@@ -2907,7 +2907,7 @@ test "1259" {
 
 test "126" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/126.json", .{});
     defer file.close();
@@ -2917,7 +2917,7 @@ test "126" {
 
 test "1260" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1260.json", .{});
     defer file.close();
@@ -2927,7 +2927,7 @@ test "1260" {
 
 test "1261" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1261.json", .{});
     defer file.close();
@@ -2937,7 +2937,7 @@ test "1261" {
 
 test "1262" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1262.json", .{});
     defer file.close();
@@ -2947,7 +2947,7 @@ test "1262" {
 
 test "1263" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1263.json", .{});
     defer file.close();
@@ -2957,7 +2957,7 @@ test "1263" {
 
 test "1264" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1264.json", .{});
     defer file.close();
@@ -2967,7 +2967,7 @@ test "1264" {
 
 test "1265" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1265.json", .{});
     defer file.close();
@@ -2977,7 +2977,7 @@ test "1265" {
 
 test "1266" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1266.json", .{});
     defer file.close();
@@ -2987,7 +2987,7 @@ test "1266" {
 
 test "1267" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1267.json", .{});
     defer file.close();
@@ -2997,7 +2997,7 @@ test "1267" {
 
 test "1268" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1268.json", .{});
     defer file.close();
@@ -3007,7 +3007,7 @@ test "1268" {
 
 test "1269" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1269.json", .{});
     defer file.close();
@@ -3017,7 +3017,7 @@ test "1269" {
 
 test "127" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/127.json", .{});
     defer file.close();
@@ -3027,7 +3027,7 @@ test "127" {
 
 test "1270" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1270.json", .{});
     defer file.close();
@@ -3037,7 +3037,7 @@ test "1270" {
 
 test "1271" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1271.json", .{});
     defer file.close();
@@ -3047,7 +3047,7 @@ test "1271" {
 
 test "1272" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1272.json", .{});
     defer file.close();
@@ -3057,7 +3057,7 @@ test "1272" {
 
 test "1273" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1273.json", .{});
     defer file.close();
@@ -3067,7 +3067,7 @@ test "1273" {
 
 test "1274" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1274.json", .{});
     defer file.close();
@@ -3077,7 +3077,7 @@ test "1274" {
 
 test "1275" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1275.json", .{});
     defer file.close();
@@ -3087,7 +3087,7 @@ test "1275" {
 
 test "1276" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1276.json", .{});
     defer file.close();
@@ -3097,7 +3097,7 @@ test "1276" {
 
 test "1277" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1277.json", .{});
     defer file.close();
@@ -3107,7 +3107,7 @@ test "1277" {
 
 test "1278" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1278.json", .{});
     defer file.close();
@@ -3117,7 +3117,7 @@ test "1278" {
 
 test "1279" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1279.json", .{});
     defer file.close();
@@ -3127,7 +3127,7 @@ test "1279" {
 
 test "128" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/128.json", .{});
     defer file.close();
@@ -3137,7 +3137,7 @@ test "128" {
 
 test "1280" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1280.json", .{});
     defer file.close();
@@ -3147,7 +3147,7 @@ test "1280" {
 
 test "1281" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1281.json", .{});
     defer file.close();
@@ -3157,7 +3157,7 @@ test "1281" {
 
 test "1282" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1282.json", .{});
     defer file.close();
@@ -3167,7 +3167,7 @@ test "1282" {
 
 test "1283" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1283.json", .{});
     defer file.close();
@@ -3177,7 +3177,7 @@ test "1283" {
 
 test "1284" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1284.json", .{});
     defer file.close();
@@ -3187,7 +3187,7 @@ test "1284" {
 
 test "1285" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1285.json", .{});
     defer file.close();
@@ -3197,7 +3197,7 @@ test "1285" {
 
 test "1286" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1286.json", .{});
     defer file.close();
@@ -3207,7 +3207,7 @@ test "1286" {
 
 test "1287" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1287.json", .{});
     defer file.close();
@@ -3217,7 +3217,7 @@ test "1287" {
 
 test "1288" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1288.json", .{});
     defer file.close();
@@ -3227,7 +3227,7 @@ test "1288" {
 
 test "1289" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1289.json", .{});
     defer file.close();
@@ -3237,7 +3237,7 @@ test "1289" {
 
 test "129" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/129.json", .{});
     defer file.close();
@@ -3247,7 +3247,7 @@ test "129" {
 
 test "1290" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1290.json", .{});
     defer file.close();
@@ -3257,7 +3257,7 @@ test "1290" {
 
 test "1291" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1291.json", .{});
     defer file.close();
@@ -3267,7 +3267,7 @@ test "1291" {
 
 test "1292" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1292.json", .{});
     defer file.close();
@@ -3277,7 +3277,7 @@ test "1292" {
 
 test "1293" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1293.json", .{});
     defer file.close();
@@ -3287,7 +3287,7 @@ test "1293" {
 
 test "1294" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1294.json", .{});
     defer file.close();
@@ -3297,7 +3297,7 @@ test "1294" {
 
 test "1295" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1295.json", .{});
     defer file.close();
@@ -3307,7 +3307,7 @@ test "1295" {
 
 test "1296" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1296.json", .{});
     defer file.close();
@@ -3317,7 +3317,7 @@ test "1296" {
 
 test "1297" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1297.json", .{});
     defer file.close();
@@ -3327,7 +3327,7 @@ test "1297" {
 
 test "1298" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1298.json", .{});
     defer file.close();
@@ -3337,7 +3337,7 @@ test "1298" {
 
 test "1299" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1299.json", .{});
     defer file.close();
@@ -3347,7 +3347,7 @@ test "1299" {
 
 test "13" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/13.json", .{});
     defer file.close();
@@ -3357,7 +3357,7 @@ test "13" {
 
 test "130" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/130.json", .{});
     defer file.close();
@@ -3367,7 +3367,7 @@ test "130" {
 
 test "1300" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1300.json", .{});
     defer file.close();
@@ -3377,7 +3377,7 @@ test "1300" {
 
 test "1301" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1301.json", .{});
     defer file.close();
@@ -3387,7 +3387,7 @@ test "1301" {
 
 test "1302" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1302.json", .{});
     defer file.close();
@@ -3397,7 +3397,7 @@ test "1302" {
 
 test "1303" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1303.json", .{});
     defer file.close();
@@ -3407,7 +3407,7 @@ test "1303" {
 
 test "1304" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1304.json", .{});
     defer file.close();
@@ -3417,7 +3417,7 @@ test "1304" {
 
 test "1305" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1305.json", .{});
     defer file.close();
@@ -3427,7 +3427,7 @@ test "1305" {
 
 test "1306" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1306.json", .{});
     defer file.close();
@@ -3437,7 +3437,7 @@ test "1306" {
 
 test "1307" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1307.json", .{});
     defer file.close();
@@ -3447,7 +3447,7 @@ test "1307" {
 
 test "1308" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1308.json", .{});
     defer file.close();
@@ -3457,7 +3457,7 @@ test "1308" {
 
 test "1309" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1309.json", .{});
     defer file.close();
@@ -3467,7 +3467,7 @@ test "1309" {
 
 test "131" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/131.json", .{});
     defer file.close();
@@ -3477,7 +3477,7 @@ test "131" {
 
 test "1310" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1310.json", .{});
     defer file.close();
@@ -3487,7 +3487,7 @@ test "1310" {
 
 test "1311" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1311.json", .{});
     defer file.close();
@@ -3497,7 +3497,7 @@ test "1311" {
 
 test "1312" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1312.json", .{});
     defer file.close();
@@ -3507,7 +3507,7 @@ test "1312" {
 
 test "1313" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1313.json", .{});
     defer file.close();
@@ -3517,7 +3517,7 @@ test "1313" {
 
 test "1314" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1314.json", .{});
     defer file.close();
@@ -3527,7 +3527,7 @@ test "1314" {
 
 test "1315" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1315.json", .{});
     defer file.close();
@@ -3537,7 +3537,7 @@ test "1315" {
 
 test "1316" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1316.json", .{});
     defer file.close();
@@ -3547,7 +3547,7 @@ test "1316" {
 
 test "1317" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1317.json", .{});
     defer file.close();
@@ -3557,7 +3557,7 @@ test "1317" {
 
 test "1318" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1318.json", .{});
     defer file.close();
@@ -3567,7 +3567,7 @@ test "1318" {
 
 test "1319" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1319.json", .{});
     defer file.close();
@@ -3577,7 +3577,7 @@ test "1319" {
 
 test "132" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/132.json", .{});
     defer file.close();
@@ -3587,7 +3587,7 @@ test "132" {
 
 test "1320" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1320.json", .{});
     defer file.close();
@@ -3597,7 +3597,7 @@ test "1320" {
 
 test "1321" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1321.json", .{});
     defer file.close();
@@ -3607,7 +3607,7 @@ test "1321" {
 
 test "1322" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1322.json", .{});
     defer file.close();
@@ -3617,7 +3617,7 @@ test "1322" {
 
 test "1323" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1323.json", .{});
     defer file.close();
@@ -3627,7 +3627,7 @@ test "1323" {
 
 test "1324" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1324.json", .{});
     defer file.close();
@@ -3637,7 +3637,7 @@ test "1324" {
 
 test "1325" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1325.json", .{});
     defer file.close();
@@ -3647,7 +3647,7 @@ test "1325" {
 
 test "1326" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1326.json", .{});
     defer file.close();
@@ -3657,7 +3657,7 @@ test "1326" {
 
 test "1327" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1327.json", .{});
     defer file.close();
@@ -3667,7 +3667,7 @@ test "1327" {
 
 test "1328" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1328.json", .{});
     defer file.close();
@@ -3677,7 +3677,7 @@ test "1328" {
 
 test "1329" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1329.json", .{});
     defer file.close();
@@ -3687,7 +3687,7 @@ test "1329" {
 
 test "133" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/133.json", .{});
     defer file.close();
@@ -3697,7 +3697,7 @@ test "133" {
 
 test "1330" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1330.json", .{});
     defer file.close();
@@ -3707,7 +3707,7 @@ test "1330" {
 
 test "1331" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1331.json", .{});
     defer file.close();
@@ -3717,7 +3717,7 @@ test "1331" {
 
 test "1332" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1332.json", .{});
     defer file.close();
@@ -3727,7 +3727,7 @@ test "1332" {
 
 test "1333" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1333.json", .{});
     defer file.close();
@@ -3737,7 +3737,7 @@ test "1333" {
 
 test "1334" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1334.json", .{});
     defer file.close();
@@ -3747,7 +3747,7 @@ test "1334" {
 
 test "1335" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1335.json", .{});
     defer file.close();
@@ -3757,7 +3757,7 @@ test "1335" {
 
 test "1336" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1336.json", .{});
     defer file.close();
@@ -3767,7 +3767,7 @@ test "1336" {
 
 test "1337" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1337.json", .{});
     defer file.close();
@@ -3777,7 +3777,7 @@ test "1337" {
 
 test "1338" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1338.json", .{});
     defer file.close();
@@ -3787,7 +3787,7 @@ test "1338" {
 
 test "1339" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1339.json", .{});
     defer file.close();
@@ -3797,7 +3797,7 @@ test "1339" {
 
 test "134" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/134.json", .{});
     defer file.close();
@@ -3807,7 +3807,7 @@ test "134" {
 
 test "1340" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1340.json", .{});
     defer file.close();
@@ -3817,7 +3817,7 @@ test "1340" {
 
 test "1341" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1341.json", .{});
     defer file.close();
@@ -3827,7 +3827,7 @@ test "1341" {
 
 test "1342" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1342.json", .{});
     defer file.close();
@@ -3837,7 +3837,7 @@ test "1342" {
 
 test "1343" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1343.json", .{});
     defer file.close();
@@ -3847,7 +3847,7 @@ test "1343" {
 
 test "1344" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1344.json", .{});
     defer file.close();
@@ -3857,7 +3857,7 @@ test "1344" {
 
 test "1345" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1345.json", .{});
     defer file.close();
@@ -3867,7 +3867,7 @@ test "1345" {
 
 test "1346" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1346.json", .{});
     defer file.close();
@@ -3877,7 +3877,7 @@ test "1346" {
 
 test "1347" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1347.json", .{});
     defer file.close();
@@ -3887,7 +3887,7 @@ test "1347" {
 
 test "1348" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1348.json", .{});
     defer file.close();
@@ -3897,7 +3897,7 @@ test "1348" {
 
 test "1349" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1349.json", .{});
     defer file.close();
@@ -3907,7 +3907,7 @@ test "1349" {
 
 test "135" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/135.json", .{});
     defer file.close();
@@ -3917,7 +3917,7 @@ test "135" {
 
 test "1350" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1350.json", .{});
     defer file.close();
@@ -3927,7 +3927,7 @@ test "1350" {
 
 test "1351" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1351.json", .{});
     defer file.close();
@@ -3937,7 +3937,7 @@ test "1351" {
 
 test "1352" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1352.json", .{});
     defer file.close();
@@ -3947,7 +3947,7 @@ test "1352" {
 
 test "1353" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1353.json", .{});
     defer file.close();
@@ -3957,7 +3957,7 @@ test "1353" {
 
 test "1354" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1354.json", .{});
     defer file.close();
@@ -3967,7 +3967,7 @@ test "1354" {
 
 test "1355" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1355.json", .{});
     defer file.close();
@@ -3977,7 +3977,7 @@ test "1355" {
 
 test "1356" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1356.json", .{});
     defer file.close();
@@ -3987,7 +3987,7 @@ test "1356" {
 
 test "1357" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1357.json", .{});
     defer file.close();
@@ -3997,7 +3997,7 @@ test "1357" {
 
 test "1358" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1358.json", .{});
     defer file.close();
@@ -4007,7 +4007,7 @@ test "1358" {
 
 test "1359" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1359.json", .{});
     defer file.close();
@@ -4017,7 +4017,7 @@ test "1359" {
 
 test "136" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/136.json", .{});
     defer file.close();
@@ -4027,7 +4027,7 @@ test "136" {
 
 test "1360" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1360.json", .{});
     defer file.close();
@@ -4037,7 +4037,7 @@ test "1360" {
 
 test "1361" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1361.json", .{});
     defer file.close();
@@ -4047,7 +4047,7 @@ test "1361" {
 
 test "1362" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1362.json", .{});
     defer file.close();
@@ -4057,7 +4057,7 @@ test "1362" {
 
 test "1363" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1363.json", .{});
     defer file.close();
@@ -4067,7 +4067,7 @@ test "1363" {
 
 test "1364" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1364.json", .{});
     defer file.close();
@@ -4077,7 +4077,7 @@ test "1364" {
 
 test "1365" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1365.json", .{});
     defer file.close();
@@ -4087,7 +4087,7 @@ test "1365" {
 
 test "1366" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1366.json", .{});
     defer file.close();
@@ -4097,7 +4097,7 @@ test "1366" {
 
 test "1367" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1367.json", .{});
     defer file.close();
@@ -4107,7 +4107,7 @@ test "1367" {
 
 test "1368" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1368.json", .{});
     defer file.close();
@@ -4117,7 +4117,7 @@ test "1368" {
 
 test "1369" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1369.json", .{});
     defer file.close();
@@ -4127,7 +4127,7 @@ test "1369" {
 
 test "137" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/137.json", .{});
     defer file.close();
@@ -4137,7 +4137,7 @@ test "137" {
 
 test "1370" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1370.json", .{});
     defer file.close();
@@ -4147,7 +4147,7 @@ test "1370" {
 
 test "1371" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1371.json", .{});
     defer file.close();
@@ -4157,7 +4157,7 @@ test "1371" {
 
 test "1372" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1372.json", .{});
     defer file.close();
@@ -4167,7 +4167,7 @@ test "1372" {
 
 test "1373" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1373.json", .{});
     defer file.close();
@@ -4177,7 +4177,7 @@ test "1373" {
 
 test "1374" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1374.json", .{});
     defer file.close();
@@ -4187,7 +4187,7 @@ test "1374" {
 
 test "1375" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1375.json", .{});
     defer file.close();
@@ -4197,7 +4197,7 @@ test "1375" {
 
 test "1376" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1376.json", .{});
     defer file.close();
@@ -4207,7 +4207,7 @@ test "1376" {
 
 test "1377" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1377.json", .{});
     defer file.close();
@@ -4217,7 +4217,7 @@ test "1377" {
 
 test "1378" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1378.json", .{});
     defer file.close();
@@ -4227,7 +4227,7 @@ test "1378" {
 
 test "1379" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1379.json", .{});
     defer file.close();
@@ -4237,7 +4237,7 @@ test "1379" {
 
 test "138" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/138.json", .{});
     defer file.close();
@@ -4247,7 +4247,7 @@ test "138" {
 
 test "1380" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1380.json", .{});
     defer file.close();
@@ -4257,7 +4257,7 @@ test "1380" {
 
 test "1381" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1381.json", .{});
     defer file.close();
@@ -4267,7 +4267,7 @@ test "1381" {
 
 test "1382" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1382.json", .{});
     defer file.close();
@@ -4277,7 +4277,7 @@ test "1382" {
 
 test "1383" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1383.json", .{});
     defer file.close();
@@ -4287,7 +4287,7 @@ test "1383" {
 
 test "1384" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1384.json", .{});
     defer file.close();
@@ -4297,7 +4297,7 @@ test "1384" {
 
 test "1385" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1385.json", .{});
     defer file.close();
@@ -4307,7 +4307,7 @@ test "1385" {
 
 test "1386" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1386.json", .{});
     defer file.close();
@@ -4317,7 +4317,7 @@ test "1386" {
 
 test "1387" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1387.json", .{});
     defer file.close();
@@ -4327,7 +4327,7 @@ test "1387" {
 
 test "1388" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1388.json", .{});
     defer file.close();
@@ -4337,7 +4337,7 @@ test "1388" {
 
 test "1389" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1389.json", .{});
     defer file.close();
@@ -4347,7 +4347,7 @@ test "1389" {
 
 test "139" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/139.json", .{});
     defer file.close();
@@ -4357,7 +4357,7 @@ test "139" {
 
 test "1390" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1390.json", .{});
     defer file.close();
@@ -4367,7 +4367,7 @@ test "1390" {
 
 test "1391" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1391.json", .{});
     defer file.close();
@@ -4377,7 +4377,7 @@ test "1391" {
 
 test "1392" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1392.json", .{});
     defer file.close();
@@ -4387,7 +4387,7 @@ test "1392" {
 
 test "1393" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1393.json", .{});
     defer file.close();
@@ -4397,7 +4397,7 @@ test "1393" {
 
 test "1394" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1394.json", .{});
     defer file.close();
@@ -4407,7 +4407,7 @@ test "1394" {
 
 test "1395" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1395.json", .{});
     defer file.close();
@@ -4417,7 +4417,7 @@ test "1395" {
 
 test "1396" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1396.json", .{});
     defer file.close();
@@ -4427,7 +4427,7 @@ test "1396" {
 
 test "1397" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1397.json", .{});
     defer file.close();
@@ -4437,7 +4437,7 @@ test "1397" {
 
 test "1398" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1398.json", .{});
     defer file.close();
@@ -4447,7 +4447,7 @@ test "1398" {
 
 test "1399" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1399.json", .{});
     defer file.close();
@@ -4457,7 +4457,7 @@ test "1399" {
 
 test "14" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/14.json", .{});
     defer file.close();
@@ -4467,7 +4467,7 @@ test "14" {
 
 test "140" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/140.json", .{});
     defer file.close();
@@ -4477,7 +4477,7 @@ test "140" {
 
 test "1400" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1400.json", .{});
     defer file.close();
@@ -4487,7 +4487,7 @@ test "1400" {
 
 test "1401" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1401.json", .{});
     defer file.close();
@@ -4497,7 +4497,7 @@ test "1401" {
 
 test "1402" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1402.json", .{});
     defer file.close();
@@ -4507,7 +4507,7 @@ test "1402" {
 
 test "1403" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1403.json", .{});
     defer file.close();
@@ -4517,7 +4517,7 @@ test "1403" {
 
 test "1404" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1404.json", .{});
     defer file.close();
@@ -4527,7 +4527,7 @@ test "1404" {
 
 test "1405" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1405.json", .{});
     defer file.close();
@@ -4537,7 +4537,7 @@ test "1405" {
 
 test "1406" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1406.json", .{});
     defer file.close();
@@ -4547,7 +4547,7 @@ test "1406" {
 
 test "1407" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1407.json", .{});
     defer file.close();
@@ -4557,7 +4557,7 @@ test "1407" {
 
 test "1408" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1408.json", .{});
     defer file.close();
@@ -4567,7 +4567,7 @@ test "1408" {
 
 test "1409" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1409.json", .{});
     defer file.close();
@@ -4577,7 +4577,7 @@ test "1409" {
 
 test "141" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/141.json", .{});
     defer file.close();
@@ -4587,7 +4587,7 @@ test "141" {
 
 test "1410" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1410.json", .{});
     defer file.close();
@@ -4597,7 +4597,7 @@ test "1410" {
 
 test "1411" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1411.json", .{});
     defer file.close();
@@ -4607,7 +4607,7 @@ test "1411" {
 
 test "1412" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1412.json", .{});
     defer file.close();
@@ -4617,7 +4617,7 @@ test "1412" {
 
 test "1413" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1413.json", .{});
     defer file.close();
@@ -4627,7 +4627,7 @@ test "1413" {
 
 test "1414" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1414.json", .{});
     defer file.close();
@@ -4637,7 +4637,7 @@ test "1414" {
 
 test "1415" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1415.json", .{});
     defer file.close();
@@ -4647,7 +4647,7 @@ test "1415" {
 
 test "1416" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1416.json", .{});
     defer file.close();
@@ -4657,7 +4657,7 @@ test "1416" {
 
 test "1417" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1417.json", .{});
     defer file.close();
@@ -4667,7 +4667,7 @@ test "1417" {
 
 test "1418" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1418.json", .{});
     defer file.close();
@@ -4677,7 +4677,7 @@ test "1418" {
 
 test "1419" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1419.json", .{});
     defer file.close();
@@ -4687,7 +4687,7 @@ test "1419" {
 
 test "142" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/142.json", .{});
     defer file.close();
@@ -4697,7 +4697,7 @@ test "142" {
 
 test "1420" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1420.json", .{});
     defer file.close();
@@ -4707,7 +4707,7 @@ test "1420" {
 
 test "1421" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1421.json", .{});
     defer file.close();
@@ -4717,7 +4717,7 @@ test "1421" {
 
 test "1422" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1422.json", .{});
     defer file.close();
@@ -4727,7 +4727,7 @@ test "1422" {
 
 test "1423" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1423.json", .{});
     defer file.close();
@@ -4737,7 +4737,7 @@ test "1423" {
 
 test "1424" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1424.json", .{});
     defer file.close();
@@ -4747,7 +4747,7 @@ test "1424" {
 
 test "1425" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1425.json", .{});
     defer file.close();
@@ -4757,7 +4757,7 @@ test "1425" {
 
 test "1426" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1426.json", .{});
     defer file.close();
@@ -4767,7 +4767,7 @@ test "1426" {
 
 test "1427" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1427.json", .{});
     defer file.close();
@@ -4777,7 +4777,7 @@ test "1427" {
 
 test "1428" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1428.json", .{});
     defer file.close();
@@ -4787,7 +4787,7 @@ test "1428" {
 
 test "1429" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1429.json", .{});
     defer file.close();
@@ -4797,7 +4797,7 @@ test "1429" {
 
 test "143" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/143.json", .{});
     defer file.close();
@@ -4807,7 +4807,7 @@ test "143" {
 
 test "1430" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1430.json", .{});
     defer file.close();
@@ -4817,7 +4817,7 @@ test "1430" {
 
 test "1431" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1431.json", .{});
     defer file.close();
@@ -4827,7 +4827,7 @@ test "1431" {
 
 test "1432" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1432.json", .{});
     defer file.close();
@@ -4837,7 +4837,7 @@ test "1432" {
 
 test "1433" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1433.json", .{});
     defer file.close();
@@ -4847,7 +4847,7 @@ test "1433" {
 
 test "1434" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1434.json", .{});
     defer file.close();
@@ -4857,7 +4857,7 @@ test "1434" {
 
 test "1435" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1435.json", .{});
     defer file.close();
@@ -4867,7 +4867,7 @@ test "1435" {
 
 test "1436" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1436.json", .{});
     defer file.close();
@@ -4877,7 +4877,7 @@ test "1436" {
 
 test "1437" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1437.json", .{});
     defer file.close();
@@ -4887,7 +4887,7 @@ test "1437" {
 
 test "1438" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1438.json", .{});
     defer file.close();
@@ -4897,7 +4897,7 @@ test "1438" {
 
 test "1439" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1439.json", .{});
     defer file.close();
@@ -4907,7 +4907,7 @@ test "1439" {
 
 test "144" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/144.json", .{});
     defer file.close();
@@ -4917,7 +4917,7 @@ test "144" {
 
 test "1440" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1440.json", .{});
     defer file.close();
@@ -4927,7 +4927,7 @@ test "1440" {
 
 test "1441" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1441.json", .{});
     defer file.close();
@@ -4937,7 +4937,7 @@ test "1441" {
 
 test "1442" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1442.json", .{});
     defer file.close();
@@ -4947,7 +4947,7 @@ test "1442" {
 
 test "1443" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1443.json", .{});
     defer file.close();
@@ -4957,7 +4957,7 @@ test "1443" {
 
 test "1444" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1444.json", .{});
     defer file.close();
@@ -4967,7 +4967,7 @@ test "1444" {
 
 test "1445" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1445.json", .{});
     defer file.close();
@@ -4977,7 +4977,7 @@ test "1445" {
 
 test "1446" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1446.json", .{});
     defer file.close();
@@ -4987,7 +4987,7 @@ test "1446" {
 
 test "1447" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1447.json", .{});
     defer file.close();
@@ -4997,7 +4997,7 @@ test "1447" {
 
 test "1448" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1448.json", .{});
     defer file.close();
@@ -5007,7 +5007,7 @@ test "1448" {
 
 test "1449" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1449.json", .{});
     defer file.close();
@@ -5017,7 +5017,7 @@ test "1449" {
 
 test "145" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/145.json", .{});
     defer file.close();
@@ -5027,7 +5027,7 @@ test "145" {
 
 test "1450" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1450.json", .{});
     defer file.close();
@@ -5037,7 +5037,7 @@ test "1450" {
 
 test "1451" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1451.json", .{});
     defer file.close();
@@ -5047,7 +5047,7 @@ test "1451" {
 
 test "1452" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1452.json", .{});
     defer file.close();
@@ -5057,7 +5057,7 @@ test "1452" {
 
 test "1453" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1453.json", .{});
     defer file.close();
@@ -5067,7 +5067,7 @@ test "1453" {
 
 test "1454" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1454.json", .{});
     defer file.close();
@@ -5077,7 +5077,7 @@ test "1454" {
 
 test "1455" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1455.json", .{});
     defer file.close();
@@ -5087,7 +5087,7 @@ test "1455" {
 
 test "1456" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1456.json", .{});
     defer file.close();
@@ -5097,7 +5097,7 @@ test "1456" {
 
 test "1457" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1457.json", .{});
     defer file.close();
@@ -5107,7 +5107,7 @@ test "1457" {
 
 test "146" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/146.json", .{});
     defer file.close();
@@ -5117,7 +5117,7 @@ test "146" {
 
 test "147" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/147.json", .{});
     defer file.close();
@@ -5127,7 +5127,7 @@ test "147" {
 
 test "148" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/148.json", .{});
     defer file.close();
@@ -5137,7 +5137,7 @@ test "148" {
 
 test "149" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/149.json", .{});
     defer file.close();
@@ -5147,7 +5147,7 @@ test "149" {
 
 test "15" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/15.json", .{});
     defer file.close();
@@ -5157,7 +5157,7 @@ test "15" {
 
 test "150" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/150.json", .{});
     defer file.close();
@@ -5167,7 +5167,7 @@ test "150" {
 
 test "151" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/151.json", .{});
     defer file.close();
@@ -5177,7 +5177,7 @@ test "151" {
 
 test "152" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/152.json", .{});
     defer file.close();
@@ -5187,7 +5187,7 @@ test "152" {
 
 test "153" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/153.json", .{});
     defer file.close();
@@ -5197,7 +5197,7 @@ test "153" {
 
 test "154" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/154.json", .{});
     defer file.close();
@@ -5207,7 +5207,7 @@ test "154" {
 
 test "155" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/155.json", .{});
     defer file.close();
@@ -5217,7 +5217,7 @@ test "155" {
 
 test "156" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/156.json", .{});
     defer file.close();
@@ -5227,7 +5227,7 @@ test "156" {
 
 test "157" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/157.json", .{});
     defer file.close();
@@ -5237,7 +5237,7 @@ test "157" {
 
 test "158" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/158.json", .{});
     defer file.close();
@@ -5247,7 +5247,7 @@ test "158" {
 
 test "159" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/159.json", .{});
     defer file.close();
@@ -5257,7 +5257,7 @@ test "159" {
 
 test "16" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/16.json", .{});
     defer file.close();
@@ -5267,7 +5267,7 @@ test "16" {
 
 test "160" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/160.json", .{});
     defer file.close();
@@ -5277,7 +5277,7 @@ test "160" {
 
 test "161" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/161.json", .{});
     defer file.close();
@@ -5287,7 +5287,7 @@ test "161" {
 
 test "162" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/162.json", .{});
     defer file.close();
@@ -5297,7 +5297,7 @@ test "162" {
 
 test "163" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/163.json", .{});
     defer file.close();
@@ -5307,7 +5307,7 @@ test "163" {
 
 test "164" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/164.json", .{});
     defer file.close();
@@ -5317,7 +5317,7 @@ test "164" {
 
 test "165" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/165.json", .{});
     defer file.close();
@@ -5327,7 +5327,7 @@ test "165" {
 
 test "166" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/166.json", .{});
     defer file.close();
@@ -5337,7 +5337,7 @@ test "166" {
 
 test "167" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/167.json", .{});
     defer file.close();
@@ -5347,7 +5347,7 @@ test "167" {
 
 test "168" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/168.json", .{});
     defer file.close();
@@ -5357,7 +5357,7 @@ test "168" {
 
 test "169" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/169.json", .{});
     defer file.close();
@@ -5367,7 +5367,7 @@ test "169" {
 
 test "17" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/17.json", .{});
     defer file.close();
@@ -5377,7 +5377,7 @@ test "17" {
 
 test "170" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/170.json", .{});
     defer file.close();
@@ -5387,7 +5387,7 @@ test "170" {
 
 test "171" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/171.json", .{});
     defer file.close();
@@ -5397,7 +5397,7 @@ test "171" {
 
 test "172" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/172.json", .{});
     defer file.close();
@@ -5407,7 +5407,7 @@ test "172" {
 
 test "173" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/173.json", .{});
     defer file.close();
@@ -5417,7 +5417,7 @@ test "173" {
 
 test "174" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/174.json", .{});
     defer file.close();
@@ -5427,7 +5427,7 @@ test "174" {
 
 test "175" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/175.json", .{});
     defer file.close();
@@ -5437,7 +5437,7 @@ test "175" {
 
 test "176" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/176.json", .{});
     defer file.close();
@@ -5447,7 +5447,7 @@ test "176" {
 
 test "177" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/177.json", .{});
     defer file.close();
@@ -5457,7 +5457,7 @@ test "177" {
 
 test "178" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/178.json", .{});
     defer file.close();
@@ -5467,7 +5467,7 @@ test "178" {
 
 test "179" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/179.json", .{});
     defer file.close();
@@ -5477,7 +5477,7 @@ test "179" {
 
 test "18" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/18.json", .{});
     defer file.close();
@@ -5487,7 +5487,7 @@ test "18" {
 
 test "180" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/180.json", .{});
     defer file.close();
@@ -5497,7 +5497,7 @@ test "180" {
 
 test "181" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/181.json", .{});
     defer file.close();
@@ -5507,7 +5507,7 @@ test "181" {
 
 test "182" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/182.json", .{});
     defer file.close();
@@ -5517,7 +5517,7 @@ test "182" {
 
 test "183" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/183.json", .{});
     defer file.close();
@@ -5527,7 +5527,7 @@ test "183" {
 
 test "184" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/184.json", .{});
     defer file.close();
@@ -5537,7 +5537,7 @@ test "184" {
 
 test "185" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/185.json", .{});
     defer file.close();
@@ -5547,7 +5547,7 @@ test "185" {
 
 test "186" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/186.json", .{});
     defer file.close();
@@ -5557,7 +5557,7 @@ test "186" {
 
 test "187" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/187.json", .{});
     defer file.close();
@@ -5567,7 +5567,7 @@ test "187" {
 
 test "188" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/188.json", .{});
     defer file.close();
@@ -5577,7 +5577,7 @@ test "188" {
 
 test "189" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/189.json", .{});
     defer file.close();
@@ -5587,7 +5587,7 @@ test "189" {
 
 test "19" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/19.json", .{});
     defer file.close();
@@ -5597,7 +5597,7 @@ test "19" {
 
 test "190" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/190.json", .{});
     defer file.close();
@@ -5607,7 +5607,7 @@ test "190" {
 
 test "191" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/191.json", .{});
     defer file.close();
@@ -5617,7 +5617,7 @@ test "191" {
 
 test "192" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/192.json", .{});
     defer file.close();
@@ -5627,7 +5627,7 @@ test "192" {
 
 test "193" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/193.json", .{});
     defer file.close();
@@ -5637,7 +5637,7 @@ test "193" {
 
 test "194" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/194.json", .{});
     defer file.close();
@@ -5647,7 +5647,7 @@ test "194" {
 
 test "195" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/195.json", .{});
     defer file.close();
@@ -5657,7 +5657,7 @@ test "195" {
 
 test "196" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/196.json", .{});
     defer file.close();
@@ -5667,7 +5667,7 @@ test "196" {
 
 test "197" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/197.json", .{});
     defer file.close();
@@ -5677,7 +5677,7 @@ test "197" {
 
 test "198" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/198.json", .{});
     defer file.close();
@@ -5687,7 +5687,7 @@ test "198" {
 
 test "199" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/199.json", .{});
     defer file.close();
@@ -5697,7 +5697,7 @@ test "199" {
 
 test "2" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/2.json", .{});
     defer file.close();
@@ -5707,7 +5707,7 @@ test "2" {
 
 test "20" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/20.json", .{});
     defer file.close();
@@ -5717,7 +5717,7 @@ test "20" {
 
 test "200" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/200.json", .{});
     defer file.close();
@@ -5727,7 +5727,7 @@ test "200" {
 
 test "201" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/201.json", .{});
     defer file.close();
@@ -5737,7 +5737,7 @@ test "201" {
 
 test "202" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/202.json", .{});
     defer file.close();
@@ -5747,7 +5747,7 @@ test "202" {
 
 test "203" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/203.json", .{});
     defer file.close();
@@ -5757,7 +5757,7 @@ test "203" {
 
 test "204" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/204.json", .{});
     defer file.close();
@@ -5767,7 +5767,7 @@ test "204" {
 
 test "205" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/205.json", .{});
     defer file.close();
@@ -5777,7 +5777,7 @@ test "205" {
 
 test "206" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/206.json", .{});
     defer file.close();
@@ -5787,7 +5787,7 @@ test "206" {
 
 test "207" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/207.json", .{});
     defer file.close();
@@ -5797,7 +5797,7 @@ test "207" {
 
 test "208" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/208.json", .{});
     defer file.close();
@@ -5807,7 +5807,7 @@ test "208" {
 
 test "209" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/209.json", .{});
     defer file.close();
@@ -5817,7 +5817,7 @@ test "209" {
 
 test "21" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/21.json", .{});
     defer file.close();
@@ -5827,7 +5827,7 @@ test "21" {
 
 test "210" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/210.json", .{});
     defer file.close();
@@ -5837,7 +5837,7 @@ test "210" {
 
 test "211" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/211.json", .{});
     defer file.close();
@@ -5847,7 +5847,7 @@ test "211" {
 
 test "212" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/212.json", .{});
     defer file.close();
@@ -5857,7 +5857,7 @@ test "212" {
 
 test "213" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/213.json", .{});
     defer file.close();
@@ -5867,7 +5867,7 @@ test "213" {
 
 test "214" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/214.json", .{});
     defer file.close();
@@ -5877,7 +5877,7 @@ test "214" {
 
 test "215" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/215.json", .{});
     defer file.close();
@@ -5887,7 +5887,7 @@ test "215" {
 
 test "216" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/216.json", .{});
     defer file.close();
@@ -5897,7 +5897,7 @@ test "216" {
 
 test "217" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/217.json", .{});
     defer file.close();
@@ -5907,7 +5907,7 @@ test "217" {
 
 test "218" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/218.json", .{});
     defer file.close();
@@ -5917,7 +5917,7 @@ test "218" {
 
 test "219" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/219.json", .{});
     defer file.close();
@@ -5927,7 +5927,7 @@ test "219" {
 
 test "22" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/22.json", .{});
     defer file.close();
@@ -5937,7 +5937,7 @@ test "22" {
 
 test "220" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/220.json", .{});
     defer file.close();
@@ -5947,7 +5947,7 @@ test "220" {
 
 test "221" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/221.json", .{});
     defer file.close();
@@ -5957,7 +5957,7 @@ test "221" {
 
 test "222" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/222.json", .{});
     defer file.close();
@@ -5967,7 +5967,7 @@ test "222" {
 
 test "223" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/223.json", .{});
     defer file.close();
@@ -5977,7 +5977,7 @@ test "223" {
 
 test "224" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/224.json", .{});
     defer file.close();
@@ -5987,7 +5987,7 @@ test "224" {
 
 test "225" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/225.json", .{});
     defer file.close();
@@ -5997,7 +5997,7 @@ test "225" {
 
 test "226" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/226.json", .{});
     defer file.close();
@@ -6007,7 +6007,7 @@ test "226" {
 
 test "227" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/227.json", .{});
     defer file.close();
@@ -6017,7 +6017,7 @@ test "227" {
 
 test "228" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/228.json", .{});
     defer file.close();
@@ -6027,7 +6027,7 @@ test "228" {
 
 test "229" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/229.json", .{});
     defer file.close();
@@ -6037,7 +6037,7 @@ test "229" {
 
 test "23" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/23.json", .{});
     defer file.close();
@@ -6047,7 +6047,7 @@ test "23" {
 
 test "230" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/230.json", .{});
     defer file.close();
@@ -6057,7 +6057,7 @@ test "230" {
 
 test "231" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/231.json", .{});
     defer file.close();
@@ -6067,7 +6067,7 @@ test "231" {
 
 test "232" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/232.json", .{});
     defer file.close();
@@ -6077,7 +6077,7 @@ test "232" {
 
 test "233" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/233.json", .{});
     defer file.close();
@@ -6087,7 +6087,7 @@ test "233" {
 
 test "234" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/234.json", .{});
     defer file.close();
@@ -6097,7 +6097,7 @@ test "234" {
 
 test "235" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/235.json", .{});
     defer file.close();
@@ -6107,7 +6107,7 @@ test "235" {
 
 test "236" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/236.json", .{});
     defer file.close();
@@ -6117,7 +6117,7 @@ test "236" {
 
 test "237" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/237.json", .{});
     defer file.close();
@@ -6127,7 +6127,7 @@ test "237" {
 
 test "238" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/238.json", .{});
     defer file.close();
@@ -6137,7 +6137,7 @@ test "238" {
 
 test "239" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/239.json", .{});
     defer file.close();
@@ -6147,7 +6147,7 @@ test "239" {
 
 test "24" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/24.json", .{});
     defer file.close();
@@ -6157,7 +6157,7 @@ test "24" {
 
 test "240" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/240.json", .{});
     defer file.close();
@@ -6167,7 +6167,7 @@ test "240" {
 
 test "241" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/241.json", .{});
     defer file.close();
@@ -6177,7 +6177,7 @@ test "241" {
 
 test "242" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/242.json", .{});
     defer file.close();
@@ -6187,7 +6187,7 @@ test "242" {
 
 test "243" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/243.json", .{});
     defer file.close();
@@ -6197,7 +6197,7 @@ test "243" {
 
 test "244" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/244.json", .{});
     defer file.close();
@@ -6207,7 +6207,7 @@ test "244" {
 
 test "245" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/245.json", .{});
     defer file.close();
@@ -6217,7 +6217,7 @@ test "245" {
 
 test "246" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/246.json", .{});
     defer file.close();
@@ -6227,7 +6227,7 @@ test "246" {
 
 test "247" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/247.json", .{});
     defer file.close();
@@ -6237,7 +6237,7 @@ test "247" {
 
 test "248" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/248.json", .{});
     defer file.close();
@@ -6247,7 +6247,7 @@ test "248" {
 
 test "249" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/249.json", .{});
     defer file.close();
@@ -6257,7 +6257,7 @@ test "249" {
 
 test "25" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/25.json", .{});
     defer file.close();
@@ -6267,7 +6267,7 @@ test "25" {
 
 test "250" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/250.json", .{});
     defer file.close();
@@ -6277,7 +6277,7 @@ test "250" {
 
 test "251" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/251.json", .{});
     defer file.close();
@@ -6287,7 +6287,7 @@ test "251" {
 
 test "252" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/252.json", .{});
     defer file.close();
@@ -6297,7 +6297,7 @@ test "252" {
 
 test "253" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/253.json", .{});
     defer file.close();
@@ -6307,7 +6307,7 @@ test "253" {
 
 test "254" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/254.json", .{});
     defer file.close();
@@ -6317,7 +6317,7 @@ test "254" {
 
 test "255" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/255.json", .{});
     defer file.close();
@@ -6327,7 +6327,7 @@ test "255" {
 
 test "256" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/256.json", .{});
     defer file.close();
@@ -6337,7 +6337,7 @@ test "256" {
 
 test "257" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/257.json", .{});
     defer file.close();
@@ -6347,7 +6347,7 @@ test "257" {
 
 test "258" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/258.json", .{});
     defer file.close();
@@ -6357,7 +6357,7 @@ test "258" {
 
 test "259" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/259.json", .{});
     defer file.close();
@@ -6367,7 +6367,7 @@ test "259" {
 
 test "26" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/26.json", .{});
     defer file.close();
@@ -6377,7 +6377,7 @@ test "26" {
 
 test "260" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/260.json", .{});
     defer file.close();
@@ -6387,7 +6387,7 @@ test "260" {
 
 test "261" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/261.json", .{});
     defer file.close();
@@ -6397,7 +6397,7 @@ test "261" {
 
 test "262" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/262.json", .{});
     defer file.close();
@@ -6407,7 +6407,7 @@ test "262" {
 
 test "263" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/263.json", .{});
     defer file.close();
@@ -6417,7 +6417,7 @@ test "263" {
 
 test "264" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/264.json", .{});
     defer file.close();
@@ -6427,7 +6427,7 @@ test "264" {
 
 test "265" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/265.json", .{});
     defer file.close();
@@ -6437,7 +6437,7 @@ test "265" {
 
 test "266" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/266.json", .{});
     defer file.close();
@@ -6447,7 +6447,7 @@ test "266" {
 
 test "267" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/267.json", .{});
     defer file.close();
@@ -6457,7 +6457,7 @@ test "267" {
 
 test "268" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/268.json", .{});
     defer file.close();
@@ -6467,7 +6467,7 @@ test "268" {
 
 test "269" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/269.json", .{});
     defer file.close();
@@ -6477,7 +6477,7 @@ test "269" {
 
 test "27" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/27.json", .{});
     defer file.close();
@@ -6487,7 +6487,7 @@ test "27" {
 
 test "270" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/270.json", .{});
     defer file.close();
@@ -6497,7 +6497,7 @@ test "270" {
 
 test "271" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/271.json", .{});
     defer file.close();
@@ -6507,7 +6507,7 @@ test "271" {
 
 test "272" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/272.json", .{});
     defer file.close();
@@ -6517,7 +6517,7 @@ test "272" {
 
 test "273" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/273.json", .{});
     defer file.close();
@@ -6527,7 +6527,7 @@ test "273" {
 
 test "274" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/274.json", .{});
     defer file.close();
@@ -6537,7 +6537,7 @@ test "274" {
 
 test "275" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/275.json", .{});
     defer file.close();
@@ -6547,7 +6547,7 @@ test "275" {
 
 test "276" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/276.json", .{});
     defer file.close();
@@ -6557,7 +6557,7 @@ test "276" {
 
 test "277" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/277.json", .{});
     defer file.close();
@@ -6567,7 +6567,7 @@ test "277" {
 
 test "278" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/278.json", .{});
     defer file.close();
@@ -6577,7 +6577,7 @@ test "278" {
 
 test "279" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/279.json", .{});
     defer file.close();
@@ -6587,7 +6587,7 @@ test "279" {
 
 test "28" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/28.json", .{});
     defer file.close();
@@ -6597,7 +6597,7 @@ test "28" {
 
 test "280" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/280.json", .{});
     defer file.close();
@@ -6607,7 +6607,7 @@ test "280" {
 
 test "281" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/281.json", .{});
     defer file.close();
@@ -6617,7 +6617,7 @@ test "281" {
 
 test "282" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/282.json", .{});
     defer file.close();
@@ -6627,7 +6627,7 @@ test "282" {
 
 test "283" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/283.json", .{});
     defer file.close();
@@ -6637,7 +6637,7 @@ test "283" {
 
 test "284" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/284.json", .{});
     defer file.close();
@@ -6647,7 +6647,7 @@ test "284" {
 
 test "285" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/285.json", .{});
     defer file.close();
@@ -6657,7 +6657,7 @@ test "285" {
 
 test "286" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/286.json", .{});
     defer file.close();
@@ -6667,7 +6667,7 @@ test "286" {
 
 test "287" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/287.json", .{});
     defer file.close();
@@ -6677,7 +6677,7 @@ test "287" {
 
 test "288" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/288.json", .{});
     defer file.close();
@@ -6687,7 +6687,7 @@ test "288" {
 
 test "289" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/289.json", .{});
     defer file.close();
@@ -6697,7 +6697,7 @@ test "289" {
 
 test "29" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/29.json", .{});
     defer file.close();
@@ -6707,7 +6707,7 @@ test "29" {
 
 test "290" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/290.json", .{});
     defer file.close();
@@ -6717,7 +6717,7 @@ test "290" {
 
 test "291" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/291.json", .{});
     defer file.close();
@@ -6727,7 +6727,7 @@ test "291" {
 
 test "292" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/292.json", .{});
     defer file.close();
@@ -6737,7 +6737,7 @@ test "292" {
 
 test "293" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/293.json", .{});
     defer file.close();
@@ -6747,7 +6747,7 @@ test "293" {
 
 test "294" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/294.json", .{});
     defer file.close();
@@ -6757,7 +6757,7 @@ test "294" {
 
 test "295" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/295.json", .{});
     defer file.close();
@@ -6767,7 +6767,7 @@ test "295" {
 
 test "296" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/296.json", .{});
     defer file.close();
@@ -6777,7 +6777,7 @@ test "296" {
 
 test "297" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/297.json", .{});
     defer file.close();
@@ -6787,7 +6787,7 @@ test "297" {
 
 test "298" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/298.json", .{});
     defer file.close();
@@ -6797,7 +6797,7 @@ test "298" {
 
 test "299" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/299.json", .{});
     defer file.close();
@@ -6807,7 +6807,7 @@ test "299" {
 
 test "3" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/3.json", .{});
     defer file.close();
@@ -6817,7 +6817,7 @@ test "3" {
 
 test "30" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/30.json", .{});
     defer file.close();
@@ -6827,7 +6827,7 @@ test "30" {
 
 test "300" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/300.json", .{});
     defer file.close();
@@ -6837,7 +6837,7 @@ test "300" {
 
 test "301" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/301.json", .{});
     defer file.close();
@@ -6847,7 +6847,7 @@ test "301" {
 
 test "302" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/302.json", .{});
     defer file.close();
@@ -6857,7 +6857,7 @@ test "302" {
 
 test "303" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/303.json", .{});
     defer file.close();
@@ -6867,7 +6867,7 @@ test "303" {
 
 test "304" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/304.json", .{});
     defer file.close();
@@ -6877,7 +6877,7 @@ test "304" {
 
 test "305" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/305.json", .{});
     defer file.close();
@@ -6887,7 +6887,7 @@ test "305" {
 
 test "306" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/306.json", .{});
     defer file.close();
@@ -6897,7 +6897,7 @@ test "306" {
 
 test "307" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/307.json", .{});
     defer file.close();
@@ -6907,7 +6907,7 @@ test "307" {
 
 test "308" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/308.json", .{});
     defer file.close();
@@ -6917,7 +6917,7 @@ test "308" {
 
 test "309" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/309.json", .{});
     defer file.close();
@@ -6927,7 +6927,7 @@ test "309" {
 
 test "31" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/31.json", .{});
     defer file.close();
@@ -6937,7 +6937,7 @@ test "31" {
 
 test "310" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/310.json", .{});
     defer file.close();
@@ -6947,7 +6947,7 @@ test "310" {
 
 test "311" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/311.json", .{});
     defer file.close();
@@ -6957,7 +6957,7 @@ test "311" {
 
 test "312" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/312.json", .{});
     defer file.close();
@@ -6967,7 +6967,7 @@ test "312" {
 
 test "313" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/313.json", .{});
     defer file.close();
@@ -6977,7 +6977,7 @@ test "313" {
 
 test "314" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/314.json", .{});
     defer file.close();
@@ -6987,7 +6987,7 @@ test "314" {
 
 test "315" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/315.json", .{});
     defer file.close();
@@ -6997,7 +6997,7 @@ test "315" {
 
 test "316" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/316.json", .{});
     defer file.close();
@@ -7007,7 +7007,7 @@ test "316" {
 
 test "317" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/317.json", .{});
     defer file.close();
@@ -7017,7 +7017,7 @@ test "317" {
 
 test "318" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/318.json", .{});
     defer file.close();
@@ -7027,7 +7027,7 @@ test "318" {
 
 test "319" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/319.json", .{});
     defer file.close();
@@ -7037,7 +7037,7 @@ test "319" {
 
 test "32" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/32.json", .{});
     defer file.close();
@@ -7047,7 +7047,7 @@ test "32" {
 
 test "320" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/320.json", .{});
     defer file.close();
@@ -7057,7 +7057,7 @@ test "320" {
 
 test "321" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/321.json", .{});
     defer file.close();
@@ -7067,7 +7067,7 @@ test "321" {
 
 test "322" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/322.json", .{});
     defer file.close();
@@ -7077,7 +7077,7 @@ test "322" {
 
 test "323" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/323.json", .{});
     defer file.close();
@@ -7087,7 +7087,7 @@ test "323" {
 
 test "324" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/324.json", .{});
     defer file.close();
@@ -7097,7 +7097,7 @@ test "324" {
 
 test "325" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/325.json", .{});
     defer file.close();
@@ -7107,7 +7107,7 @@ test "325" {
 
 test "326" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/326.json", .{});
     defer file.close();
@@ -7117,7 +7117,7 @@ test "326" {
 
 test "327" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/327.json", .{});
     defer file.close();
@@ -7127,7 +7127,7 @@ test "327" {
 
 test "328" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/328.json", .{});
     defer file.close();
@@ -7137,7 +7137,7 @@ test "328" {
 
 test "329" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/329.json", .{});
     defer file.close();
@@ -7147,7 +7147,7 @@ test "329" {
 
 test "33" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/33.json", .{});
     defer file.close();
@@ -7157,7 +7157,7 @@ test "33" {
 
 test "330" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/330.json", .{});
     defer file.close();
@@ -7167,7 +7167,7 @@ test "330" {
 
 test "331" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/331.json", .{});
     defer file.close();
@@ -7177,7 +7177,7 @@ test "331" {
 
 test "332" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/332.json", .{});
     defer file.close();
@@ -7187,7 +7187,7 @@ test "332" {
 
 test "333" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/333.json", .{});
     defer file.close();
@@ -7197,7 +7197,7 @@ test "333" {
 
 test "334" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/334.json", .{});
     defer file.close();
@@ -7207,7 +7207,7 @@ test "334" {
 
 test "335" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/335.json", .{});
     defer file.close();
@@ -7217,7 +7217,7 @@ test "335" {
 
 test "336" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/336.json", .{});
     defer file.close();
@@ -7227,7 +7227,7 @@ test "336" {
 
 test "337" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/337.json", .{});
     defer file.close();
@@ -7237,7 +7237,7 @@ test "337" {
 
 test "338" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/338.json", .{});
     defer file.close();
@@ -7247,7 +7247,7 @@ test "338" {
 
 test "339" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/339.json", .{});
     defer file.close();
@@ -7257,7 +7257,7 @@ test "339" {
 
 test "34" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/34.json", .{});
     defer file.close();
@@ -7267,7 +7267,7 @@ test "34" {
 
 test "340" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/340.json", .{});
     defer file.close();
@@ -7277,7 +7277,7 @@ test "340" {
 
 test "341" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/341.json", .{});
     defer file.close();
@@ -7287,7 +7287,7 @@ test "341" {
 
 test "342" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/342.json", .{});
     defer file.close();
@@ -7297,7 +7297,7 @@ test "342" {
 
 test "343" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/343.json", .{});
     defer file.close();
@@ -7307,7 +7307,7 @@ test "343" {
 
 test "344" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/344.json", .{});
     defer file.close();
@@ -7317,7 +7317,7 @@ test "344" {
 
 test "345" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/345.json", .{});
     defer file.close();
@@ -7327,7 +7327,7 @@ test "345" {
 
 test "346" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/346.json", .{});
     defer file.close();
@@ -7337,7 +7337,7 @@ test "346" {
 
 test "347" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/347.json", .{});
     defer file.close();
@@ -7347,7 +7347,7 @@ test "347" {
 
 test "348" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/348.json", .{});
     defer file.close();
@@ -7357,7 +7357,7 @@ test "348" {
 
 test "349" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/349.json", .{});
     defer file.close();
@@ -7367,7 +7367,7 @@ test "349" {
 
 test "35" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/35.json", .{});
     defer file.close();
@@ -7377,7 +7377,7 @@ test "35" {
 
 test "350" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/350.json", .{});
     defer file.close();
@@ -7387,7 +7387,7 @@ test "350" {
 
 test "351" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/351.json", .{});
     defer file.close();
@@ -7397,7 +7397,7 @@ test "351" {
 
 test "352" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/352.json", .{});
     defer file.close();
@@ -7407,7 +7407,7 @@ test "352" {
 
 test "353" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/353.json", .{});
     defer file.close();
@@ -7417,7 +7417,7 @@ test "353" {
 
 test "354" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/354.json", .{});
     defer file.close();
@@ -7427,7 +7427,7 @@ test "354" {
 
 test "355" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/355.json", .{});
     defer file.close();
@@ -7437,7 +7437,7 @@ test "355" {
 
 test "356" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/356.json", .{});
     defer file.close();
@@ -7447,7 +7447,7 @@ test "356" {
 
 test "357" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/357.json", .{});
     defer file.close();
@@ -7457,7 +7457,7 @@ test "357" {
 
 test "358" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/358.json", .{});
     defer file.close();
@@ -7467,7 +7467,7 @@ test "358" {
 
 test "359" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/359.json", .{});
     defer file.close();
@@ -7477,7 +7477,7 @@ test "359" {
 
 test "36" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/36.json", .{});
     defer file.close();
@@ -7487,7 +7487,7 @@ test "36" {
 
 test "360" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/360.json", .{});
     defer file.close();
@@ -7497,7 +7497,7 @@ test "360" {
 
 test "361" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/361.json", .{});
     defer file.close();
@@ -7507,7 +7507,7 @@ test "361" {
 
 test "362" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/362.json", .{});
     defer file.close();
@@ -7517,7 +7517,7 @@ test "362" {
 
 test "363" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/363.json", .{});
     defer file.close();
@@ -7527,7 +7527,7 @@ test "363" {
 
 test "364" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/364.json", .{});
     defer file.close();
@@ -7537,7 +7537,7 @@ test "364" {
 
 test "365" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/365.json", .{});
     defer file.close();
@@ -7547,7 +7547,7 @@ test "365" {
 
 test "366" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/366.json", .{});
     defer file.close();
@@ -7557,7 +7557,7 @@ test "366" {
 
 test "367" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/367.json", .{});
     defer file.close();
@@ -7567,7 +7567,7 @@ test "367" {
 
 test "368" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/368.json", .{});
     defer file.close();
@@ -7577,7 +7577,7 @@ test "368" {
 
 test "369" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/369.json", .{});
     defer file.close();
@@ -7587,7 +7587,7 @@ test "369" {
 
 test "37" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/37.json", .{});
     defer file.close();
@@ -7597,7 +7597,7 @@ test "37" {
 
 test "370" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/370.json", .{});
     defer file.close();
@@ -7607,7 +7607,7 @@ test "370" {
 
 test "371" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/371.json", .{});
     defer file.close();
@@ -7617,7 +7617,7 @@ test "371" {
 
 test "372" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/372.json", .{});
     defer file.close();
@@ -7627,7 +7627,7 @@ test "372" {
 
 test "373" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/373.json", .{});
     defer file.close();
@@ -7637,7 +7637,7 @@ test "373" {
 
 test "374" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/374.json", .{});
     defer file.close();
@@ -7647,7 +7647,7 @@ test "374" {
 
 test "375" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/375.json", .{});
     defer file.close();
@@ -7657,7 +7657,7 @@ test "375" {
 
 test "376" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/376.json", .{});
     defer file.close();
@@ -7667,7 +7667,7 @@ test "376" {
 
 test "377" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/377.json", .{});
     defer file.close();
@@ -7677,7 +7677,7 @@ test "377" {
 
 test "378" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/378.json", .{});
     defer file.close();
@@ -7687,7 +7687,7 @@ test "378" {
 
 test "379" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/379.json", .{});
     defer file.close();
@@ -7697,7 +7697,7 @@ test "379" {
 
 test "38" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/38.json", .{});
     defer file.close();
@@ -7707,7 +7707,7 @@ test "38" {
 
 test "380" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/380.json", .{});
     defer file.close();
@@ -7717,7 +7717,7 @@ test "380" {
 
 test "381" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/381.json", .{});
     defer file.close();
@@ -7727,7 +7727,7 @@ test "381" {
 
 test "382" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/382.json", .{});
     defer file.close();
@@ -7737,7 +7737,7 @@ test "382" {
 
 test "383" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/383.json", .{});
     defer file.close();
@@ -7747,7 +7747,7 @@ test "383" {
 
 test "384" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/384.json", .{});
     defer file.close();
@@ -7757,7 +7757,7 @@ test "384" {
 
 test "385" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/385.json", .{});
     defer file.close();
@@ -7767,7 +7767,7 @@ test "385" {
 
 test "386" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/386.json", .{});
     defer file.close();
@@ -7777,7 +7777,7 @@ test "386" {
 
 test "387" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/387.json", .{});
     defer file.close();
@@ -7787,7 +7787,7 @@ test "387" {
 
 test "388" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/388.json", .{});
     defer file.close();
@@ -7797,7 +7797,7 @@ test "388" {
 
 test "389" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/389.json", .{});
     defer file.close();
@@ -7807,7 +7807,7 @@ test "389" {
 
 test "39" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/39.json", .{});
     defer file.close();
@@ -7817,7 +7817,7 @@ test "39" {
 
 test "390" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/390.json", .{});
     defer file.close();
@@ -7827,7 +7827,7 @@ test "390" {
 
 test "391" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/391.json", .{});
     defer file.close();
@@ -7837,7 +7837,7 @@ test "391" {
 
 test "392" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/392.json", .{});
     defer file.close();
@@ -7847,7 +7847,7 @@ test "392" {
 
 test "393" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/393.json", .{});
     defer file.close();
@@ -7857,7 +7857,7 @@ test "393" {
 
 test "394" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/394.json", .{});
     defer file.close();
@@ -7867,7 +7867,7 @@ test "394" {
 
 test "395" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/395.json", .{});
     defer file.close();
@@ -7877,7 +7877,7 @@ test "395" {
 
 test "396" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/396.json", .{});
     defer file.close();
@@ -7887,7 +7887,7 @@ test "396" {
 
 test "397" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/397.json", .{});
     defer file.close();
@@ -7897,7 +7897,7 @@ test "397" {
 
 test "398" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/398.json", .{});
     defer file.close();
@@ -7907,7 +7907,7 @@ test "398" {
 
 test "399" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/399.json", .{});
     defer file.close();
@@ -7917,7 +7917,7 @@ test "399" {
 
 test "4" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/4.json", .{});
     defer file.close();
@@ -7927,7 +7927,7 @@ test "4" {
 
 test "40" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/40.json", .{});
     defer file.close();
@@ -7937,7 +7937,7 @@ test "40" {
 
 test "400" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/400.json", .{});
     defer file.close();
@@ -7947,7 +7947,7 @@ test "400" {
 
 test "401" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/401.json", .{});
     defer file.close();
@@ -7957,7 +7957,7 @@ test "401" {
 
 test "402" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/402.json", .{});
     defer file.close();
@@ -7967,7 +7967,7 @@ test "402" {
 
 test "403" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/403.json", .{});
     defer file.close();
@@ -7977,7 +7977,7 @@ test "403" {
 
 test "404" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/404.json", .{});
     defer file.close();
@@ -7987,7 +7987,7 @@ test "404" {
 
 test "405" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/405.json", .{});
     defer file.close();
@@ -7997,7 +7997,7 @@ test "405" {
 
 test "406" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/406.json", .{});
     defer file.close();
@@ -8007,7 +8007,7 @@ test "406" {
 
 test "407" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/407.json", .{});
     defer file.close();
@@ -8017,7 +8017,7 @@ test "407" {
 
 test "408" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/408.json", .{});
     defer file.close();
@@ -8027,7 +8027,7 @@ test "408" {
 
 test "409" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/409.json", .{});
     defer file.close();
@@ -8037,7 +8037,7 @@ test "409" {
 
 test "41" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/41.json", .{});
     defer file.close();
@@ -8047,7 +8047,7 @@ test "41" {
 
 test "410" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/410.json", .{});
     defer file.close();
@@ -8057,7 +8057,7 @@ test "410" {
 
 test "411" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/411.json", .{});
     defer file.close();
@@ -8067,7 +8067,7 @@ test "411" {
 
 test "412" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/412.json", .{});
     defer file.close();
@@ -8077,7 +8077,7 @@ test "412" {
 
 test "413" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/413.json", .{});
     defer file.close();
@@ -8087,7 +8087,7 @@ test "413" {
 
 test "414" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/414.json", .{});
     defer file.close();
@@ -8097,7 +8097,7 @@ test "414" {
 
 test "415" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/415.json", .{});
     defer file.close();
@@ -8107,7 +8107,7 @@ test "415" {
 
 test "416" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/416.json", .{});
     defer file.close();
@@ -8117,7 +8117,7 @@ test "416" {
 
 test "417" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/417.json", .{});
     defer file.close();
@@ -8127,7 +8127,7 @@ test "417" {
 
 test "418" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/418.json", .{});
     defer file.close();
@@ -8137,7 +8137,7 @@ test "418" {
 
 test "419" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/419.json", .{});
     defer file.close();
@@ -8147,7 +8147,7 @@ test "419" {
 
 test "42" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/42.json", .{});
     defer file.close();
@@ -8157,7 +8157,7 @@ test "42" {
 
 test "420" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/420.json", .{});
     defer file.close();
@@ -8167,7 +8167,7 @@ test "420" {
 
 test "421" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/421.json", .{});
     defer file.close();
@@ -8177,7 +8177,7 @@ test "421" {
 
 test "422" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/422.json", .{});
     defer file.close();
@@ -8187,7 +8187,7 @@ test "422" {
 
 test "423" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/423.json", .{});
     defer file.close();
@@ -8197,7 +8197,7 @@ test "423" {
 
 test "424" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/424.json", .{});
     defer file.close();
@@ -8207,7 +8207,7 @@ test "424" {
 
 test "425" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/425.json", .{});
     defer file.close();
@@ -8217,7 +8217,7 @@ test "425" {
 
 test "426" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/426.json", .{});
     defer file.close();
@@ -8227,7 +8227,7 @@ test "426" {
 
 test "427" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/427.json", .{});
     defer file.close();
@@ -8237,7 +8237,7 @@ test "427" {
 
 test "428" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/428.json", .{});
     defer file.close();
@@ -8247,7 +8247,7 @@ test "428" {
 
 test "429" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/429.json", .{});
     defer file.close();
@@ -8257,7 +8257,7 @@ test "429" {
 
 test "43" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/43.json", .{});
     defer file.close();
@@ -8267,7 +8267,7 @@ test "43" {
 
 test "430" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/430.json", .{});
     defer file.close();
@@ -8277,7 +8277,7 @@ test "430" {
 
 test "431" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/431.json", .{});
     defer file.close();
@@ -8287,7 +8287,7 @@ test "431" {
 
 test "432" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/432.json", .{});
     defer file.close();
@@ -8297,7 +8297,7 @@ test "432" {
 
 test "433" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/433.json", .{});
     defer file.close();
@@ -8307,7 +8307,7 @@ test "433" {
 
 test "434" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/434.json", .{});
     defer file.close();
@@ -8317,7 +8317,7 @@ test "434" {
 
 test "435" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/435.json", .{});
     defer file.close();
@@ -8327,7 +8327,7 @@ test "435" {
 
 test "436" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/436.json", .{});
     defer file.close();
@@ -8337,7 +8337,7 @@ test "436" {
 
 test "437" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/437.json", .{});
     defer file.close();
@@ -8347,7 +8347,7 @@ test "437" {
 
 test "438" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/438.json", .{});
     defer file.close();
@@ -8357,7 +8357,7 @@ test "438" {
 
 test "439" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/439.json", .{});
     defer file.close();
@@ -8367,7 +8367,7 @@ test "439" {
 
 test "44" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/44.json", .{});
     defer file.close();
@@ -8377,7 +8377,7 @@ test "44" {
 
 test "440" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/440.json", .{});
     defer file.close();
@@ -8387,7 +8387,7 @@ test "440" {
 
 test "441" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/441.json", .{});
     defer file.close();
@@ -8397,7 +8397,7 @@ test "441" {
 
 test "442" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/442.json", .{});
     defer file.close();
@@ -8407,7 +8407,7 @@ test "442" {
 
 test "443" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/443.json", .{});
     defer file.close();
@@ -8417,7 +8417,7 @@ test "443" {
 
 test "444" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/444.json", .{});
     defer file.close();
@@ -8427,7 +8427,7 @@ test "444" {
 
 test "445" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/445.json", .{});
     defer file.close();
@@ -8437,7 +8437,7 @@ test "445" {
 
 test "446" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/446.json", .{});
     defer file.close();
@@ -8447,7 +8447,7 @@ test "446" {
 
 test "447" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/447.json", .{});
     defer file.close();
@@ -8457,7 +8457,7 @@ test "447" {
 
 test "448" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/448.json", .{});
     defer file.close();
@@ -8467,7 +8467,7 @@ test "448" {
 
 test "449" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/449.json", .{});
     defer file.close();
@@ -8477,7 +8477,7 @@ test "449" {
 
 test "45" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/45.json", .{});
     defer file.close();
@@ -8487,7 +8487,7 @@ test "45" {
 
 test "450" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/450.json", .{});
     defer file.close();
@@ -8497,7 +8497,7 @@ test "450" {
 
 test "451" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/451.json", .{});
     defer file.close();
@@ -8507,7 +8507,7 @@ test "451" {
 
 test "452" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/452.json", .{});
     defer file.close();
@@ -8517,7 +8517,7 @@ test "452" {
 
 test "453" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/453.json", .{});
     defer file.close();
@@ -8527,7 +8527,7 @@ test "453" {
 
 test "454" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/454.json", .{});
     defer file.close();
@@ -8537,7 +8537,7 @@ test "454" {
 
 test "455" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/455.json", .{});
     defer file.close();
@@ -8547,7 +8547,7 @@ test "455" {
 
 test "456" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/456.json", .{});
     defer file.close();
@@ -8557,7 +8557,7 @@ test "456" {
 
 test "457" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/457.json", .{});
     defer file.close();
@@ -8567,7 +8567,7 @@ test "457" {
 
 test "458" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/458.json", .{});
     defer file.close();
@@ -8577,7 +8577,7 @@ test "458" {
 
 test "459" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/459.json", .{});
     defer file.close();
@@ -8587,7 +8587,7 @@ test "459" {
 
 test "46" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/46.json", .{});
     defer file.close();
@@ -8597,7 +8597,7 @@ test "46" {
 
 test "460" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/460.json", .{});
     defer file.close();
@@ -8607,7 +8607,7 @@ test "460" {
 
 test "461" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/461.json", .{});
     defer file.close();
@@ -8617,7 +8617,7 @@ test "461" {
 
 test "462" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/462.json", .{});
     defer file.close();
@@ -8627,7 +8627,7 @@ test "462" {
 
 test "463" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/463.json", .{});
     defer file.close();
@@ -8637,7 +8637,7 @@ test "463" {
 
 test "464" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/464.json", .{});
     defer file.close();
@@ -8647,7 +8647,7 @@ test "464" {
 
 test "465" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/465.json", .{});
     defer file.close();
@@ -8657,7 +8657,7 @@ test "465" {
 
 test "466" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/466.json", .{});
     defer file.close();
@@ -8667,7 +8667,7 @@ test "466" {
 
 test "467" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/467.json", .{});
     defer file.close();
@@ -8677,7 +8677,7 @@ test "467" {
 
 test "468" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/468.json", .{});
     defer file.close();
@@ -8687,7 +8687,7 @@ test "468" {
 
 test "469" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/469.json", .{});
     defer file.close();
@@ -8697,7 +8697,7 @@ test "469" {
 
 test "47" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/47.json", .{});
     defer file.close();
@@ -8707,7 +8707,7 @@ test "47" {
 
 test "470" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/470.json", .{});
     defer file.close();
@@ -8717,7 +8717,7 @@ test "470" {
 
 test "471" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/471.json", .{});
     defer file.close();
@@ -8727,7 +8727,7 @@ test "471" {
 
 test "472" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/472.json", .{});
     defer file.close();
@@ -8737,7 +8737,7 @@ test "472" {
 
 test "473" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/473.json", .{});
     defer file.close();
@@ -8747,7 +8747,7 @@ test "473" {
 
 test "474" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/474.json", .{});
     defer file.close();
@@ -8757,7 +8757,7 @@ test "474" {
 
 test "475" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/475.json", .{});
     defer file.close();
@@ -8767,7 +8767,7 @@ test "475" {
 
 test "476" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/476.json", .{});
     defer file.close();
@@ -8777,7 +8777,7 @@ test "476" {
 
 test "477" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/477.json", .{});
     defer file.close();
@@ -8787,7 +8787,7 @@ test "477" {
 
 test "478" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/478.json", .{});
     defer file.close();
@@ -8797,7 +8797,7 @@ test "478" {
 
 test "479" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/479.json", .{});
     defer file.close();
@@ -8807,7 +8807,7 @@ test "479" {
 
 test "48" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/48.json", .{});
     defer file.close();
@@ -8817,7 +8817,7 @@ test "48" {
 
 test "480" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/480.json", .{});
     defer file.close();
@@ -8827,7 +8827,7 @@ test "480" {
 
 test "481" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/481.json", .{});
     defer file.close();
@@ -8837,7 +8837,7 @@ test "481" {
 
 test "482" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/482.json", .{});
     defer file.close();
@@ -8847,7 +8847,7 @@ test "482" {
 
 test "483" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/483.json", .{});
     defer file.close();
@@ -8857,7 +8857,7 @@ test "483" {
 
 test "484" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/484.json", .{});
     defer file.close();
@@ -8867,7 +8867,7 @@ test "484" {
 
 test "485" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/485.json", .{});
     defer file.close();
@@ -8877,7 +8877,7 @@ test "485" {
 
 test "486" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/486.json", .{});
     defer file.close();
@@ -8887,7 +8887,7 @@ test "486" {
 
 test "487" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/487.json", .{});
     defer file.close();
@@ -8897,7 +8897,7 @@ test "487" {
 
 test "488" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/488.json", .{});
     defer file.close();
@@ -8907,7 +8907,7 @@ test "488" {
 
 test "489" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/489.json", .{});
     defer file.close();
@@ -8917,7 +8917,7 @@ test "489" {
 
 test "49" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/49.json", .{});
     defer file.close();
@@ -8927,7 +8927,7 @@ test "49" {
 
 test "490" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/490.json", .{});
     defer file.close();
@@ -8937,7 +8937,7 @@ test "490" {
 
 test "491" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/491.json", .{});
     defer file.close();
@@ -8947,7 +8947,7 @@ test "491" {
 
 test "492" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/492.json", .{});
     defer file.close();
@@ -8957,7 +8957,7 @@ test "492" {
 
 test "493" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/493.json", .{});
     defer file.close();
@@ -8967,7 +8967,7 @@ test "493" {
 
 test "494" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/494.json", .{});
     defer file.close();
@@ -8977,7 +8977,7 @@ test "494" {
 
 test "495" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/495.json", .{});
     defer file.close();
@@ -8987,7 +8987,7 @@ test "495" {
 
 test "496" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/496.json", .{});
     defer file.close();
@@ -8997,7 +8997,7 @@ test "496" {
 
 test "497" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/497.json", .{});
     defer file.close();
@@ -9007,7 +9007,7 @@ test "497" {
 
 test "498" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/498.json", .{});
     defer file.close();
@@ -9017,7 +9017,7 @@ test "498" {
 
 test "499" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/499.json", .{});
     defer file.close();
@@ -9027,7 +9027,7 @@ test "499" {
 
 test "5" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/5.json", .{});
     defer file.close();
@@ -9037,7 +9037,7 @@ test "5" {
 
 test "50" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/50.json", .{});
     defer file.close();
@@ -9047,7 +9047,7 @@ test "50" {
 
 test "500" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/500.json", .{});
     defer file.close();
@@ -9057,7 +9057,7 @@ test "500" {
 
 test "501" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/501.json", .{});
     defer file.close();
@@ -9067,7 +9067,7 @@ test "501" {
 
 test "502" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/502.json", .{});
     defer file.close();
@@ -9077,7 +9077,7 @@ test "502" {
 
 test "503" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/503.json", .{});
     defer file.close();
@@ -9087,7 +9087,7 @@ test "503" {
 
 test "504" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/504.json", .{});
     defer file.close();
@@ -9097,7 +9097,7 @@ test "504" {
 
 test "505" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/505.json", .{});
     defer file.close();
@@ -9107,7 +9107,7 @@ test "505" {
 
 test "506" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/506.json", .{});
     defer file.close();
@@ -9117,7 +9117,7 @@ test "506" {
 
 test "507" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/507.json", .{});
     defer file.close();
@@ -9127,7 +9127,7 @@ test "507" {
 
 test "508" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/508.json", .{});
     defer file.close();
@@ -9137,7 +9137,7 @@ test "508" {
 
 test "509" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/509.json", .{});
     defer file.close();
@@ -9147,7 +9147,7 @@ test "509" {
 
 test "51" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/51.json", .{});
     defer file.close();
@@ -9157,7 +9157,7 @@ test "51" {
 
 test "510" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/510.json", .{});
     defer file.close();
@@ -9167,7 +9167,7 @@ test "510" {
 
 test "511" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/511.json", .{});
     defer file.close();
@@ -9177,7 +9177,7 @@ test "511" {
 
 test "512" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/512.json", .{});
     defer file.close();
@@ -9187,7 +9187,7 @@ test "512" {
 
 test "513" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/513.json", .{});
     defer file.close();
@@ -9197,7 +9197,7 @@ test "513" {
 
 test "514" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/514.json", .{});
     defer file.close();
@@ -9207,7 +9207,7 @@ test "514" {
 
 test "515" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/515.json", .{});
     defer file.close();
@@ -9217,7 +9217,7 @@ test "515" {
 
 test "516" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/516.json", .{});
     defer file.close();
@@ -9227,7 +9227,7 @@ test "516" {
 
 test "517" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/517.json", .{});
     defer file.close();
@@ -9237,7 +9237,7 @@ test "517" {
 
 test "518" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/518.json", .{});
     defer file.close();
@@ -9247,7 +9247,7 @@ test "518" {
 
 test "519" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/519.json", .{});
     defer file.close();
@@ -9257,7 +9257,7 @@ test "519" {
 
 test "52" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/52.json", .{});
     defer file.close();
@@ -9267,7 +9267,7 @@ test "52" {
 
 test "520" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/520.json", .{});
     defer file.close();
@@ -9277,7 +9277,7 @@ test "520" {
 
 test "521" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/521.json", .{});
     defer file.close();
@@ -9287,7 +9287,7 @@ test "521" {
 
 test "522" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/522.json", .{});
     defer file.close();
@@ -9297,7 +9297,7 @@ test "522" {
 
 test "523" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/523.json", .{});
     defer file.close();
@@ -9307,7 +9307,7 @@ test "523" {
 
 test "524" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/524.json", .{});
     defer file.close();
@@ -9317,7 +9317,7 @@ test "524" {
 
 test "525" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/525.json", .{});
     defer file.close();
@@ -9327,7 +9327,7 @@ test "525" {
 
 test "526" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/526.json", .{});
     defer file.close();
@@ -9337,7 +9337,7 @@ test "526" {
 
 test "527" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/527.json", .{});
     defer file.close();
@@ -9347,7 +9347,7 @@ test "527" {
 
 test "528" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/528.json", .{});
     defer file.close();
@@ -9357,7 +9357,7 @@ test "528" {
 
 test "529" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/529.json", .{});
     defer file.close();
@@ -9367,7 +9367,7 @@ test "529" {
 
 test "53" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/53.json", .{});
     defer file.close();
@@ -9377,7 +9377,7 @@ test "53" {
 
 test "530" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/530.json", .{});
     defer file.close();
@@ -9387,7 +9387,7 @@ test "530" {
 
 test "531" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/531.json", .{});
     defer file.close();
@@ -9397,7 +9397,7 @@ test "531" {
 
 test "532" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/532.json", .{});
     defer file.close();
@@ -9407,7 +9407,7 @@ test "532" {
 
 test "533" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/533.json", .{});
     defer file.close();
@@ -9417,7 +9417,7 @@ test "533" {
 
 test "534" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/534.json", .{});
     defer file.close();
@@ -9427,7 +9427,7 @@ test "534" {
 
 test "535" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/535.json", .{});
     defer file.close();
@@ -9437,7 +9437,7 @@ test "535" {
 
 test "536" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/536.json", .{});
     defer file.close();
@@ -9447,7 +9447,7 @@ test "536" {
 
 test "537" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/537.json", .{});
     defer file.close();
@@ -9457,7 +9457,7 @@ test "537" {
 
 test "538" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/538.json", .{});
     defer file.close();
@@ -9467,7 +9467,7 @@ test "538" {
 
 test "539" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/539.json", .{});
     defer file.close();
@@ -9477,7 +9477,7 @@ test "539" {
 
 test "54" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/54.json", .{});
     defer file.close();
@@ -9487,7 +9487,7 @@ test "54" {
 
 test "540" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/540.json", .{});
     defer file.close();
@@ -9497,7 +9497,7 @@ test "540" {
 
 test "541" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/541.json", .{});
     defer file.close();
@@ -9507,7 +9507,7 @@ test "541" {
 
 test "542" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/542.json", .{});
     defer file.close();
@@ -9517,7 +9517,7 @@ test "542" {
 
 test "543" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/543.json", .{});
     defer file.close();
@@ -9527,7 +9527,7 @@ test "543" {
 
 test "544" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/544.json", .{});
     defer file.close();
@@ -9537,7 +9537,7 @@ test "544" {
 
 test "545" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/545.json", .{});
     defer file.close();
@@ -9547,7 +9547,7 @@ test "545" {
 
 test "546" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/546.json", .{});
     defer file.close();
@@ -9557,7 +9557,7 @@ test "546" {
 
 test "547" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/547.json", .{});
     defer file.close();
@@ -9567,7 +9567,7 @@ test "547" {
 
 test "548" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/548.json", .{});
     defer file.close();
@@ -9577,7 +9577,7 @@ test "548" {
 
 test "549" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/549.json", .{});
     defer file.close();
@@ -9587,7 +9587,7 @@ test "549" {
 
 test "55" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/55.json", .{});
     defer file.close();
@@ -9597,7 +9597,7 @@ test "55" {
 
 test "550" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/550.json", .{});
     defer file.close();
@@ -9607,7 +9607,7 @@ test "550" {
 
 test "551" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/551.json", .{});
     defer file.close();
@@ -9617,7 +9617,7 @@ test "551" {
 
 test "552" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/552.json", .{});
     defer file.close();
@@ -9627,7 +9627,7 @@ test "552" {
 
 test "553" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/553.json", .{});
     defer file.close();
@@ -9637,7 +9637,7 @@ test "553" {
 
 test "554" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/554.json", .{});
     defer file.close();
@@ -9647,7 +9647,7 @@ test "554" {
 
 test "555" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/555.json", .{});
     defer file.close();
@@ -9657,7 +9657,7 @@ test "555" {
 
 test "556" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/556.json", .{});
     defer file.close();
@@ -9667,7 +9667,7 @@ test "556" {
 
 test "557" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/557.json", .{});
     defer file.close();
@@ -9677,7 +9677,7 @@ test "557" {
 
 test "558" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/558.json", .{});
     defer file.close();
@@ -9687,7 +9687,7 @@ test "558" {
 
 test "559" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/559.json", .{});
     defer file.close();
@@ -9697,7 +9697,7 @@ test "559" {
 
 test "56" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/56.json", .{});
     defer file.close();
@@ -9707,7 +9707,7 @@ test "56" {
 
 test "560" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/560.json", .{});
     defer file.close();
@@ -9717,7 +9717,7 @@ test "560" {
 
 test "561" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/561.json", .{});
     defer file.close();
@@ -9727,7 +9727,7 @@ test "561" {
 
 test "562" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/562.json", .{});
     defer file.close();
@@ -9737,7 +9737,7 @@ test "562" {
 
 test "563" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/563.json", .{});
     defer file.close();
@@ -9747,7 +9747,7 @@ test "563" {
 
 test "564" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/564.json", .{});
     defer file.close();
@@ -9757,7 +9757,7 @@ test "564" {
 
 test "565" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/565.json", .{});
     defer file.close();
@@ -9767,7 +9767,7 @@ test "565" {
 
 test "566" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/566.json", .{});
     defer file.close();
@@ -9777,7 +9777,7 @@ test "566" {
 
 test "567" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/567.json", .{});
     defer file.close();
@@ -9787,7 +9787,7 @@ test "567" {
 
 test "568" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/568.json", .{});
     defer file.close();
@@ -9797,7 +9797,7 @@ test "568" {
 
 test "569" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/569.json", .{});
     defer file.close();
@@ -9807,7 +9807,7 @@ test "569" {
 
 test "57" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/57.json", .{});
     defer file.close();
@@ -9817,7 +9817,7 @@ test "57" {
 
 test "570" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/570.json", .{});
     defer file.close();
@@ -9827,7 +9827,7 @@ test "570" {
 
 test "571" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/571.json", .{});
     defer file.close();
@@ -9837,7 +9837,7 @@ test "571" {
 
 test "572" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/572.json", .{});
     defer file.close();
@@ -9847,7 +9847,7 @@ test "572" {
 
 test "573" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/573.json", .{});
     defer file.close();
@@ -9857,7 +9857,7 @@ test "573" {
 
 test "574" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/574.json", .{});
     defer file.close();
@@ -9867,7 +9867,7 @@ test "574" {
 
 test "575" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/575.json", .{});
     defer file.close();
@@ -9877,7 +9877,7 @@ test "575" {
 
 test "576" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/576.json", .{});
     defer file.close();
@@ -9887,7 +9887,7 @@ test "576" {
 
 test "577" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/577.json", .{});
     defer file.close();
@@ -9897,7 +9897,7 @@ test "577" {
 
 test "578" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/578.json", .{});
     defer file.close();
@@ -9907,7 +9907,7 @@ test "578" {
 
 test "579" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/579.json", .{});
     defer file.close();
@@ -9917,7 +9917,7 @@ test "579" {
 
 test "58" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/58.json", .{});
     defer file.close();
@@ -9927,7 +9927,7 @@ test "58" {
 
 test "580" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/580.json", .{});
     defer file.close();
@@ -9937,7 +9937,7 @@ test "580" {
 
 test "581" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/581.json", .{});
     defer file.close();
@@ -9947,7 +9947,7 @@ test "581" {
 
 test "582" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/582.json", .{});
     defer file.close();
@@ -9957,7 +9957,7 @@ test "582" {
 
 test "583" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/583.json", .{});
     defer file.close();
@@ -9967,7 +9967,7 @@ test "583" {
 
 test "584" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/584.json", .{});
     defer file.close();
@@ -9977,7 +9977,7 @@ test "584" {
 
 test "585" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/585.json", .{});
     defer file.close();
@@ -9987,7 +9987,7 @@ test "585" {
 
 test "586" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/586.json", .{});
     defer file.close();
@@ -9997,7 +9997,7 @@ test "586" {
 
 test "587" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/587.json", .{});
     defer file.close();
@@ -10007,7 +10007,7 @@ test "587" {
 
 test "588" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/588.json", .{});
     defer file.close();
@@ -10017,7 +10017,7 @@ test "588" {
 
 test "589" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/589.json", .{});
     defer file.close();
@@ -10027,7 +10027,7 @@ test "589" {
 
 test "59" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/59.json", .{});
     defer file.close();
@@ -10037,7 +10037,7 @@ test "59" {
 
 test "590" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/590.json", .{});
     defer file.close();
@@ -10047,7 +10047,7 @@ test "590" {
 
 test "591" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/591.json", .{});
     defer file.close();
@@ -10057,7 +10057,7 @@ test "591" {
 
 test "592" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/592.json", .{});
     defer file.close();
@@ -10067,7 +10067,7 @@ test "592" {
 
 test "593" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/593.json", .{});
     defer file.close();
@@ -10077,7 +10077,7 @@ test "593" {
 
 test "594" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/594.json", .{});
     defer file.close();
@@ -10087,7 +10087,7 @@ test "594" {
 
 test "595" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/595.json", .{});
     defer file.close();
@@ -10097,7 +10097,7 @@ test "595" {
 
 test "596" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/596.json", .{});
     defer file.close();
@@ -10107,7 +10107,7 @@ test "596" {
 
 test "597" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/597.json", .{});
     defer file.close();
@@ -10117,7 +10117,7 @@ test "597" {
 
 test "598" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/598.json", .{});
     defer file.close();
@@ -10127,7 +10127,7 @@ test "598" {
 
 test "599" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/599.json", .{});
     defer file.close();
@@ -10137,7 +10137,7 @@ test "599" {
 
 test "6" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/6.json", .{});
     defer file.close();
@@ -10147,7 +10147,7 @@ test "6" {
 
 test "60" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/60.json", .{});
     defer file.close();
@@ -10157,7 +10157,7 @@ test "60" {
 
 test "600" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/600.json", .{});
     defer file.close();
@@ -10167,7 +10167,7 @@ test "600" {
 
 test "601" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/601.json", .{});
     defer file.close();
@@ -10177,7 +10177,7 @@ test "601" {
 
 test "602" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/602.json", .{});
     defer file.close();
@@ -10187,7 +10187,7 @@ test "602" {
 
 test "603" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/603.json", .{});
     defer file.close();
@@ -10197,7 +10197,7 @@ test "603" {
 
 test "604" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/604.json", .{});
     defer file.close();
@@ -10207,7 +10207,7 @@ test "604" {
 
 test "605" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/605.json", .{});
     defer file.close();
@@ -10217,7 +10217,7 @@ test "605" {
 
 test "606" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/606.json", .{});
     defer file.close();
@@ -10227,7 +10227,7 @@ test "606" {
 
 test "607" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/607.json", .{});
     defer file.close();
@@ -10237,7 +10237,7 @@ test "607" {
 
 test "608" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/608.json", .{});
     defer file.close();
@@ -10247,7 +10247,7 @@ test "608" {
 
 test "609" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/609.json", .{});
     defer file.close();
@@ -10257,7 +10257,7 @@ test "609" {
 
 test "61" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/61.json", .{});
     defer file.close();
@@ -10267,7 +10267,7 @@ test "61" {
 
 test "610" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/610.json", .{});
     defer file.close();
@@ -10277,7 +10277,7 @@ test "610" {
 
 test "611" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/611.json", .{});
     defer file.close();
@@ -10287,7 +10287,7 @@ test "611" {
 
 test "612" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/612.json", .{});
     defer file.close();
@@ -10297,7 +10297,7 @@ test "612" {
 
 test "613" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/613.json", .{});
     defer file.close();
@@ -10307,7 +10307,7 @@ test "613" {
 
 test "614" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/614.json", .{});
     defer file.close();
@@ -10317,7 +10317,7 @@ test "614" {
 
 test "615" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/615.json", .{});
     defer file.close();
@@ -10327,7 +10327,7 @@ test "615" {
 
 test "616" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/616.json", .{});
     defer file.close();
@@ -10337,7 +10337,7 @@ test "616" {
 
 test "617" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/617.json", .{});
     defer file.close();
@@ -10347,7 +10347,7 @@ test "617" {
 
 test "618" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/618.json", .{});
     defer file.close();
@@ -10357,7 +10357,7 @@ test "618" {
 
 test "619" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/619.json", .{});
     defer file.close();
@@ -10367,7 +10367,7 @@ test "619" {
 
 test "62" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/62.json", .{});
     defer file.close();
@@ -10377,7 +10377,7 @@ test "62" {
 
 test "620" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/620.json", .{});
     defer file.close();
@@ -10387,7 +10387,7 @@ test "620" {
 
 test "621" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/621.json", .{});
     defer file.close();
@@ -10397,7 +10397,7 @@ test "621" {
 
 test "622" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/622.json", .{});
     defer file.close();
@@ -10407,7 +10407,7 @@ test "622" {
 
 test "623" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/623.json", .{});
     defer file.close();
@@ -10417,7 +10417,7 @@ test "623" {
 
 test "624" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/624.json", .{});
     defer file.close();
@@ -10427,7 +10427,7 @@ test "624" {
 
 test "625" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/625.json", .{});
     defer file.close();
@@ -10437,7 +10437,7 @@ test "625" {
 
 test "626" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/626.json", .{});
     defer file.close();
@@ -10447,7 +10447,7 @@ test "626" {
 
 test "627" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/627.json", .{});
     defer file.close();
@@ -10457,7 +10457,7 @@ test "627" {
 
 test "628" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/628.json", .{});
     defer file.close();
@@ -10467,7 +10467,7 @@ test "628" {
 
 test "629" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/629.json", .{});
     defer file.close();
@@ -10477,7 +10477,7 @@ test "629" {
 
 test "63" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/63.json", .{});
     defer file.close();
@@ -10487,7 +10487,7 @@ test "63" {
 
 test "630" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/630.json", .{});
     defer file.close();
@@ -10497,7 +10497,7 @@ test "630" {
 
 test "631" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/631.json", .{});
     defer file.close();
@@ -10507,7 +10507,7 @@ test "631" {
 
 test "632" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/632.json", .{});
     defer file.close();
@@ -10517,7 +10517,7 @@ test "632" {
 
 test "633" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/633.json", .{});
     defer file.close();
@@ -10527,7 +10527,7 @@ test "633" {
 
 test "634" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/634.json", .{});
     defer file.close();
@@ -10537,7 +10537,7 @@ test "634" {
 
 test "635" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/635.json", .{});
     defer file.close();
@@ -10547,7 +10547,7 @@ test "635" {
 
 test "636" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/636.json", .{});
     defer file.close();
@@ -10557,7 +10557,7 @@ test "636" {
 
 test "637" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/637.json", .{});
     defer file.close();
@@ -10567,7 +10567,7 @@ test "637" {
 
 test "638" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/638.json", .{});
     defer file.close();
@@ -10577,7 +10577,7 @@ test "638" {
 
 test "639" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/639.json", .{});
     defer file.close();
@@ -10587,7 +10587,7 @@ test "639" {
 
 test "64" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/64.json", .{});
     defer file.close();
@@ -10597,7 +10597,7 @@ test "64" {
 
 test "640" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/640.json", .{});
     defer file.close();
@@ -10607,7 +10607,7 @@ test "640" {
 
 test "641" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/641.json", .{});
     defer file.close();
@@ -10617,7 +10617,7 @@ test "641" {
 
 test "642" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/642.json", .{});
     defer file.close();
@@ -10627,7 +10627,7 @@ test "642" {
 
 test "643" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/643.json", .{});
     defer file.close();
@@ -10637,7 +10637,7 @@ test "643" {
 
 test "644" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/644.json", .{});
     defer file.close();
@@ -10647,7 +10647,7 @@ test "644" {
 
 test "645" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/645.json", .{});
     defer file.close();
@@ -10657,7 +10657,7 @@ test "645" {
 
 test "646" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/646.json", .{});
     defer file.close();
@@ -10667,7 +10667,7 @@ test "646" {
 
 test "647" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/647.json", .{});
     defer file.close();
@@ -10677,7 +10677,7 @@ test "647" {
 
 test "648" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/648.json", .{});
     defer file.close();
@@ -10687,7 +10687,7 @@ test "648" {
 
 test "649" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/649.json", .{});
     defer file.close();
@@ -10697,7 +10697,7 @@ test "649" {
 
 test "65" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/65.json", .{});
     defer file.close();
@@ -10707,7 +10707,7 @@ test "65" {
 
 test "650" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/650.json", .{});
     defer file.close();
@@ -10717,7 +10717,7 @@ test "650" {
 
 test "651" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/651.json", .{});
     defer file.close();
@@ -10727,7 +10727,7 @@ test "651" {
 
 test "652" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/652.json", .{});
     defer file.close();
@@ -10737,7 +10737,7 @@ test "652" {
 
 test "653" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/653.json", .{});
     defer file.close();
@@ -10747,7 +10747,7 @@ test "653" {
 
 test "654" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/654.json", .{});
     defer file.close();
@@ -10757,7 +10757,7 @@ test "654" {
 
 test "655" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/655.json", .{});
     defer file.close();
@@ -10767,7 +10767,7 @@ test "655" {
 
 test "656" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/656.json", .{});
     defer file.close();
@@ -10777,7 +10777,7 @@ test "656" {
 
 test "657" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/657.json", .{});
     defer file.close();
@@ -10787,7 +10787,7 @@ test "657" {
 
 test "658" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/658.json", .{});
     defer file.close();
@@ -10797,7 +10797,7 @@ test "658" {
 
 test "659" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/659.json", .{});
     defer file.close();
@@ -10807,7 +10807,7 @@ test "659" {
 
 test "66" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/66.json", .{});
     defer file.close();
@@ -10817,7 +10817,7 @@ test "66" {
 
 test "660" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/660.json", .{});
     defer file.close();
@@ -10827,7 +10827,7 @@ test "660" {
 
 test "661" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/661.json", .{});
     defer file.close();
@@ -10837,7 +10837,7 @@ test "661" {
 
 test "662" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/662.json", .{});
     defer file.close();
@@ -10847,7 +10847,7 @@ test "662" {
 
 test "663" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/663.json", .{});
     defer file.close();
@@ -10857,7 +10857,7 @@ test "663" {
 
 test "664" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/664.json", .{});
     defer file.close();
@@ -10867,7 +10867,7 @@ test "664" {
 
 test "665" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/665.json", .{});
     defer file.close();
@@ -10877,7 +10877,7 @@ test "665" {
 
 test "666" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/666.json", .{});
     defer file.close();
@@ -10887,7 +10887,7 @@ test "666" {
 
 test "667" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/667.json", .{});
     defer file.close();
@@ -10897,7 +10897,7 @@ test "667" {
 
 test "668" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/668.json", .{});
     defer file.close();
@@ -10907,7 +10907,7 @@ test "668" {
 
 test "669" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/669.json", .{});
     defer file.close();
@@ -10917,7 +10917,7 @@ test "669" {
 
 test "67" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/67.json", .{});
     defer file.close();
@@ -10927,7 +10927,7 @@ test "67" {
 
 test "670" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/670.json", .{});
     defer file.close();
@@ -10937,7 +10937,7 @@ test "670" {
 
 test "671" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/671.json", .{});
     defer file.close();
@@ -10947,7 +10947,7 @@ test "671" {
 
 test "672" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/672.json", .{});
     defer file.close();
@@ -10957,7 +10957,7 @@ test "672" {
 
 test "673" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/673.json", .{});
     defer file.close();
@@ -10967,7 +10967,7 @@ test "673" {
 
 test "674" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/674.json", .{});
     defer file.close();
@@ -10977,7 +10977,7 @@ test "674" {
 
 test "675" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/675.json", .{});
     defer file.close();
@@ -10987,7 +10987,7 @@ test "675" {
 
 test "676" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/676.json", .{});
     defer file.close();
@@ -10997,7 +10997,7 @@ test "676" {
 
 test "677" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/677.json", .{});
     defer file.close();
@@ -11007,7 +11007,7 @@ test "677" {
 
 test "678" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/678.json", .{});
     defer file.close();
@@ -11017,7 +11017,7 @@ test "678" {
 
 test "679" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/679.json", .{});
     defer file.close();
@@ -11027,7 +11027,7 @@ test "679" {
 
 test "68" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/68.json", .{});
     defer file.close();
@@ -11037,7 +11037,7 @@ test "68" {
 
 test "680" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/680.json", .{});
     defer file.close();
@@ -11047,7 +11047,7 @@ test "680" {
 
 test "681" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/681.json", .{});
     defer file.close();
@@ -11057,7 +11057,7 @@ test "681" {
 
 test "682" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/682.json", .{});
     defer file.close();
@@ -11067,7 +11067,7 @@ test "682" {
 
 test "683" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/683.json", .{});
     defer file.close();
@@ -11077,7 +11077,7 @@ test "683" {
 
 test "684" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/684.json", .{});
     defer file.close();
@@ -11087,7 +11087,7 @@ test "684" {
 
 test "685" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/685.json", .{});
     defer file.close();
@@ -11097,7 +11097,7 @@ test "685" {
 
 test "686" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/686.json", .{});
     defer file.close();
@@ -11107,7 +11107,7 @@ test "686" {
 
 test "687" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/687.json", .{});
     defer file.close();
@@ -11117,7 +11117,7 @@ test "687" {
 
 test "688" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/688.json", .{});
     defer file.close();
@@ -11127,7 +11127,7 @@ test "688" {
 
 test "689" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/689.json", .{});
     defer file.close();
@@ -11137,7 +11137,7 @@ test "689" {
 
 test "69" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/69.json", .{});
     defer file.close();
@@ -11147,7 +11147,7 @@ test "69" {
 
 test "690" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/690.json", .{});
     defer file.close();
@@ -11157,7 +11157,7 @@ test "690" {
 
 test "691" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/691.json", .{});
     defer file.close();
@@ -11167,7 +11167,7 @@ test "691" {
 
 test "692" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/692.json", .{});
     defer file.close();
@@ -11177,7 +11177,7 @@ test "692" {
 
 test "693" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/693.json", .{});
     defer file.close();
@@ -11187,7 +11187,7 @@ test "693" {
 
 test "694" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/694.json", .{});
     defer file.close();
@@ -11197,7 +11197,7 @@ test "694" {
 
 test "695" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/695.json", .{});
     defer file.close();
@@ -11207,7 +11207,7 @@ test "695" {
 
 test "696" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/696.json", .{});
     defer file.close();
@@ -11217,7 +11217,7 @@ test "696" {
 
 test "697" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/697.json", .{});
     defer file.close();
@@ -11227,7 +11227,7 @@ test "697" {
 
 test "698" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/698.json", .{});
     defer file.close();
@@ -11237,7 +11237,7 @@ test "698" {
 
 test "699" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/699.json", .{});
     defer file.close();
@@ -11247,7 +11247,7 @@ test "699" {
 
 test "7" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/7.json", .{});
     defer file.close();
@@ -11257,7 +11257,7 @@ test "7" {
 
 test "70" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/70.json", .{});
     defer file.close();
@@ -11267,7 +11267,7 @@ test "70" {
 
 test "700" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/700.json", .{});
     defer file.close();
@@ -11277,7 +11277,7 @@ test "700" {
 
 test "701" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/701.json", .{});
     defer file.close();
@@ -11287,7 +11287,7 @@ test "701" {
 
 test "702" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/702.json", .{});
     defer file.close();
@@ -11297,7 +11297,7 @@ test "702" {
 
 test "703" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/703.json", .{});
     defer file.close();
@@ -11307,7 +11307,7 @@ test "703" {
 
 test "704" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/704.json", .{});
     defer file.close();
@@ -11317,7 +11317,7 @@ test "704" {
 
 test "705" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/705.json", .{});
     defer file.close();
@@ -11327,7 +11327,7 @@ test "705" {
 
 test "706" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/706.json", .{});
     defer file.close();
@@ -11337,7 +11337,7 @@ test "706" {
 
 test "707" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/707.json", .{});
     defer file.close();
@@ -11347,7 +11347,7 @@ test "707" {
 
 test "708" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/708.json", .{});
     defer file.close();
@@ -11357,7 +11357,7 @@ test "708" {
 
 test "709" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/709.json", .{});
     defer file.close();
@@ -11367,7 +11367,7 @@ test "709" {
 
 test "71" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/71.json", .{});
     defer file.close();
@@ -11377,7 +11377,7 @@ test "71" {
 
 test "710" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/710.json", .{});
     defer file.close();
@@ -11387,7 +11387,7 @@ test "710" {
 
 test "711" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/711.json", .{});
     defer file.close();
@@ -11397,7 +11397,7 @@ test "711" {
 
 test "712" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/712.json", .{});
     defer file.close();
@@ -11407,7 +11407,7 @@ test "712" {
 
 test "713" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/713.json", .{});
     defer file.close();
@@ -11417,7 +11417,7 @@ test "713" {
 
 test "714" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/714.json", .{});
     defer file.close();
@@ -11427,7 +11427,7 @@ test "714" {
 
 test "715" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/715.json", .{});
     defer file.close();
@@ -11437,7 +11437,7 @@ test "715" {
 
 test "716" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/716.json", .{});
     defer file.close();
@@ -11447,7 +11447,7 @@ test "716" {
 
 test "717" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/717.json", .{});
     defer file.close();
@@ -11457,7 +11457,7 @@ test "717" {
 
 test "718" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/718.json", .{});
     defer file.close();
@@ -11467,7 +11467,7 @@ test "718" {
 
 test "719" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/719.json", .{});
     defer file.close();
@@ -11477,7 +11477,7 @@ test "719" {
 
 test "72" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/72.json", .{});
     defer file.close();
@@ -11487,7 +11487,7 @@ test "72" {
 
 test "720" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/720.json", .{});
     defer file.close();
@@ -11497,7 +11497,7 @@ test "720" {
 
 test "721" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/721.json", .{});
     defer file.close();
@@ -11507,7 +11507,7 @@ test "721" {
 
 test "722" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/722.json", .{});
     defer file.close();
@@ -11517,7 +11517,7 @@ test "722" {
 
 test "723" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/723.json", .{});
     defer file.close();
@@ -11527,7 +11527,7 @@ test "723" {
 
 test "724" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/724.json", .{});
     defer file.close();
@@ -11537,7 +11537,7 @@ test "724" {
 
 test "725" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/725.json", .{});
     defer file.close();
@@ -11547,7 +11547,7 @@ test "725" {
 
 test "726" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/726.json", .{});
     defer file.close();
@@ -11557,7 +11557,7 @@ test "726" {
 
 test "727" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/727.json", .{});
     defer file.close();
@@ -11567,7 +11567,7 @@ test "727" {
 
 test "728" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/728.json", .{});
     defer file.close();
@@ -11577,7 +11577,7 @@ test "728" {
 
 test "729" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/729.json", .{});
     defer file.close();
@@ -11587,7 +11587,7 @@ test "729" {
 
 test "73" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/73.json", .{});
     defer file.close();
@@ -11597,7 +11597,7 @@ test "73" {
 
 test "730" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/730.json", .{});
     defer file.close();
@@ -11607,7 +11607,7 @@ test "730" {
 
 test "731" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/731.json", .{});
     defer file.close();
@@ -11617,7 +11617,7 @@ test "731" {
 
 test "732" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/732.json", .{});
     defer file.close();
@@ -11627,7 +11627,7 @@ test "732" {
 
 test "733" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/733.json", .{});
     defer file.close();
@@ -11637,7 +11637,7 @@ test "733" {
 
 test "734" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/734.json", .{});
     defer file.close();
@@ -11647,7 +11647,7 @@ test "734" {
 
 test "735" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/735.json", .{});
     defer file.close();
@@ -11657,7 +11657,7 @@ test "735" {
 
 test "736" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/736.json", .{});
     defer file.close();
@@ -11667,7 +11667,7 @@ test "736" {
 
 test "737" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/737.json", .{});
     defer file.close();
@@ -11677,7 +11677,7 @@ test "737" {
 
 test "738" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/738.json", .{});
     defer file.close();
@@ -11687,7 +11687,7 @@ test "738" {
 
 test "739" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/739.json", .{});
     defer file.close();
@@ -11697,7 +11697,7 @@ test "739" {
 
 test "74" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/74.json", .{});
     defer file.close();
@@ -11707,7 +11707,7 @@ test "74" {
 
 test "740" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/740.json", .{});
     defer file.close();
@@ -11717,7 +11717,7 @@ test "740" {
 
 test "741" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/741.json", .{});
     defer file.close();
@@ -11727,7 +11727,7 @@ test "741" {
 
 test "742" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/742.json", .{});
     defer file.close();
@@ -11737,7 +11737,7 @@ test "742" {
 
 test "743" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/743.json", .{});
     defer file.close();
@@ -11747,7 +11747,7 @@ test "743" {
 
 test "744" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/744.json", .{});
     defer file.close();
@@ -11757,7 +11757,7 @@ test "744" {
 
 test "745" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/745.json", .{});
     defer file.close();
@@ -11767,7 +11767,7 @@ test "745" {
 
 test "746" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/746.json", .{});
     defer file.close();
@@ -11777,7 +11777,7 @@ test "746" {
 
 test "747" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/747.json", .{});
     defer file.close();
@@ -11787,7 +11787,7 @@ test "747" {
 
 test "748" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/748.json", .{});
     defer file.close();
@@ -11797,7 +11797,7 @@ test "748" {
 
 test "749" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/749.json", .{});
     defer file.close();
@@ -11807,7 +11807,7 @@ test "749" {
 
 test "75" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/75.json", .{});
     defer file.close();
@@ -11817,7 +11817,7 @@ test "75" {
 
 test "750" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/750.json", .{});
     defer file.close();
@@ -11827,7 +11827,7 @@ test "750" {
 
 test "751" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/751.json", .{});
     defer file.close();
@@ -11837,7 +11837,7 @@ test "751" {
 
 test "752" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/752.json", .{});
     defer file.close();
@@ -11847,7 +11847,7 @@ test "752" {
 
 test "753" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/753.json", .{});
     defer file.close();
@@ -11857,7 +11857,7 @@ test "753" {
 
 test "754" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/754.json", .{});
     defer file.close();
@@ -11867,7 +11867,7 @@ test "754" {
 
 test "755" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/755.json", .{});
     defer file.close();
@@ -11877,7 +11877,7 @@ test "755" {
 
 test "756" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/756.json", .{});
     defer file.close();
@@ -11887,7 +11887,7 @@ test "756" {
 
 test "757" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/757.json", .{});
     defer file.close();
@@ -11897,7 +11897,7 @@ test "757" {
 
 test "758" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/758.json", .{});
     defer file.close();
@@ -11907,7 +11907,7 @@ test "758" {
 
 test "759" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/759.json", .{});
     defer file.close();
@@ -11917,7 +11917,7 @@ test "759" {
 
 test "76" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/76.json", .{});
     defer file.close();
@@ -11927,7 +11927,7 @@ test "76" {
 
 test "760" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/760.json", .{});
     defer file.close();
@@ -11937,7 +11937,7 @@ test "760" {
 
 test "761" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/761.json", .{});
     defer file.close();
@@ -11947,7 +11947,7 @@ test "761" {
 
 test "762" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/762.json", .{});
     defer file.close();
@@ -11957,7 +11957,7 @@ test "762" {
 
 test "763" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/763.json", .{});
     defer file.close();
@@ -11967,7 +11967,7 @@ test "763" {
 
 test "764" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/764.json", .{});
     defer file.close();
@@ -11977,7 +11977,7 @@ test "764" {
 
 test "765" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/765.json", .{});
     defer file.close();
@@ -11987,7 +11987,7 @@ test "765" {
 
 test "766" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/766.json", .{});
     defer file.close();
@@ -11997,7 +11997,7 @@ test "766" {
 
 test "767" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/767.json", .{});
     defer file.close();
@@ -12007,7 +12007,7 @@ test "767" {
 
 test "768" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/768.json", .{});
     defer file.close();
@@ -12017,7 +12017,7 @@ test "768" {
 
 test "769" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/769.json", .{});
     defer file.close();
@@ -12027,7 +12027,7 @@ test "769" {
 
 test "77" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/77.json", .{});
     defer file.close();
@@ -12037,7 +12037,7 @@ test "77" {
 
 test "770" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/770.json", .{});
     defer file.close();
@@ -12047,7 +12047,7 @@ test "770" {
 
 test "771" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/771.json", .{});
     defer file.close();
@@ -12057,7 +12057,7 @@ test "771" {
 
 test "772" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/772.json", .{});
     defer file.close();
@@ -12067,7 +12067,7 @@ test "772" {
 
 test "773" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/773.json", .{});
     defer file.close();
@@ -12077,7 +12077,7 @@ test "773" {
 
 test "774" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/774.json", .{});
     defer file.close();
@@ -12087,7 +12087,7 @@ test "774" {
 
 test "775" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/775.json", .{});
     defer file.close();
@@ -12097,7 +12097,7 @@ test "775" {
 
 test "776" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/776.json", .{});
     defer file.close();
@@ -12107,7 +12107,7 @@ test "776" {
 
 test "777" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/777.json", .{});
     defer file.close();
@@ -12117,7 +12117,7 @@ test "777" {
 
 test "778" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/778.json", .{});
     defer file.close();
@@ -12127,7 +12127,7 @@ test "778" {
 
 test "779" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/779.json", .{});
     defer file.close();
@@ -12137,7 +12137,7 @@ test "779" {
 
 test "78" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/78.json", .{});
     defer file.close();
@@ -12147,7 +12147,7 @@ test "78" {
 
 test "780" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/780.json", .{});
     defer file.close();
@@ -12157,7 +12157,7 @@ test "780" {
 
 test "781" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/781.json", .{});
     defer file.close();
@@ -12167,7 +12167,7 @@ test "781" {
 
 test "782" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/782.json", .{});
     defer file.close();
@@ -12177,7 +12177,7 @@ test "782" {
 
 test "783" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/783.json", .{});
     defer file.close();
@@ -12187,7 +12187,7 @@ test "783" {
 
 test "784" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/784.json", .{});
     defer file.close();
@@ -12197,7 +12197,7 @@ test "784" {
 
 test "785" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/785.json", .{});
     defer file.close();
@@ -12207,7 +12207,7 @@ test "785" {
 
 test "786" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/786.json", .{});
     defer file.close();
@@ -12217,7 +12217,7 @@ test "786" {
 
 test "787" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/787.json", .{});
     defer file.close();
@@ -12227,7 +12227,7 @@ test "787" {
 
 test "788" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/788.json", .{});
     defer file.close();
@@ -12237,7 +12237,7 @@ test "788" {
 
 test "789" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/789.json", .{});
     defer file.close();
@@ -12247,7 +12247,7 @@ test "789" {
 
 test "79" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/79.json", .{});
     defer file.close();
@@ -12257,7 +12257,7 @@ test "79" {
 
 test "790" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/790.json", .{});
     defer file.close();
@@ -12267,7 +12267,7 @@ test "790" {
 
 test "791" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/791.json", .{});
     defer file.close();
@@ -12277,7 +12277,7 @@ test "791" {
 
 test "792" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/792.json", .{});
     defer file.close();
@@ -12287,7 +12287,7 @@ test "792" {
 
 test "793" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/793.json", .{});
     defer file.close();
@@ -12297,7 +12297,7 @@ test "793" {
 
 test "794" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/794.json", .{});
     defer file.close();
@@ -12307,7 +12307,7 @@ test "794" {
 
 test "795" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/795.json", .{});
     defer file.close();
@@ -12317,7 +12317,7 @@ test "795" {
 
 test "796" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/796.json", .{});
     defer file.close();
@@ -12327,7 +12327,7 @@ test "796" {
 
 test "797" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/797.json", .{});
     defer file.close();
@@ -12337,7 +12337,7 @@ test "797" {
 
 test "798" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/798.json", .{});
     defer file.close();
@@ -12347,7 +12347,7 @@ test "798" {
 
 test "799" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/799.json", .{});
     defer file.close();
@@ -12357,7 +12357,7 @@ test "799" {
 
 test "8" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/8.json", .{});
     defer file.close();
@@ -12367,7 +12367,7 @@ test "8" {
 
 test "80" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/80.json", .{});
     defer file.close();
@@ -12377,7 +12377,7 @@ test "80" {
 
 test "800" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/800.json", .{});
     defer file.close();
@@ -12387,7 +12387,7 @@ test "800" {
 
 test "801" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/801.json", .{});
     defer file.close();
@@ -12397,7 +12397,7 @@ test "801" {
 
 test "802" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/802.json", .{});
     defer file.close();
@@ -12407,7 +12407,7 @@ test "802" {
 
 test "803" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/803.json", .{});
     defer file.close();
@@ -12417,7 +12417,7 @@ test "803" {
 
 test "804" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/804.json", .{});
     defer file.close();
@@ -12427,7 +12427,7 @@ test "804" {
 
 test "805" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/805.json", .{});
     defer file.close();
@@ -12437,7 +12437,7 @@ test "805" {
 
 test "806" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/806.json", .{});
     defer file.close();
@@ -12447,7 +12447,7 @@ test "806" {
 
 test "807" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/807.json", .{});
     defer file.close();
@@ -12457,7 +12457,7 @@ test "807" {
 
 test "808" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/808.json", .{});
     defer file.close();
@@ -12467,7 +12467,7 @@ test "808" {
 
 test "809" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/809.json", .{});
     defer file.close();
@@ -12477,7 +12477,7 @@ test "809" {
 
 test "81" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/81.json", .{});
     defer file.close();
@@ -12487,7 +12487,7 @@ test "81" {
 
 test "810" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/810.json", .{});
     defer file.close();
@@ -12497,7 +12497,7 @@ test "810" {
 
 test "811" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/811.json", .{});
     defer file.close();
@@ -12507,7 +12507,7 @@ test "811" {
 
 test "812" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/812.json", .{});
     defer file.close();
@@ -12517,7 +12517,7 @@ test "812" {
 
 test "813" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/813.json", .{});
     defer file.close();
@@ -12527,7 +12527,7 @@ test "813" {
 
 test "814" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/814.json", .{});
     defer file.close();
@@ -12537,7 +12537,7 @@ test "814" {
 
 test "815" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/815.json", .{});
     defer file.close();
@@ -12547,7 +12547,7 @@ test "815" {
 
 test "816" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/816.json", .{});
     defer file.close();
@@ -12557,7 +12557,7 @@ test "816" {
 
 test "817" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/817.json", .{});
     defer file.close();
@@ -12567,7 +12567,7 @@ test "817" {
 
 test "818" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/818.json", .{});
     defer file.close();
@@ -12577,7 +12577,7 @@ test "818" {
 
 test "819" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/819.json", .{});
     defer file.close();
@@ -12587,7 +12587,7 @@ test "819" {
 
 test "82" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/82.json", .{});
     defer file.close();
@@ -12597,7 +12597,7 @@ test "82" {
 
 test "820" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/820.json", .{});
     defer file.close();
@@ -12607,7 +12607,7 @@ test "820" {
 
 test "821" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/821.json", .{});
     defer file.close();
@@ -12617,7 +12617,7 @@ test "821" {
 
 test "822" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/822.json", .{});
     defer file.close();
@@ -12627,7 +12627,7 @@ test "822" {
 
 test "823" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/823.json", .{});
     defer file.close();
@@ -12637,7 +12637,7 @@ test "823" {
 
 test "824" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/824.json", .{});
     defer file.close();
@@ -12647,7 +12647,7 @@ test "824" {
 
 test "825" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/825.json", .{});
     defer file.close();
@@ -12657,7 +12657,7 @@ test "825" {
 
 test "826" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/826.json", .{});
     defer file.close();
@@ -12667,7 +12667,7 @@ test "826" {
 
 test "827" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/827.json", .{});
     defer file.close();
@@ -12677,7 +12677,7 @@ test "827" {
 
 test "828" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/828.json", .{});
     defer file.close();
@@ -12687,7 +12687,7 @@ test "828" {
 
 test "829" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/829.json", .{});
     defer file.close();
@@ -12697,7 +12697,7 @@ test "829" {
 
 test "83" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/83.json", .{});
     defer file.close();
@@ -12707,7 +12707,7 @@ test "83" {
 
 test "830" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/830.json", .{});
     defer file.close();
@@ -12717,7 +12717,7 @@ test "830" {
 
 test "831" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/831.json", .{});
     defer file.close();
@@ -12727,7 +12727,7 @@ test "831" {
 
 test "832" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/832.json", .{});
     defer file.close();
@@ -12737,7 +12737,7 @@ test "832" {
 
 test "833" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/833.json", .{});
     defer file.close();
@@ -12747,7 +12747,7 @@ test "833" {
 
 test "834" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/834.json", .{});
     defer file.close();
@@ -12757,7 +12757,7 @@ test "834" {
 
 test "835" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/835.json", .{});
     defer file.close();
@@ -12767,7 +12767,7 @@ test "835" {
 
 test "836" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/836.json", .{});
     defer file.close();
@@ -12777,7 +12777,7 @@ test "836" {
 
 test "837" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/837.json", .{});
     defer file.close();
@@ -12787,7 +12787,7 @@ test "837" {
 
 test "838" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/838.json", .{});
     defer file.close();
@@ -12797,7 +12797,7 @@ test "838" {
 
 test "839" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/839.json", .{});
     defer file.close();
@@ -12807,7 +12807,7 @@ test "839" {
 
 test "84" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/84.json", .{});
     defer file.close();
@@ -12817,7 +12817,7 @@ test "84" {
 
 test "840" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/840.json", .{});
     defer file.close();
@@ -12827,7 +12827,7 @@ test "840" {
 
 test "841" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/841.json", .{});
     defer file.close();
@@ -12837,7 +12837,7 @@ test "841" {
 
 test "842" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/842.json", .{});
     defer file.close();
@@ -12847,7 +12847,7 @@ test "842" {
 
 test "843" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/843.json", .{});
     defer file.close();
@@ -12857,7 +12857,7 @@ test "843" {
 
 test "844" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/844.json", .{});
     defer file.close();
@@ -12867,7 +12867,7 @@ test "844" {
 
 test "845" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/845.json", .{});
     defer file.close();
@@ -12877,7 +12877,7 @@ test "845" {
 
 test "846" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/846.json", .{});
     defer file.close();
@@ -12887,7 +12887,7 @@ test "846" {
 
 test "847" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/847.json", .{});
     defer file.close();
@@ -12897,7 +12897,7 @@ test "847" {
 
 test "848" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/848.json", .{});
     defer file.close();
@@ -12907,7 +12907,7 @@ test "848" {
 
 test "849" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/849.json", .{});
     defer file.close();
@@ -12917,7 +12917,7 @@ test "849" {
 
 test "85" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/85.json", .{});
     defer file.close();
@@ -12927,7 +12927,7 @@ test "85" {
 
 test "850" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/850.json", .{});
     defer file.close();
@@ -12937,7 +12937,7 @@ test "850" {
 
 test "851" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/851.json", .{});
     defer file.close();
@@ -12947,7 +12947,7 @@ test "851" {
 
 test "852" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/852.json", .{});
     defer file.close();
@@ -12957,7 +12957,7 @@ test "852" {
 
 test "853" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/853.json", .{});
     defer file.close();
@@ -12967,7 +12967,7 @@ test "853" {
 
 test "854" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/854.json", .{});
     defer file.close();
@@ -12977,7 +12977,7 @@ test "854" {
 
 test "855" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/855.json", .{});
     defer file.close();
@@ -12987,7 +12987,7 @@ test "855" {
 
 test "856" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/856.json", .{});
     defer file.close();
@@ -12997,7 +12997,7 @@ test "856" {
 
 test "857" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/857.json", .{});
     defer file.close();
@@ -13007,7 +13007,7 @@ test "857" {
 
 test "858" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/858.json", .{});
     defer file.close();
@@ -13017,7 +13017,7 @@ test "858" {
 
 test "859" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/859.json", .{});
     defer file.close();
@@ -13027,7 +13027,7 @@ test "859" {
 
 test "86" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/86.json", .{});
     defer file.close();
@@ -13037,7 +13037,7 @@ test "86" {
 
 test "860" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/860.json", .{});
     defer file.close();
@@ -13047,7 +13047,7 @@ test "860" {
 
 test "861" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/861.json", .{});
     defer file.close();
@@ -13057,7 +13057,7 @@ test "861" {
 
 test "862" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/862.json", .{});
     defer file.close();
@@ -13067,7 +13067,7 @@ test "862" {
 
 test "863" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/863.json", .{});
     defer file.close();
@@ -13077,7 +13077,7 @@ test "863" {
 
 test "864" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/864.json", .{});
     defer file.close();
@@ -13087,7 +13087,7 @@ test "864" {
 
 test "865" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/865.json", .{});
     defer file.close();
@@ -13097,7 +13097,7 @@ test "865" {
 
 test "866" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/866.json", .{});
     defer file.close();
@@ -13107,7 +13107,7 @@ test "866" {
 
 test "867" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/867.json", .{});
     defer file.close();
@@ -13117,7 +13117,7 @@ test "867" {
 
 test "868" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/868.json", .{});
     defer file.close();
@@ -13127,7 +13127,7 @@ test "868" {
 
 test "869" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/869.json", .{});
     defer file.close();
@@ -13137,7 +13137,7 @@ test "869" {
 
 test "87" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/87.json", .{});
     defer file.close();
@@ -13147,7 +13147,7 @@ test "87" {
 
 test "870" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/870.json", .{});
     defer file.close();
@@ -13157,7 +13157,7 @@ test "870" {
 
 test "871" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/871.json", .{});
     defer file.close();
@@ -13167,7 +13167,7 @@ test "871" {
 
 test "872" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/872.json", .{});
     defer file.close();
@@ -13177,7 +13177,7 @@ test "872" {
 
 test "873" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/873.json", .{});
     defer file.close();
@@ -13187,7 +13187,7 @@ test "873" {
 
 test "874" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/874.json", .{});
     defer file.close();
@@ -13197,7 +13197,7 @@ test "874" {
 
 test "875" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/875.json", .{});
     defer file.close();
@@ -13207,7 +13207,7 @@ test "875" {
 
 test "876" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/876.json", .{});
     defer file.close();
@@ -13217,7 +13217,7 @@ test "876" {
 
 test "877" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/877.json", .{});
     defer file.close();
@@ -13227,7 +13227,7 @@ test "877" {
 
 test "878" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/878.json", .{});
     defer file.close();
@@ -13237,7 +13237,7 @@ test "878" {
 
 test "879" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/879.json", .{});
     defer file.close();
@@ -13247,7 +13247,7 @@ test "879" {
 
 test "88" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/88.json", .{});
     defer file.close();
@@ -13257,7 +13257,7 @@ test "88" {
 
 test "880" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/880.json", .{});
     defer file.close();
@@ -13267,7 +13267,7 @@ test "880" {
 
 test "881" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/881.json", .{});
     defer file.close();
@@ -13277,7 +13277,7 @@ test "881" {
 
 test "882" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/882.json", .{});
     defer file.close();
@@ -13287,7 +13287,7 @@ test "882" {
 
 test "883" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/883.json", .{});
     defer file.close();
@@ -13297,7 +13297,7 @@ test "883" {
 
 test "884" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/884.json", .{});
     defer file.close();
@@ -13307,7 +13307,7 @@ test "884" {
 
 test "885" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/885.json", .{});
     defer file.close();
@@ -13317,7 +13317,7 @@ test "885" {
 
 test "886" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/886.json", .{});
     defer file.close();
@@ -13327,7 +13327,7 @@ test "886" {
 
 test "887" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/887.json", .{});
     defer file.close();
@@ -13337,7 +13337,7 @@ test "887" {
 
 test "888" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/888.json", .{});
     defer file.close();
@@ -13347,7 +13347,7 @@ test "888" {
 
 test "889" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/889.json", .{});
     defer file.close();
@@ -13357,7 +13357,7 @@ test "889" {
 
 test "89" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/89.json", .{});
     defer file.close();
@@ -13367,7 +13367,7 @@ test "89" {
 
 test "890" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/890.json", .{});
     defer file.close();
@@ -13377,7 +13377,7 @@ test "890" {
 
 test "891" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/891.json", .{});
     defer file.close();
@@ -13387,7 +13387,7 @@ test "891" {
 
 test "892" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/892.json", .{});
     defer file.close();
@@ -13397,7 +13397,7 @@ test "892" {
 
 test "893" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/893.json", .{});
     defer file.close();
@@ -13407,7 +13407,7 @@ test "893" {
 
 test "894" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/894.json", .{});
     defer file.close();
@@ -13417,7 +13417,7 @@ test "894" {
 
 test "895" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/895.json", .{});
     defer file.close();
@@ -13427,7 +13427,7 @@ test "895" {
 
 test "896" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/896.json", .{});
     defer file.close();
@@ -13437,7 +13437,7 @@ test "896" {
 
 test "897" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/897.json", .{});
     defer file.close();
@@ -13447,7 +13447,7 @@ test "897" {
 
 test "898" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/898.json", .{});
     defer file.close();
@@ -13457,7 +13457,7 @@ test "898" {
 
 test "899" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/899.json", .{});
     defer file.close();
@@ -13467,7 +13467,7 @@ test "899" {
 
 test "9" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/9.json", .{});
     defer file.close();
@@ -13477,7 +13477,7 @@ test "9" {
 
 test "90" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/90.json", .{});
     defer file.close();
@@ -13487,7 +13487,7 @@ test "90" {
 
 test "900" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/900.json", .{});
     defer file.close();
@@ -13497,7 +13497,7 @@ test "900" {
 
 test "901" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/901.json", .{});
     defer file.close();
@@ -13507,7 +13507,7 @@ test "901" {
 
 test "902" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/902.json", .{});
     defer file.close();
@@ -13517,7 +13517,7 @@ test "902" {
 
 test "903" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/903.json", .{});
     defer file.close();
@@ -13527,7 +13527,7 @@ test "903" {
 
 test "904" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/904.json", .{});
     defer file.close();
@@ -13537,7 +13537,7 @@ test "904" {
 
 test "905" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/905.json", .{});
     defer file.close();
@@ -13547,7 +13547,7 @@ test "905" {
 
 test "906" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/906.json", .{});
     defer file.close();
@@ -13557,7 +13557,7 @@ test "906" {
 
 test "907" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/907.json", .{});
     defer file.close();
@@ -13567,7 +13567,7 @@ test "907" {
 
 test "908" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/908.json", .{});
     defer file.close();
@@ -13577,7 +13577,7 @@ test "908" {
 
 test "909" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/909.json", .{});
     defer file.close();
@@ -13587,7 +13587,7 @@ test "909" {
 
 test "91" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/91.json", .{});
     defer file.close();
@@ -13597,7 +13597,7 @@ test "91" {
 
 test "910" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/910.json", .{});
     defer file.close();
@@ -13607,7 +13607,7 @@ test "910" {
 
 test "911" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/911.json", .{});
     defer file.close();
@@ -13617,7 +13617,7 @@ test "911" {
 
 test "912" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/912.json", .{});
     defer file.close();
@@ -13627,7 +13627,7 @@ test "912" {
 
 test "913" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/913.json", .{});
     defer file.close();
@@ -13637,7 +13637,7 @@ test "913" {
 
 test "914" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/914.json", .{});
     defer file.close();
@@ -13647,7 +13647,7 @@ test "914" {
 
 test "915" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/915.json", .{});
     defer file.close();
@@ -13657,7 +13657,7 @@ test "915" {
 
 test "916" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/916.json", .{});
     defer file.close();
@@ -13667,7 +13667,7 @@ test "916" {
 
 test "917" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/917.json", .{});
     defer file.close();
@@ -13677,7 +13677,7 @@ test "917" {
 
 test "918" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/918.json", .{});
     defer file.close();
@@ -13687,7 +13687,7 @@ test "918" {
 
 test "919" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/919.json", .{});
     defer file.close();
@@ -13697,7 +13697,7 @@ test "919" {
 
 test "92" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/92.json", .{});
     defer file.close();
@@ -13707,7 +13707,7 @@ test "92" {
 
 test "920" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/920.json", .{});
     defer file.close();
@@ -13717,7 +13717,7 @@ test "920" {
 
 test "921" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/921.json", .{});
     defer file.close();
@@ -13727,7 +13727,7 @@ test "921" {
 
 test "922" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/922.json", .{});
     defer file.close();
@@ -13737,7 +13737,7 @@ test "922" {
 
 test "923" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/923.json", .{});
     defer file.close();
@@ -13747,7 +13747,7 @@ test "923" {
 
 test "924" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/924.json", .{});
     defer file.close();
@@ -13757,7 +13757,7 @@ test "924" {
 
 test "925" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/925.json", .{});
     defer file.close();
@@ -13767,7 +13767,7 @@ test "925" {
 
 test "926" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/926.json", .{});
     defer file.close();
@@ -13777,7 +13777,7 @@ test "926" {
 
 test "927" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/927.json", .{});
     defer file.close();
@@ -13787,7 +13787,7 @@ test "927" {
 
 test "928" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/928.json", .{});
     defer file.close();
@@ -13797,7 +13797,7 @@ test "928" {
 
 test "929" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/929.json", .{});
     defer file.close();
@@ -13807,7 +13807,7 @@ test "929" {
 
 test "93" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/93.json", .{});
     defer file.close();
@@ -13817,7 +13817,7 @@ test "93" {
 
 test "930" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/930.json", .{});
     defer file.close();
@@ -13827,7 +13827,7 @@ test "930" {
 
 test "931" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/931.json", .{});
     defer file.close();
@@ -13837,7 +13837,7 @@ test "931" {
 
 test "932" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/932.json", .{});
     defer file.close();
@@ -13847,7 +13847,7 @@ test "932" {
 
 test "933" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/933.json", .{});
     defer file.close();
@@ -13857,7 +13857,7 @@ test "933" {
 
 test "934" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/934.json", .{});
     defer file.close();
@@ -13867,7 +13867,7 @@ test "934" {
 
 test "935" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/935.json", .{});
     defer file.close();
@@ -13877,7 +13877,7 @@ test "935" {
 
 test "936" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/936.json", .{});
     defer file.close();
@@ -13887,7 +13887,7 @@ test "936" {
 
 test "937" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/937.json", .{});
     defer file.close();
@@ -13897,7 +13897,7 @@ test "937" {
 
 test "938" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/938.json", .{});
     defer file.close();
@@ -13907,7 +13907,7 @@ test "938" {
 
 test "939" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/939.json", .{});
     defer file.close();
@@ -13917,7 +13917,7 @@ test "939" {
 
 test "94" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/94.json", .{});
     defer file.close();
@@ -13927,7 +13927,7 @@ test "94" {
 
 test "940" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/940.json", .{});
     defer file.close();
@@ -13937,7 +13937,7 @@ test "940" {
 
 test "941" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/941.json", .{});
     defer file.close();
@@ -13947,7 +13947,7 @@ test "941" {
 
 test "942" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/942.json", .{});
     defer file.close();
@@ -13957,7 +13957,7 @@ test "942" {
 
 test "943" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/943.json", .{});
     defer file.close();
@@ -13967,7 +13967,7 @@ test "943" {
 
 test "944" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/944.json", .{});
     defer file.close();
@@ -13977,7 +13977,7 @@ test "944" {
 
 test "945" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/945.json", .{});
     defer file.close();
@@ -13987,7 +13987,7 @@ test "945" {
 
 test "946" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/946.json", .{});
     defer file.close();
@@ -13997,7 +13997,7 @@ test "946" {
 
 test "947" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/947.json", .{});
     defer file.close();
@@ -14007,7 +14007,7 @@ test "947" {
 
 test "948" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/948.json", .{});
     defer file.close();
@@ -14017,7 +14017,7 @@ test "948" {
 
 test "949" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/949.json", .{});
     defer file.close();
@@ -14027,7 +14027,7 @@ test "949" {
 
 test "95" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/95.json", .{});
     defer file.close();
@@ -14037,7 +14037,7 @@ test "95" {
 
 test "950" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/950.json", .{});
     defer file.close();
@@ -14047,7 +14047,7 @@ test "950" {
 
 test "951" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/951.json", .{});
     defer file.close();
@@ -14057,7 +14057,7 @@ test "951" {
 
 test "952" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/952.json", .{});
     defer file.close();
@@ -14067,7 +14067,7 @@ test "952" {
 
 test "953" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/953.json", .{});
     defer file.close();
@@ -14077,7 +14077,7 @@ test "953" {
 
 test "954" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/954.json", .{});
     defer file.close();
@@ -14087,7 +14087,7 @@ test "954" {
 
 test "955" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/955.json", .{});
     defer file.close();
@@ -14097,7 +14097,7 @@ test "955" {
 
 test "956" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/956.json", .{});
     defer file.close();
@@ -14107,7 +14107,7 @@ test "956" {
 
 test "957" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/957.json", .{});
     defer file.close();
@@ -14117,7 +14117,7 @@ test "957" {
 
 test "958" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/958.json", .{});
     defer file.close();
@@ -14127,7 +14127,7 @@ test "958" {
 
 test "959" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/959.json", .{});
     defer file.close();
@@ -14137,7 +14137,7 @@ test "959" {
 
 test "96" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/96.json", .{});
     defer file.close();
@@ -14147,7 +14147,7 @@ test "96" {
 
 test "960" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/960.json", .{});
     defer file.close();
@@ -14157,7 +14157,7 @@ test "960" {
 
 test "961" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/961.json", .{});
     defer file.close();
@@ -14167,7 +14167,7 @@ test "961" {
 
 test "962" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/962.json", .{});
     defer file.close();
@@ -14177,7 +14177,7 @@ test "962" {
 
 test "963" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/963.json", .{});
     defer file.close();
@@ -14187,7 +14187,7 @@ test "963" {
 
 test "964" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/964.json", .{});
     defer file.close();
@@ -14197,7 +14197,7 @@ test "964" {
 
 test "965" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/965.json", .{});
     defer file.close();
@@ -14207,7 +14207,7 @@ test "965" {
 
 test "966" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/966.json", .{});
     defer file.close();
@@ -14217,7 +14217,7 @@ test "966" {
 
 test "967" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/967.json", .{});
     defer file.close();
@@ -14227,7 +14227,7 @@ test "967" {
 
 test "968" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/968.json", .{});
     defer file.close();
@@ -14237,7 +14237,7 @@ test "968" {
 
 test "969" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/969.json", .{});
     defer file.close();
@@ -14247,7 +14247,7 @@ test "969" {
 
 test "97" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/97.json", .{});
     defer file.close();
@@ -14257,7 +14257,7 @@ test "97" {
 
 test "970" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/970.json", .{});
     defer file.close();
@@ -14267,7 +14267,7 @@ test "970" {
 
 test "971" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/971.json", .{});
     defer file.close();
@@ -14277,7 +14277,7 @@ test "971" {
 
 test "972" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/972.json", .{});
     defer file.close();
@@ -14287,7 +14287,7 @@ test "972" {
 
 test "973" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/973.json", .{});
     defer file.close();
@@ -14297,7 +14297,7 @@ test "973" {
 
 test "974" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/974.json", .{});
     defer file.close();
@@ -14307,7 +14307,7 @@ test "974" {
 
 test "975" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/975.json", .{});
     defer file.close();
@@ -14317,7 +14317,7 @@ test "975" {
 
 test "976" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/976.json", .{});
     defer file.close();
@@ -14327,7 +14327,7 @@ test "976" {
 
 test "977" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/977.json", .{});
     defer file.close();
@@ -14337,7 +14337,7 @@ test "977" {
 
 test "978" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/978.json", .{});
     defer file.close();
@@ -14347,7 +14347,7 @@ test "978" {
 
 test "979" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/979.json", .{});
     defer file.close();
@@ -14357,7 +14357,7 @@ test "979" {
 
 test "98" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/98.json", .{});
     defer file.close();
@@ -14367,7 +14367,7 @@ test "98" {
 
 test "980" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/980.json", .{});
     defer file.close();
@@ -14377,7 +14377,7 @@ test "980" {
 
 test "981" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/981.json", .{});
     defer file.close();
@@ -14387,7 +14387,7 @@ test "981" {
 
 test "982" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/982.json", .{});
     defer file.close();
@@ -14397,7 +14397,7 @@ test "982" {
 
 test "983" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/983.json", .{});
     defer file.close();
@@ -14407,7 +14407,7 @@ test "983" {
 
 test "984" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/984.json", .{});
     defer file.close();
@@ -14417,7 +14417,7 @@ test "984" {
 
 test "985" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/985.json", .{});
     defer file.close();
@@ -14427,7 +14427,7 @@ test "985" {
 
 test "986" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/986.json", .{});
     defer file.close();
@@ -14437,7 +14437,7 @@ test "986" {
 
 test "987" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/987.json", .{});
     defer file.close();
@@ -14447,7 +14447,7 @@ test "987" {
 
 test "988" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/988.json", .{});
     defer file.close();
@@ -14457,7 +14457,7 @@ test "988" {
 
 test "989" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/989.json", .{});
     defer file.close();
@@ -14467,7 +14467,7 @@ test "989" {
 
 test "99" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/99.json", .{});
     defer file.close();
@@ -14477,7 +14477,7 @@ test "99" {
 
 test "990" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/990.json", .{});
     defer file.close();
@@ -14487,7 +14487,7 @@ test "990" {
 
 test "991" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/991.json", .{});
     defer file.close();
@@ -14497,7 +14497,7 @@ test "991" {
 
 test "992" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/992.json", .{});
     defer file.close();
@@ -14507,7 +14507,7 @@ test "992" {
 
 test "993" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/993.json", .{});
     defer file.close();
@@ -14517,7 +14517,7 @@ test "993" {
 
 test "994" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/994.json", .{});
     defer file.close();
@@ -14527,7 +14527,7 @@ test "994" {
 
 test "995" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/995.json", .{});
     defer file.close();
@@ -14537,7 +14537,7 @@ test "995" {
 
 test "996" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/996.json", .{});
     defer file.close();
@@ -14547,7 +14547,7 @@ test "996" {
 
 test "997" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/997.json", .{});
     defer file.close();
@@ -14557,7 +14557,7 @@ test "997" {
 
 test "998" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/998.json", .{});
     defer file.close();
@@ -14567,7 +14567,7 @@ test "998" {
 
 test "999" {
     const allocator = std.testing.allocator;
-    var parser = dom.parserFromFile(.default).init(allocator);
+    var parser = Parser.init(allocator);
     defer parser.deinit();
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/999.json", .{});
     defer file.close();

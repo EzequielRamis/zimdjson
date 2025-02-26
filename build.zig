@@ -131,6 +131,21 @@ pub fn build(b: *std.Build) !void {
             com_examples.dependOn(&run_examples.step);
             com_generate.dependOn(&run_examples_gen.step);
         }
+        {
+            const com_schema = try com.sub("schema", "Run 'schema' test suite", .{});
+            const schema = b.addTest(.{
+                .root_source_file = b.path("tests/schema.zig"),
+                .target = target,
+                .optimize = optimize,
+            });
+            if (com_schema.with("simdjson-data")) |dep| {
+                addEmbeddedPath(b, schema, dep, "simdjson-data");
+            }
+            schema.root_module.addImport("zimdjson", debugged_zimdjson);
+
+            const run_schema = b.addRunArtifact(schema);
+            com_schema.dependOn(&run_schema.step);
+        }
     }
     // --
 

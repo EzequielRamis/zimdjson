@@ -44,7 +44,7 @@ fn StaticHashTable(comptime T: type, comptime n: usize) type {
         pub fn get(self: Self, key: []const u8) ?T {
             const index: layout.index = @intCast(hash(self.seed, key) & (layout.table_len - 1));
             const buckets = self.table[index];
-            for (buckets) |offset| {
+            inline for (buckets) |offset| {
                 const kv = self.kvs[offset];
                 if (std.mem.eql(u8, key, kv[0])) {
                     return kv[1];
@@ -56,7 +56,7 @@ fn StaticHashTable(comptime T: type, comptime n: usize) type {
         pub fn getIndex(self: Self, key: []const u8) ?usize {
             const index: layout.index = @intCast(hash(self.seed, key) & (layout.table_len - 1));
             const buckets = self.table[index];
-            for (buckets) |offset| {
+            inline for (buckets) |offset| {
                 const kv = self.kvs[offset];
                 if (std.mem.eql(u8, key, kv[0])) {
                     return offset;

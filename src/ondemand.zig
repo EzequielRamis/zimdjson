@@ -243,6 +243,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             }
 
             inline fn next(self: *Cursor) Error![*]const u8 {
+                if (self.err) |err| return err;
                 return self.tokens.next();
             }
 
@@ -971,6 +972,12 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             }
 
             pub inline fn asRefAdvanced(self: Value, comptime T: type, comptime S: ?schema.Auto(T), allocator: ?Allocator, dest: *T) schema.Error!void {
+                const last_cursor_strings = self.iter.cursor.strings;
+                errdefer {
+                    self.iter.cursor.tokens.revert(self.iter.start_position) catch |err| (self.iter.cursor.reportError(err) catch {});
+                    self.iter.cursor.depth = self.iter.start_depth;
+                    self.iter.cursor.strings = last_cursor_strings;
+                }
                 const info = @typeInfo(T);
                 switch (info) {
                     .@"struct" => {
@@ -1222,81 +1229,83 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             const _std = @import("std");
             pub const Error = Self.Error || error{
                 ExpectedAllocator,
-                ExpectedObjectEnd,
-                ExpectedArrayEnd,
                 UnknownField,
                 UnknownEnumLiteral,
                 UnknownUnionVariant,
                 DuplicateField,
             };
 
+            pub fn SchemaParser(comptime T: type) type {
+                return fn (allocator: ?Allocator, value: Value, dest: *T) schema.Error!void;
+            }
+
             pub const std = struct {
-                pub fn ArrayList(comptime T: type) type {
+                pub fn ArrayList(comptime T: type) SchemaParser(_std.ArrayList(T)) {
                     return struct {
-                        pub fn parse(allocator: ?Allocator, value: Value, dest: *_std.ArrayList(T)) schema.Error!void {
+                        pub fn inner(allocator: ?Allocator, value: Value, dest: *_std.ArrayList(T)) schema.Error!void {
                             if (allocator) |alloc| {
                                 dest.* = .init(alloc);
                                 const arr = try value.asArray();
                                 while (try arr.next()) |child| {
-                                    const item = try child.as(T);
+                                    const item = try child.asAdvanced(T, null, alloc);
                                     try dest.append(item);
                                 }
                             } else {
                                 return error.ExpectedAllocator;
                             }
                         }
-                    };
+                    }.inner;
                 }
-                pub fn ArrayListAligned(comptime T: type, comptime alignment: ?u29) type {
+                pub fn ArrayListAligned(comptime T: type, comptime alignment: ?u29) SchemaParser(_std.ArrayListAligned(T, alignment)) {
                     return struct {
-                        pub fn parse(allocator: ?Allocator, value: Value, dest: *_std.ArrayListAligned(T, alignment)) schema.Error!void {
+                        pub fn inner(allocator: ?Allocator, value: Value, dest: *_std.ArrayListAligned(T, alignment)) schema.Error!void {
                             if (allocator) |alloc| {
                                 dest.* = .init(alloc);
                                 const arr = try value.asArray();
                                 while (try arr.next()) |child| {
-                                    const item = try child.as(T);
+                                    const item = try child.asAdvanced(T, null, alloc);
                                     try dest.append(item);
                                 }
                             } else {
                                 return error.ExpectedAllocator;
                             }
                         }
-                    };
+                    }.inner;
                 }
-                pub fn ArrayListAlignedUnmanaged(comptime T: type, comptime alignment: ?u29) type {
+                pub fn ArrayListAlignedUnmanaged(comptime T: type, comptime alignment: ?u29) SchemaParser(_std.ArrayListAlignedUnmanaged(T, alignment)) {
                     return struct {
-                        pub fn parse(allocator: ?Allocator, value: Value, dest: *_std.ArrayListAlignedUnmanaged(T, alignment)) schema.Error!void {
+                        pub fn inner(allocator: ?Allocator, value: Value, dest: *_std.ArrayListAlignedUnmanaged(T, alignment)) schema.Error!void {
                             if (allocator) |alloc| {
                                 dest.* = .empty;
                                 const arr = try value.asArray();
                                 while (try arr.next()) |child| {
-                                    const item = try child.as(T);
+                                    const item = try child.asAdvanced(T, null, alloc);
                                     try dest.append(alloc, item);
                                 }
                             } else {
                                 return error.ExpectedAllocator;
                             }
                         }
-                    };
+                    }.inner;
                 }
-                pub fn ArrayListUnmanaged(comptime T: type) type {
+                pub fn ArrayListUnmanaged(comptime T: type) SchemaParser(_std.ArrayListUnmanaged(T)) {
                     return struct {
-                        pub fn parse(allocator: ?Allocator, value: Value, dest: *_std.ArrayListUnmanaged(T)) schema.Error!void {
+                        pub fn inner(allocator: ?Allocator, value: Value, dest: *_std.ArrayListUnmanaged(T)) schema.Error!void {
                             if (allocator) |alloc| {
                                 dest.* = .empty;
                                 const arr = try value.asArray();
                                 while (try arr.next()) |child| {
-                                    const item = try child.as(T);
+                                    const item = try child.asAdvanced(T, null, alloc);
                                     try dest.append(alloc, item);
                                 }
                             } else {
                                 return error.ExpectedAllocator;
                             }
                         }
-                    };
+                    }.inner;
                 }
-                pub const BitStack = struct {
-                    pub fn parse(allocator: ?Allocator, value: Value, dest: *_std.BitStack) schema.Error!void {
+                pub const BitStack: SchemaParser(_std.BitStack) = struct {
+                    pub fn inner(allocator: ?Allocator, value: Value, dest: *_std.BitStack) schema.Error!void {
                         if (allocator) |alloc| {
                             dest.* = .init(alloc);
                             const arr = try value.asArray();
@@ -1308,33 +1317,33 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             return error.ExpectedAllocator;
                         }
                     }
-                };
-                pub fn BoundedArray(comptime T: type, comptime buffer_capacity: usize) type {
+                }.inner;
+                pub fn BoundedArray(comptime T: type, comptime buffer_capacity: usize) SchemaParser(_std.BoundedArray(T, buffer_capacity)) {
                     return struct {
-                        pub fn parse(_: ?Allocator, value: Value, dest: *_std.BoundedArray(T, buffer_capacity)) schema.Error!void {
+                        pub fn inner(allocator: ?Allocator, value: Value, dest: *_std.BoundedArray(T, buffer_capacity)) schema.Error!void {
                             dest.* = try .init(0);
                             const arr = try value.asArray();
                             while (try arr.next()) |child| {
-                                const item = try child.as(T);
+                                const item = try child.asAdvanced(T, null, allocator);
                                 try dest.append(item);
                             }
                         }
-                    };
+                    }.inner;
                 }
-                pub fn BoundedArrayAligned(comptime T: type, comptime alignment: u29, comptime buffer_capacity: usize) type {
+                pub fn BoundedArrayAligned(comptime T: type, comptime alignment: u29, comptime buffer_capacity: usize) SchemaParser(_std.BoundedArrayAligned(T, alignment, buffer_capacity)) {
                     return struct {
-                        pub fn parse(_: ?Allocator, value: Value, dest: *_std.BoundedArrayAligned(T, alignment, buffer_capacity)) schema.Error!void {
+                        pub fn inner(allocator: ?Allocator, value: Value, dest: *_std.BoundedArrayAligned(T, alignment, buffer_capacity)) schema.Error!void {
                             dest.* = try .init(0);
                             const arr = try value.asArray();
                             while (try arr.next()) |child| {
-                                const item = try child.as(T);
+                                const item = try child.asAdvanced(T, null, allocator);
                                 try dest.append(item);
                             }
                         }
-                    };
+                    }.inner;
                 }
-                pub const BufMap = struct {
-                    pub fn parse(allocator: ?Allocator, value: Value, dest: *_std.BufMap) schema.Error!void {
+                pub const BufMap: SchemaParser(_std.BufMap) = struct {
+                    pub fn inner(allocator: ?Allocator, value: Value, dest: *_std.BufMap) schema.Error!void {
                         if (allocator) |alloc| {
                             dest.* = .init(alloc);
                             const obj = try value.asObject();
@@ -1347,9 +1356,9 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             return error.ExpectedAllocator;
                         }
                     }
-                };
-                pub const BufSet = struct {
-                    pub fn parse(allocator: ?Allocator, value: Value, dest: *_std.BufSet) schema.Error!void {
+                }.inner;
+                pub const BufSet: SchemaParser(_std.BufSet) = struct {
+                    pub fn inner(allocator: ?Allocator, value: Value, dest: *_std.BufSet) schema.Error!void {
                         if (allocator) |alloc| {
                             dest.* = .init(alloc);
                             const arr = try value.asArray();
@@ -1361,145 +1370,145 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             return error.ExpectedAllocator;
                         }
                     }
-                };
-                pub fn DoublyLinkedList(comptime T: type) type {
+                }.inner;
+                pub fn DoublyLinkedList(comptime T: type) SchemaParser(_std.DoublyLinkedList(T)) {
                     return struct {
-                        pub fn parse(_: ?Allocator, value: Value, dest: *_std.DoublyLinkedList(T)) schema.Error!void {
+                        pub fn inner(allocator: ?Allocator, value: Value, dest: *_std.DoublyLinkedList(T)) schema.Error!void {
                             dest.* = .{};
                             const arr = try value.asArray();
                             while (try arr.next()) |child| {
-                                const item = try child.as(T);
+                                const item = try child.asAdvanced(T, null, allocator);
                                 try dest.append(item);
                             }
                         }
-                    };
+                    }.inner;
                 }
-                pub fn EnumMap(comptime E: type, comptime V: type) type {
+                pub fn EnumMap(comptime E: type, comptime V: type) SchemaParser(_std.EnumMap(E, V)) {
                     return struct {
-                        pub fn parse(_: ?Allocator, value: Value, dest: *_std.EnumMap(E, V)) schema.Error!void {
+                        pub fn inner(allocator: ?Allocator, value: Value, dest: *_std.EnumMap(E, V)) schema.Error!void {
                             dest.* = .init(.{});
                             const obj = try value.asObject();
                             while (try obj.next()) |field| {
                                 const variant = try field.key.get();
                                 var enum_literal = schema_utils.undefinedInit(E);
                                 try parseEnumFromSlice(E, null, variant, &enum_literal);
-                                const enum_value = try field.value.as(V);
+                                const enum_value = try field.value.asAdvanced(V, null, allocator);
                                 try dest.put(enum_literal, enum_value);
                             }
                         }
-                    };
+                    }.inner;
                 }
-                pub fn MultiArrayList(comptime T: type) type {
+                pub fn MultiArrayList(comptime T: type) SchemaParser(_std.MultiArrayList(T)) {
                     return struct {
-                        pub fn parse(allocator: ?Allocator, value: Value, dest: *_std.MultiArrayList(T)) schema.Error!void {
+                        pub fn inner(allocator: ?Allocator, value: Value, dest: *_std.MultiArrayList(T)) schema.Error!void {
                             if (allocator) |alloc| {
                                 dest.* = .empty;
                                 const arr = try value.asArray();
                                 while (try arr.next()) |child| {
-                                    const item = try child.as(T);
+                                    const item = try child.asAdvanced(T, null, alloc);
                                     try dest.append(alloc, item);
                                 }
                             } else {
                                 return error.ExpectedAllocator;
                             }
                         }
-                    };
+                    }.inner;
                 }
-                pub fn SegmentedList(comptime T: type, comptime prealloc_item_count: usize) type {
+                pub fn SegmentedList(comptime T: type, comptime prealloc_item_count: usize) SchemaParser(_std.SegmentedList(T, prealloc_item_count)) {
                     return struct {
-                        pub fn parse(allocator: ?Allocator, value: Value, dest: *_std.SegmentedList(T, prealloc_item_count)) schema.Error!void {
+                        pub fn inner(allocator: ?Allocator, value: Value, dest: *_std.SegmentedList(T, prealloc_item_count)) schema.Error!void {
                             if (allocator) |alloc| {
                                 dest.* = .{};
                                 const arr = try value.asArray();
                                 while (try arr.next()) |child| {
-                                    const item = try child.as(T);
+                                    const item = try child.asAdvanced(T, null, alloc);
                                     try dest.append(alloc, item);
                                 }
                             } else {
                                 return error.ExpectedAllocator;
                             }
                         }
-                    };
+                    }.inner;
                 }
-                pub fn SinglyLinkedList(comptime T: type) type {
+                pub fn SinglyLinkedList(comptime T: type) SchemaParser(_std.SinglyLinkedList(T)) {
                     return struct {
-                        pub fn parse(_: ?Allocator, value: Value, dest: *_std.SinglyLinkedList(T)) schema.Error!void {
+                        pub fn inner(allocator: ?Allocator, value: Value, dest: *_std.SinglyLinkedList(T)) schema.Error!void {
                             dest.* = .{};
                             const arr = try value.asArray();
                             while (try arr.next()) |child| {
-                                const item = try child.as(T);
+                                const item = try child.asAdvanced(T, null, allocator);
                                 try dest.prepend(item);
                             }
                         }
-                    };
+                    }.inner;
                 }
-                pub fn StringArrayHashMap(comptime V: type) type {
+                pub fn StringArrayHashMap(comptime V: type) SchemaParser(_std.StringArrayHashMap(V)) {
                     return struct {
-                        pub fn parse(allocator: ?Allocator, value: Value, dest: *_std.StringArrayHashMap(V)) schema.Error!void {
+                        pub fn inner(allocator: ?Allocator, value: Value, dest: *_std.StringArrayHashMap(V)) schema.Error!void {
                             if (allocator) |alloc| {
                                 dest.* = .init(alloc);
                                 const obj = try value.asObject();
                                 while (try obj.next()) |field| {
                                     const key = try field.key.get();
-                                    const val = try field.value.as(V);
+                                    const val = try field.value.asAdvanced(V, null, alloc);
                                     try dest.put(key, val);
                                 }
                             } else {
                                 return error.ExpectedAllocator;
                             }
                         }
-                    };
+                    }.inner;
                 }
-                pub fn StringArrayHashMapUnmanaged(comptime V: type) type {
+                pub fn StringArrayHashMapUnmanaged(comptime V: type) SchemaParser(_std.StringArrayHashMapUnmanaged(V)) {
                     return struct {
-                        pub fn parse(allocator: ?Allocator, value: Value, dest: *_std.StringArrayHashMapUnmanaged(V)) schema.Error!void {
+                        pub fn inner(allocator: ?Allocator, value: Value, dest: *_std.StringArrayHashMapUnmanaged(V)) schema.Error!void {
                             if (allocator) |alloc| {
                                 dest.* = .empty;
                                 const obj = try value.asObject();
                                 while (try obj.next()) |field| {
                                     const key = try field.key.get();
-                                    const val = try field.value.as(V);
+                                    const val = try field.value.asAdvanced(V, null, alloc);
                                     try dest.put(alloc, key, val);
                                 }
                             } else {
                                 return error.ExpectedAllocator;
                             }
                         }
-                    };
+                    }.inner;
                 }
-                pub fn StringHashMap(comptime V: type) type {
+                pub fn StringHashMap(comptime V: type) SchemaParser(_std.StringHashMap(V)) {
                     return struct {
-                        pub fn parse(allocator: ?Allocator, value: Value, dest: *_std.StringHashMap(V)) schema.Error!void {
+                        pub fn inner(allocator: ?Allocator, value: Value, dest: *_std.StringHashMap(V)) schema.Error!void {
                             if (allocator) |alloc| {
                                 dest.* = .init(alloc);
                                 const obj = try value.asObject();
                                 while (try obj.next()) |field| {
                                     const key = try field.key.get();
-                                    const val = try field.value.as(V);
+                                    const val = try field.value.asAdvanced(V, null, alloc);
                                     try dest.put(key, val);
                                 }
                             } else {
                                 return error.ExpectedAllocator;
                             }
                         }
-                    };
+                    }.inner;
                 }
-                pub fn StringHashMapUnmanaged(comptime V: type) type {
+                pub fn StringHashMapUnmanaged(comptime V: type) SchemaParser(_std.StringHashMapUnmanaged(V)) {
                     return struct {
-                        pub fn parse(allocator: ?Allocator, value: Value, dest: *_std.StringHashMapUnmanaged(V)) schema.Error!void {
+                        pub fn inner(allocator: ?Allocator, value: Value, dest: *_std.StringHashMapUnmanaged(V)) schema.Error!void {
                             if (allocator) |alloc| {
                                 dest.* = .empty;
                                 const obj = try value.asObject();
                                 while (try obj.next()) |field| {
                                     const key = try field.key.get();
-                                    const val = try field.value.as(V);
+                                    const val = try field.value.asAdvanced(V, null, alloc);
                                     try dest.put(alloc, key, val);
                                 }
                             } else {
                                 return error.ExpectedAllocator;
                             }
                         }
-                    };
+                    }.inner;
                 }
             };
 
@@ -1515,7 +1524,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             pub fn Element(comptime T: type) type {
                 return struct {
                     bytes_as_string: bool = true,
-                    parse_with: ?fn (allocator: ?Allocator, value: Value, dest: *T) schema.Error!void = null,
+                    parse_with: ?*const SchemaParser(T) = null,
                 };
             }
 
@@ -1571,18 +1580,18 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 if (sch.parse_with) |customParseFn| {
                     return customParseFn(allocator, value, dest);
                 }
-                if (@typeInfo(T).@"struct".is_tuple) {
-                    const fields = _std.meta.fields(T);
+                const fields = _std.meta.fields(T);
+                if (@typeInfo(T).@"struct".is_tuple and fields.len > 0) {
                     const array = try value.asArray();
                     inline for (fields) |field| {
                         if (try array.next()) |item| {
                             const field_schema = @field(sch.fields, field.name);
                             try AutoParser(field.type, field_schema.schema).parse(allocator, item, &@field(dest, field.name));
                         } else {
-                            return error.IncompleteArray;
+                            return error.IncorrectType;
                         }
                     }
-                    if (try array.next()) |_| return error.ExpectedArrayEnd;
+                    if (try array.next()) |_| return error.IncorrectType;
                     return;
                 }
                 const object = try value.asObject();
@@ -1593,17 +1602,29 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 const sch: schema.Struct(T) = S orelse if (@hasDecl(T, options.schema_identifier)) @field(T, options.schema_identifier) else .{};
                 const fields = _std.meta.fields(T);
                 const is_packed = @typeInfo(T).@"struct".layout == .@"packed";
+                if (fields.len == 0) {
+                    if (!sch.ignore_unknown_fields) if (try object.next()) |_| return error.UnknownField;
+                    dest.* = .{};
+                    return;
+                }
                 if (sch.assume_ordering) {
-                    inline for (fields) |field| {
+                    var prev_field_key: ?[]const u8 = null;
+                    var prev_field_value: Value = undefined;
+                    inline for (fields, 1..) |field, i| {
                         const field_schema = @field(sch.fields, field.name);
                         if (field_schema.skip) continue;
                         const renamed_key: []const u8 = if (field_schema.alias) |alias| alias else comptime schema_utils.renameField(sch.rename_all, field.name);
                         const field_value = brk: {
+                            if (prev_field_key) |prev_key| {
+                                if (_std.mem.eql(u8, prev_key, renamed_key)) break :brk prev_field_value;
+                                if (sch.ignore_unknown_fields) break :brk object.at(renamed_key);
+                                return error.UnknownField;
+                            }
                             if (sch.ignore_unknown_fields) break :brk object.at(renamed_key);
                             if (try object.next()) |next_field| {
                                 const field_key = try next_field.key.get();
-                                if (!_std.mem.eql(u8, field_key, renamed_key)) return error.UnknownField;
-                                break :brk next_field.value;
+                                if (_std.mem.eql(u8, field_key, renamed_key)) break :brk next_field.value;
+                                return error.UnknownField;
                             } else {
                                 return error.MissingField;
                             }
@@ -1615,6 +1636,33 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         } else {
                             try AutoParser(field.type, field_schema.schema).parse(allocator, field_value, &@field(dest, field.name));
                         }
+                        while (true) {
+                            if (try object.next()) |next_field| {
+                                const next_field_key = try next_field.key.get();
+                                const next_field_value = next_field.value;
+                                if (_std.mem.eql(u8, next_field_key, renamed_key)) {
+                                    switch (sch.duplicate_field_behavior) {
+                                        .@"error" => return error.DuplicateField,
+                                        .use_first => continue,
+                                        .use_last => {
+                                            if (is_packed) {
+                                                var packed_field_value: _std.meta.Int(.unsigned, @bitSizeOf(field.type)) = 0;
+                                                try AutoParser(field.type, field_schema.schema).parse(allocator, next_field_value, &packed_field_value);
+                                                _std.mem.writePackedIntNative(field.type, _std.mem.asBytes(dest), @bitOffsetOf(T, field.name), packed_field_value);
+                                            } else {
+                                                try AutoParser(field.type, field_schema.schema).parse(allocator, next_field_value, &@field(dest, field.name));
+                                            }
+                                        },
+                                    }
+                                } else {
+                                    prev_field_key = next_field_key;
+                                    prev_field_value = next_field_value;
+                                    break;
+                                }
+                            } else if (i < fields.len) {
+                                return error.MissingField;
+                            } else break;
+                        }
                     }
                     if (!sch.ignore_unknown_fields) if (try object.next()) |_| return error.UnknownField;
                 } else {
@@ -1624,12 +1672,12 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     inline for (fields, 0..) |field, i| {
                         const field_schema = @field(sch.fields, field.name);
                         const renamed_key: []const u8 = if (field_schema.alias) |alias| alias else comptime schema_utils.renameField(sch.rename_all, field.name);
-                        const has_default_value = field.default_value_ptr != null;
-                        if (has_default_value and !field_schema.skip) undefined_count += 1;
+                        const has_undefined_value = !field_schema.skip and field.default_value_ptr == null;
+                        if (has_undefined_value) undefined_count += 1;
                         dispatches_mut[i] = .{ renamed_key, .{
                             .offset = if (is_packed) @bitOffsetOf(T, field.name) else @offsetOf(T, field.name),
                             .bit_count = @bitSizeOf(field.type),
-                            .has_default_value = has_default_value and !field_schema.skip,
+                            .has_undefined_value = has_undefined_value,
                             .parse_fn = if (field_schema.skip) skip else AutoParser(field.type, field_schema.schema).parseTypeErased,
                         } };
                     }
@@ -1639,14 +1687,15 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     while (try object.next()) |field| {
                         const key = try field.key.get();
                         const field_index = struct_map.getIndex(key) orelse if (sch.ignore_unknown_fields) continue else return error.UnknownField;
-                        if (sch.duplicate_field_behavior != .use_last) {
-                            if (seen[field_index]) {
-                                if (sch.duplicate_field_behavior == .@"error") return error.DuplicateField else continue;
-                            } else {
-                                seen[field_index] = true;
-                            }
-                        }
                         const dispatch = struct_map.atIndex(field_index);
+                        if (seen[field_index]) switch (sch.duplicate_field_behavior) {
+                            .use_first => continue,
+                            .use_last => {},
+                            .@"error" => return error.DuplicateField,
+                        } else {
+                            seen[field_index] = true;
+                            if (dispatch.has_undefined_value) undefined_count_runtime -= 1;
+                        }
                         if (is_packed) {
                             var packed_field_value: _std.meta.Int(.unsigned, @bitSizeOf(T)) = 0;
                             try dispatch.parse_fn(allocator, field.value, @ptrCast(&packed_field_value));
@@ -1654,7 +1703,6 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         } else {
                             try dispatch.parse_fn(allocator, field.value, @ptrFromInt(@intFromPtr(dest) + dispatch.offset));
                         }
-                        if (dispatch.has_default_value) undefined_count_runtime -= 1;
                     }
                     if (undefined_count_runtime > 0) return error.MissingField;
                 }
@@ -1663,13 +1711,13 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             const StructDispatch = struct {
                 offset: u32,
                 bit_count: u16,
-                has_default_value: bool,
-                parse_fn: *const fn (?Allocator, Value, *anyopaque) schema.Error!void,
+                has_undefined_value: bool,
+                parse_fn: *const SchemaParser(anyopaque),
             };
 
             pub fn Enum(comptime T: type) type {
                 return struct {
-                    parse_with: ?fn (allocator: ?Allocator, value: Value, dest: *T) schema.Error!void = null,
+                    parse_with: ?*const SchemaParser(T) = null,
                     rename_all: schema_utils.FieldsRenaming = .snake_case,
                     aliases: schema_utils.EnumFields(T) = .{},
                 };
@@ -1742,25 +1790,39 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             }
 
             fn parseUnion(comptime T: type, comptime S: ?schema.Union(T), allocator: ?Allocator, value: Value, dest: *T) schema.Error!void {
+                const last_cursor_strings = value.iter.cursor.strings;
                 const sch: schema.Union(T) = S orelse if (@hasDecl(T, options.schema_identifier)) @field(T, options.schema_identifier) else .{};
                 const fields = _std.meta.fields(T);
                 if (sch.parse_with) |customParseFn| {
                     return customParseFn(allocator, value, dest);
                 }
                 if (sch.representation == .untagged) {
-                    const last_cursor_strings = value.iter.cursor.strings;
-                    inline for (fields) |field| {
-                        const field_schema = @field(sch.fields, field.name);
-                        var payload = schema_utils.undefinedInit(field.type);
-                        AutoParser(field.type, field_schema.schema).parse(allocator, value, &payload) catch {
-                            try value.iter.cursor.tokens.revert(value.iter.start_position);
-                            value.iter.cursor.depth = value.iter.start_depth;
-                            value.iter.cursor.strings = last_cursor_strings;
-                            continue;
-                        };
-                        dest.* = @unionInit(T, field.name, payload);
-                        return;
+                    comptime var ordered_fields = fields[0..fields.len].*;
+                    const fieldsCount = struct {
+                        pub fn inner(_: void, lhs: _std.builtin.Type.UnionField, rhs: _std.builtin.Type.UnionField) bool {
+                            const lf = schema_utils.foundFieldsCount(lhs.type);
+                            const rf = schema_utils.foundFieldsCount(rhs.type);
+                            return lf > rf;
+                        }
+                    }.inner;
+                    comptime _std.mem.sort(_std.builtin.Type.UnionField, &ordered_fields, {}, fieldsCount);
+
+                    // workaround from https://github.com/ziglang/zig/issues/9524#issuecomment-895802551
+                    inline for (ordered_fields) |field| {
+                        inner: {
+                            const field_schema = @field(sch.fields, field.name);
+                            var payload = schema_utils.undefinedInit(field.type);
+                            AutoParser(field.type, field_schema.schema).parse(allocator, value, &payload) catch {
+                                value.iter.cursor.tokens.revert(value.iter.start_position) catch |err| return value.iter.cursor.reportError(err);
+                                value.iter.cursor.depth = value.iter.start_depth;
+                                value.iter.cursor.strings = last_cursor_strings;
+                                break :inner;
+                            };
+                            dest.* = @unionInit(T, field.name, payload);
+                            return;
+                        }
                     }
+
                     return error.UnknownUnionVariant;
                 } else {
                     const tag_sch = brk: {
@@ -1792,7 +1854,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                                 const dispatch = union_map.get(tag_key) orelse return error.UnknownUnionVariant;
                                 try dispatch.parse_fn(allocator, content.value, dest);
                             } else return error.MissingField;
-                            if (try object.next()) |_| return error.ExpectedObjectEnd;
+                            if (try object.next()) |_| return error.IncorrectType;
                         },
                         .internally_tagged => |t| {
                             const object = try value.asObject();
@@ -1809,14 +1871,14 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             if (try object.next()) |tag| {
                                 const tag_key = try tag.key.get();
                                 if (!_std.mem.eql(u8, tag_key, a.tag)) return error.UnknownField;
+                                const tag_value = try tag.value.asString().get();
+                                const dispatch = union_map.get(tag_value) orelse return error.UnknownUnionVariant;
                                 if (try object.next()) |content| {
                                     const content_key = try content.key.get();
                                     if (!_std.mem.eql(u8, content_key, a.content)) return error.UnknownField;
-                                    const tag_value = try tag.value.asString().get();
-                                    const dispatch = union_map.get(tag_value) orelse return error.UnknownUnionVariant;
                                     try dispatch.parse_fn(allocator, content.value, dest);
                                 } else return error.MissingField;
-                                if (try object.next()) |_| return error.ExpectedObjectEnd;
+                                if (try object.next()) |_| return error.IncorrectType;
                             } else return error.MissingField;
                         },
                         else => unreachable,
@@ -1825,7 +1887,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             }
 
             const UnionDispatch = struct {
-                parse_fn: *const fn (?Allocator, Value, *anyopaque) schema.Error!void,
+                parse_fn: *const SchemaParser(anyopaque),
             };
 
             fn TaggedUnionParser(
@@ -1874,7 +1936,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         if (try value.isNull()) {
                             dest.* = null;
                         } else {
-                            const child = try value.as(opt.child);
+                            const child = try value.asAdvanced(opt.child, null, allocator);
                             dest.* = child;
                         }
                     },
@@ -1895,7 +1957,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                                     return error.IncompleteArray;
                                 }
                             }
-                            if (try arr.next()) |_| return error.ExpectedArrayEnd;
+                            if (try arr.next()) |_| return error.IncorrectType;
                         }
                     },
                     .vector => |info| {
@@ -1907,13 +1969,15 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                                 return error.IncompleteArray;
                             }
                         }
-                        if (try arr.next()) |_| return error.ExpectedArrayEnd;
+                        if (try arr.next()) |_| return error.IncorrectType;
                     },
                     .pointer => |info| {
                         switch (info.size) {
                             .one => {
                                 const alloc = allocator orelse return error.ExpectedAllocator;
                                 const r = try alloc.create(info.child);
+                                errdefer alloc.destroy(r);
+
                                 try value.asRefAdvanced(info.child, null, allocator, r);
                                 dest.* = r;
                             },
@@ -1923,7 +1987,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                                     dest.* = try value.asString().get();
                                 } else {
                                     var arr = schema_utils.undefinedInit(_std.ArrayList(info.child));
-                                    try schema.std.ArrayList(info.child).parse(allocator, value, &arr);
+                                    try schema.std.ArrayList(info.child)(allocator, value, &arr);
                                     if (info.sentinel()) |s| {
                                         dest.* = try arr.toOwnedSliceSentinel(s);
                                     } else {
@@ -2050,9 +2114,9 @@ pub const schema_utils = struct {
         use_last,
     };
 
+    /// It is assumed the name is snake_cased
     pub fn renameField(case: FieldsRenaming, name: []const u8) []const u8 {
-        const name_copy = std.fmt.comptimePrint("{s}", .{name});
-        var output = name_copy.*;
+        var output = std.fmt.comptimePrint("{s}", .{name}).*;
         var output_len = name.len;
         switch (case) {
             .lowercase, .snake_case => {},
@@ -2115,9 +2179,30 @@ pub const schema_utils = struct {
         if (info != .@"struct") return undefined;
         comptime var result: T = undefined;
         inline for (std.meta.fields(T)) |field| {
-            const default_value: *field.type = @alignCast(@ptrCast(field.default_value_ptr orelse continue));
+            const default_value: *field.type = @constCast(@alignCast(@ptrCast(field.default_value_ptr orelse continue)));
             @field(result, field.name) = default_value.*;
         }
         return result;
+    }
+
+    fn foundFieldsCount(comptime T: type) comptime_int {
+        switch (@typeInfo(T)) {
+            .@"struct" => {
+                comptime var count: comptime_int = 0;
+                inline for (std.meta.fields(T)) |field| {
+                    count += foundFieldsCount(field.type) + 1;
+                }
+                return count;
+            },
+            .@"union" => {
+                comptime var max: comptime_int = 0;
+                inline for (std.meta.fields(T)) |field| {
+                    max = @max(max, foundFieldsCount(field.type));
+                }
+                return max;
+            },
+            inline .optional, .pointer, .array => |info| return foundFieldsCount(info.child),
+            else => return 0,
+        }
     }
 };

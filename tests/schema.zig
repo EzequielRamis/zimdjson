@@ -1,9 +1,11 @@
 const std = @import("std");
 const zimdjson = @import("zimdjson");
 const simdjson_data = @embedFile("simdjson-data");
+const parserFromFile = zimdjson.ondemand.parserFromFile(.{ .stream = .default });
+const parserFromSlice = zimdjson.ondemand.parserFromSlice(.default);
 
 test "small/adversarial" {
-    const Parser = zimdjson.ondemand.parserFromFile(.default);
+    const Parser = parserFromFile;
     const allocator = std.testing.allocator;
     var parser = Parser.init(allocator);
     defer parser.deinit();
@@ -34,7 +36,7 @@ test "small/adversarial" {
 }
 
 test "small/demo" {
-    const Parser = zimdjson.ondemand.parserFromFile(.default);
+    const Parser = parserFromFile;
     const allocator = std.testing.allocator;
     var parser = Parser.init(allocator);
     defer parser.deinit();
@@ -78,7 +80,7 @@ test "small/demo" {
 }
 
 test "small/truenull" {
-    const Parser = zimdjson.ondemand.parserFromFile(.default);
+    const Parser = parserFromFile;
     const allocator = std.testing.allocator;
     var parser = Parser.init(allocator);
     defer parser.deinit();
@@ -95,7 +97,7 @@ test "small/truenull" {
 }
 
 test "github_events" {
-    const Parser = zimdjson.ondemand.parserFromFile(.default);
+    const Parser = parserFromFile;
     const allocator = std.testing.allocator;
     var parser = Parser.init(allocator);
     defer parser.deinit();
@@ -158,7 +160,7 @@ test "github_events" {
 }
 
 test "github_events untagged payload" {
-    const Parser = zimdjson.ondemand.parserFromFile(.default);
+    const Parser = parserFromFile;
     const allocator = std.testing.allocator;
     var parser = Parser.init(allocator);
     defer parser.deinit();
@@ -227,7 +229,7 @@ test "github_events untagged payload" {
 }
 
 test "externally_tagged" {
-    const Parser = zimdjson.ondemand.parserFromSlice(.default);
+    const Parser = parserFromSlice;
     const allocator = std.testing.allocator;
     var parser = Parser.init(allocator);
     defer parser.deinit();
@@ -255,7 +257,7 @@ test "externally_tagged" {
 }
 
 test "adjacently_tagged" {
-    const Parser = zimdjson.ondemand.parserFromSlice(.default);
+    const Parser = parserFromSlice;
     const allocator = std.testing.allocator;
     var parser = Parser.init(allocator);
     defer parser.deinit();
@@ -283,7 +285,7 @@ test "adjacently_tagged" {
 }
 
 test "packed struct" {
-    const Parser = zimdjson.ondemand.parserFromSlice(.default);
+    const Parser = parserFromSlice;
     const allocator = std.testing.allocator;
     var parser = Parser.init(allocator);
     defer parser.deinit();
@@ -335,7 +337,7 @@ test "packed struct" {
 }
 
 test "with std data structure" {
-    const Parser = zimdjson.ondemand.parserFromSlice(.default);
+    const Parser = parserFromSlice;
     const allocator = std.testing.allocator;
     var parser = Parser.init(allocator);
     defer parser.deinit();
@@ -361,7 +363,7 @@ test "with std data structure" {
 }
 
 test "use first duplicate" {
-    const Parser = zimdjson.ondemand.parserFromSlice(.default);
+    const Parser = parserFromSlice;
     const allocator = std.testing.allocator;
     var parser = Parser.init(allocator);
     defer parser.deinit();
@@ -382,7 +384,7 @@ test "use first duplicate" {
 }
 
 test "use first duplicate, assuming ordering" {
-    const Parser = zimdjson.ondemand.parserFromSlice(.default);
+    const Parser = parserFromSlice;
     const allocator = std.testing.allocator;
     var parser = Parser.init(allocator);
     defer parser.deinit();
@@ -404,7 +406,7 @@ test "use first duplicate, assuming ordering" {
 }
 
 test "use last duplicate" {
-    const Parser = zimdjson.ondemand.parserFromSlice(.default);
+    const Parser = parserFromSlice;
     const allocator = std.testing.allocator;
     var parser = Parser.init(allocator);
     defer parser.deinit();
@@ -425,7 +427,7 @@ test "use last duplicate" {
 }
 
 test "use last duplicate, assuming ordering" {
-    const Parser = zimdjson.ondemand.parserFromSlice(.default);
+    const Parser = parserFromSlice;
     const allocator = std.testing.allocator;
     var parser = Parser.init(allocator);
     defer parser.deinit();
@@ -447,7 +449,7 @@ test "use last duplicate, assuming ordering" {
 }
 
 test "error because of duplicate" {
-    const Parser = zimdjson.ondemand.parserFromSlice(.default);
+    const Parser = parserFromSlice;
     const allocator = std.testing.allocator;
     var parser = Parser.init(allocator);
     defer parser.deinit();
@@ -467,7 +469,7 @@ test "error because of duplicate" {
 }
 
 test "error because of duplicate, assuming ordering" {
-    const Parser = zimdjson.ondemand.parserFromSlice(.default);
+    const Parser = parserFromSlice;
     const allocator = std.testing.allocator;
     var parser = Parser.init(allocator);
     defer parser.deinit();
@@ -488,7 +490,7 @@ test "error because of duplicate, assuming ordering" {
 }
 
 test "missing field while handling duplicate" {
-    const Parser = zimdjson.ondemand.parserFromSlice(.default);
+    const Parser = parserFromSlice;
     const allocator = std.testing.allocator;
     var parser = Parser.init(allocator);
     defer parser.deinit();
@@ -512,7 +514,7 @@ test "missing field while handling duplicate" {
 }
 
 test "missing field while handling duplicate, assuming ordering" {
-    const Parser = zimdjson.ondemand.parserFromSlice(.default);
+    const Parser = parserFromSlice;
     const allocator = std.testing.allocator;
     var parser = Parser.init(allocator);
     defer parser.deinit();

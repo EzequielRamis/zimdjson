@@ -62,7 +62,9 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 .assume_padding = Reader != null or options.assume_padding,
             });
 
-        pub const Error = Tokens.Error || types.ParseError || Allocator.Error || if (Reader) |reader| reader.Error else error{};
+        pub const Error = Tokens.Error || types.ParseError || Allocator.Error || error{
+            ExpectedAllocator,
+        } || if (Reader) |reader| reader.Error else error{};
         pub const max_capacity_bound = if (want_stream) std.math.maxInt(usize) else std.math.maxInt(u32);
         pub const default_max_depth = 1024;
 
@@ -70,6 +72,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
         document_buffer: if (need_document_buffer) std.ArrayListAligned(u8, types.Aligned(true).alignment) else void,
 
         strings: types.BoundedArrayListUnmanaged(u8, max_capacity_bound),
+        temporal_string_buffer: if (want_stream) [options.stream.?.chunk_length]u8 else void = undefined,
 
         cursor: Cursor,
 
@@ -158,7 +161,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             }
             self.strings.list.clearRetainingCapacity();
             self.cursor.document = self;
-            self.cursor.strings = self.strings.items().ptr;
+            self.cursor.strings = if (want_stream) 0 else self.strings.items().ptr;
             self.cursor.depth = 1;
             self.cursor.root = if (want_stream) 0 else @intFromPtr(self.cursor.tokens.indexes.items.ptr);
             self.cursor.err = null;
@@ -217,7 +220,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
         const Cursor = struct {
             document: *Self = undefined,
             tokens: Tokens,
-            strings: [*]u8 = undefined,
+            strings: if (want_stream) usize else [*]u8 = undefined,
             depth: u32 = 1,
             root: usize = undefined,
             err: ?Error = null,
@@ -1051,21 +1054,35 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             pub inline fn get(self: String) Error![]const u8 {
                 if (self.err) |err| return err;
 
-                // if (want_stream) {
-                //     if (self.iter.cursor.document.allocator) |alloc|
-                //         try self.iter.cursor.document.strings.ensureUnusedCapacity(alloc, options.stream.?.chunk_length)
-                //     else
-                //         return error.ExpectedAllocator;
-                // }
-                const str = try self.iter.parseString(self.raw_str, self.iter.cursor.strings);
-                self.iter.cursor.strings += str.len;
-                return str;
+                if (want_stream) {
+                    if (self.iter.cursor.document.allocator) |alloc| {
+                        try self.iter.cursor.document.strings.ensureUnusedCapacity(alloc, options.stream.?.chunk_length);
+                        const dest = self.iter.cursor.document.strings.items().ptr;
+                        const str = try self.iter.parseString(self.raw_str, dest[self.iter.cursor.strings..]);
+                        self.iter.cursor.strings += str.len;
+                        return str;
+                    } else {
+                        return error.ExpectedAllocator;
+                    }
+                } else {
+                    const str = try self.iter.parseString(self.raw_str, self.iter.cursor.strings);
+                    self.iter.cursor.strings += str.len;
+                    return str;
+                }
             }
 
             pub inline fn write(self: String, dest: []u8) Error![]const u8 {
                 if (self.err) |err| return err;
 
                 const str = try self.iter.parseString(self.raw_str, dest.ptr);
+                return str;
+            }
+
+            pub inline fn getTemporal(self: String) Error![]const u8 {
+                if (want_stream) return self.write(&self.iter.cursor.document.temporal_string_buffer);
+                const last_string = self.iter.cursor.strings;
+                const str = try self.get();
+                self.iter.cursor.strings = last_string;
                 return str;
             }
 
@@ -1228,7 +1245,6 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
         pub const schema = struct {
             const _std = @import("std");
             pub const Error = Self.Error || error{
-                ExpectedAllocator,
                 UnknownField,
                 UnknownEnumLiteral,
                 UnknownUnionVariant,
@@ -1348,8 +1364,8 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             dest.* = .init(alloc);
                             const obj = try value.asObject();
                             while (try obj.next()) |field| {
-                                const key = try field.key.get();
-                                const str = try field.value.asString().get();
+                                const key = try field.key.getTemporal();
+                                const str = try field.value.asString().getTemporal();
                                 try dest.put(key, str);
                             }
                         } else {
@@ -1363,7 +1379,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             dest.* = .init(alloc);
                             const arr = try value.asArray();
                             while (try arr.next()) |child| {
-                                const item = try child.asString().get();
+                                const item = try child.asString().getTemporal();
                                 try dest.insert(item);
                             }
                         } else {
@@ -1389,7 +1405,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             dest.* = .init(.{});
                             const obj = try value.asObject();
                             while (try obj.next()) |field| {
-                                const variant = try field.key.get();
+                                const variant = try field.key.getTemporal();
                                 var enum_literal = schema_utils.undefinedInit(E);
                                 try parseEnumFromSlice(E, null, variant, &enum_literal);
                                 const enum_value = try field.value.asAdvanced(V, null, allocator);
@@ -1622,7 +1638,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             }
                             if (sch.ignore_unknown_fields) break :brk object.at(renamed_key);
                             if (try object.next()) |next_field| {
-                                const field_key = try next_field.key.get();
+                                const field_key = try next_field.key.getTemporal();
                                 if (_std.mem.eql(u8, field_key, renamed_key)) break :brk next_field.value;
                                 return error.UnknownField;
                             } else {
@@ -1638,7 +1654,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         }
                         while (true) {
                             if (try object.next()) |next_field| {
-                                const next_field_key = try next_field.key.get();
+                                const next_field_key = try next_field.key.getTemporal();
                                 const next_field_value = next_field.value;
                                 if (_std.mem.eql(u8, next_field_key, renamed_key)) {
                                     switch (sch.duplicate_field_behavior) {
@@ -1685,7 +1701,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     const struct_map = comptime schema_utils.Map(StructDispatch, &dispatches);
                     var undefined_count_runtime = undefined_count;
                     while (try object.next()) |field| {
-                        const key = try field.key.get();
+                        const key = try field.key.getTemporal();
                         const field_index = struct_map.getIndex(key) orelse if (sch.ignore_unknown_fields) continue else return error.UnknownField;
                         const dispatch = struct_map.atIndex(field_index);
                         if (seen[field_index]) switch (sch.duplicate_field_behavior) {
@@ -1728,7 +1744,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 if (sch.parse_with) |customParseFn| {
                     return customParseFn(allocator, value, dest);
                 }
-                const variant = try value.asString().get();
+                const variant = try value.asString().getTemporal();
                 return parseEnumFromSlice(T, S, variant, dest);
             }
 
@@ -1850,7 +1866,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         .externally_tagged => {
                             const object = try value.asObject();
                             if (try object.next()) |content| {
-                                const tag_key = try content.key.get();
+                                const tag_key = try content.key.getTemporal();
                                 const dispatch = union_map.get(tag_key) orelse return error.UnknownUnionVariant;
                                 try dispatch.parse_fn(allocator, content.value, dest);
                             } else return error.MissingField;
@@ -1859,9 +1875,9 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         .internally_tagged => |t| {
                             const object = try value.asObject();
                             if (try object.next()) |tag| {
-                                const tag_key = try tag.key.get();
+                                const tag_key = try tag.key.getTemporal();
                                 if (!_std.mem.eql(u8, tag_key, t)) return error.UnknownField;
-                                const tag_value = try tag.value.asString().get();
+                                const tag_value = try tag.value.asString().getTemporal();
                                 const dispatch = union_map.get(tag_value) orelse return error.UnknownUnionVariant;
                                 try dispatch.parse_fn(allocator, value, dest);
                             } else return error.MissingField;
@@ -1869,12 +1885,12 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         .adjacently_tagged => |a| {
                             const object = try value.asObject();
                             if (try object.next()) |tag| {
-                                const tag_key = try tag.key.get();
+                                const tag_key = try tag.key.getTemporal();
                                 if (!_std.mem.eql(u8, tag_key, a.tag)) return error.UnknownField;
-                                const tag_value = try tag.value.asString().get();
+                                const tag_value = try tag.value.asString().getTemporal();
                                 const dispatch = union_map.get(tag_value) orelse return error.UnknownUnionVariant;
                                 if (try object.next()) |content| {
-                                    const content_key = try content.key.get();
+                                    const content_key = try content.key.getTemporal();
                                     if (!_std.mem.eql(u8, content_key, a.content)) return error.UnknownField;
                                     try dispatch.parse_fn(allocator, content.value, dest);
                                 } else return error.MissingField;
@@ -1923,12 +1939,9 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     return customParseFn(allocator, value, dest);
                 }
                 switch (@typeInfo(T)) {
-                    .int => {
-                        const n = try value.asNumber();
-                        switch (n) {
-                            .float => return error.IncorrectType,
-                            inline else => dest.* = n.cast(T) orelse return error.NumberOutOfRange,
-                        }
+                    .int => |info| {
+                        const n = try if (info.signedness == .signed) value.asSigned() else value.asUnsigned();
+                        dest.* = _std.math.cast(T, n) orelse return error.NumberOutOfRange;
                     },
                     .float => dest.* = @floatCast(try value.asFloat()),
                     .bool => dest.* = try value.asBool(),
@@ -1945,7 +1958,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     },
                     .array => |info| {
                         if (info.child == u8 and sch.bytes_as_string) {
-                            const str = try value.asString().get();
+                            const str = try value.asString().getTemporal();
                             if (str.len != info.len) return error.IncorrectType;
                             @memcpy(dest, str);
                         } else {

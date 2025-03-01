@@ -327,30 +327,26 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
-            pub inline fn at(self: Value, ptr: anytype) Value {
+            pub inline fn at(self: Value, key: []const u8) Value {
                 @setEvalBranchQuota(10000);
                 if (self.err) |_| return self;
-
-                const query = brk: {
-                    if (common.isString(@TypeOf(ptr))) {
-                        const obj = self.asObject() catch |err| return .{
-                            .tape = self.tape,
-                            .index = self.index,
-                            .err = err,
-                        };
-                        break :brk obj.at(ptr);
-                    }
-                    if (common.isIndex(@TypeOf(ptr))) {
-                        const arr = self.asArray() catch |err| return .{
-                            .tape = self.tape,
-                            .index = self.index,
-                            .err = err,
-                        };
-                        break :brk arr.at(ptr);
-                    }
-                    @compileError(common.error_messages.at_type);
+                const obj = self.asObject() catch |err| return .{
+                    .tape = self.tape,
+                    .index = self.index,
+                    .err = err,
                 };
-                return query;
+                return obj.at(key);
+            }
+
+            pub inline fn atIndex(self: Value, index: usize) Value {
+                @setEvalBranchQuota(10000);
+                if (self.err) |_| return self;
+                const arr = self.asArray() catch |err| return .{
+                    .tape = self.tape,
+                    .index = self.index,
+                    .err = err,
+                };
+                return arr.at(index);
             }
 
             pub fn getSize(self: Value) Error!u24 {

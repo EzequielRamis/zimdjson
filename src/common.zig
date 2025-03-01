@@ -1,14 +1,4 @@
 const std = @import("std");
-const builtin = @import("builtin");
-const types = @import("types.zig");
-const simd = std.simd;
-const testing = std.testing;
-const arch = builtin.cpu.arch;
-
-pub const error_messages = struct {
-    pub const stream_slice = "Parsing JSON from a slice is not supported when stream mode is enabled. Consider disabling stream mode or calling `parseFromFile` or `parseFromReader`.";
-    pub const at_type = "A number or string must be provided for the `at` parameter.";
-};
 
 pub const tables = struct {
     pub const is_structural: [256]bool = init: {
@@ -68,25 +58,6 @@ pub const tables = struct {
         break :init res;
     };
 };
-
-pub inline fn isString(comptime T: type) bool {
-    return switch (@typeInfo(T)) {
-        .pointer => |info| switch (info.size) {
-            .one => isString(info.child),
-            .many, .c, .slice => info.child == u8,
-        },
-        .array => |info| info.child == u8,
-        else => false,
-    };
-}
-
-pub inline fn isIndex(comptime T: type) bool {
-    return switch (@typeInfo(T)) {
-        .int => |info| info.signedness == .unsigned and info.bits <= 32,
-        .comptime_int => true,
-        else => false,
-    };
-}
 
 pub fn readAllArrayListAlignedRetainingCapacity(
     self: anytype,

@@ -333,52 +333,6 @@ test "packed struct" {
     }, pte);
 }
 
-test "with arraylist" {
-    const Parser = parserFromSlice;
-    const allocator = std.testing.allocator;
-    var parser = Parser.init(allocator);
-    defer parser.deinit();
-    const document = try parser.parse(
-        \\[
-        \\    { "x": 1, "y": 2, "z": 3 },
-        \\    { "x": 4, "y": 5, "z": 6 },
-        \\    { "x": 7, "y": 8, "z": 9 }
-        \\]
-    );
-
-    const Coordinate = struct { x: i32, y: i32, z: i32 };
-    var coords = try document.as(std.ArrayList(Coordinate));
-    defer coords.deinit();
-
-    try std.testing.expectEqual(coords.value.items.len, 3);
-    try std.testing.expectEqual(Coordinate{ .x = 1, .y = 2, .z = 3 }, coords.value.items[0]);
-    try std.testing.expectEqual(Coordinate{ .x = 4, .y = 5, .z = 6 }, coords.value.items[1]);
-    try std.testing.expectEqual(Coordinate{ .x = 7, .y = 8, .z = 9 }, coords.value.items[2]);
-}
-
-test "with multiarraylist" {
-    const Parser = parserFromSlice;
-    const allocator = std.testing.allocator;
-    var parser = Parser.init(allocator);
-    defer parser.deinit();
-    const document = try parser.parse(
-        \\[
-        \\    { "x": 1, "y": 2, "z": 3 },
-        \\    { "x": 4, "y": 5, "z": 6 },
-        \\    { "x": 7, "y": 8, "z": 9 }
-        \\]
-    );
-
-    const Coordinate = struct { x: i32, y: i32, z: i32 };
-    var coords = try document.as(std.MultiArrayList(Coordinate));
-    defer coords.deinit();
-
-    try std.testing.expectEqual(coords.value.len, 3);
-    try std.testing.expectEqual(Coordinate{ .x = 1, .y = 2, .z = 3 }, coords.value.get(0));
-    try std.testing.expectEqual(Coordinate{ .x = 4, .y = 5, .z = 6 }, coords.value.get(1));
-    try std.testing.expectEqual(Coordinate{ .x = 7, .y = 8, .z = 9 }, coords.value.get(2));
-}
-
 test "use first duplicate" {
     const Parser = parserFromSlice;
     const allocator = std.testing.allocator;
@@ -521,13 +475,21 @@ test "missing field while handling duplicate" {
         foo: u8,
     };
 
-    try std.testing.expectError(error.MissingField, document.asAdvancedLeaky(Schema, .{
-        .on_duplicate_field = .use_first,
-    }, allocator));
+    try std.testing.expectError(error.MissingField, document.asAdvancedLeaky(
+        Schema,
+        .{
+            .on_duplicate_field = .use_first,
+        },
+        allocator,
+    ));
 
-    try std.testing.expectError(error.MissingField, document.asAdvancedLeaky(Schema, .{
-        .on_duplicate_field = .use_last,
-    }, allocator));
+    try std.testing.expectError(error.MissingField, document.asAdvancedLeaky(
+        Schema,
+        .{
+            .on_duplicate_field = .use_last,
+        },
+        allocator,
+    ));
 }
 
 test "missing field while handling duplicate, assuming ordering" {
@@ -545,13 +507,450 @@ test "missing field while handling duplicate, assuming ordering" {
         bar: u8,
     };
 
-    try std.testing.expectError(error.MissingField, document.asAdvancedLeaky(Schema, .{
-        .assume_ordering = true,
-        .on_duplicate_field = .use_first,
-    }, allocator));
+    try std.testing.expectError(error.MissingField, document.asAdvancedLeaky(
+        Schema,
+        .{
+            .assume_ordering = true,
+            .on_duplicate_field = .use_first,
+        },
+        allocator,
+    ));
 
-    try std.testing.expectError(error.MissingField, document.asAdvancedLeaky(Schema, .{
-        .assume_ordering = true,
-        .on_duplicate_field = .use_last,
-    }, allocator));
+    try std.testing.expectError(error.MissingField, document.asAdvancedLeaky(
+        Schema,
+        .{
+            .assume_ordering = true,
+            .on_duplicate_field = .use_last,
+        },
+        allocator,
+    ));
+}
+
+test "std.BitStack" {
+    const Parser = parserFromSlice;
+    const allocator = std.testing.allocator;
+    var parser = Parser.init(allocator);
+    defer parser.deinit();
+    const document = try parser.parse(
+        \\[ 0,1,1,1, 1,0,1,1, 1,0,1,1, 0,1,0,1 ]
+    );
+
+    var bits = try document.as(std.BitStack);
+    defer bits.deinit();
+
+    try std.testing.expectEqual(bits.value.bit_len, 16);
+    try std.testing.expectEqualSlices(
+        u8,
+        @as([]const u8, &.{ 0xDE, 0xAD }),
+        bits.value.bytes.items,
+    );
+}
+
+test "std.BufMap" {
+    const Parser = parserFromSlice;
+    const allocator = std.testing.allocator;
+    var parser = Parser.init(allocator);
+    defer parser.deinit();
+    const document = try parser.parse(
+        \\{
+        \\  "car": "blue",
+        \\  "bike": "red",
+        \\  "4x4": "green"
+        \\}
+    );
+
+    var map = try document.as(std.BufMap);
+    defer map.deinit();
+
+    try std.testing.expectEqual(map.value.count(), 3);
+    try std.testing.expectEqualStrings("blue", map.value.get("car").?);
+    try std.testing.expectEqualStrings("red", map.value.get("bike").?);
+    try std.testing.expectEqualStrings("green", map.value.get("4x4").?);
+}
+
+test "std.BufSet" {
+    const Parser = parserFromSlice;
+    const allocator = std.testing.allocator;
+    var parser = Parser.init(allocator);
+    defer parser.deinit();
+    const document = try parser.parse(
+        \\[
+        \\  "car", "blue",
+        \\  "bike", "red",
+        \\  "4x4", "green"
+        \\]
+    );
+
+    var set = try document.as(std.BufSet);
+    defer set.deinit();
+
+    try std.testing.expectEqual(set.value.count(), 6);
+    var expected = std.StringHashMap(bool).init(allocator);
+    defer expected.deinit();
+
+    try expected.put("car", false);
+    try expected.put("blue", false);
+    try expected.put("bike", false);
+    try expected.put("red", false);
+    try expected.put("4x4", false);
+    try expected.put("green", false);
+
+    var it = set.value.iterator();
+
+    while (it.next()) |item| {
+        const visited = expected.fetchPutAssumeCapacity(item.*, true);
+        try std.testing.expectEqual(visited.?.value, false);
+    }
+}
+
+test "std.ArrayList" {
+    const Parser = parserFromSlice;
+    const allocator = std.testing.allocator;
+    var parser = Parser.init(allocator);
+    defer parser.deinit();
+    const document = try parser.parse(
+        \\[
+        \\    { "x": 1, "y": 2, "z": 3 },
+        \\    { "x": 4, "y": 5, "z": 6 },
+        \\    { "x": 7, "y": 8, "z": 9 }
+        \\]
+    );
+
+    const Coordinate = struct { x: i32, y: i32, z: i32 };
+    var coords = try document.as(std.ArrayList(Coordinate));
+    defer coords.deinit();
+
+    try std.testing.expectEqual(coords.value.items.len, 3);
+    try std.testing.expectEqual(Coordinate{ .x = 1, .y = 2, .z = 3 }, coords.value.items[0]);
+    try std.testing.expectEqual(Coordinate{ .x = 4, .y = 5, .z = 6 }, coords.value.items[1]);
+    try std.testing.expectEqual(Coordinate{ .x = 7, .y = 8, .z = 9 }, coords.value.items[2]);
+}
+
+test "std.ArrayListUnmanaged" {
+    const Parser = parserFromSlice;
+    const allocator = std.testing.allocator;
+    var parser = Parser.init(allocator);
+    defer parser.deinit();
+    const document = try parser.parse(
+        \\[
+        \\    { "x": 1, "y": 2, "z": 3 },
+        \\    { "x": 4, "y": 5, "z": 6 },
+        \\    { "x": 7, "y": 8, "z": 9 }
+        \\]
+    );
+
+    const Coordinate = struct { x: i32, y: i32, z: i32 };
+    var coords = try document.as(std.ArrayListUnmanaged(Coordinate));
+    defer coords.deinit();
+
+    try std.testing.expectEqual(coords.value.items.len, 3);
+    try std.testing.expectEqual(Coordinate{ .x = 1, .y = 2, .z = 3 }, coords.value.items[0]);
+    try std.testing.expectEqual(Coordinate{ .x = 4, .y = 5, .z = 6 }, coords.value.items[1]);
+    try std.testing.expectEqual(Coordinate{ .x = 7, .y = 8, .z = 9 }, coords.value.items[2]);
+}
+
+test "std.ArrayListAligned" {
+    const Parser = parserFromSlice;
+    const allocator = std.testing.allocator;
+    var parser = Parser.init(allocator);
+    defer parser.deinit();
+    const document = try parser.parse(
+        \\[
+        \\    { "x": 1, "y": 2, "z": 3 },
+        \\    { "x": 4, "y": 5, "z": 6 },
+        \\    { "x": 7, "y": 8, "z": 9 }
+        \\]
+    );
+
+    const Coordinate = struct { x: i32, y: i32, z: i32 };
+    var coords = try document.as(std.ArrayListAligned(Coordinate, 32));
+    defer coords.deinit();
+
+    try std.testing.expectEqual(coords.value.items.len, 3);
+    try std.testing.expectEqual(Coordinate{ .x = 1, .y = 2, .z = 3 }, coords.value.items[0]);
+    try std.testing.expectEqual(Coordinate{ .x = 4, .y = 5, .z = 6 }, coords.value.items[1]);
+    try std.testing.expectEqual(Coordinate{ .x = 7, .y = 8, .z = 9 }, coords.value.items[2]);
+}
+
+test "std.ArrayListAlignedUnmanaged" {
+    const Parser = parserFromSlice;
+    const allocator = std.testing.allocator;
+    var parser = Parser.init(allocator);
+    defer parser.deinit();
+    const document = try parser.parse(
+        \\[
+        \\    { "x": 1, "y": 2, "z": 3 },
+        \\    { "x": 4, "y": 5, "z": 6 },
+        \\    { "x": 7, "y": 8, "z": 9 }
+        \\]
+    );
+
+    const Coordinate = struct { x: i32, y: i32, z: i32 };
+    var coords = try document.as(std.ArrayListAlignedUnmanaged(Coordinate, 32));
+    defer coords.deinit();
+
+    try std.testing.expectEqual(coords.value.items.len, 3);
+    try std.testing.expectEqual(Coordinate{ .x = 1, .y = 2, .z = 3 }, coords.value.items[0]);
+    try std.testing.expectEqual(Coordinate{ .x = 4, .y = 5, .z = 6 }, coords.value.items[1]);
+    try std.testing.expectEqual(Coordinate{ .x = 7, .y = 8, .z = 9 }, coords.value.items[2]);
+}
+
+test "std.SinglyLinkedList" {
+    const Parser = parserFromSlice;
+    const allocator = std.testing.allocator;
+    var parser = Parser.init(allocator);
+    defer parser.deinit();
+    const document = try parser.parse(
+        \\[
+        \\    { "x": 1, "y": 2, "z": 3 },
+        \\    { "x": 4, "y": 5, "z": 6 },
+        \\    { "x": 7, "y": 8, "z": 9 }
+        \\]
+    );
+
+    const Coordinate = struct { x: i32, y: i32, z: i32 };
+    var coords = try document.as(std.SinglyLinkedList(Coordinate));
+    defer coords.deinit();
+
+    var it = coords.value.first;
+    try std.testing.expectEqual(Coordinate{ .x = 1, .y = 2, .z = 3 }, it.?.data);
+    it = it.?.next;
+    try std.testing.expectEqual(Coordinate{ .x = 4, .y = 5, .z = 6 }, it.?.data);
+    it = it.?.next;
+    try std.testing.expectEqual(Coordinate{ .x = 7, .y = 8, .z = 9 }, it.?.data);
+    it = it.?.next;
+    try std.testing.expectEqual(null, it);
+}
+
+test "std.DoublyLinkedList" {
+    const Parser = parserFromSlice;
+    const allocator = std.testing.allocator;
+    var parser = Parser.init(allocator);
+    defer parser.deinit();
+    const document = try parser.parse(
+        \\[
+        \\    { "x": 1, "y": 2, "z": 3 },
+        \\    { "x": 4, "y": 5, "z": 6 },
+        \\    { "x": 7, "y": 8, "z": 9 }
+        \\]
+    );
+
+    const Coordinate = struct { x: i32, y: i32, z: i32 };
+    var coords = try document.as(std.DoublyLinkedList(Coordinate));
+    defer coords.deinit();
+
+    var it = coords.value.first;
+    try std.testing.expectEqual(Coordinate{ .x = 1, .y = 2, .z = 3 }, it.?.data);
+    it = it.?.next;
+    try std.testing.expectEqual(Coordinate{ .x = 4, .y = 5, .z = 6 }, it.?.data);
+    it = it.?.next;
+    try std.testing.expectEqual(Coordinate{ .x = 7, .y = 8, .z = 9 }, it.?.data);
+    it = it.?.next;
+    try std.testing.expectEqual(null, it);
+}
+
+test "std.StringArrayHashMap" {
+    const Parser = parserFromSlice;
+    const allocator = std.testing.allocator;
+    var parser = Parser.init(allocator);
+    defer parser.deinit();
+    const document = try parser.parse(
+        \\{
+        \\  "car": { "x": 1, "y": 2, "z": 3 },
+        \\  "bike": { "x": 4, "y": 5, "z": 6 },
+        \\  "4x4": { "x": 7, "y": 8, "z": 9 }
+        \\}
+    );
+
+    const Coordinate = struct { x: i32, y: i32, z: i32 };
+    var coords = try document.as(std.StringArrayHashMap(Coordinate));
+    defer coords.deinit();
+
+    try std.testing.expectEqual(coords.value.count(), 3);
+    try std.testing.expectEqual(Coordinate{ .x = 1, .y = 2, .z = 3 }, coords.value.get("car").?);
+    try std.testing.expectEqual(Coordinate{ .x = 4, .y = 5, .z = 6 }, coords.value.get("bike").?);
+    try std.testing.expectEqual(Coordinate{ .x = 7, .y = 8, .z = 9 }, coords.value.get("4x4").?);
+}
+
+test "std.StringArrayHashMapUnmanaged" {
+    const Parser = parserFromSlice;
+    const allocator = std.testing.allocator;
+    var parser = Parser.init(allocator);
+    defer parser.deinit();
+    const document = try parser.parse(
+        \\{
+        \\  "car": { "x": 1, "y": 2, "z": 3 },
+        \\  "bike": { "x": 4, "y": 5, "z": 6 },
+        \\  "4x4": { "x": 7, "y": 8, "z": 9 }
+        \\}
+    );
+
+    const Coordinate = struct { x: i32, y: i32, z: i32 };
+    var coords = try document.as(std.StringArrayHashMapUnmanaged(Coordinate));
+    defer coords.deinit();
+
+    try std.testing.expectEqual(coords.value.count(), 3);
+    try std.testing.expectEqual(Coordinate{ .x = 1, .y = 2, .z = 3 }, coords.value.get("car").?);
+    try std.testing.expectEqual(Coordinate{ .x = 4, .y = 5, .z = 6 }, coords.value.get("bike").?);
+    try std.testing.expectEqual(Coordinate{ .x = 7, .y = 8, .z = 9 }, coords.value.get("4x4").?);
+}
+
+test "std.StringHashMap" {
+    const Parser = parserFromSlice;
+    const allocator = std.testing.allocator;
+    var parser = Parser.init(allocator);
+    defer parser.deinit();
+    const document = try parser.parse(
+        \\{
+        \\  "car": { "x": 1, "y": 2, "z": 3 },
+        \\  "bike": { "x": 4, "y": 5, "z": 6 },
+        \\  "4x4": { "x": 7, "y": 8, "z": 9 }
+        \\}
+    );
+
+    const Coordinate = struct { x: i32, y: i32, z: i32 };
+    var coords = try document.as(std.StringHashMap(Coordinate));
+    defer coords.deinit();
+
+    try std.testing.expectEqual(coords.value.count(), 3);
+    try std.testing.expectEqual(Coordinate{ .x = 1, .y = 2, .z = 3 }, coords.value.get("car").?);
+    try std.testing.expectEqual(Coordinate{ .x = 4, .y = 5, .z = 6 }, coords.value.get("bike").?);
+    try std.testing.expectEqual(Coordinate{ .x = 7, .y = 8, .z = 9 }, coords.value.get("4x4").?);
+}
+
+test "std.StringHashMapUnmanaged" {
+    const Parser = parserFromSlice;
+    const allocator = std.testing.allocator;
+    var parser = Parser.init(allocator);
+    defer parser.deinit();
+    const document = try parser.parse(
+        \\{
+        \\  "car": { "x": 1, "y": 2, "z": 3 },
+        \\  "bike": { "x": 4, "y": 5, "z": 6 },
+        \\  "4x4": { "x": 7, "y": 8, "z": 9 }
+        \\}
+    );
+
+    const Coordinate = struct { x: i32, y: i32, z: i32 };
+    var coords = try document.as(std.StringHashMapUnmanaged(Coordinate));
+    defer coords.deinit();
+
+    try std.testing.expectEqual(coords.value.count(), 3);
+    try std.testing.expectEqual(Coordinate{ .x = 1, .y = 2, .z = 3 }, coords.value.get("car").?);
+    try std.testing.expectEqual(Coordinate{ .x = 4, .y = 5, .z = 6 }, coords.value.get("bike").?);
+    try std.testing.expectEqual(Coordinate{ .x = 7, .y = 8, .z = 9 }, coords.value.get("4x4").?);
+}
+
+test "std.BoundedArray" {
+    const Parser = parserFromSlice;
+    const allocator = std.testing.allocator;
+    var parser = Parser.init(allocator);
+    defer parser.deinit();
+    const document = try parser.parse(
+        \\[
+        \\    { "x": 1, "y": 2, "z": 3 },
+        \\    { "x": 4, "y": 5, "z": 6 },
+        \\    { "x": 7, "y": 8, "z": 9 }
+        \\]
+    );
+
+    const Coordinate = struct { x: i32, y: i32, z: i32 };
+    var coords = try document.as(std.BoundedArray(Coordinate, 3));
+    defer coords.deinit();
+
+    try std.testing.expectEqual(coords.value.len, 3);
+    try std.testing.expectEqual(Coordinate{ .x = 1, .y = 2, .z = 3 }, coords.value.get(0));
+    try std.testing.expectEqual(Coordinate{ .x = 4, .y = 5, .z = 6 }, coords.value.get(1));
+    try std.testing.expectEqual(Coordinate{ .x = 7, .y = 8, .z = 9 }, coords.value.get(2));
+}
+
+test "std.BoundedArrayAligned" {
+    const Parser = parserFromSlice;
+    const allocator = std.testing.allocator;
+    var parser = Parser.init(allocator);
+    defer parser.deinit();
+    const document = try parser.parse(
+        \\[
+        \\    { "x": 1, "y": 2, "z": 3 },
+        \\    { "x": 4, "y": 5, "z": 6 },
+        \\    { "x": 7, "y": 8, "z": 9 }
+        \\]
+    );
+
+    const Coordinate = struct { x: i32, y: i32, z: i32 };
+    var coords = try document.as(std.BoundedArrayAligned(Coordinate, 32, 4));
+    defer coords.deinit();
+
+    try std.testing.expectEqual(coords.value.len, 3);
+    try std.testing.expectEqual(Coordinate{ .x = 1, .y = 2, .z = 3 }, coords.value.get(0));
+    try std.testing.expectEqual(Coordinate{ .x = 4, .y = 5, .z = 6 }, coords.value.get(1));
+    try std.testing.expectEqual(Coordinate{ .x = 7, .y = 8, .z = 9 }, coords.value.get(2));
+}
+
+test "std.EnumMap" {
+    const Parser = parserFromSlice;
+    const allocator = std.testing.allocator;
+    var parser = Parser.init(allocator);
+    defer parser.deinit();
+    const document = try parser.parse(
+        \\{
+        \\  "car": "blue",
+        \\  "bike": "red",
+        \\  "4x4": "green"
+        \\}
+    );
+
+    var map = try document.as(std.EnumMap(enum { car, bike, @"4x4" }, []const u8));
+    defer map.deinit();
+
+    try std.testing.expectEqual(map.value.count(), 3);
+    try std.testing.expectEqualStrings("blue", map.value.get(.car).?);
+    try std.testing.expectEqualStrings("red", map.value.get(.bike).?);
+    try std.testing.expectEqualStrings("green", map.value.get(.@"4x4").?);
+}
+
+test "std.SegmentedList" {
+    const Parser = parserFromSlice;
+    const allocator = std.testing.allocator;
+    var parser = Parser.init(allocator);
+    defer parser.deinit();
+    const document = try parser.parse(
+        \\[
+        \\    { "x": 1, "y": 2, "z": 3 },
+        \\    { "x": 4, "y": 5, "z": 6 },
+        \\    { "x": 7, "y": 8, "z": 9 }
+        \\]
+    );
+
+    const Coordinate = struct { x: i32, y: i32, z: i32 };
+    var coords = try document.as(std.SegmentedList(Coordinate, 0));
+    defer coords.deinit();
+
+    try std.testing.expectEqual(coords.value.len, 3);
+    try std.testing.expectEqual(Coordinate{ .x = 1, .y = 2, .z = 3 }, coords.value.at(0).*);
+    try std.testing.expectEqual(Coordinate{ .x = 4, .y = 5, .z = 6 }, coords.value.at(1).*);
+    try std.testing.expectEqual(Coordinate{ .x = 7, .y = 8, .z = 9 }, coords.value.at(2).*);
+}
+
+test "std.MultiArrayList" {
+    const Parser = parserFromSlice;
+    const allocator = std.testing.allocator;
+    var parser = Parser.init(allocator);
+    defer parser.deinit();
+    const document = try parser.parse(
+        \\[
+        \\    { "x": 1, "y": 2, "z": 3 },
+        \\    { "x": 4, "y": 5, "z": 6 },
+        \\    { "x": 7, "y": 8, "z": 9 }
+        \\]
+    );
+
+    const Coordinate = struct { x: i32, y: i32, z: i32 };
+    var coords = try document.as(std.MultiArrayList(Coordinate));
+    defer coords.deinit();
+
+    try std.testing.expectEqual(coords.value.len, 3);
+    try std.testing.expectEqual(Coordinate{ .x = 1, .y = 2, .z = 3 }, coords.value.get(0));
+    try std.testing.expectEqual(Coordinate{ .x = 4, .y = 5, .z = 6 }, coords.value.get(1));
+    try std.testing.expectEqual(Coordinate{ .x = 7, .y = 8, .z = 9 }, coords.value.get(2));
 }

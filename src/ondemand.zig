@@ -1349,145 +1349,178 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const arr = try value.asArray();
                             while (try arr.next()) |child| {
-                                const item = try child.asAdvancedLeaky(T, null, allocator);
+                                const item = try child.asAdvancedLeaky(T, null, allocator.?);
                                 try dest.append(item);
                             }
                         }
                     });
                 }
                 pub fn ArrayListAligned(comptime T: type, comptime alignment: ?u29) CustomParser(_std.ArrayListAligned(T, alignment)) {
-                    return struct {
-                        pub fn inner(allocator: ?Allocator, value: Value) schema.Error!_std.ArrayListAligned(T, alignment) {
+                    const Parsed = _std.ArrayListAligned(T, alignment);
+                    return .from(struct {
+                        pub fn init(allocator: ?Allocator) schema.Error!Parsed {
                             const alloc = allocator orelse return error.ExpectedAllocator;
-                            var dest: _std.ArrayListAligned(T, alignment) = .init(alloc);
+                            return .init(alloc);
+                        }
+                        pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const arr = try value.asArray();
                             while (try arr.next()) |child| {
-                                const item = try child.asAdvancedLeaky(T, null, alloc);
+                                const item = try child.asAdvancedLeaky(T, null, allocator.?);
                                 try dest.append(item);
                             }
-                            return dest;
                         }
-                    }.inner;
+                    });
                 }
                 pub fn ArrayListAlignedUnmanaged(comptime T: type, comptime alignment: ?u29) CustomParser(_std.ArrayListAlignedUnmanaged(T, alignment)) {
-                    return struct {
-                        pub fn inner(allocator: ?Allocator, value: Value) schema.Error!_std.ArrayListAlignedUnmanaged(T, alignment) {
+                    const Parsed = _std.ArrayListAlignedUnmanaged(T, alignment);
+                    return .from(struct {
+                        pub fn init(_: ?Allocator) schema.Error!Parsed {
+                            return .empty;
+                        }
+                        pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const alloc = allocator orelse return error.ExpectedAllocator;
-                            var dest: _std.ArrayListAlignedUnmanaged(T, alignment) = .empty;
                             const arr = try value.asArray();
                             while (try arr.next()) |child| {
                                 const item = try child.asAdvancedLeaky(T, null, alloc);
                                 try dest.append(alloc, item);
                             }
-                            return dest;
                         }
-                    }.inner;
+                    });
                 }
                 pub fn ArrayListUnmanaged(comptime T: type) CustomParser(_std.ArrayListUnmanaged(T)) {
-                    return struct {
-                        pub fn inner(allocator: ?Allocator, value: Value) schema.Error!_std.ArrayListUnmanaged(T) {
+                    const Parsed = _std.ArrayListUnmanaged(T);
+                    return .from(struct {
+                        pub fn init(_: ?Allocator) schema.Error!Parsed {
+                            return .empty;
+                        }
+                        pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const alloc = allocator orelse return error.ExpectedAllocator;
-                            var dest: _std.ArrayListUnmanaged(T) = .empty;
                             const arr = try value.asArray();
                             while (try arr.next()) |child| {
                                 const item = try child.asAdvancedLeaky(T, null, alloc);
                                 try dest.append(alloc, item);
                             }
-                            return dest;
                         }
-                    }.inner;
+                    });
                 }
-                pub const BitStack: CustomParser(_std.BitStack) = struct {
-                    pub fn inner(allocator: ?Allocator, value: Value) schema.Error!_std.BitStack {
-                        const alloc = allocator orelse return error.ExpectedAllocator;
-                        var dest: _std.BitStack = .init(alloc);
-                        const arr = try value.asArray();
-                        while (try arr.next()) |child| {
-                            const item = try child.as(u1);
-                            try dest.push(item);
+                pub const BitStack: CustomParser(_std.BitStack) = brk: {
+                    const Parsed = _std.BitStack;
+                    break :brk .from(struct {
+                        pub fn init(allocator: ?Allocator) schema.Error!Parsed {
+                            const alloc = allocator orelse return error.ExpectedAllocator;
+                            return .init(alloc);
                         }
-                        return dest;
-                    }
-                }.inner;
+                        pub fn parse(_: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
+                            const arr = try value.asArray();
+                            while (try arr.next()) |child| {
+                                const item = try child.asAdvancedLeaky(u1, null, null);
+                                try dest.push(item);
+                            }
+                        }
+                    });
+                };
                 pub fn BoundedArray(comptime T: type, comptime buffer_capacity: usize) CustomParser(_std.BoundedArray(T, buffer_capacity)) {
-                    return struct {
-                        pub fn inner(allocator: ?Allocator, value: Value) schema.Error!_std.BoundedArray(T, buffer_capacity) {
-                            var dest: _std.BoundedArray(T, buffer_capacity) = .init(0) catch unreachable;
+                    const Parsed = _std.BoundedArray(T, buffer_capacity);
+                    return .from(struct {
+                        pub fn init(_: ?Allocator) schema.Error!Parsed {
+                            return Parsed.init(0) catch error.ExceededCapacity;
+                        }
+                        pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const arr = try value.asArray();
                             while (try arr.next()) |child| {
                                 const item = try child.asAdvancedLeaky(T, null, allocator);
-                                try dest.append(item);
+                                dest.append(item) catch return error.ExceededCapacity;
                             }
-                            return dest;
                         }
-                    }.inner;
+                    });
                 }
-                pub fn BoundedArrayAligned(comptime T: type, comptime alignment: u29, comptime buffer_capacity: usize) CustomParser(_std.BoundedArrayAligned(T, alignment, buffer_capacity)) {
-                    return struct {
-                        pub fn inner(allocator: ?Allocator, value: Value) schema.Error!_std.BoundedArrayAligned(T, alignment, buffer_capacity) {
-                            var dest: _std.BoundedArrayAligned(T, alignment, buffer_capacity) = .init(0) catch unreachable;
+                pub fn BoundedArrayAligned(
+                    comptime T: type,
+                    comptime alignment: u29,
+                    comptime buffer_capacity: usize,
+                ) CustomParser(_std.BoundedArrayAligned(T, alignment, buffer_capacity)) {
+                    const Parsed = _std.BoundedArrayAligned(T, alignment, buffer_capacity);
+                    return .from(struct {
+                        pub fn init(_: ?Allocator) schema.Error!Parsed {
+                            return Parsed.init(0) catch error.ExceededCapacity;
+                        }
+                        pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const arr = try value.asArray();
                             while (try arr.next()) |child| {
                                 const item = try child.asAdvancedLeaky(T, null, allocator);
-                                try dest.append(item);
+                                dest.append(item) catch return error.ExceededCapacity;
                             }
-                            return dest;
                         }
-                    }.inner;
+                    });
                 }
-                pub const BufMap: CustomParser(_std.BufMap) = struct {
-                    pub fn inner(allocator: ?Allocator, value: Value) schema.Error!_std.BufMap {
-                        const alloc = allocator orelse return error.ExpectedAllocator;
-                        var dest: _std.BufMap = .init(alloc);
-                        const obj = try value.asObject();
-                        while (try obj.next()) |field| {
-                            const key = try field.key.getTemporal();
-                            const str = try field.value.asString().getTemporal();
-                            try dest.put(key, str);
+                pub const BufMap: CustomParser(_std.BufMap) = brk: {
+                    const Parsed = _std.BufMap;
+                    break :brk .from(struct {
+                        pub fn init(allocator: ?Allocator) schema.Error!Parsed {
+                            const alloc = allocator orelse return error.ExpectedAllocator;
+                            return .init(alloc);
                         }
-                        return dest;
-                    }
-                }.inner;
-                pub const BufSet: CustomParser(_std.BufSet) = struct {
-                    pub fn inner(allocator: ?Allocator, value: Value) schema.Error!_std.BufSet {
-                        const alloc = allocator orelse return error.ExpectedAllocator;
-                        var dest: _std.BufSet = .init(alloc);
-                        const arr = try value.asArray();
-                        while (try arr.next()) |child| {
-                            const item = try child.asString().getTemporal();
-                            try dest.insert(item);
+                        pub fn parse(_: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
+                            const obj = try value.asObject();
+                            while (try obj.next()) |field| {
+                                const key = try field.key.get();
+                                const str = try field.value.asString().getTemporal();
+                                try dest.put(key, str);
+                            }
                         }
-                        return dest;
-                    }
-                }.inner;
+                    });
+                };
+                pub const BufSet: CustomParser(_std.BufSet) = brk: {
+                    const Parsed = _std.BufSet;
+                    break :brk .from(struct {
+                        pub fn init(allocator: ?Allocator) schema.Error!Parsed {
+                            const alloc = allocator orelse return error.ExpectedAllocator;
+                            return .init(alloc);
+                        }
+                        pub fn parse(_: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
+                            const arr = try value.asArray();
+                            while (try arr.next()) |child| {
+                                const item = try child.asString().getTemporal();
+                                try dest.insert(item);
+                            }
+                        }
+                    });
+                };
                 pub fn DoublyLinkedList(comptime T: type) CustomParser(_std.DoublyLinkedList(T)) {
-                    return struct {
-                        pub fn inner(allocator: ?Allocator, value: Value) schema.Error!_std.DoublyLinkedList(T) {
-                            var dest: _std.DoublyLinkedList(T) = .{};
+                    const Parsed = _std.DoublyLinkedList(T);
+                    return .from(struct {
+                        pub fn init(_: ?Allocator) schema.Error!Parsed {
+                            return .{};
+                        }
+                        pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
+                            const alloc = allocator orelse return error.ExpectedAllocator;
                             const arr = try value.asArray();
                             while (try arr.next()) |child| {
                                 const item = try child.asAdvancedLeaky(T, null, allocator);
-                                try dest.append(item);
+                                const node = try alloc.create(Parsed.Node);
+                                node.* = .{ .data = item };
+                                dest.append(node);
                             }
-                            return dest;
                         }
-                    }.inner;
+                    });
                 }
                 pub fn EnumMap(comptime E: type, comptime V: type) CustomParser(_std.EnumMap(E, V)) {
-                    return struct {
-                        pub fn inner(allocator: ?Allocator, value: Value) schema.Error!_std.EnumMap(E, V) {
-                            var dest: _std.EnumMap(E, V) = .init(.{});
+                    const Parsed = _std.EnumMap(E, V);
+                    return .from(struct {
+                        pub fn init(_: ?Allocator) schema.Error!Parsed {
+                            return .init(.{});
+                        }
+                        pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
+                            const enum_schema = resolveSchema(E, null);
                             const obj = try value.asObject();
                             while (try obj.next()) |field| {
                                 const variant = try field.key.getTemporal();
-                                var enum_literal = schema_utils.undefinedInit(E);
-                                try parseEnumFromSlice(E, null, variant, &enum_literal);
+                                const enum_literal = try parseEnumFromSlice(E, enum_schema, variant);
                                 const enum_value = try field.value.asAdvancedLeaky(V, null, allocator);
-                                try dest.put(enum_literal, enum_value);
+                                dest.put(enum_literal, enum_value);
                             }
-                            return dest;
                         }
-                    }.inner;
+                    });
                 }
                 pub fn MultiArrayList(comptime T: type) CustomParser(_std.MultiArrayList(T)) {
                     const Parsed = _std.MultiArrayList(T);
@@ -1506,91 +1539,116 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     });
                 }
                 pub fn SegmentedList(comptime T: type, comptime prealloc_item_count: usize) CustomParser(_std.SegmentedList(T, prealloc_item_count)) {
-                    return struct {
-                        pub fn inner(allocator: ?Allocator, value: Value) schema.Error!_std.SegmentedList(T, prealloc_item_count) {
+                    const Parsed = _std.SegmentedList(T, prealloc_item_count);
+                    return .from(struct {
+                        pub fn init(_: ?Allocator) schema.Error!Parsed {
+                            return .{};
+                        }
+                        pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const alloc = allocator orelse return error.ExpectedAllocator;
-                            var dest: _std.SegmentedList(T, prealloc_item_count) = .{};
                             const arr = try value.asArray();
                             while (try arr.next()) |child| {
                                 const item = try child.asAdvancedLeaky(T, null, alloc);
                                 try dest.append(alloc, item);
                             }
-                            return dest;
                         }
-                    }.inner;
+                    });
                 }
                 pub fn SinglyLinkedList(comptime T: type) CustomParser(_std.SinglyLinkedList(T)) {
-                    return struct {
-                        pub fn inner(allocator: ?Allocator, value: Value) schema.Error!_std.SinglyLinkedList(T) {
-                            var dest: _std.SinglyLinkedList(T) = .{};
-                            const arr = try value.asArray();
-                            while (try arr.next()) |child| {
-                                const item = try child.asAdvancedLeaky(T, null, allocator);
-                                try dest.prepend(item);
-                            }
-                            return dest;
+                    const Parsed = _std.SinglyLinkedList(T);
+                    return .from(struct {
+                        pub fn init(_: ?Allocator) schema.Error!Parsed {
+                            return .{};
                         }
-                    }.inner;
+                        pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
+                            const alloc = allocator orelse return error.ExpectedAllocator;
+                            const arr = try value.asArray();
+                            if (try arr.next()) |first| {
+                                {
+                                    const item = try first.asAdvancedLeaky(T, null, allocator);
+                                    const node = try alloc.create(Parsed.Node);
+                                    node.* = .{ .data = item };
+                                    dest.prepend(node);
+                                }
+                                var head = dest.first.?;
+                                while (try arr.next()) |child| {
+                                    const item = try child.asAdvancedLeaky(T, null, allocator);
+                                    const node = try alloc.create(Parsed.Node);
+                                    node.* = .{ .data = item };
+                                    head.insertAfter(node);
+                                    head = head.next.?;
+                                }
+                            }
+                        }
+                    });
                 }
                 pub fn StringArrayHashMap(comptime V: type) CustomParser(_std.StringArrayHashMap(V)) {
-                    return struct {
-                        pub fn inner(allocator: ?Allocator, value: Value) schema.Error!_std.StringArrayHashMap(V) {
+                    const Parsed = _std.StringArrayHashMap(V);
+                    return .from(struct {
+                        pub fn init(allocator: ?Allocator) schema.Error!Parsed {
                             const alloc = allocator orelse return error.ExpectedAllocator;
-                            var dest: _std.StringArrayHashMap(V) = .init(alloc);
+                            return .init(alloc);
+                        }
+                        pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const obj = try value.asObject();
                             while (try obj.next()) |field| {
                                 const key = try field.key.get();
-                                const val = try field.value.asAdvancedLeaky(V, null, alloc);
+                                const val = try field.value.asAdvancedLeaky(V, null, allocator.?);
                                 try dest.put(key, val);
                             }
-                            return dest;
                         }
-                    }.inner;
+                    });
                 }
                 pub fn StringArrayHashMapUnmanaged(comptime V: type) CustomParser(_std.StringArrayHashMapUnmanaged(V)) {
-                    return struct {
-                        pub fn inner(allocator: ?Allocator, value: Value) schema.Error!_std.StringArrayHashMapUnmanaged(V) {
+                    const Parsed = _std.StringArrayHashMapUnmanaged(V);
+                    return .from(struct {
+                        pub fn init(_: ?Allocator) schema.Error!Parsed {
+                            return .empty;
+                        }
+                        pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const alloc = allocator orelse return error.ExpectedAllocator;
-                            var dest: _std.StringArrayHashMapUnmanaged(V) = .empty;
                             const obj = try value.asObject();
                             while (try obj.next()) |field| {
                                 const key = try field.key.get();
                                 const val = try field.value.asAdvancedLeaky(V, null, alloc);
                                 try dest.put(alloc, key, val);
                             }
-                            return dest;
                         }
-                    }.inner;
+                    });
                 }
                 pub fn StringHashMap(comptime V: type) CustomParser(_std.StringHashMap(V)) {
-                    return struct {
-                        pub fn inner(allocator: ?Allocator, value: Value) schema.Error!_std.StringHashMap(V) {
+                    const Parsed = _std.StringHashMap(V);
+                    return .from(struct {
+                        pub fn init(allocator: ?Allocator) schema.Error!Parsed {
                             const alloc = allocator orelse return error.ExpectedAllocator;
-                            var dest: _std.StringHashMap(V) = .init(alloc);
+                            return .init(alloc);
+                        }
+                        pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const obj = try value.asObject();
                             while (try obj.next()) |field| {
                                 const key = try field.key.get();
-                                const val = try field.value.asAdvancedLeaky(V, null, alloc);
+                                const val = try field.value.asAdvancedLeaky(V, null, allocator.?);
                                 try dest.put(key, val);
                             }
-                            return dest;
                         }
-                    }.inner;
+                    });
                 }
                 pub fn StringHashMapUnmanaged(comptime V: type) CustomParser(_std.StringHashMapUnmanaged(V)) {
-                    return struct {
-                        pub fn inner(allocator: ?Allocator, value: Value) schema.Error!_std.StringHashMapUnmanaged(V) {
+                    const Parsed = _std.StringHashMapUnmanaged(V);
+                    return .from(struct {
+                        pub fn init(_: ?Allocator) schema.Error!Parsed {
+                            return .empty;
+                        }
+                        pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const alloc = allocator orelse return error.ExpectedAllocator;
-                            var dest: _std.StringHashMapUnmanaged(V) = .empty;
                             const obj = try value.asObject();
                             while (try obj.next()) |field| {
                                 const key = try field.key.get();
                                 const val = try field.value.asAdvancedLeaky(V, null, alloc);
                                 try dest.put(alloc, key, val);
                             }
-                            return dest;
                         }
-                    }.inner;
+                    });
                 }
             };
 
@@ -1599,6 +1657,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     .@"struct" => {},
                     else => return null,
                 }
+
                 // - BitStack                     0 params
                 if (T == _std.BitStack) return schema.std.BitStack;
 
@@ -1617,10 +1676,14 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         .pointer => |info| {
                             if (info.size == .slice) {
                                 const child = info.child;
-                                if (T == _std.ArrayList(child)) return schema.std.ArrayList(child);
-                                if (T == _std.ArrayListUnmanaged(child)) return schema.std.ArrayListUnmanaged(child);
-                                if (T == _std.ArrayListAligned(child, info.alignment)) return schema.std.ArrayListAligned(child, info.alignment);
-                                if (T == _std.ArrayListAlignedUnmanaged(child, info.alignment)) return schema.std.ArrayListAlignedUnmanaged(child, info.alignment);
+                                if (T == _std.ArrayList(child))
+                                    return schema.std.ArrayList(child);
+                                if (T == _std.ArrayListUnmanaged(child))
+                                    return schema.std.ArrayListUnmanaged(child);
+                                if (T == _std.ArrayListAligned(child, info.alignment))
+                                    return schema.std.ArrayListAligned(child, info.alignment);
+                                if (T == _std.ArrayListAlignedUnmanaged(child, info.alignment))
+                                    return schema.std.ArrayListAlignedUnmanaged(child, info.alignment);
                             }
                         },
                         else => {},
@@ -1633,8 +1696,10 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     const Node = @field(T, "Node");
                     if (@typeInfo(Node) == .@"struct" and @hasField(Node, "data")) {
                         const child = @FieldType(Node, "data");
-                        if (T == _std.SinglyLinkedList(child)) return schema.std.SinglyLinkedList(child);
-                        if (T == _std.DoublyLinkedList(child)) return schema.std.DoublyLinkedList(child);
+                        if (T == _std.SinglyLinkedList(child))
+                            return schema.std.SinglyLinkedList(child);
+                        if (T == _std.DoublyLinkedList(child))
+                            return schema.std.DoublyLinkedList(child);
                     }
                 }
 
@@ -1646,10 +1711,14 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     const KV = @field(T, "KV");
                     if (@typeInfo(KV) == .@"struct" and @hasField(KV, "value")) {
                         const V = @FieldType(KV, "value");
-                        if (T == _std.StringArrayHashMap(V)) return schema.std.StringArrayHashMap(V);
-                        if (T == _std.StringArrayHashMapUnmanaged(V)) return schema.std.StringArrayHashMapUnmanaged(V);
-                        if (T == _std.StringHashMap(V)) return schema.std.StringHashMap(V);
-                        if (T == _std.StringHashMapUnmanaged(V)) return schema.std.StringHashMapUnmanaged(V);
+                        if (T == _std.StringArrayHashMap(V))
+                            return schema.std.StringArrayHashMap(V);
+                        if (T == _std.StringArrayHashMapUnmanaged(V))
+                            return schema.std.StringArrayHashMapUnmanaged(V);
+                        if (T == _std.StringHashMap(V))
+                            return schema.std.StringHashMap(V);
+                        if (T == _std.StringHashMapUnmanaged(V))
+                            return schema.std.StringHashMapUnmanaged(V);
                     }
                 }
 
@@ -1661,9 +1730,21 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         .array => |info| {
                             const buffer_capacity = info.len;
                             const child = info.child;
-                            const alignment = @alignOf(child);
-                            if (T == _std.BoundedArray(child, buffer_capacity)) return schema.std.BoundedArray(child, buffer_capacity);
-                            if (T == _std.BoundedArrayAligned(child, alignment, buffer_capacity)) return schema.std.BoundedArrayAligned(child, alignment, buffer_capacity);
+                            // if T == std.BoundedArrayAligned(sth aligned at 4, 32, ...), @alignOf(child) == 4 but wanted 32
+                            // that is why I search for it in the constSlice function
+                            const constSlice = @TypeOf(@field(T, "constSlice"));
+                            switch (@typeInfo(constSlice)) {
+                                .@"fn" => |fn_info| {
+                                    if (fn_info.return_type) |return_type| {
+                                        const alignment = _std.meta.alignment(return_type);
+                                        if (T == _std.BoundedArray(child, buffer_capacity))
+                                            return schema.std.BoundedArray(child, buffer_capacity);
+                                        if (T == _std.BoundedArrayAligned(child, alignment, buffer_capacity))
+                                            return schema.std.BoundedArrayAligned(child, alignment, buffer_capacity);
+                                    }
+                                },
+                                else => {},
+                            }
                         },
                         else => {},
                     }
@@ -1681,7 +1762,8 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     const prealloc_segment = @FieldType(T, "prealloc_segment");
                     switch (@typeInfo(prealloc_segment)) {
                         .array => |info| {
-                            if (T == _std.SegmentedList(info.child, info.len)) return schema.std.SegmentedList(info.child, info.len);
+                            if (T == _std.SegmentedList(info.child, info.len))
+                                return schema.std.SegmentedList(info.child, info.len);
                         },
                         else => {},
                     }
@@ -1693,7 +1775,8 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     switch (@typeInfo(get)) {
                         .@"fn" => |info| {
                             if (info.return_type) |return_type| {
-                                if (T == _std.MultiArrayList(return_type)) return schema.std.MultiArrayList(return_type);
+                                if (T == _std.MultiArrayList(return_type))
+                                    return schema.std.MultiArrayList(return_type);
                             }
                         },
                         else => {},

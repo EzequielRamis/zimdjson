@@ -23,7 +23,7 @@ test "small/adversarial" {
         },
     };
 
-    const el = try document.as(Schema);
+    const el = try document.asLeaky(Schema);
     const tuple = el.@"\"Name rue"[0];
 
     try std.testing.expectEqualDeep(.{
@@ -45,7 +45,7 @@ test "small/demo" {
     const document = try parser.parse(file.reader());
 
     const Image = struct {
-        pub const schema: Parser.schema.Auto(@This()) = .{
+        pub const schema: Parser.schema.Infer(@This()) = .{
             .rename_all = .PascalCase,
             .fields = .{ .ids = .{ .alias = "IDs" } },
         };
@@ -53,7 +53,10 @@ test "small/demo" {
         height: u16,
         title: []const u8,
         thumbnail: struct {
-            pub const schema: Parser.schema.Auto(@This()) = .{ .rename_all = .PascalCase };
+            pub const schema: Parser.schema.Infer(@This()) = .{
+                .rename_all = .PascalCase,
+                .assume_ordering = true,
+            };
             url: []const u8,
             height: u16,
             width: u16,
@@ -63,7 +66,7 @@ test "small/demo" {
     };
 
     const image = try document.at("Image").as(Image);
-    defer allocator.free(image.ids);
+    defer image.deinit();
 
     try std.testing.expectEqualDeep(Image{
         .width = 800,
@@ -76,7 +79,7 @@ test "small/demo" {
         },
         .animated = false,
         .ids = &.{ 116, 943, 234, 38793 },
-    }, image);
+    }, image.value);
 }
 
 test "small/truenull" {
@@ -89,9 +92,9 @@ test "small/truenull" {
     const document = try parser.parse(file.reader());
 
     const arr = try document.as([]const ?bool);
-    defer allocator.free(arr);
+    defer arr.deinit();
 
-    for (arr, 0..) |elem, i| {
+    for (arr.value, 0..) |elem, i| {
         try std.testing.expectEqual(if (i % 2 == 0) true else null, elem);
     }
 }
@@ -106,7 +109,7 @@ test "github_events" {
     const document = try parser.parse(file.reader());
 
     const Event = union(enum) {
-        pub const schema: Parser.schema.Auto(@This()) = .{
+        pub const schema: Parser.schema.Infer(@This()) = .{
             .representation = .{ .internally_tagged = "type" },
             .rename_all = .PascalCase,
         };
@@ -123,7 +126,7 @@ test "github_events" {
     };
 
     const events = try document.as([]const Event);
-    defer allocator.free(events);
+    defer events.deinit();
 
     try std.testing.expectEqualDeep(&.{
         Event{ .push_event = .{ .id = "1652857722" } },
@@ -156,7 +159,7 @@ test "github_events" {
         Event{ .push_event = .{ .id = "1652857648" } },
         Event{ .gollum_event = .{ .id = "1652857651" } },
         Event{ .fork_event = .{ .id = "1652857642" } },
-    }, events);
+    }, events.value);
 }
 
 test "github_events untagged payload" {
@@ -169,7 +172,7 @@ test "github_events untagged payload" {
     const document = try parser.parse(file.reader());
 
     const Payload = union(enum) {
-        pub const schema: Parser.schema.Auto(@This()) = .{
+        pub const schema: Parser.schema.Infer(@This()) = .{
             .representation = .untagged,
         };
         push: struct { push_id: usize },
@@ -186,13 +189,7 @@ test "github_events untagged payload" {
     const Event = struct { payload: Payload };
 
     const events = try document.as([]const Event);
-    defer {
-        for (events) |e| switch (e.payload) {
-            .gollum => |g| allocator.free(g.pages),
-            else => {},
-        };
-        allocator.free(events);
-    }
+    defer events.deinit();
 
     try std.testing.expectEqualDeep(&.{
         Event{ .payload = .{ .push = .{ .push_id = 134107894 } } },
@@ -225,7 +222,7 @@ test "github_events untagged payload" {
         Event{ .payload = .{ .push = .{ .push_id = 134107860 } } },
         Event{ .payload = .{ .gollum = .{ .pages = &.{.{ .page_name = "Sonar Plugin Development" }} } } },
         Event{ .payload = .{ .fork = .{ .forkee = .{ .url = "https://api.github.com/repos/vcovito/QtAV" } } } },
-    }, events);
+    }, events.value);
 }
 
 test "externally_tagged" {
@@ -238,7 +235,7 @@ test "externally_tagged" {
     );
 
     const Schema = union(enum) {
-        pub const schema: Parser.schema.Auto(@This()) = .{
+        pub const schema: Parser.schema.Infer(@This()) = .{
             .representation = .externally_tagged,
         };
         foo: u8,
@@ -247,13 +244,13 @@ test "externally_tagged" {
     };
 
     const unions = try document.as([]const Schema);
-    defer allocator.free(unions);
+    defer unions.deinit();
 
     try std.testing.expectEqualDeep(&.{
         Schema{ .foo = 1 },
         Schema{ .bar = 5.0 },
         Schema{ .baz = false },
-    }, unions);
+    }, unions.value);
 }
 
 test "adjacently_tagged" {
@@ -266,7 +263,7 @@ test "adjacently_tagged" {
     );
 
     const Schema = union(enum) {
-        pub const schema: Parser.schema.Auto(@This()) = .{
+        pub const schema: Parser.schema.Infer(@This()) = .{
             .representation = .{ .adjacently_tagged = .{ .tag = "t", .content = "c" } },
         };
         foo: u8,
@@ -275,13 +272,13 @@ test "adjacently_tagged" {
     };
 
     const unions = try document.as([]const Schema);
-    defer allocator.free(unions);
+    defer unions.deinit();
 
     try std.testing.expectEqualDeep(&.{
         Schema{ .foo = 1 },
         Schema{ .bar = 5.0 },
         Schema{ .baz = false },
-    }, unions);
+    }, unions.value);
 }
 
 test "packed struct" {
@@ -319,7 +316,7 @@ test "packed struct" {
         present: bool,
     };
 
-    const pte = try document.as(PageTableEntry);
+    const pte = try document.asLeaky(PageTableEntry);
 
     try std.testing.expectEqual(PageTableEntry{
         .address = 12345,
@@ -336,7 +333,7 @@ test "packed struct" {
     }, pte);
 }
 
-test "with std data structure" {
+test "with arraylist" {
     const Parser = parserFromSlice;
     const allocator = std.testing.allocator;
     var parser = Parser.init(allocator);
@@ -350,16 +347,36 @@ test "with std data structure" {
     );
 
     const Coordinate = struct { x: i32, y: i32, z: i32 };
-    var coords = try document.asAdvanced(
-        std.MultiArrayList(Coordinate),
-        .{ .parse_with = Parser.schema.std.MultiArrayList(Coordinate) },
-        allocator,
-    );
-    defer coords.deinit(allocator);
+    var coords = try document.as(std.ArrayList(Coordinate));
+    defer coords.deinit();
 
-    try std.testing.expectEqual(Coordinate{ .x = 1, .y = 2, .z = 3 }, coords.get(0));
-    try std.testing.expectEqual(Coordinate{ .x = 4, .y = 5, .z = 6 }, coords.get(1));
-    try std.testing.expectEqual(Coordinate{ .x = 7, .y = 8, .z = 9 }, coords.get(2));
+    try std.testing.expectEqual(coords.value.items.len, 3);
+    try std.testing.expectEqual(Coordinate{ .x = 1, .y = 2, .z = 3 }, coords.value.items[0]);
+    try std.testing.expectEqual(Coordinate{ .x = 4, .y = 5, .z = 6 }, coords.value.items[1]);
+    try std.testing.expectEqual(Coordinate{ .x = 7, .y = 8, .z = 9 }, coords.value.items[2]);
+}
+
+test "with multiarraylist" {
+    const Parser = parserFromSlice;
+    const allocator = std.testing.allocator;
+    var parser = Parser.init(allocator);
+    defer parser.deinit();
+    const document = try parser.parse(
+        \\[
+        \\    { "x": 1, "y": 2, "z": 3 },
+        \\    { "x": 4, "y": 5, "z": 6 },
+        \\    { "x": 7, "y": 8, "z": 9 }
+        \\]
+    );
+
+    const Coordinate = struct { x: i32, y: i32, z: i32 };
+    var coords = try document.as(std.MultiArrayList(Coordinate));
+    defer coords.deinit();
+
+    try std.testing.expectEqual(coords.value.len, 3);
+    try std.testing.expectEqual(Coordinate{ .x = 1, .y = 2, .z = 3 }, coords.value.get(0));
+    try std.testing.expectEqual(Coordinate{ .x = 4, .y = 5, .z = 6 }, coords.value.get(1));
+    try std.testing.expectEqual(Coordinate{ .x = 7, .y = 8, .z = 9 }, coords.value.get(2));
 }
 
 test "use first duplicate" {
@@ -372,13 +389,13 @@ test "use first duplicate" {
     );
 
     const Schema = struct {
-        pub const schema: Parser.schema.Auto(@This()) = .{
-            .duplicate_field_behavior = .use_first,
+        pub const schema: Parser.schema.Infer(@This()) = .{
+            .on_duplicate_field = .use_first,
         };
         bar: u8,
         foo: u8,
     };
-    const s = try document.as(Schema);
+    const s = try document.asLeaky(Schema);
 
     try std.testing.expectEqual(Schema{ .foo = 1, .bar = 4 }, s);
 }
@@ -393,14 +410,14 @@ test "use first duplicate, assuming ordering" {
     );
 
     const Schema = struct {
-        pub const schema: Parser.schema.Auto(@This()) = .{
+        pub const schema: Parser.schema.Infer(@This()) = .{
             .assume_ordering = true,
-            .duplicate_field_behavior = .use_first,
+            .on_duplicate_field = .use_first,
         };
         foo: u8,
         bar: u8,
     };
-    const s = try document.as(Schema);
+    const s = try document.asLeaky(Schema);
 
     try std.testing.expectEqual(Schema{ .foo = 1, .bar = 4 }, s);
 }
@@ -415,13 +432,13 @@ test "use last duplicate" {
     );
 
     const Schema = struct {
-        pub const schema: Parser.schema.Auto(@This()) = .{
-            .duplicate_field_behavior = .use_last,
+        pub const schema: Parser.schema.Infer(@This()) = .{
+            .on_duplicate_field = .use_last,
         };
         bar: u8,
         foo: u8,
     };
-    const s = try document.as(Schema);
+    const s = try document.asLeaky(Schema);
 
     try std.testing.expectEqual(Schema{ .foo = 3, .bar = 4 }, s);
 }
@@ -436,14 +453,14 @@ test "use last duplicate, assuming ordering" {
     );
 
     const Schema = struct {
-        pub const schema: Parser.schema.Auto(@This()) = .{
+        pub const schema: Parser.schema.Infer(@This()) = .{
             .assume_ordering = true,
-            .duplicate_field_behavior = .use_last,
+            .on_duplicate_field = .use_last,
         };
         foo: u8,
         bar: u8,
     };
-    const s = try document.as(Schema);
+    const s = try document.asLeaky(Schema);
 
     try std.testing.expectEqual(Schema{ .foo = 3, .bar = 4 }, s);
 }
@@ -458,14 +475,14 @@ test "error because of duplicate" {
     );
 
     const Schema = struct {
-        pub const schema: Parser.schema.Auto(@This()) = .{
-            .duplicate_field_behavior = .@"error",
+        pub const schema: Parser.schema.Infer(@This()) = .{
+            .on_duplicate_field = .@"error",
         };
         bar: u8,
         foo: u8,
     };
 
-    try std.testing.expectError(error.DuplicateField, document.as(Schema));
+    try std.testing.expectError(error.DuplicateField, document.asLeaky(Schema));
 }
 
 test "error because of duplicate, assuming ordering" {
@@ -478,15 +495,15 @@ test "error because of duplicate, assuming ordering" {
     );
 
     const Schema = struct {
-        pub const schema: Parser.schema.Auto(@This()) = .{
+        pub const schema: Parser.schema.Infer(@This()) = .{
             .assume_ordering = true,
-            .duplicate_field_behavior = .@"error",
+            .on_duplicate_field = .@"error",
         };
         foo: u8,
         bar: u8,
     };
 
-    try std.testing.expectError(error.DuplicateField, document.as(Schema));
+    try std.testing.expectError(error.DuplicateField, document.asLeaky(Schema));
 }
 
 test "missing field while handling duplicate" {
@@ -504,12 +521,12 @@ test "missing field while handling duplicate" {
         foo: u8,
     };
 
-    try std.testing.expectError(error.MissingField, document.asAdvanced(Schema, .{
-        .duplicate_field_behavior = .use_first,
+    try std.testing.expectError(error.MissingField, document.asAdvancedLeaky(Schema, .{
+        .on_duplicate_field = .use_first,
     }, allocator));
 
-    try std.testing.expectError(error.MissingField, document.asAdvanced(Schema, .{
-        .duplicate_field_behavior = .use_last,
+    try std.testing.expectError(error.MissingField, document.asAdvancedLeaky(Schema, .{
+        .on_duplicate_field = .use_last,
     }, allocator));
 }
 
@@ -528,13 +545,13 @@ test "missing field while handling duplicate, assuming ordering" {
         bar: u8,
     };
 
-    try std.testing.expectError(error.MissingField, document.asAdvanced(Schema, .{
+    try std.testing.expectError(error.MissingField, document.asAdvancedLeaky(Schema, .{
         .assume_ordering = true,
-        .duplicate_field_behavior = .use_first,
+        .on_duplicate_field = .use_first,
     }, allocator));
 
-    try std.testing.expectError(error.MissingField, document.asAdvanced(Schema, .{
+    try std.testing.expectError(error.MissingField, document.asAdvancedLeaky(Schema, .{
         .assume_ordering = true,
-        .duplicate_field_behavior = .use_last,
+        .on_duplicate_field = .use_last,
     }, allocator));
 }

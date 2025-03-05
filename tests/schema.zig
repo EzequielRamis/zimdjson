@@ -47,7 +47,7 @@ test "small/demo" {
     const Image = struct {
         pub const schema: Parser.schema.Infer(@This()) = .{
             .rename_all = .PascalCase,
-            .fields = .{ .ids = .{ .alias = "IDs" } },
+            .fields = .{ .ids = .{ .rename = "IDs" } },
         };
         width: u16,
         height: u16,

@@ -999,13 +999,25 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             pub inline fn asAdvancedLeaky(self: Value, comptime T: type, comptime S: ?schema.Infer(T), allocator: ?Allocator) schema.Error!T {
                 var dest = schema_utils.undefinedInit(T);
                 const sch = schema.resolveSchema(T, S);
-                const custom_parser = sch.parse_with orelse schema.inferStdParser(T);
+                const custom_parser = sch.parse_with orelse schema.CustomParser(T).infer();
                 if (custom_parser) |handler| dest = try handler.init(allocator);
-                try self.asAdvancedRef(T, sch, custom_parser, allocator, &dest);
+                try self.asAdvancedInner(T, sch, custom_parser, allocator, &dest);
                 return dest;
             }
 
-            inline fn asAdvancedRef(
+            pub inline fn asAdvancedRef(
+                self: Value,
+                comptime T: type,
+                comptime S: ?schema.Infer(T),
+                allocator: ?Allocator,
+                dest: *T,
+            ) schema.Error!void {
+                const sch = schema.resolveSchema(T, S);
+                const custom_parser = sch.parse_with orelse schema.CustomParser(T).infer();
+                return self.asAdvancedInner(T, sch, custom_parser, allocator, dest);
+            }
+
+            inline fn asAdvancedInner(
                 self: Value,
                 comptime T: type,
                 comptime S: schema.Infer(T),
@@ -1051,7 +1063,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 allocator: ?Allocator,
                 dest: *anyopaque,
             ) schema.Error!void {
-                return self.asAdvancedRef(T, S, P, allocator, @alignCast(@ptrCast(dest)));
+                return self.asAdvancedInner(T, S, P, allocator, @alignCast(@ptrCast(dest)));
             }
 
             pub inline fn skip(self: Value) Error!void {
@@ -1087,18 +1099,18 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             err: ?Error = null,
 
             pub inline fn get(self: String) Error![]const u8 {
-                return self.getAdvanced(null);
+                return self.getAdvanced(null, self.iter.cursor.document.allocator);
             }
 
             pub inline fn getSentinel(self: String, comptime sentinel: u8) Error![:sentinel]const u8 {
-                return self.getAdvanced(sentinel);
+                return self.getAdvanced(sentinel, self.iter.cursor.document.allocator);
             }
 
-            inline fn getAdvanced(self: String, comptime sentinel: ?u8) if (sentinel) |s| Error![:s]const u8 else Error![]const u8 {
+            inline fn getAdvanced(self: String, comptime sentinel: ?u8, allocator: ?Allocator) if (sentinel) |s| Error![:s]const u8 else Error![]const u8 {
                 if (self.err) |err| return err;
 
                 if (want_stream) {
-                    const alloc = @as(?Allocator, self.iter.cursor.document.allocator) orelse return error.ExpectedAllocator;
+                    const alloc = allocator orelse return error.ExpectedAllocator;
                     try self.iter.cursor.document.strings.ensureUnusedCapacity(alloc, options.stream.?.chunk_length + Vector.bytes_len);
                     const dest = self.iter.cursor.document.strings.items().ptr;
                     const str = try self.iter.parseString(self.raw_str, dest[self.iter.cursor.strings..]);
@@ -1333,6 +1345,30 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         return .{
                             .init = S.init,
                             .parse = S.parse,
+                        };
+                    }
+
+                    fn infer() ?@This() {
+                        const std_data_structure = schema_utils.StandardDataStructure.infer(T) orelse return null;
+                        return switch (std_data_structure) {
+                            .array_list => |p| schema.std.ArrayList(p[0]),
+                            .array_list_aligned => |p| schema.std.ArrayListAligned(p[0], p[1]),
+                            .array_list_unmanaged => |p| schema.std.ArrayListUnmanaged(p[0]),
+                            .array_list_aligned_unmanaged => |p| schema.std.ArrayListAlignedUnmanaged(p[0], p[1]),
+                            .bit_stack => schema.std.BitStack,
+                            .buf_map => schema.std.BufMap,
+                            .buf_set => schema.std.BufSet,
+                            .bounded_array => |p| schema.std.BoundedArray(p[0], p[1]),
+                            .bounded_array_aligned => |p| schema.std.BoundedArrayAligned(p[0], p[1], p[2]),
+                            .enum_map => |p| schema.std.EnumMap(p[0], p[1]),
+                            .singly_linked_list => |p| schema.std.SinglyLinkedList(p[0]),
+                            .doubly_linked_list => |p| schema.std.DoublyLinkedList(p[0]),
+                            .multi_array_list => |p| schema.std.MultiArrayList(p[0]),
+                            .segmented_list => |p| schema.std.SegmentedList(p[0], p[1]),
+                            .string_array_hash_map => |p| schema.std.StringArrayHashMap(p[0]),
+                            .string_array_hash_map_unmanaged => |p| schema.std.StringArrayHashMapUnmanaged(p[0]),
+                            .string_hash_map => |p| schema.std.StringHashMap(p[0]),
+                            .string_hash_map_unmanaged => |p| schema.std.StringHashMapUnmanaged(p[0]),
                         };
                     }
                 };
@@ -1652,140 +1688,6 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 }
             };
 
-            fn inferStdParser(comptime T: type) ?CustomParser(T) {
-                switch (@typeInfo(T)) {
-                    .@"struct" => {},
-                    else => return null,
-                }
-
-                // - BitStack                     0 params
-                if (T == _std.BitStack) return schema.std.BitStack;
-
-                // - BufMap                       0 params
-                if (T == _std.BufMap) return schema.std.BufMap;
-
-                // - BufSet                       0 params
-                if (T == _std.BufSet) return schema.std.BufSet;
-
-                // - ArrayList                    1 params
-                // - ArrayListUnmanaged           1 params
-                // - ArrayListAligned             2 params
-                // - ArrayListAlignedUnmanaged    2 params
-                if (@hasDecl(T, "Slice")) {
-                    switch (@typeInfo(@field(T, "Slice"))) {
-                        .pointer => |info| {
-                            if (info.size == .slice) {
-                                const child = info.child;
-                                if (T == _std.ArrayList(child))
-                                    return schema.std.ArrayList(child);
-                                if (T == _std.ArrayListUnmanaged(child))
-                                    return schema.std.ArrayListUnmanaged(child);
-                                if (T == _std.ArrayListAligned(child, info.alignment))
-                                    return schema.std.ArrayListAligned(child, info.alignment);
-                                if (T == _std.ArrayListAlignedUnmanaged(child, info.alignment))
-                                    return schema.std.ArrayListAlignedUnmanaged(child, info.alignment);
-                            }
-                        },
-                        else => {},
-                    }
-                }
-
-                // - SinglyLinkedList             1 params
-                // - DoublyLinkedList             1 params
-                if (@hasDecl(T, "Node")) {
-                    const Node = @field(T, "Node");
-                    if (@typeInfo(Node) == .@"struct" and @hasField(Node, "data")) {
-                        const child = @FieldType(Node, "data");
-                        if (T == _std.SinglyLinkedList(child))
-                            return schema.std.SinglyLinkedList(child);
-                        if (T == _std.DoublyLinkedList(child))
-                            return schema.std.DoublyLinkedList(child);
-                    }
-                }
-
-                // - StringArrayHashMap           1 params
-                // - StringArrayHashMapUnmanaged  1 params
-                // - StringHashMap                1 params
-                // - StringHashMapUnmanaged       1 params
-                if (@hasDecl(T, "KV")) {
-                    const KV = @field(T, "KV");
-                    if (@typeInfo(KV) == .@"struct" and @hasField(KV, "value")) {
-                        const V = @FieldType(KV, "value");
-                        if (T == _std.StringArrayHashMap(V))
-                            return schema.std.StringArrayHashMap(V);
-                        if (T == _std.StringArrayHashMapUnmanaged(V))
-                            return schema.std.StringArrayHashMapUnmanaged(V);
-                        if (T == _std.StringHashMap(V))
-                            return schema.std.StringHashMap(V);
-                        if (T == _std.StringHashMapUnmanaged(V))
-                            return schema.std.StringHashMapUnmanaged(V);
-                    }
-                }
-
-                // - BoundedArray                 2 params
-                // - BoundedArrayAligned          3 params
-                if (@hasField(T, "buffer")) {
-                    const buffer = @FieldType(T, "buffer");
-                    switch (@typeInfo(buffer)) {
-                        .array => |info| {
-                            const buffer_capacity = info.len;
-                            const child = info.child;
-                            // if T == std.BoundedArrayAligned(sth aligned at 4, 32, ...), @alignOf(child) == 4 but wanted 32
-                            // that is why I search for it in the constSlice function
-                            const constSlice = @TypeOf(@field(T, "constSlice"));
-                            switch (@typeInfo(constSlice)) {
-                                .@"fn" => |fn_info| {
-                                    if (fn_info.return_type) |return_type| {
-                                        const alignment = _std.meta.alignment(return_type);
-                                        if (T == _std.BoundedArray(child, buffer_capacity))
-                                            return schema.std.BoundedArray(child, buffer_capacity);
-                                        if (T == _std.BoundedArrayAligned(child, alignment, buffer_capacity))
-                                            return schema.std.BoundedArrayAligned(child, alignment, buffer_capacity);
-                                    }
-                                },
-                                else => {},
-                            }
-                        },
-                        else => {},
-                    }
-                }
-
-                // - EnumMap                      2 params
-                if (@hasDecl(T, "Value") and @hasDecl(T, "Key")) {
-                    const E = @field(T, "Key");
-                    const V = @field(T, "Value");
-                    if (T == _std.EnumMap(E, V)) return schema.std.EnumMap(E, V);
-                }
-
-                // - SegmentedList                2 params
-                if (@hasField(T, "prealloc_segment")) {
-                    const prealloc_segment = @FieldType(T, "prealloc_segment");
-                    switch (@typeInfo(prealloc_segment)) {
-                        .array => |info| {
-                            if (T == _std.SegmentedList(info.child, info.len))
-                                return schema.std.SegmentedList(info.child, info.len);
-                        },
-                        else => {},
-                    }
-                }
-
-                // - MultiArrayList               1 params
-                if (@hasDecl(T, "get")) {
-                    const get = @TypeOf(@field(T, "get"));
-                    switch (@typeInfo(get)) {
-                        .@"fn" => |info| {
-                            if (info.return_type) |return_type| {
-                                if (T == _std.MultiArrayList(return_type))
-                                    return schema.std.MultiArrayList(return_type);
-                            }
-                        },
-                        else => {},
-                    }
-                }
-
-                return null;
-            }
-
             pub fn Infer(comptime T: type) type {
                 return switch (@typeInfo(T)) {
                     .@"struct" => schema.Struct(T),
@@ -1865,7 +1767,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
 
             fn StructField(comptime T: type) type {
                 return struct {
-                    alias: ?[]const u8 = null,
+                    rename: ?[]const u8 = null,
                     skip: bool = false,
                     schema: ?schema.Infer(T) = null,
                 };
@@ -1877,6 +1779,9 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     var dest = schema_utils.undefinedInit(T);
                     const fields_schema_parser = makeFieldsSP(T, S, fields){};
                     inline for (fields) |field| {
+                        const field_schema = @field(S.fields, field.name);
+                        if (field_schema.rename) |_| @compileError("Renamed fields are not supported in tuple struct '" ++ @typeName(T) ++ "'");
+                        if (field_schema.skip) @compileError("Skipped fields are not supported in tuple struct '" ++ @typeName(T) ++ "'");
                         const sp = @field(fields_schema_parser, field.name);
                         if (sp[1]) |handler| @field(dest, field.name) = try handler.init(allocator);
                     }
@@ -1885,7 +1790,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     inline for (fields) |field| {
                         if (try array.next()) |item| {
                             const sp = @field(fields_schema_parser, field.name);
-                            try item.asAdvancedRef(field.type, sp[0], sp[1], allocator, &@field(dest, field.name));
+                            try item.asAdvancedInner(field.type, sp[0], sp[1], allocator, &@field(dest, field.name));
                         } else {
                             return error.IncorrectType;
                         }
@@ -1902,16 +1807,15 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 const is_packed = @typeInfo(T).@"struct".layout == .@"packed";
                 var dest = schema_utils.undefinedInit(T);
                 const fields_schema_parser = makeFieldsSP(T, S, fields){};
-                inline for (fields) |field| {
-                    const sp = @field(fields_schema_parser, field.name);
-                    if (sp[1]) |handler| @field(dest, field.name) = try handler.init(allocator);
-                }
-                if (S.on_init) |handle| try handle(allocator, &dest);
                 comptime var non_skipped_field_count: comptime_int = 0;
                 inline for (fields) |field| {
                     const field_schema = @field(S.fields, field.name);
-                    if (!field_schema.skip) non_skipped_field_count += 1;
+                    if (field_schema.skip) continue;
+                    const sp = @field(fields_schema_parser, field.name);
+                    non_skipped_field_count += 1;
+                    if (sp[1]) |handler| @field(dest, field.name) = try handler.init(allocator);
                 }
+                if (S.on_init) |handle| try handle(allocator, &dest);
                 if (non_skipped_field_count == 0) {
                     switch (S.on_unknown_field) {
                         .ignore => return .{},
@@ -1926,7 +1830,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     inline for (fields, 1..) |field, i| {
                         const field_schema = @field(S.fields, field.name);
                         if (field_schema.skip) continue;
-                        const renamed_key: []const u8 = if (field_schema.alias) |alias| alias else comptime schema_utils.renameField(S.rename_all, field.name);
+                        const renamed_key: []const u8 = if (field_schema.rename) |rename| rename else comptime schema_utils.renameField(S.rename_all, field.name);
                         const field_value = brk: {
                             if (prev_field_key) |prev_key| {
                                 if (_std.mem.eql(u8, prev_key, renamed_key)) break :brk prev_field_value;
@@ -1997,7 +1901,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         const field_schema = @field(S.fields, field.name);
                         if (field_schema.skip) continue;
                         defer i += 1;
-                        const renamed_key: []const u8 = if (field_schema.alias) |alias| alias else comptime schema_utils.renameField(S.rename_all, field.name);
+                        const renamed_key: []const u8 = if (field_schema.rename) |rename| rename else comptime schema_utils.renameField(S.rename_all, field.name);
                         const has_undefined_value = @typeInfo(field.type) != .optional and field.default_value_ptr == null;
                         if (has_undefined_value) undefined_count += 1;
                         const s, const p = @field(fields_schema_parser, field.name);
@@ -2059,7 +1963,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 inline for (fields, &tuple_fields) |field, *tuple| {
                     const field_schema = @field(R.fields, field.name);
                     const S = resolveSchema(field.type, field_schema.schema);
-                    const P = S.parse_with orelse inferStdParser(field.type);
+                    const P = S.parse_with orelse CustomParser(field.type).infer();
                     tuple.name = field.name;
                     tuple.type = struct { @TypeOf(S), @TypeOf(P) };
                     tuple.default_value_ptr = &@as(struct { @TypeOf(S), @TypeOf(P) }, .{ S, P });
@@ -2079,7 +1983,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 return struct {
                     parse_with: ?CustomParser(T) = null,
                     rename_all: schema_utils.FieldsRenaming = .snake_case,
-                    aliases: schema_utils.EnumFields(T) = .{},
+                    renames: schema_utils.EnumFields(T) = .{},
                 };
             }
 
@@ -2093,7 +1997,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 const fields = _std.meta.fields(T);
                 comptime var dispatches_mut: [fields.len]struct { []const u8, T } = undefined;
                 inline for (fields, 0..) |field, i| {
-                    const field_rename = @field(S.aliases, field.name);
+                    const field_rename = @field(S.renames, field.name);
                     const renamed_variant: []const u8 = if (field_rename) |rename| rename else comptime schema_utils.renameField(S.rename_all, field.name);
                     dispatches_mut[i] = .{ renamed_variant, @field(T, field.name) };
                 }
@@ -2140,7 +2044,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
 
             fn UnionField(comptime T: type) type {
                 return struct {
-                    alias: ?[]const u8 = null,
+                    rename: ?[]const u8 = null,
                     schema: ?schema.Infer(T) = null,
                 };
             }
@@ -2186,9 +2090,9 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     inline for (fields, 0..) |field, i| {
                         const field_schema = @field(S.fields, field.name);
                         const renamed_variant: []const u8 = brk: {
-                            const tag_alias: ?[]const u8 = if (tag_sch) |tag| if (@field(tag.aliases, field.name)) |tag_alias| tag_alias else null else null;
-                            if (tag_alias) |alias| break :brk alias;
-                            break :brk if (field_schema.alias) |alias| alias else comptime schema_utils.renameField(S.rename_all, field.name);
+                            const tag_rename: ?[]const u8 = if (tag_sch) |tag| if (@field(tag.renames, field.name)) |tag_rename| tag_rename else null else null;
+                            if (tag_rename) |rename| break :brk rename;
+                            break :brk if (field_schema.rename) |rename| rename else comptime schema_utils.renameField(S.rename_all, field.name);
                         };
                         dispatches_mut[i] = .{ renamed_variant, .{
                             .handle = TaggedUnionParser(T, S.representation, field, field_schema.schema).parseTypeErased,
@@ -2284,7 +2188,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             return dest;
                         }
                     },
-                    .null => return if (try value.isNull()) null else error.IncorrectType,
+                    .void => return if (try value.isNull()) {} else error.IncorrectType,
                     .array => |info| {
                         if (info.child == u8 and S.bytes_as_string) {
                             const str = try value.asString().getTemporal();
@@ -2439,13 +2343,13 @@ pub const schema_utils = struct {
     pub const Map = @import("schema_map.zig").SchemaMap;
 
     const UnionRepresentation = union(enum) {
+        untagged,
         externally_tagged,
         internally_tagged: []const u8,
         adjacently_tagged: struct {
             tag: []const u8,
             content: []const u8,
         },
-        untagged,
     };
 
     const FieldsRenaming = enum {
@@ -2524,10 +2428,15 @@ pub const schema_utils = struct {
         if (info != .@"struct") return undefined;
         comptime var result: T = undefined;
         inline for (std.meta.fields(T)) |field| {
-            const default_value: *field.type = @constCast(@alignCast(@ptrCast(
-                field.default_value_ptr orelse if (@typeInfo(field.type) == .optional) null else continue,
-            )));
-            @field(result, field.name) = default_value.*;
+            switch (@typeInfo(field.type)) {
+                .optional => @field(result, field.name) = null,
+                else => {
+                    const default_value: *field.type = @constCast(@alignCast(@ptrCast(
+                        field.default_value_ptr orelse continue,
+                    )));
+                    @field(result, field.name) = default_value.*;
+                },
+            }
         }
         return result;
     }
@@ -2552,4 +2461,141 @@ pub const schema_utils = struct {
             else => return 0,
         }
     }
+
+    const StandardDataStructure = union(enum) {
+        array_list: struct { type },
+        array_list_aligned: struct { type, ?u29 },
+        array_list_unmanaged: struct { type },
+        array_list_aligned_unmanaged: struct { type, ?u29 },
+        bit_stack,
+        buf_map,
+        buf_set,
+        bounded_array: struct { type, usize },
+        bounded_array_aligned: struct { type, u29, usize },
+        enum_map: struct { type, type },
+        singly_linked_list: struct { type },
+        doubly_linked_list: struct { type },
+        multi_array_list: struct { type },
+        segmented_list: struct { type, usize },
+        string_array_hash_map: struct { type },
+        string_array_hash_map_unmanaged: struct { type },
+        string_hash_map: struct { type },
+        string_hash_map_unmanaged: struct { type },
+
+        pub fn infer(comptime T: type) ?@This() {
+            switch (@typeInfo(T)) {
+                .@"struct" => {},
+                else => return null,
+            }
+
+            if (T == std.BitStack) return .bit_stack;
+
+            if (T == std.BufMap) return .buf_map;
+
+            if (T == std.BufSet) return .buf_set;
+
+            if (@hasDecl(T, "Slice")) {
+                switch (@typeInfo(@field(T, "Slice"))) {
+                    .pointer => |info| {
+                        if (info.size == .slice) {
+                            const child = info.child;
+                            if (T == std.ArrayList(child))
+                                return .{ .array_list = .{child} };
+                            if (T == std.ArrayListUnmanaged(child))
+                                return .{ .array_list_unmanaged = .{child} };
+                            if (T == std.ArrayListAligned(child, info.alignment))
+                                return .{ .array_list_aligned = .{ child, info.alignment } };
+                            if (T == std.ArrayListAlignedUnmanaged(child, info.alignment))
+                                return .{ .array_list_aligned_unmanaged = .{ child, info.alignment } };
+                        }
+                    },
+                    else => {},
+                }
+            }
+
+            if (@hasDecl(T, "Node")) {
+                const Node = @field(T, "Node");
+                if (@typeInfo(Node) == .@"struct" and @hasField(Node, "data")) {
+                    const child = @FieldType(Node, "data");
+                    if (T == std.SinglyLinkedList(child))
+                        return .{ .singly_linked_list = .{child} };
+                    if (T == std.DoublyLinkedList(child))
+                        return .{ .doubly_linked_list = .{child} };
+                }
+            }
+
+            if (@hasDecl(T, "KV")) {
+                const KV = @field(T, "KV");
+                if (@typeInfo(KV) == .@"struct" and @hasField(KV, "value")) {
+                    const V = @FieldType(KV, "value");
+                    if (T == std.StringArrayHashMap(V))
+                        return .{ .string_array_hash_map = .{V} };
+                    if (T == std.StringArrayHashMapUnmanaged(V))
+                        return .{ .string_array_hash_map_unmanaged = .{V} };
+                    if (T == std.StringHashMap(V))
+                        return .{ .string_hash_map = .{V} };
+                    if (T == std.StringHashMapUnmanaged(V))
+                        return .{ .string_hash_map_unmanaged = .{V} };
+                }
+            }
+
+            if (@hasField(T, "buffer")) {
+                const buffer = @FieldType(T, "buffer");
+                switch (@typeInfo(buffer)) {
+                    .array => |info| {
+                        const buffer_capacity = info.len;
+                        const child = info.child;
+                        // if T == std.BoundedArrayAligned(sth aligned at 4, 32, ...), @alignOf(child) == 4 but wanted 32
+                        // that is why I search for it in the constSlice function
+                        const constSlice = @TypeOf(@field(T, "constSlice"));
+                        switch (@typeInfo(constSlice)) {
+                            .@"fn" => |fn_info| {
+                                if (fn_info.return_type) |return_type| {
+                                    const alignment = std.meta.alignment(return_type);
+                                    if (T == std.BoundedArray(child, buffer_capacity))
+                                        return .{ .bounded_array = .{ child, buffer_capacity } };
+                                    if (T == std.BoundedArrayAligned(child, alignment, buffer_capacity))
+                                        return .{ .bounded_array_aligned = .{ child, alignment, buffer_capacity } };
+                                }
+                            },
+                            else => {},
+                        }
+                    },
+                    else => {},
+                }
+            }
+
+            if (@hasDecl(T, "Value") and @hasDecl(T, "Key")) {
+                const E = @field(T, "Key");
+                const V = @field(T, "Value");
+                if (T == std.EnumMap(E, V)) return .{ .enum_map = .{ E, V } };
+            }
+
+            if (@hasField(T, "prealloc_segment")) {
+                const prealloc_segment = @FieldType(T, "prealloc_segment");
+                switch (@typeInfo(prealloc_segment)) {
+                    .array => |info| {
+                        if (T == std.SegmentedList(info.child, info.len))
+                            return .{ .segmented_list = .{ info.child, info.len } };
+                    },
+                    else => {},
+                }
+            }
+
+            if (@hasDecl(T, "get")) {
+                const get = @TypeOf(@field(T, "get"));
+                switch (@typeInfo(get)) {
+                    .@"fn" => |info| {
+                        if (info.return_type) |return_type| {
+                            if (T == std.MultiArrayList(return_type))
+                                return .{ .multi_array_list = .{return_type} };
+                        }
+                    },
+                    else => {},
+                }
+            }
+
+            return null;
+        }
+    };
 };

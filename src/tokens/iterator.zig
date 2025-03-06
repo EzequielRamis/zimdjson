@@ -6,6 +6,8 @@ const Vector = types.Vector;
 const vector = types.vector;
 const umask = types.umask;
 const assert = std.debug.assert;
+const ArrayList = std.ArrayListUnmanaged;
+const Allocator = std.mem.Allocator;
 
 pub const Options = struct {
     aligned: bool,
@@ -19,7 +21,7 @@ pub fn Iterator(comptime options: Options) type {
 
         pub const Error = indexer.Error || std.mem.Allocator.Error;
 
-        indexes: std.ArrayList(u32),
+        indexes: ArrayList(u32),
         indexer: indexer.Indexer(u32, .{
             .aligned = options.aligned,
             .relative = false,
@@ -27,27 +29,25 @@ pub fn Iterator(comptime options: Options) type {
         document: Aligned.slice = undefined,
         token: [*]const u32 = undefined,
 
-        padding: if (!options.assume_padding) std.ArrayList(u8) else void,
+        padding: if (!options.assume_padding) ArrayList(u8) else void,
         padding_token: if (!options.assume_padding) [*]const u32 else void = undefined,
         padding_offset: if (!options.assume_padding) [*]const u8 else void = undefined,
 
         const bogus_token = ' ';
 
-        pub fn init(allocator: std.mem.Allocator) Self {
-            return .{
-                .indexer = .init,
-                .indexes = .init(allocator),
-                .padding = if (!options.assume_padding) .init(allocator) else {},
-            };
+        pub const init: Self = .{
+            .indexer = .init,
+            .indexes = .empty,
+            .padding = if (!options.assume_padding) .empty else {},
+        };
+
+        pub fn deinit(self: *Self, allocator: Allocator) void {
+            self.indexes.deinit(allocator);
+            if (!options.assume_padding) self.padding.deinit(allocator);
         }
 
-        pub fn deinit(self: Self) void {
-            self.indexes.deinit();
-            if (!options.assume_padding) self.padding.deinit();
-        }
-
-        pub fn ensureTotalCapacity(self: *Self, capacity: usize) !void {
-            try self.indexes.ensureTotalCapacity(capacity + 1); // + 1 because of the bogus index
+        pub fn ensureTotalCapacity(self: *Self, allocator: Allocator, capacity: usize) !void {
+            try self.indexes.ensureTotalCapacity(allocator, capacity + 1); // + 1 because of the bogus index
         }
 
         pub inline fn position(self: Self) usize {
@@ -58,7 +58,7 @@ pub fn Iterator(comptime options: Options) type {
             return self.token[0];
         }
 
-        pub inline fn build(self: *Self, document: Aligned.slice) Error!void {
+        pub inline fn build(self: *Self, allocator: Allocator, document: Aligned.slice) Error!void {
             {
                 self.indexer = .init;
                 self.document = document;
@@ -98,7 +98,7 @@ pub fn Iterator(comptime options: Options) type {
                 self.padding_token = ixs[padding_token..].ptr;
                 const padding_index = ixs[padding_token];
                 const padding_len = document.len - padding_index;
-                try self.padding.ensureTotalCapacity(padding_len + Vector.bytes_len);
+                try self.padding.ensureTotalCapacity(allocator, padding_len + Vector.bytes_len);
                 self.padding.items.len = padding_len + Vector.bytes_len;
                 @memcpy(self.padding.items[0..padding_len], document[padding_index..]);
                 self.padding.items[padding_len] = bogus_token;

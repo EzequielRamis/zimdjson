@@ -55,24 +55,22 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
         pub const Error = Tokens.Error || types.ParseError || Allocator.Error || if (Reader) |reader| reader.Error else error{};
         pub const max_capacity_bound = if (want_stream) std.math.maxInt(u32) * @sizeOf(Tape.Word) else std.math.maxInt(u32);
 
-        document_buffer: if (need_document_buffer) std.ArrayListAligned(u8, types.Aligned(true).alignment) else void,
+        document_buffer: if (need_document_buffer) std.ArrayListAlignedUnmanaged(u8, types.Aligned(true).alignment) else void,
         tape: Tape,
 
         max_capacity: usize,
         capacity: usize,
 
-        pub fn init(allocator: Allocator) Self {
-            return .{
-                .document_buffer = if (need_document_buffer) .init(allocator) else {},
-                .tape = .init(allocator),
-                .max_capacity = max_capacity_bound,
-                .capacity = 0,
-            };
-        }
+        pub const init: Self = .{
+            .document_buffer = if (need_document_buffer) .empty else {},
+            .tape = .init,
+            .max_capacity = max_capacity_bound,
+            .capacity = 0,
+        };
 
-        pub fn deinit(self: *Self) void {
-            self.tape.deinit();
-            if (need_document_buffer) self.document_buffer.deinit();
+        pub fn deinit(self: *Self, allocator: Allocator) void {
+            self.tape.deinit(allocator);
+            if (need_document_buffer) self.document_buffer.deinit(allocator);
         }
 
         pub fn setMaximumCapacity(self: *Self, new_capacity: usize) Error!void {
@@ -99,38 +97,39 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             try self.tape.stack.setMaxDepth(self.tape.allocator, new_depth);
         }
 
-        pub fn ensureTotalCapacity(self: *Self, new_capacity: usize) Error!void {
+        pub fn ensureTotalCapacity(self: *Self, allocator: Allocator, new_capacity: usize) Error!void {
             if (new_capacity > self.max_capacity) return error.ExceededCapacity;
 
             if (need_document_buffer) {
-                try self.document_buffer.ensureTotalCapacity(new_capacity + types.Vector.bytes_len);
+                try self.document_buffer.ensureTotalCapacity(allocator, new_capacity + types.Vector.bytes_len);
             }
 
             if (!want_stream) {
-                try self.tape.tokens.ensureTotalCapacity(new_capacity);
+                try self.tape.tokens.ensureTotalCapacity(allocator, new_capacity);
             }
 
-            try self.tape.strings.ensureTotalCapacity(self.tape.allocator, new_capacity + types.Vector.bytes_len);
+            try self.tape.strings.ensureTotalCapacity(allocator, new_capacity + types.Vector.bytes_len);
 
             self.capacity = new_capacity;
         }
 
-        pub fn parse(self: *Self, document: if (Reader) |reader| reader else Aligned.slice) Error!Value {
+        pub fn parse(self: *Self, allocator: Allocator, document: if (Reader) |reader| reader else Aligned.slice) Error!Value {
             if (need_document_buffer) {
                 self.document_buffer.clearRetainingCapacity();
                 try @as(Error!void, @errorCast(common.readAllArrayListAlignedRetainingCapacity(
+                    allocator,
                     document,
                     types.Aligned(true).alignment,
                     &self.document_buffer,
                     self.max_capacity,
                 )));
                 const len = self.document_buffer.items.len;
-                try self.document_buffer.appendNTimes(' ', types.Vector.bytes_len);
-                try self.ensureTotalCapacity(len);
-                try self.tape.build(self.document_buffer.items[0..len]);
+                try self.document_buffer.appendNTimes(allocator, ' ', types.Vector.bytes_len);
+                try self.ensureTotalCapacity(allocator, len);
+                try self.tape.build(allocator, self.document_buffer.items[0..len]);
             } else {
-                if (!want_stream) try self.ensureTotalCapacity(document.len);
-                try self.tape.build(document);
+                if (!want_stream) try self.ensureTotalCapacity(allocator, document.len);
+                try self.tape.build(allocator, document);
             }
             return .{
                 .tape = &self.tape,
@@ -138,17 +137,17 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             };
         }
 
-        pub fn parseAssumeCapacity(self: *Self, document: if (Reader) |reader| reader else Aligned.slice) Error!Value {
+        pub fn parseAssumeCapacity(self: *Self, allocator: Allocator, document: if (Reader) |reader| reader else Aligned.slice) Error!Value {
             if (need_document_buffer) {
                 self.document_buffer.expandToCapacity();
                 const len = try document.readAll(self.document_buffer.items);
                 if (len > self.capacity) return error.ExceededCapacity;
                 self.document_buffer.items.len = len;
-                try self.document_buffer.appendNTimes(' ', types.Vector.bytes_len);
-                try self.tape.build(self.document_buffer.items[0..len]);
+                try self.document_buffer.appendNTimes(allocator, ' ', types.Vector.bytes_len);
+                try self.tape.build(allocator, self.document_buffer.items[0..len]);
             } else {
                 if (!want_stream) if (document.len > self.capacity) return error.ExceededCapacity;
-                try self.tape.build(document);
+                try self.tape.build(allocator, document);
             }
             return .{
                 .tape = &self.tape,
@@ -156,9 +155,9 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             };
         }
 
-        pub fn parseWithCapacity(self: *Self, document: if (Reader) |reader| reader else Aligned.slice, capacity: usize) Error!Value {
-            try self.ensureTotalCapacity(capacity);
-            return self.parseAssumeCapacity(document);
+        pub fn parseWithCapacity(self: *Self, allocator: Allocator, document: if (Reader) |reader| reader else Aligned.slice, capacity: usize) Error!Value {
+            try self.ensureTotalCapacity(allocator, capacity);
+            return self.parseAssumeCapacity(allocator, document);
         }
 
         pub const AnyValue = union(types.ValueType) {
@@ -569,7 +568,6 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 }
             };
 
-            allocator: Allocator,
             tokens: Tokens,
 
             words: types.BoundedArrayListUnmanaged(u64, max_capacity_bound),
@@ -580,31 +578,28 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             words_ptr: if (want_stream) void else [*]u64 = undefined,
             strings_ptr: if (want_stream) void else [*]u8 = undefined,
 
-            pub fn init(allocator: Allocator) Tape {
-                return .{
-                    .allocator = allocator,
-                    .tokens = if (want_stream) .init else .init(allocator),
-                    .words = .empty,
-                    .stack = .empty,
-                    .strings = .empty,
-                };
+            pub const init: Tape = .{
+                .tokens = .init,
+                .words = .empty,
+                .stack = .empty,
+                .strings = .empty,
+            };
+
+            pub fn deinit(self: *Tape, allocator: Allocator) void {
+                self.words.deinit(allocator);
+                self.stack.deinit(allocator);
+                self.strings.deinit(allocator);
+                self.tokens.deinit(allocator);
             }
 
-            pub fn deinit(self: *Tape) void {
-                self.words.deinit(self.allocator);
-                self.stack.deinit(self.allocator);
-                self.strings.deinit(self.allocator);
-                self.tokens.deinit();
-            }
-
-            pub inline fn build(self: *Tape, document: if (want_stream) Reader.? else Aligned.slice) Error!void {
-                try self.tokens.build(document);
-                try self.stack.ensureTotalCapacity(self.allocator, self.stack.max_depth);
+            pub inline fn build(self: *Tape, allocator: Allocator, document: if (want_stream) Reader.? else Aligned.slice) Error!void {
+                try self.tokens.build(allocator, document);
+                try self.stack.ensureTotalCapacity(allocator, self.stack.max_depth);
 
                 if (!want_stream) {
                     const tokens_count = self.tokens.indexes.items.len;
                     // if there are only n numbers, there must be n - 1 commas plus an ending container token, so almost half of the tokens are numbers
-                    try self.words.ensureTotalCapacity(self.allocator, tokens_count + (tokens_count >> 1) + 1);
+                    try self.words.ensureTotalCapacity(allocator, tokens_count + (tokens_count >> 1) + 1);
                 }
 
                 self.words.list.clearRetainingCapacity();
@@ -617,7 +612,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     self.strings_ptr = self.strings.items().ptr;
                 }
 
-                return self.dispatch();
+                return self.dispatch(allocator);
             }
 
             pub inline fn get(self: Tape, index: u32) Word {
@@ -678,7 +673,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 }
             }
 
-            fn dispatch(self: *Tape) Error!void {
+            fn dispatch(self: *Tape, allocator: Allocator) Error!void {
                 // const tracy = @import("tracy");
                 // var tracer = tracy.traceNamed(@src(), "dispatch");
                 // defer tracer.end();
@@ -690,13 +685,13 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             '{', '[' => |container_begin| {
                                 if (self.tokens.peekChar() == container_begin + 2) {
                                     @branchHint(.unlikely);
-                                    try self.visitEmptyContainer(container_begin);
+                                    try self.visitEmptyContainer(allocator, container_begin);
                                     continue :state .end;
                                 }
                                 continue :state @enumFromInt(container_begin);
                             },
                             else => {
-                                try self.visitPrimitive(t);
+                                try self.visitPrimitive(allocator, t);
                                 continue :state .end;
                             },
                         }
@@ -710,7 +705,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             },
                         });
 
-                        if (want_stream) try self.words.ensureUnusedCapacity(self.allocator, 1);
+                        if (want_stream) try self.words.ensureUnusedCapacity(allocator, 1);
                         self.advanceWord(1);
 
                         continue :state .object_field;
@@ -719,7 +714,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         {
                             const t = try self.tokens.next();
                             if (t[0] == '"') {
-                                try self.visitString(t);
+                                try self.visitString(allocator, t);
                             } else {
                                 return error.ExpectedKey;
                             }
@@ -729,13 +724,13 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             switch (t[0]) {
                                 '{', '[' => |container_begin| {
                                     if (self.tokens.peekChar() == container_begin + 2) {
-                                        try self.visitEmptyContainer(container_begin);
+                                        try self.visitEmptyContainer(allocator, container_begin);
                                         continue :state .object_continue;
                                     }
                                     continue :state @enumFromInt(container_begin);
                                 },
                                 else => {
-                                    try self.visitPrimitive(t);
+                                    try self.visitPrimitive(allocator, t);
                                     continue :state .object_continue;
                                 },
                             }
@@ -762,7 +757,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             },
                         });
 
-                        if (want_stream) try self.words.ensureUnusedCapacity(self.allocator, 1);
+                        if (want_stream) try self.words.ensureUnusedCapacity(allocator, 1);
                         self.advanceWord(1);
 
                         continue :state .array_value;
@@ -772,13 +767,13 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         switch (t[0]) {
                             '{', '[' => |container_begin| {
                                 if (self.tokens.peekChar() == container_begin + 2) {
-                                    try self.visitEmptyContainer(container_begin);
+                                    try self.visitEmptyContainer(allocator, container_begin);
                                     continue :state .array_continue;
                                 }
                                 continue :state @enumFromInt(container_begin);
                             },
                             else => {
-                                try self.visitPrimitive(t);
+                                try self.visitPrimitive(allocator, t);
                                 continue :state .array_continue;
                             },
                         }
@@ -795,7 +790,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     },
                     .object_end, .array_end => |tag| {
                         const scope = self.stack.getScopeData();
-                        if (want_stream) try self.words.ensureUnusedCapacity(self.allocator, 1);
+                        if (want_stream) try self.words.ensureUnusedCapacity(allocator, 1);
                         self.appendWordAssumeCapacity(.{
                             .tag = @enumFromInt(@intFromEnum(tag)),
                             .data = .{
@@ -826,25 +821,25 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 }
             }
 
-            inline fn visitPrimitive(self: *Tape, ptr: [*]const u8) Error!void {
+            inline fn visitPrimitive(self: *Tape, allocator: Allocator, ptr: [*]const u8) Error!void {
                 const t = ptr[0];
                 switch (t) {
                     '"' => {
                         @branchHint(.likely);
-                        return self.visitString(ptr);
+                        return self.visitString(allocator, ptr);
                     },
-                    't' => return self.visitTrue(ptr),
-                    'f' => return self.visitFalse(ptr),
-                    'n' => return self.visitNull(ptr),
+                    't' => return self.visitTrue(allocator, ptr),
+                    'f' => return self.visitFalse(allocator, ptr),
+                    'n' => return self.visitNull(allocator, ptr),
                     else => {
                         @branchHint(.likely);
-                        return self.visitNumber(ptr);
+                        return self.visitNumber(allocator, ptr);
                     },
                 }
             }
 
-            inline fn visitEmptyContainer(self: *Tape, tag: u8) Error!void {
-                if (want_stream) try self.words.ensureUnusedCapacity(self.allocator, 2);
+            inline fn visitEmptyContainer(self: *Tape, allocator: Allocator, tag: u8) Error!void {
+                if (want_stream) try self.words.ensureUnusedCapacity(allocator, 2);
                 const curr = self.currentWord();
                 self.appendTwoWordsAssumeCapacity(.{
                     .{
@@ -865,10 +860,10 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 _ = try self.tokens.next();
             }
 
-            inline fn visitString(self: *Tape, ptr: [*]const u8) Error!void {
+            inline fn visitString(self: *Tape, allocator: Allocator, ptr: [*]const u8) Error!void {
                 if (want_stream) {
-                    try self.words.ensureUnusedCapacity(self.allocator, 1);
-                    try self.strings.ensureUnusedCapacity(self.allocator, options.stream.?.chunk_length);
+                    try self.words.ensureUnusedCapacity(allocator, 1);
+                    try self.strings.ensureUnusedCapacity(allocator, options.stream.?.chunk_length);
                 }
                 const writeString = @import("parsers/string.zig").writeString;
                 const curr_str = self.currentString();
@@ -885,9 +880,9 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 self.advanceString(next_len + @sizeOf(u16));
             }
 
-            inline fn visitNumber(self: *Tape, ptr: [*]const u8) Error!void {
+            inline fn visitNumber(self: *Tape, allocator: Allocator, ptr: [*]const u8) Error!void {
                 if (want_stream) {
-                    try self.words.ensureUnusedCapacity(self.allocator, 2);
+                    try self.words.ensureUnusedCapacity(allocator, 2);
                 }
                 const number = try @import("parsers/number/parser.zig").parse(null, ptr);
                 switch (number) {
@@ -903,8 +898,8 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 }
             }
 
-            inline fn visitTrue(self: *Tape, ptr: [*]const u8) Error!void {
-                if (want_stream) try self.words.ensureUnusedCapacity(self.allocator, 1);
+            inline fn visitTrue(self: *Tape, allocator: Allocator, ptr: [*]const u8) Error!void {
+                if (want_stream) try self.words.ensureUnusedCapacity(allocator, 1);
                 const check = @import("parsers/atoms.zig").checkTrue;
                 try check(ptr);
                 self.appendWordAssumeCapacity(.{
@@ -913,8 +908,8 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 });
             }
 
-            inline fn visitFalse(self: *Tape, ptr: [*]const u8) Error!void {
-                if (want_stream) try self.words.ensureUnusedCapacity(self.allocator, 1);
+            inline fn visitFalse(self: *Tape, allocator: Allocator, ptr: [*]const u8) Error!void {
+                if (want_stream) try self.words.ensureUnusedCapacity(allocator, 1);
                 const check = @import("parsers/atoms.zig").checkFalse;
                 try check(ptr);
                 self.appendWordAssumeCapacity(.{
@@ -923,8 +918,8 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 });
             }
 
-            inline fn visitNull(self: *Tape, ptr: [*]const u8) Error!void {
-                if (want_stream) try self.words.ensureUnusedCapacity(self.allocator, 1);
+            inline fn visitNull(self: *Tape, allocator: Allocator, ptr: [*]const u8) Error!void {
+                if (want_stream) try self.words.ensureUnusedCapacity(allocator, 1);
                 const check = @import("parsers/atoms.zig").checkNull;
                 try check(ptr);
                 self.appendWordAssumeCapacity(.{

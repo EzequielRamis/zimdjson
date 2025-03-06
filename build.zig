@@ -24,7 +24,7 @@ pub fn build(b: *std.Build) !void {
     // -- Testing
     {
         var com = center.command("tests", "Run all test suites");
-        const com_generate = try com.sub("generate", "Generate automated tests", .{ .propagate = false });
+        const com_generate = try com.sub("generate", "Generate compliant tests", .{ .propagate = false });
 
         const debugged_zimdjson = getZimdjsonModule(b, .{
             .target = target,
@@ -33,7 +33,7 @@ pub fn build(b: *std.Build) !void {
         });
 
         {
-            const com_float_parsing = try com.sub("float-parsing", "Run 'float parsing' test suite", .{});
+            const com_float_parsing = try com.sub("float-parsing", "Run test suite 'float parsing'", .{});
             const float_parsing = b.addTest(.{
                 .root_source_file = b.path("tests/float_parsing.zig"),
                 .target = target,
@@ -48,7 +48,7 @@ pub fn build(b: *std.Build) !void {
             com_float_parsing.dependOn(&run_float_parsing.step);
         }
         {
-            const com_minefield = try com.sub("minefield", "Run 'minefield' test suite", .{});
+            const com_minefield = try com.sub("minefield", "Run test suite 'minefield'", .{});
             const minefield_gen = b.addExecutable(.{
                 .name = "minefield_gen",
                 .root_source_file = b.path("tests/minefield_gen.zig"),
@@ -76,7 +76,7 @@ pub fn build(b: *std.Build) !void {
             com_generate.dependOn(&run_minefield_gen.step);
         }
         {
-            const com_adversarial = try com.sub("adversarial", "Run 'adversarial' test suite", .{});
+            const com_adversarial = try com.sub("adversarial", "Run test suite 'adversarial'", .{});
             const adversarial_gen = b.addExecutable(.{
                 .name = "adversarial_gen",
                 .root_source_file = b.path("tests/adversarial_gen.zig"),
@@ -104,7 +104,7 @@ pub fn build(b: *std.Build) !void {
             com_generate.dependOn(&run_adversarial_gen.step);
         }
         {
-            const com_examples = try com.sub("examples", "Run 'examples' test suite", .{});
+            const com_examples = try com.sub("examples", "Run test suite 'examples'", .{});
             const examples_gen = b.addExecutable(.{
                 .name = "examples_gen",
                 .root_source_file = b.path("tests/examples_gen.zig"),
@@ -132,7 +132,7 @@ pub fn build(b: *std.Build) !void {
             com_generate.dependOn(&run_examples_gen.step);
         }
         {
-            const com_schema = try com.sub("schema", "Run 'schema' test suite", .{});
+            const com_schema = try com.sub("schema", "Run test suite 'schema'", .{});
             const schema = b.addTest(.{
                 .root_source_file = b.path("tests/schema.zig"),
                 .target = target,
@@ -158,7 +158,7 @@ pub fn build(b: *std.Build) !void {
     // -- Benchmarking
     {
         {
-            const com = center.command("bench/index", "Run 'SIMD indexer' benchmark");
+            const com = center.command("bench/index", "Run benchmark 'SIMD indexer'");
             const parsers = Parsers.get(com, target, optimize);
             const file_path = try getProvidedPath(com, &path_buf, use_cwd);
 
@@ -176,7 +176,7 @@ pub fn build(b: *std.Build) !void {
         }
         {
             const name = "dom";
-            const com = center.command("bench/" ++ name, "Run 'DOM parsing' benchmark");
+            const com = center.command("bench/" ++ name, "Run benchmark 'DOM parsing'");
             const parsers = Parsers.get(com, target, optimize);
             const file_path = try getProvidedPath(com, &path_buf, use_cwd);
 
@@ -197,7 +197,7 @@ pub fn build(b: *std.Build) !void {
         }
         {
             const name = "streaming";
-            const com = center.command("bench/" ++ name, "Run 'streaming' benchmark");
+            const com = center.command("bench/" ++ name, "Run benchmark 'streaming'");
             const parsers = Parsers.get(com, target, optimize);
             const file_path = try getProvidedPath(com, &path_buf, use_cwd);
 
@@ -218,7 +218,7 @@ pub fn build(b: *std.Build) !void {
         }
         {
             const name = "find-tweet";
-            const com = center.command("bench/" ++ name, "Run 'find tweet' benchmark");
+            const com = center.command("bench/" ++ name, "Run benchmark 'find tweet'");
             const parsers = Parsers.get(com, target, optimize);
             const file_path = path: {
                 if (com.with("simdjson-data")) |dep| {
@@ -250,7 +250,7 @@ pub fn build(b: *std.Build) !void {
         }
         {
             const name = "top-tweet";
-            const com = center.command("bench/" ++ name, "Run 'top tweet' benchmark");
+            const com = center.command("bench/" ++ name, "Run benchmark 'top tweet'");
             const parsers = Parsers.get(com, target, optimize);
             const file_path = path: {
                 if (com.with("simdjson-data")) |dep| {
@@ -282,7 +282,7 @@ pub fn build(b: *std.Build) !void {
         }
         {
             const name = "partial-tweets";
-            const com = center.command("bench/" ++ name, "Run 'partial tweets' benchmark");
+            const com = center.command("bench/" ++ name, "Run benchmark 'partial tweets'");
             const parsers = Parsers.get(com, target, optimize);
             const file_path = path: {
                 if (com.with("simdjson-data")) |dep| {
@@ -314,7 +314,7 @@ pub fn build(b: *std.Build) !void {
         }
         {
             const name = "distinct-user-id";
-            const com = center.command("bench/" ++ name, "Run 'distinct user id' benchmark");
+            const com = center.command("bench/" ++ name, "Run benchmark 'distinct user id'");
             const parsers = Parsers.get(com, target, optimize);
             const file_path = path: {
                 if (com.with("simdjson-data")) |dep| {
@@ -346,7 +346,7 @@ pub fn build(b: *std.Build) !void {
         }
         {
             const name = "find-system";
-            const com = center.command("bench/" ++ name, "Run 'find system' benchmark");
+            const com = center.command("bench/" ++ name, "Run benchmark 'find system'");
             const parsers = Parsers.get(com, target, optimize);
             const file_path = try getProvidedPath(com, &path_buf, use_cwd);
 
@@ -374,7 +374,7 @@ pub fn build(b: *std.Build) !void {
         }
         {
             const name = "top-factions";
-            const com = center.command("bench/" ++ name, "Run 'top factions' benchmark");
+            const com = center.command("bench/" ++ name, "Run benchmark 'top factions'");
             const parsers = Parsers.get(com, target, optimize);
             const file_path = try getProvidedPath(com, &path_buf, use_cwd);
 
@@ -402,7 +402,7 @@ pub fn build(b: *std.Build) !void {
         }
         {
             const name = "coordinates";
-            const com = center.command("bench/" ++ name, "Run 'coordinates' benchmark");
+            const com = center.command("bench/" ++ name, "Run benchmark 'coordinates'");
             const parsers = Parsers.get(com, target, optimize);
             const file_path = try getProvidedPath(com, &path_buf, use_cwd);
 
@@ -422,6 +422,42 @@ pub fn build(b: *std.Build) !void {
                         suite.addZigBenchmark("zimdjson_stream_dom"),
                         suite.addCppBenchmark("simdjson_dom", p.simdjson),
                         suite.addCppBenchmark("yyjson", p.yyjson),
+                    },
+                    file_path,
+                );
+                com.dependOn(&runner.step);
+            }
+        }
+        {
+            const name = "schema";
+            const com = center.command("bench/" ++ name, "Run benchmark 'schema'");
+            const parsers = Parsers.get(com, target, optimize);
+            const file_path = path: {
+                if (com.with("simdjson-data")) |dep| {
+                    break :path dep.path("jsonexamples/twitter.json").getPath(b);
+                } else break :path "";
+            };
+
+            if (parsers) |p| {
+                var suite = bench.Suite(name){
+                    .zimdjson = zimdjson,
+                    .simdjson = p.simdjson,
+                    .target = target,
+                    .optimize = optimize,
+                };
+                const runner = suite.create(
+                    &.{
+                        // suite.addZigBenchmark("zimdjson_ondemand"),
+                        // suite.addCppBenchmark("simdjson_ondemand", p.simdjson),
+                        // suite.addCppBenchmark("yyjson", p.yyjson),
+                        // suite.addZigBenchmark("zimdjson_ondemand_reversed"),
+                        // suite.addCppBenchmark("simdjson_ondemand_reversed", p.simdjson),
+                        suite.addZigBenchmark("stream_zimdjson_schema"),
+                        // suite.addZigBenchmark("zimdjson_schema"),
+                        // suite.addZigBenchmark("std_json"),
+                        // suite.addZigBenchmark("stream_std_json"),
+                        // suite.addRustBenchmark("serde"),
+                        // suite.addRustBenchmark("stream_serde"),
                     },
                     file_path,
                 );

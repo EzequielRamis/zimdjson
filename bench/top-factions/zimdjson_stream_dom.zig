@@ -20,7 +20,7 @@ const allocator = traced.allocator();
 
 var file: std.fs.File = undefined;
 var path: []const u8 = undefined;
-var parser = Parser.init(allocator);
+var parser = Parser.init;
 var result: TopFactions = undefined;
 
 pub fn init(_path: []const u8) !void {
@@ -34,7 +34,7 @@ pub fn run() !void {
     var top_factions: Parser.Value = undefined;
 
     file = try std.fs.openFileAbsolute(path, .{});
-    const doc = try parser.parseWithCapacity(file.reader(), (try file.stat()).size);
+    const doc = try parser.parseWithCapacity(allocator, file.reader(), (try file.stat()).size);
     const systems = try doc.asArray();
     var it = systems.iterator();
     while (it.next()) |system| {
@@ -61,7 +61,7 @@ pub fn postrun() !void {
 }
 
 pub fn deinit() void {
-    parser.deinit();
+    parser.deinit(allocator);
 }
 
 pub fn memusage() usize {

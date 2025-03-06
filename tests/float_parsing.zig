@@ -6,8 +6,8 @@ fn testFrom(comptime set: []const u8) !void {
     // std.debug.print("START:   {s}\n", .{set});
     const path = parse_number_fxx ++ "/data/" ++ set ++ ".txt";
     const allocator = std.testing.allocator;
-    var parser = ondemand.parserFromSlice(.default).init(allocator);
-    defer parser.deinit();
+    var parser = ondemand.parserFromSlice(.default).init;
+    defer parser.deinit(allocator);
     const buf = try allocator.alloc(u8, 2048);
     defer allocator.free(buf);
     const file = try std.fs.cwd().openFile(path, .{});
@@ -17,7 +17,7 @@ fn testFrom(comptime set: []const u8) !void {
         const expected = line[4 + 8 + 2 ..][0..16];
         var actual_buf: [16]u8 = undefined;
         const str = line[4 + 8 + 16 + 3 ..];
-        var document = try parser.parse(str);
+        var document = try parser.parse(allocator, str);
         const float = document.asFloat() catch |err| switch (err) {
             error.NumberOutOfRange => std.math.inf(f64),
             error.InvalidNumberLiteral, error.ExpectedValue => {

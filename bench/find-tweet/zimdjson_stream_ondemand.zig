@@ -10,7 +10,7 @@ const allocator = traced.allocator();
 
 var file: std.fs.File = undefined;
 var path: []const u8 = undefined;
-var parser = zimdjson.ondemand.parserFromFile(.{ .stream = .default }).init(allocator);
+var parser = zimdjson.ondemand.parserFromFile(.{ .stream = .default }).init;
 var result: []const u8 = undefined;
 
 pub fn init(_path: []const u8) !void {
@@ -21,11 +21,11 @@ pub fn prerun() !void {}
 
 pub fn run() !void {
     file = try std.fs.openFileAbsolute(path, .{});
-    const doc = try parser.parseWithCapacity(file.reader(), (try file.stat()).size);
+    const doc = try parser.parseWithCapacity(allocator, file.reader(), (try file.stat()).size);
     const tweet = try doc.at("statuses").asArray();
     while (try tweet.next()) |t| {
         if (try t.at("id").asUnsigned() == find_id) {
-            result = try t.at("text").asString().get();
+            result = try t.at("text").asString().get(allocator);
             return;
         }
     }
@@ -40,7 +40,7 @@ pub fn postrun() !void {
 }
 
 pub fn deinit() void {
-    parser.deinit();
+    parser.deinit(allocator);
 }
 
 pub fn memusage() usize {

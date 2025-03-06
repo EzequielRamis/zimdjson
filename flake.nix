@@ -20,11 +20,18 @@
         };
       in {
         devShell = pkgs.mkShell {
+          RUST_SRC_PATH =
+            "${pkgs.rust.packages.stable.rustPlatform.rustLibSrc}";
           buildInputs = with pkgs; [
             zig-master
             zls-master
             tracy-glfw
             ccls
+            rustc
+            cargo
+            rust-analyzer
+            clippy
+            rustfmt
             (python3.withPackages (p: with p; [ seaborn python-lsp-server ]))
           ];
         };

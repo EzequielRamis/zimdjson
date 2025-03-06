@@ -11,6 +11,7 @@ const Number = types.Number;
 const vector = types.vector;
 const log = std.log;
 const assert = std.debug.assert;
+const ArrayList = std.ArrayListUnmanaged;
 
 pub const default_stream_chunk_length = tokens.ring_buffer.default_chunk_length;
 
@@ -65,15 +66,15 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             error{
             ExpectedAllocator,
         } ||
-            if (builtin.mode == .Debug) error{OutOfOrderIteration} else error{} ||
-            if (Reader) |reader| reader.Error else error{};
+            (if (builtin.mode == .Debug) error{OutOfOrderIteration} else error{}) ||
+            (if (Reader) |reader| reader.Error else error{});
 
         pub const max_capacity_bound = if (want_stream) std.math.maxInt(usize) else std.math.maxInt(u32);
         pub const default_max_depth = 1024;
 
-        allocator: if (want_stream) ?Allocator else Allocator,
-        document_buffer: if (need_document_buffer) std.ArrayListAligned(u8, types.Aligned(true).alignment) else void,
+        document_buffer: if (need_document_buffer) std.ArrayListAlignedUnmanaged(u8, types.Aligned(true).alignment) else void,
 
+        arena: std.heap.ArenaAllocator = .{ .state = .{}, .child_allocator = undefined },
         strings: types.BoundedArrayListUnmanaged(u8, max_capacity_bound),
         temporal_string_buffer: if (want_stream) [options.stream.?.chunk_length + Vector.bytes_len]u8 else void = undefined,
 
@@ -83,95 +84,88 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
         max_depth: usize,
         capacity: usize,
 
-        pub fn init(allocator: if (want_stream) ?Allocator else Allocator) Self {
-            return .{
-                .cursor = .init(allocator),
-                .allocator = allocator,
-                .document_buffer = if (need_document_buffer) .init(allocator) else {},
-                .strings = .empty,
-                .max_capacity = max_capacity_bound,
-                .max_depth = default_max_depth,
-                .capacity = 0,
-            };
+        pub fn recommendedStringBuffer() ?type {
+            return if (want_stream) [options.stream.?.chunk_length + Vector.bytes_len]u8 else null;
         }
 
-        pub fn deinit(self: *Self) void {
-            self.cursor.deinit();
-            if (need_document_buffer) self.document_buffer.deinit();
-            if (want_stream) {
-                if (self.allocator) |alloc| self.strings.deinit(alloc);
-            } else {
-                self.strings.deinit(self.allocator);
-            }
+        pub const init: Self = .{
+            .cursor = .init,
+            .document_buffer = if (need_document_buffer) .empty else {},
+            .strings = .empty,
+            .max_capacity = max_capacity_bound,
+            .max_depth = default_max_depth,
+            .capacity = 0,
+        };
+
+        pub fn deinit(self: *Self, allocator: Allocator) void {
+            self.cursor.deinit(allocator);
+            self.arena.deinit();
+            if (need_document_buffer) self.document_buffer.deinit(allocator);
         }
 
-        pub fn setMaximumCapacity(self: *Self, new_capacity: usize) Error!void {
+        pub fn setMaximumCapacity(self: *Self, allocator: Allocator, new_capacity: usize) Error!void {
             if (new_capacity > max_capacity_bound) return error.ExceededCapacity;
 
             if (!want_stream and new_capacity + 1 < self.tokens.indexes.items.len)
-                self.tokens.indexes.shrinkAndFree(new_capacity + 1);
+                self.tokens.indexes.shrinkAndFree(allocator, new_capacity + 1);
 
             if (new_capacity + types.Vector.bytes_len < self.strings.items().len) {
-                if (want_stream) {
-                    if (self.allocator) |alloc|
-                        self.strings.list.shrinkAndFree(alloc, new_capacity + types.Vector.bytes_len);
-                } else {
-                    self.strings.list.shrinkAndFree(self.allocator, new_capacity + types.Vector.bytes_len);
-                }
+                self.strings.list.shrinkRetainingCapacity(new_capacity + types.Vector.bytes_len);
                 self.strings.max_capacity = new_capacity + types.Vector.bytes_len;
             }
 
             self.max_capacity = new_capacity;
         }
 
-        pub fn ensureTotalCapacity(self: *Self, new_capacity: usize) Error!void {
+        pub fn ensureTotalCapacity(self: *Self, allocator: Allocator, new_capacity: usize) Error!void {
             if (new_capacity > self.max_capacity) return error.ExceededCapacity;
 
             if (need_document_buffer) {
-                try self.document_buffer.ensureTotalCapacity(new_capacity + types.Vector.bytes_len);
+                try self.document_buffer.ensureTotalCapacity(allocator, new_capacity + types.Vector.bytes_len);
             }
 
             if (!want_stream) {
-                try self.cursor.tokens.ensureTotalCapacity(new_capacity);
-            }
-
-            if (want_stream) {
-                if (self.allocator) |alloc|
-                    try self.strings.ensureTotalCapacity(alloc, new_capacity + types.Vector.bytes_len);
-            } else {
-                try self.strings.ensureTotalCapacity(self.allocator, new_capacity + types.Vector.bytes_len);
+                try self.cursor.tokens.ensureTotalCapacity(allocator, new_capacity);
             }
 
             self.capacity = new_capacity;
         }
 
-        pub fn parse(self: *Self, document: if (Reader) |reader| reader else Aligned.slice) Error!Document {
+        pub fn parse(self: *Self, allocator: Allocator, document: if (Reader) |reader| reader else Aligned.slice) Error!Document {
+            _ = self.arena.reset(.retain_capacity);
+            self.arena.child_allocator = allocator;
+            self.strings.list.clearRetainingCapacity();
             if (need_document_buffer) {
                 self.document_buffer.clearRetainingCapacity();
                 try @as(Error!void, @errorCast(common.readAllArrayListAlignedRetainingCapacity(
+                    allocator,
                     document,
                     types.Aligned(true).alignment,
                     &self.document_buffer,
                     self.max_capacity,
                 )));
                 const len = self.document_buffer.items.len;
-                try self.document_buffer.appendNTimes(' ', types.Vector.bytes_len);
-                try self.ensureTotalCapacity(len);
-                try self.cursor.tokens.build(self.document_buffer.items[0..len]);
+                try self.document_buffer.appendNTimes(allocator, ' ', types.Vector.bytes_len);
+                try self.ensureTotalCapacity(allocator, len);
+                try self.strings.ensureTotalCapacity(self.arena.allocator(), len);
+                try self.cursor.tokens.build(allocator, self.document_buffer.items[0..len]);
             } else {
-                if (!want_stream) try self.ensureTotalCapacity(document.len);
-                try self.cursor.tokens.build(document);
+                if (!want_stream) {
+                    try self.ensureTotalCapacity(allocator, document.len);
+                    try self.strings.ensureTotalCapacity(self.arena.allocator(), document.len);
+                }
+                try self.cursor.tokens.build(allocator, document);
             }
-            self.strings.list.clearRetainingCapacity();
             self.cursor.document = self;
             self.cursor.strings = if (want_stream) 0 else self.strings.items().ptr;
             self.cursor.depth = 1;
             self.cursor.root = if (want_stream) 0 else @intFromPtr(self.cursor.tokens.indexes.items.ptr);
             self.cursor.err = null;
             if (builtin.mode == .Debug) {
-                try self.cursor.start_positions.ensureTotalCapacity(self.max_depth);
+                try self.cursor.start_positions.ensureTotalCapacity(allocator, self.max_depth);
                 self.cursor.start_positions.expandToCapacity();
             }
+
             return .{
                 .iter = .{
                     .cursor = &self.cursor,
@@ -182,17 +176,17 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             };
         }
 
-        pub fn parseAssumeCapacity(self: *Self, document: if (Reader) |reader| reader else Aligned.slice) Error!Document {
+        pub fn parseAssumeCapacity(self: *Self, allocator: Allocator, document: if (Reader) |reader| reader else Aligned.slice) Error!Document {
             if (need_document_buffer) {
                 self.document_buffer.expandToCapacity();
                 const len = try document.readAll(self.document_buffer.items);
                 if (len > self.capacity) return error.ExceededCapacity;
                 self.document_buffer.items.len = len;
-                try self.document_buffer.appendNTimes(' ', types.Vector.bytes_len);
-                try self.cursor.tokens.build(self.document_buffer.items[0..len]);
+                try self.document_buffer.appendNTimes(allocator, ' ', types.Vector.bytes_len);
+                try self.cursor.tokens.build(allocator, self.document_buffer.items[0..len]);
             } else {
                 if (!want_stream) if (document.len > self.capacity) return error.ExceededCapacity;
-                try self.cursor.tokens.build(document);
+                try self.cursor.tokens.build(allocator, document);
             }
             self.strings.list.clearRetainingCapacity();
             self.cursor.document = self;
@@ -201,9 +195,10 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             self.cursor.root = if (want_stream) 0 else @intFromPtr(self.cursor.tokens.indexes.items.ptr);
             self.cursor.err = null;
             if (builtin.mode == .Debug) {
-                try self.cursor.start_positions.ensureTotalCapacity(self.max_depth);
+                try self.cursor.start_positions.ensureTotalCapacity(allocator, self.max_depth);
                 self.cursor.start_positions.expandToCapacity();
             }
+
             return .{
                 .iter = .{
                     .cursor = &self.cursor,
@@ -214,9 +209,9 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             };
         }
 
-        pub fn parseWithCapacity(self: *Self, document: if (Reader) |reader| reader else Aligned.slice, capacity: usize) Error!Document {
-            try self.ensureTotalCapacity(capacity);
-            return self.parseAssumeCapacity(document);
+        pub fn parseWithCapacity(self: *Self, allocator: Allocator, document: if (Reader) |reader| reader else Aligned.slice, capacity: usize) Error!Document {
+            try self.ensureTotalCapacity(allocator, capacity);
+            return self.parseAssumeCapacity(allocator, document);
         }
 
         pub const AnyValue = union(types.ValueType) {
@@ -232,23 +227,20 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             document: *Self = undefined,
             tokens: Tokens,
             strings: if (want_stream) usize else [*]u8 = undefined,
-            start_positions: if (builtin.mode == .Debug) std.ArrayList(usize) else void = undefined,
+            start_positions: if (builtin.mode == .Debug) ArrayList(usize) else void = undefined,
             depth: u32 = 1,
             root: usize = undefined,
             err: ?Error = null,
 
-            pub fn init(allocator: if (want_stream) ?Allocator else Allocator) Cursor {
-                var self = Cursor{
-                    .tokens = if (want_stream) .init else .init(allocator),
-                };
-                if (builtin.mode == .Debug) self.start_positions = .init(std.heap.page_allocator);
-                return self;
-            }
+            pub const init: Cursor = .{
+                .tokens = .init,
+                .start_positions = if (builtin.mode == .Debug) .empty else {},
+            };
 
-            pub fn deinit(self: *Cursor) void {
-                self.tokens.deinit();
+            pub fn deinit(self: *Cursor, allocator: Allocator) void {
+                self.tokens.deinit(allocator);
                 if (builtin.mode == .Debug) {
-                    self.start_positions.deinit();
+                    self.start_positions.deinit(allocator);
                 }
             }
 
@@ -487,20 +479,20 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
-            pub inline fn as(self: Document, comptime T: type) schema.Error!std.json.Parsed(T) {
-                const data = try self.asValue().as(T);
+            pub inline fn as(self: Document, comptime T: type, allocator: Allocator) schema.Error!std.json.Parsed(T) {
+                const data = try self.asValue().as(T, allocator);
                 if (try self.atEnd()) return data;
                 return error.TrailingContent;
             }
 
-            pub inline fn asAdvanced(self: Document, comptime T: type, comptime S: ?schema.Infer(T), allocator: ?Allocator) schema.Error!std.json.Parsed(T) {
+            pub inline fn asAdvanced(self: Document, comptime T: type, comptime S: ?schema.Infer(T), allocator: Allocator) schema.Error!std.json.Parsed(T) {
                 const data = try self.asValue().asAdvanced(T, S, allocator);
                 if (try self.atEnd()) return data;
                 return error.TrailingContent;
             }
 
-            pub inline fn asLeaky(self: Document, comptime T: type) schema.Error!T {
-                const data = try self.asValue().asLeaky(T);
+            pub inline fn asLeaky(self: Document, comptime T: type, allocator: ?Allocator) schema.Error!T {
+                const data = try self.asValue().asLeaky(T, allocator);
                 if (try self.atEnd()) return data;
                 return error.TrailingContent;
             }
@@ -604,27 +596,27 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 }
 
                 fn parseNumber(self: Iterator, ptr: [*]const u8) Error!Number {
-                    if (!(ptr[0] -% '0' < 10 or ptr[0] == '-')) return error.IncorrectType;
+                    // if (!(ptr[0] -% '0' < 10 or ptr[0] == '-')) return error.IncorrectType;
                     try Logger.log(self.cursor.document, ptr, "number", self.start_depth);
                     return @import("parsers/number/parser.zig").parse(null, ptr);
                 }
 
                 fn parseUnsigned(self: Iterator, ptr: [*]const u8) Error!u64 {
-                    if (!(ptr[0] -% '0' < 10)) return error.IncorrectType;
+                    // if (!(ptr[0] -% '0' < 10)) return error.IncorrectType;
                     try Logger.log(self.cursor.document, ptr, "u64   ", self.start_depth);
                     const n = try @import("parsers/number/parser.zig").parse(.unsigned, ptr);
                     return n.unsigned;
                 }
 
                 fn parseSigned(self: Iterator, ptr: [*]const u8) Error!i64 {
-                    if (!(ptr[0] -% '0' < 10 or ptr[0] == '-')) return error.IncorrectType;
+                    // if (!(ptr[0] -% '0' < 10 or ptr[0] == '-')) return error.IncorrectType;
                     try Logger.log(self.cursor.document, ptr, "i64   ", self.start_depth);
                     const n = try @import("parsers/number/parser.zig").parse(.signed, ptr);
                     return n.signed;
                 }
 
                 fn parseFloat(self: Iterator, ptr: [*]const u8) Error!f64 {
-                    if (!(ptr[0] -% '0' < 10 or ptr[0] == '-')) return error.IncorrectType;
+                    // if (!(ptr[0] -% '0' < 10 or ptr[0] == '-')) return error.IncorrectType;
                     try Logger.log(self.cursor.document, ptr, "f64   ", self.start_depth);
                     const n = try @import("parsers/number/parser.zig").parse(.float, ptr);
                     return switch (n) {
@@ -641,14 +633,14 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 }
 
                 inline fn parseBool(self: Iterator, ptr: [*]const u8) Error!bool {
-                    if (!(ptr[0] == 't' or ptr[0] == 'f')) return error.IncorrectType;
+                    // if (!(ptr[0] == 't' or ptr[0] == 'f')) return error.IncorrectType;
                     try Logger.log(self.cursor.document, ptr, "bool  ", self.start_depth);
                     const check = @import("parsers/atoms.zig").checkBool;
                     return check(ptr);
                 }
 
                 inline fn parseNull(self: Iterator, ptr: [*]const u8) Error!void {
-                    if (ptr[0] != 'n') return error.IncorrectType;
+                    // if (ptr[0] != 'n') return error.IncorrectType;
                     try Logger.log(self.cursor.document, ptr, "null  ", self.start_depth);
                     const check = @import("parsers/atoms.zig").checkNull;
                     return check(ptr);
@@ -975,47 +967,46 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
-            pub inline fn as(self: Value, comptime T: type) schema.Error!std.json.Parsed(T) {
-                return self.asAdvanced(T, null, self.iter.cursor.document.allocator);
+            pub inline fn as(self: Value, comptime T: type, allocator: Allocator) schema.Error!std.json.Parsed(T) {
+                return self.asAdvanced(T, null, allocator);
             }
 
-            pub inline fn asAdvanced(self: Value, comptime T: type, comptime S: ?schema.Infer(T), allocator: ?Allocator) schema.Error!std.json.Parsed(T) {
-                const alloc = allocator orelse return error.ExpectedAllocator;
+            pub inline fn asAdvanced(self: Value, comptime T: type, comptime S: ?schema.Infer(T), allocator: Allocator) schema.Error!std.json.Parsed(T) {
                 var dest: std.json.Parsed(T) = .{
-                    .arena = try alloc.create(std.heap.ArenaAllocator),
+                    .arena = try allocator.create(std.heap.ArenaAllocator),
                     .value = schema_utils.undefinedInit(T),
                 };
-                errdefer alloc.destroy(dest.arena);
-                dest.arena.* = .init(alloc);
+                errdefer allocator.destroy(dest.arena);
+                dest.arena.* = .init(allocator);
                 errdefer dest.arena.deinit();
                 dest.value = try self.asAdvancedLeaky(T, S, dest.arena.allocator());
                 return dest;
             }
 
-            pub inline fn asLeaky(self: Value, comptime T: type) schema.Error!T {
-                return self.asAdvancedLeaky(T, null, self.iter.cursor.document.allocator);
+            pub inline fn asLeaky(self: Value, comptime T: type, allocator: ?Allocator) schema.Error!T {
+                return self.asAdvancedLeaky(T, null, allocator);
             }
 
             pub inline fn asAdvancedLeaky(self: Value, comptime T: type, comptime S: ?schema.Infer(T), allocator: ?Allocator) schema.Error!T {
                 var dest = schema_utils.undefinedInit(T);
-                const sch = schema.resolveSchema(T, S);
-                const custom_parser = sch.parse_with orelse schema.CustomParser(T).infer();
-                if (custom_parser) |handler| dest = try handler.init(allocator);
+                const sch = comptime schema.resolveSchema(T, S);
+                const custom_parser = comptime sch.parse_with orelse schema.CustomParser(T).infer();
+                if (custom_parser) |handler| dest = handler.init;
                 try self.asAdvancedInner(T, sch, custom_parser, allocator, &dest);
                 return dest;
             }
 
-            pub inline fn asAdvancedRef(
-                self: Value,
-                comptime T: type,
-                comptime S: ?schema.Infer(T),
-                allocator: ?Allocator,
-                dest: *T,
-            ) schema.Error!void {
-                const sch = schema.resolveSchema(T, S);
-                const custom_parser = sch.parse_with orelse schema.CustomParser(T).infer();
-                return self.asAdvancedInner(T, sch, custom_parser, allocator, dest);
-            }
+            // pub inline fn asAdvancedRef(
+            //     self: Value,
+            //     comptime T: type,
+            //     comptime S: ?schema.Infer(T),
+            //     allocator: ?Allocator,
+            //     dest: *T,
+            // ) schema.Error!void {
+            //     const sch = comptime schema.resolveSchema(T, S);
+            //     const custom_parser = comptime sch.parse_with orelse schema.CustomParser(T).infer();
+            //     return self.asAdvancedInner(T, sch, custom_parser, allocator, dest);
+            // }
 
             inline fn asAdvancedInner(
                 self: Value,
@@ -1098,19 +1089,19 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             raw_str: [*]const u8,
             err: ?Error = null,
 
-            pub inline fn get(self: String) Error![]const u8 {
-                return self.getAdvanced(null, self.iter.cursor.document.allocator);
+            pub inline fn get(self: String, allocator: ?Allocator) Error![]const u8 {
+                return self.getAdvanced(null, allocator);
             }
 
-            pub inline fn getSentinel(self: String, comptime sentinel: u8) Error![:sentinel]const u8 {
-                return self.getAdvanced(sentinel, self.iter.cursor.document.allocator);
+            pub inline fn getSentinel(self: String, comptime sentinel: u8, allocator: ?Allocator) Error![:sentinel]const u8 {
+                return self.getAdvanced(sentinel, allocator);
             }
 
-            inline fn getAdvanced(self: String, comptime sentinel: ?u8, allocator: ?Allocator) if (sentinel) |s| Error![:s]const u8 else Error![]const u8 {
+            inline fn getAdvanced(self: String, comptime sentinel: ?u8, _: ?Allocator) if (sentinel) |s| Error![:s]const u8 else Error![]const u8 {
                 if (self.err) |err| return err;
 
                 if (want_stream) {
-                    const alloc = allocator orelse return error.ExpectedAllocator;
+                    const alloc = self.iter.cursor.document.arena.allocator();
                     try self.iter.cursor.document.strings.ensureUnusedCapacity(alloc, options.stream.?.chunk_length + Vector.bytes_len);
                     const dest = self.iter.cursor.document.strings.items().ptr;
                     const str = try self.iter.parseString(self.raw_str, dest[self.iter.cursor.strings..]);
@@ -1325,22 +1316,17 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 return fn (allocator: ?Allocator, value: Value, dest: *T) schema.Error!void;
             }
 
-            pub fn SimpleHandler(comptime T: type) type {
-                return fn (allocator: ?Allocator) schema.Error!T;
-            }
-
             pub fn SimpleRefHandler(comptime T: type) type {
                 return fn (allocator: ?Allocator, dest: *T) schema.Error!void;
             }
 
             pub fn CustomParser(comptime T: type) type {
                 return struct {
-                    init: SimpleHandler(T),
-                    parse: Handler(T),
+                    init: T,
+                    parse: *const Handler(T),
 
                     pub fn from(comptime S: type) @This() {
                         assert(@typeInfo(S) == .@"struct");
-                        assert(@hasDecl(S, "init") and @TypeOf(@field(S, "init")) == SimpleHandler(T));
                         assert(@hasDecl(S, "parse") and @TypeOf(@field(S, "parse")) == Handler(T));
                         return .{
                             .init = S.init,
@@ -1353,11 +1339,9 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         return switch (std_data_structure) {
                             .array_list => |p| schema.std.ArrayList(p[0]),
                             .array_list_aligned => |p| schema.std.ArrayListAligned(p[0], p[1]),
-                            .array_list_unmanaged => |p| schema.std.ArrayListUnmanaged(p[0]),
-                            .array_list_aligned_unmanaged => |p| schema.std.ArrayListAlignedUnmanaged(p[0], p[1]),
-                            .bit_stack => schema.std.BitStack,
-                            .buf_map => schema.std.BufMap,
-                            .buf_set => schema.std.BufSet,
+                            // .bit_stack => schema.std.BitStack,
+                            // .buf_map => schema.std.BufMap,
+                            // .buf_set => schema.std.BufSet,
                             .bounded_array => |p| schema.std.BoundedArray(p[0], p[1]),
                             .bounded_array_aligned => |p| schema.std.BoundedArrayAligned(p[0], p[1], p[2]),
                             .enum_map => |p| schema.std.EnumMap(p[0], p[1]),
@@ -1366,69 +1350,17 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             .multi_array_list => |p| schema.std.MultiArrayList(p[0]),
                             .segmented_list => |p| schema.std.SegmentedList(p[0], p[1]),
                             .string_array_hash_map => |p| schema.std.StringArrayHashMap(p[0]),
-                            .string_array_hash_map_unmanaged => |p| schema.std.StringArrayHashMapUnmanaged(p[0]),
                             .string_hash_map => |p| schema.std.StringHashMap(p[0]),
-                            .string_hash_map_unmanaged => |p| schema.std.StringHashMapUnmanaged(p[0]),
                         };
                     }
                 };
             }
 
             pub const std = struct {
-                pub fn ArrayList(comptime T: type) CustomParser(_std.ArrayList(T)) {
-                    const Parsed = _std.ArrayList(T);
-                    return .from(struct {
-                        pub fn init(allocator: ?Allocator) schema.Error!Parsed {
-                            const alloc = allocator orelse return error.ExpectedAllocator;
-                            return .init(alloc);
-                        }
-                        pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
-                            const arr = try value.asArray();
-                            while (try arr.next()) |child| {
-                                const item = try child.asAdvancedLeaky(T, null, allocator.?);
-                                try dest.append(item);
-                            }
-                        }
-                    });
-                }
-                pub fn ArrayListAligned(comptime T: type, comptime alignment: ?u29) CustomParser(_std.ArrayListAligned(T, alignment)) {
-                    const Parsed = _std.ArrayListAligned(T, alignment);
-                    return .from(struct {
-                        pub fn init(allocator: ?Allocator) schema.Error!Parsed {
-                            const alloc = allocator orelse return error.ExpectedAllocator;
-                            return .init(alloc);
-                        }
-                        pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
-                            const arr = try value.asArray();
-                            while (try arr.next()) |child| {
-                                const item = try child.asAdvancedLeaky(T, null, allocator.?);
-                                try dest.append(item);
-                            }
-                        }
-                    });
-                }
-                pub fn ArrayListAlignedUnmanaged(comptime T: type, comptime alignment: ?u29) CustomParser(_std.ArrayListAlignedUnmanaged(T, alignment)) {
-                    const Parsed = _std.ArrayListAlignedUnmanaged(T, alignment);
-                    return .from(struct {
-                        pub fn init(_: ?Allocator) schema.Error!Parsed {
-                            return .empty;
-                        }
-                        pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
-                            const alloc = allocator orelse return error.ExpectedAllocator;
-                            const arr = try value.asArray();
-                            while (try arr.next()) |child| {
-                                const item = try child.asAdvancedLeaky(T, null, alloc);
-                                try dest.append(alloc, item);
-                            }
-                        }
-                    });
-                }
-                pub fn ArrayListUnmanaged(comptime T: type) CustomParser(_std.ArrayListUnmanaged(T)) {
+                pub fn ArrayList(comptime T: type) CustomParser(_std.ArrayListUnmanaged(T)) {
                     const Parsed = _std.ArrayListUnmanaged(T);
                     return .from(struct {
-                        pub fn init(_: ?Allocator) schema.Error!Parsed {
-                            return .empty;
-                        }
+                        pub const init: Parsed = .empty;
                         pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const alloc = allocator orelse return error.ExpectedAllocator;
                             const arr = try value.asArray();
@@ -1439,28 +1371,40 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         }
                     });
                 }
-                pub const BitStack: CustomParser(_std.BitStack) = brk: {
-                    const Parsed = _std.BitStack;
-                    break :brk .from(struct {
-                        pub fn init(allocator: ?Allocator) schema.Error!Parsed {
+                pub fn ArrayListAligned(comptime T: type, comptime alignment: ?u29) CustomParser(_std.ArrayListAlignedUnmanaged(T, alignment)) {
+                    const Parsed = _std.ArrayListAlignedUnmanaged(T, alignment);
+                    return .from(struct {
+                        pub const init: Parsed = .empty;
+                        pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const alloc = allocator orelse return error.ExpectedAllocator;
-                            return .init(alloc);
-                        }
-                        pub fn parse(_: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const arr = try value.asArray();
                             while (try arr.next()) |child| {
-                                const item = try child.asAdvancedLeaky(u1, null, null);
-                                try dest.push(item);
+                                const item = try child.asAdvancedLeaky(T, null, alloc);
+                                try dest.append(alloc, item);
                             }
                         }
                     });
-                };
+                }
+                // pub const BitStack: CustomParser(_std.BitStack) = brk: {
+                //     const Parsed = _std.BitStack;
+                //     break :brk .from(struct {
+                //         pub fn init(allocator: ?Allocator) schema.Error!Parsed {
+                //             const alloc = allocator orelse return error.ExpectedAllocator;
+                //             return .init(alloc);
+                //         }
+                //         pub fn parse(_: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
+                //             const arr = try value.asArray();
+                //             while (try arr.next()) |child| {
+                //                 const item = try child.asAdvancedLeaky(u1, null, null);
+                //                 try dest.push(item);
+                //             }
+                //         }
+                //     });
+                // };
                 pub fn BoundedArray(comptime T: type, comptime buffer_capacity: usize) CustomParser(_std.BoundedArray(T, buffer_capacity)) {
                     const Parsed = _std.BoundedArray(T, buffer_capacity);
                     return .from(struct {
-                        pub fn init(_: ?Allocator) schema.Error!Parsed {
-                            return Parsed.init(0) catch error.ExceededCapacity;
-                        }
+                        pub const init: Parsed = Parsed.init(0) catch unreachable;
                         pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const arr = try value.asArray();
                             while (try arr.next()) |child| {
@@ -1477,9 +1421,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 ) CustomParser(_std.BoundedArrayAligned(T, alignment, buffer_capacity)) {
                     const Parsed = _std.BoundedArrayAligned(T, alignment, buffer_capacity);
                     return .from(struct {
-                        pub fn init(_: ?Allocator) schema.Error!Parsed {
-                            return Parsed.init(0) catch error.ExceededCapacity;
-                        }
+                        pub const init: Parsed = Parsed.init(0) catch unreachable;
                         pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const arr = try value.asArray();
                             while (try arr.next()) |child| {
@@ -1489,45 +1431,43 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         }
                     });
                 }
-                pub const BufMap: CustomParser(_std.BufMap) = brk: {
-                    const Parsed = _std.BufMap;
-                    break :brk .from(struct {
-                        pub fn init(allocator: ?Allocator) schema.Error!Parsed {
-                            const alloc = allocator orelse return error.ExpectedAllocator;
-                            return .init(alloc);
-                        }
-                        pub fn parse(_: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
-                            const obj = try value.asObject();
-                            while (try obj.next()) |field| {
-                                const key = try field.key.get();
-                                const str = try field.value.asString().getTemporal();
-                                try dest.put(key, str);
-                            }
-                        }
-                    });
-                };
-                pub const BufSet: CustomParser(_std.BufSet) = brk: {
-                    const Parsed = _std.BufSet;
-                    break :brk .from(struct {
-                        pub fn init(allocator: ?Allocator) schema.Error!Parsed {
-                            const alloc = allocator orelse return error.ExpectedAllocator;
-                            return .init(alloc);
-                        }
-                        pub fn parse(_: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
-                            const arr = try value.asArray();
-                            while (try arr.next()) |child| {
-                                const item = try child.asString().getTemporal();
-                                try dest.insert(item);
-                            }
-                        }
-                    });
-                };
+                // pub const BufMap: CustomParser(_std.BufMap) = brk: {
+                //     const Parsed = _std.BufMap;
+                //     break :brk .from(struct {
+                //         pub fn init(allocator: ?Allocator) schema.Error!Parsed {
+                //             const alloc = allocator orelse return error.ExpectedAllocator;
+                //             return .init(alloc);
+                //         }
+                //         pub fn parse(_: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
+                //             const obj = try value.asObject();
+                //             while (try obj.next()) |field| {
+                //                 const key = try field.key.get();
+                //                 const str = try field.value.asString().getTemporal();
+                //                 try dest.put(key, str);
+                //             }
+                //         }
+                //     });
+                // };
+                // pub const BufSet: CustomParser(_std.BufSet) = brk: {
+                //     const Parsed = _std.BufSet;
+                //     break :brk .from(struct {
+                //         pub fn init(allocator: ?Allocator) schema.Error!Parsed {
+                //             const alloc = allocator orelse return error.ExpectedAllocator;
+                //             return .init(alloc);
+                //         }
+                //         pub fn parse(_: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
+                //             const arr = try value.asArray();
+                //             while (try arr.next()) |child| {
+                //                 const item = try child.asString().getTemporal();
+                //                 try dest.insert(item);
+                //             }
+                //         }
+                //     });
+                // };
                 pub fn DoublyLinkedList(comptime T: type) CustomParser(_std.DoublyLinkedList(T)) {
                     const Parsed = _std.DoublyLinkedList(T);
                     return .from(struct {
-                        pub fn init(_: ?Allocator) schema.Error!Parsed {
-                            return .{};
-                        }
+                        pub const init: Parsed = .{};
                         pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const alloc = allocator orelse return error.ExpectedAllocator;
                             const arr = try value.asArray();
@@ -1543,11 +1483,9 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 pub fn EnumMap(comptime E: type, comptime V: type) CustomParser(_std.EnumMap(E, V)) {
                     const Parsed = _std.EnumMap(E, V);
                     return .from(struct {
-                        pub fn init(_: ?Allocator) schema.Error!Parsed {
-                            return .init(.{});
-                        }
+                        pub const init: Parsed = .init(.{});
                         pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
-                            const enum_schema = resolveSchema(E, null);
+                            const enum_schema = comptime resolveSchema(E, null);
                             const obj = try value.asObject();
                             while (try obj.next()) |field| {
                                 const variant = try field.key.getTemporal();
@@ -1561,9 +1499,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 pub fn MultiArrayList(comptime T: type) CustomParser(_std.MultiArrayList(T)) {
                     const Parsed = _std.MultiArrayList(T);
                     return .from(struct {
-                        pub fn init(_: ?Allocator) schema.Error!Parsed {
-                            return .empty;
-                        }
+                        pub const init: Parsed = .empty;
                         pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const alloc = allocator orelse return error.ExpectedAllocator;
                             const arr = try value.asArray();
@@ -1577,9 +1513,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 pub fn SegmentedList(comptime T: type, comptime prealloc_item_count: usize) CustomParser(_std.SegmentedList(T, prealloc_item_count)) {
                     const Parsed = _std.SegmentedList(T, prealloc_item_count);
                     return .from(struct {
-                        pub fn init(_: ?Allocator) schema.Error!Parsed {
-                            return .{};
-                        }
+                        pub const init: Parsed = .{};
                         pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const alloc = allocator orelse return error.ExpectedAllocator;
                             const arr = try value.asArray();
@@ -1593,9 +1527,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 pub fn SinglyLinkedList(comptime T: type) CustomParser(_std.SinglyLinkedList(T)) {
                     const Parsed = _std.SinglyLinkedList(T);
                     return .from(struct {
-                        pub fn init(_: ?Allocator) schema.Error!Parsed {
-                            return .{};
-                        }
+                        pub const init: Parsed = .{};
                         pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const alloc = allocator orelse return error.ExpectedAllocator;
                             const arr = try value.asArray();
@@ -1618,68 +1550,30 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         }
                     });
                 }
-                pub fn StringArrayHashMap(comptime V: type) CustomParser(_std.StringArrayHashMap(V)) {
-                    const Parsed = _std.StringArrayHashMap(V);
-                    return .from(struct {
-                        pub fn init(allocator: ?Allocator) schema.Error!Parsed {
-                            const alloc = allocator orelse return error.ExpectedAllocator;
-                            return .init(alloc);
-                        }
-                        pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
-                            const obj = try value.asObject();
-                            while (try obj.next()) |field| {
-                                const key = try field.key.get();
-                                const val = try field.value.asAdvancedLeaky(V, null, allocator.?);
-                                try dest.put(key, val);
-                            }
-                        }
-                    });
-                }
-                pub fn StringArrayHashMapUnmanaged(comptime V: type) CustomParser(_std.StringArrayHashMapUnmanaged(V)) {
+                pub fn StringArrayHashMap(comptime V: type) CustomParser(_std.StringArrayHashMapUnmanaged(V)) {
                     const Parsed = _std.StringArrayHashMapUnmanaged(V);
                     return .from(struct {
-                        pub fn init(_: ?Allocator) schema.Error!Parsed {
-                            return .empty;
-                        }
+                        pub const init: Parsed = .empty;
                         pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const alloc = allocator orelse return error.ExpectedAllocator;
                             const obj = try value.asObject();
                             while (try obj.next()) |field| {
-                                const key = try field.key.get();
+                                const key = try field.key.get(alloc);
                                 const val = try field.value.asAdvancedLeaky(V, null, alloc);
                                 try dest.put(alloc, key, val);
                             }
                         }
                     });
                 }
-                pub fn StringHashMap(comptime V: type) CustomParser(_std.StringHashMap(V)) {
-                    const Parsed = _std.StringHashMap(V);
-                    return .from(struct {
-                        pub fn init(allocator: ?Allocator) schema.Error!Parsed {
-                            const alloc = allocator orelse return error.ExpectedAllocator;
-                            return .init(alloc);
-                        }
-                        pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
-                            const obj = try value.asObject();
-                            while (try obj.next()) |field| {
-                                const key = try field.key.get();
-                                const val = try field.value.asAdvancedLeaky(V, null, allocator.?);
-                                try dest.put(key, val);
-                            }
-                        }
-                    });
-                }
-                pub fn StringHashMapUnmanaged(comptime V: type) CustomParser(_std.StringHashMapUnmanaged(V)) {
+                pub fn StringHashMap(comptime V: type) CustomParser(_std.StringHashMapUnmanaged(V)) {
                     const Parsed = _std.StringHashMapUnmanaged(V);
                     return .from(struct {
-                        pub fn init(_: ?Allocator) schema.Error!Parsed {
-                            return .empty;
-                        }
+                        pub const init: Parsed = .empty;
                         pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const alloc = allocator orelse return error.ExpectedAllocator;
                             const obj = try value.asObject();
                             while (try obj.next()) |field| {
-                                const key = try field.key.get();
+                                const key = try field.key.get(alloc);
                                 const val = try field.value.asAdvancedLeaky(V, null, alloc);
                                 try dest.put(alloc, key, val);
                             }
@@ -1707,7 +1601,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             pub fn Struct(comptime T: type) type {
                 return struct {
                     assume_ordering: bool = false,
-                    on_init: ?*const SimpleRefHandler(T) = null,
+                    // on_init: ?*const SimpleRefHandler(T) = null,
                     on_unknown_field: UnknownField(T) = .ignore,
                     on_duplicate_field: DuplicateField(T) = .@"error",
 
@@ -1783,9 +1677,9 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         if (field_schema.rename) |_| @compileError("Renamed fields are not supported in tuple struct '" ++ @typeName(T) ++ "'");
                         if (field_schema.skip) @compileError("Skipped fields are not supported in tuple struct '" ++ @typeName(T) ++ "'");
                         const sp = @field(fields_schema_parser, field.name);
-                        if (sp[1]) |handler| @field(dest, field.name) = try handler.init(allocator);
+                        if (sp[1]) |handler| @field(dest, field.name) = handler.init;
                     }
-                    if (S.on_init) |handle| try handle(allocator, &dest);
+                    // if (S.on_init) |handle| try handle(allocator, &dest);
                     const array = try value.asArray();
                     inline for (fields) |field| {
                         if (try array.next()) |item| {
@@ -1810,15 +1704,18 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 comptime var non_skipped_field_count: comptime_int = 0;
                 inline for (fields) |field| {
                     const field_schema = @field(S.fields, field.name);
-                    if (field_schema.skip) continue;
                     const sp = @field(fields_schema_parser, field.name);
-                    non_skipped_field_count += 1;
-                    if (sp[1]) |handler| @field(dest, field.name) = try handler.init(allocator);
+                    if (sp[1]) |handler| @field(dest, field.name) = handler.init;
+                    if (field_schema.skip) {
+                        if (sp[1]) |_| {} else @compileError("Missing default value for skipped field '" ++ @typeName(T) ++ "." ++ field.name ++ "'");
+                    } else {
+                        non_skipped_field_count += 1;
+                    }
                 }
-                if (S.on_init) |handle| try handle(allocator, &dest);
+                // if (S.on_init) |handle| try handle(allocator, &dest);
                 if (non_skipped_field_count == 0) {
                     switch (S.on_unknown_field) {
-                        .ignore => return .{},
+                        .ignore => {},
                         .@"error" => if (try object.next()) |_| return error.UnknownField,
                         .handle => |handle| while (try object.next()) |field| try handle(allocator, try field.key.getTemporal(), field.value, &dest),
                     }
@@ -1958,12 +1855,12 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 handle: *const Handler(anyopaque),
             };
 
-            fn makeFieldsSP(comptime T: type, comptime R: schema.Struct(T), comptime fields: []const _std.builtin.Type.StructField) type {
+            inline fn makeFieldsSP(comptime T: type, comptime R: schema.Struct(T), comptime fields: []const _std.builtin.Type.StructField) type {
                 comptime var tuple_fields: [fields.len]_std.builtin.Type.StructField = undefined;
                 inline for (fields, &tuple_fields) |field, *tuple| {
                     const field_schema = @field(R.fields, field.name);
-                    const S = resolveSchema(field.type, field_schema.schema);
-                    const P = S.parse_with orelse CustomParser(field.type).infer();
+                    const S = comptime resolveSchema(field.type, field_schema.schema);
+                    const P = comptime S.parse_with orelse CustomParser(field.type).infer();
                     tuple.name = field.name;
                     tuple.type = struct { @TypeOf(S), @TypeOf(P) };
                     tuple.default_value_ptr = &@as(struct { @TypeOf(S), @TypeOf(P) }, .{ S, P });
@@ -2155,7 +2052,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 return struct {
                     pub fn parse(allocator: ?Allocator, value: Value) schema.Error!T {
                         if (repr == .internally_tagged) {
-                            const g = resolveSchema(F.type, G);
+                            const g = comptime resolveSchema(F.type, G);
                             assert(@typeInfo(F.type) == .@"struct");
                             const payload = try parseStructWithObject(F.type, g, allocator, .{ .iter = value.iter });
                             return @unionInit(T, F.name, payload);
@@ -2180,16 +2077,18 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     },
                     .float => return @floatCast(try value.asFloat()),
                     .bool => return value.asBool(),
-                    .optional => |opt| {
+                    .optional => |info| {
+                        if (!isParseable(info.child)) @compileError("Unable to parse into type '" ++ @typeName(T) ++ "'");
                         if (try value.isNull()) {
                             return null;
                         } else {
-                            const dest = try value.asAdvancedLeaky(opt.child, null, allocator);
+                            const dest = try value.asAdvancedLeaky(info.child, null, allocator);
                             return dest;
                         }
                     },
                     .void => return if (try value.isNull()) {} else error.IncorrectType,
                     .array => |info| {
+                        if (!isParseable(info.child)) @compileError("Unable to parse into type '" ++ @typeName(T) ++ "'");
                         if (info.child == u8 and S.bytes_as_string) {
                             const str = try value.asString().getTemporal();
                             if (str.len != info.len) return error.IncorrectType;
@@ -2217,6 +2116,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         }
                     },
                     .vector => |info| {
+                        if (!isParseable(info.child)) @compileError("Unable to parse into type '" ++ @typeName(T) ++ "'");
                         const arr = try value.asArray();
                         var dest = schema_utils.undefinedInit(T);
                         for (0..info.len) |i| {
@@ -2230,31 +2130,38 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         return dest;
                     },
                     .pointer => |info| {
+                        if (!isParseable(info.child)) @compileError("Unable to parse into type '" ++ @typeName(T) ++ "'");
+                        switch (@typeInfo(info.child)) {
+                            .@"fn", .@"opaque" => @compileError("Unable to parse into type '" ++ @typeName(T) ++ "'"),
+                            else => {},
+                        }
                         switch (info.size) {
                             .one => {
                                 const alloc = allocator orelse return error.ExpectedAllocator;
                                 const r = try alloc.create(info.child);
                                 errdefer alloc.destroy(r);
 
-                                try value.asAdvancedLeaky(info.child, null, allocator, r);
+                                r.* = try value.asAdvancedLeaky(info.child, null, alloc);
                                 return r;
                             },
                             .slice => {
                                 if (info.child == u8 and S.bytes_as_string) {
                                     if (info.sentinel()) |_| @compileError("Unable to parse into type '" ++ @typeName(T) ++ "'");
                                     if (info.sentinel()) |s| {
-                                        return try value.asString().getSentinel(s);
+                                        return try value.asString().getSentinel(s, allocator);
                                     } else {
-                                        return try value.asString().get();
+                                        return try value.asString().get(allocator);
+                                        // return "asdf";
                                     }
                                 } else {
                                     const arr_parser = schema.std.ArrayList(info.child);
-                                    var arr = arr_parser.init(allocator) catch unreachable;
+                                    var arr = arr_parser.init;
                                     try arr_parser.parse(allocator, value, &arr);
+                                    const alloc = allocator orelse return error.ExpectedAllocator;
                                     if (info.sentinel()) |s| {
-                                        return try arr.toOwnedSliceSentinel(s);
+                                        return try arr.toOwnedSliceSentinel(alloc, s);
                                     } else {
-                                        return try arr.toOwnedSlice();
+                                        return try arr.toOwnedSlice(alloc);
                                     }
                                 }
                             },
@@ -2263,6 +2170,26 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     },
                     else => @compileError("Unable to parse into type '" ++ @typeName(T) ++ "'"),
                 }
+            }
+
+            inline fn isParseable(comptime T: type) bool {
+                return switch (@typeInfo(T)) {
+                    .type,
+                    .noreturn,
+                    .comptime_float,
+                    .comptime_int,
+                    .undefined,
+                    .null,
+                    .error_union,
+                    .error_set,
+                    .@"fn",
+                    .@"opaque",
+                    .frame,
+                    .@"anyframe",
+                    .enum_literal,
+                    => false,
+                    else => true,
+                };
             }
 
             fn TypeErasedParser(comptime T: type, comptime S: schema.Infer(T), comptime P: ?CustomParser(T)) type {
@@ -2465,11 +2392,9 @@ pub const schema_utils = struct {
     const StandardDataStructure = union(enum) {
         array_list: struct { type },
         array_list_aligned: struct { type, ?u29 },
-        array_list_unmanaged: struct { type },
-        array_list_aligned_unmanaged: struct { type, ?u29 },
-        bit_stack,
-        buf_map,
-        buf_set,
+        // bit_stack,
+        // buf_map,
+        // buf_set,
         bounded_array: struct { type, usize },
         bounded_array_aligned: struct { type, u29, usize },
         enum_map: struct { type, type },
@@ -2478,9 +2403,7 @@ pub const schema_utils = struct {
         multi_array_list: struct { type },
         segmented_list: struct { type, usize },
         string_array_hash_map: struct { type },
-        string_array_hash_map_unmanaged: struct { type },
         string_hash_map: struct { type },
-        string_hash_map_unmanaged: struct { type },
 
         pub fn infer(comptime T: type) ?@This() {
             switch (@typeInfo(T)) {
@@ -2488,25 +2411,21 @@ pub const schema_utils = struct {
                 else => return null,
             }
 
-            if (T == std.BitStack) return .bit_stack;
+            // if (T == std.BitStack) return .bit_stack;
 
-            if (T == std.BufMap) return .buf_map;
+            // if (T == std.BufMap) return .buf_map;
 
-            if (T == std.BufSet) return .buf_set;
+            // if (T == std.BufSet) return .buf_set;
 
             if (@hasDecl(T, "Slice")) {
                 switch (@typeInfo(@field(T, "Slice"))) {
                     .pointer => |info| {
                         if (info.size == .slice) {
                             const child = info.child;
-                            if (T == std.ArrayList(child))
-                                return .{ .array_list = .{child} };
                             if (T == std.ArrayListUnmanaged(child))
-                                return .{ .array_list_unmanaged = .{child} };
-                            if (T == std.ArrayListAligned(child, info.alignment))
-                                return .{ .array_list_aligned = .{ child, info.alignment } };
+                                return .{ .array_list = .{child} };
                             if (T == std.ArrayListAlignedUnmanaged(child, info.alignment))
-                                return .{ .array_list_aligned_unmanaged = .{ child, info.alignment } };
+                                return .{ .array_list_aligned = .{ child, info.alignment } };
                         }
                     },
                     else => {},
@@ -2528,14 +2447,10 @@ pub const schema_utils = struct {
                 const KV = @field(T, "KV");
                 if (@typeInfo(KV) == .@"struct" and @hasField(KV, "value")) {
                     const V = @FieldType(KV, "value");
-                    if (T == std.StringArrayHashMap(V))
-                        return .{ .string_array_hash_map = .{V} };
-                    if (T == std.StringArrayHashMapUnmanaged(V))
-                        return .{ .string_array_hash_map_unmanaged = .{V} };
-                    if (T == std.StringHashMap(V))
-                        return .{ .string_hash_map = .{V} };
                     if (T == std.StringHashMapUnmanaged(V))
-                        return .{ .string_hash_map_unmanaged = .{V} };
+                        return .{ .string_hash_map = .{V} };
+                    if (T == std.StringArrayHashMapUnmanaged(V))
+                        return .{ .string_array_hash_map = .{V} };
                 }
             }
 

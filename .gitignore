@@ -9,3 +9,4 @@ exe
 .zig-cache
 .zig-out
 results
+target

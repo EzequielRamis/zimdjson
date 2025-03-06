@@ -50,20 +50,24 @@ pub fn Stream(comptime options: Options) type {
         head: Cursor align(atomic.cache_line) = .{},
         tail: Cursor align(atomic.cache_line) = .{},
 
-        built: bool = false,
+        built: bool,
 
         const bogus_token = ' ';
-        pub const init = std.mem.zeroInit(Self, .{});
+        pub const init = std.mem.zeroInit(Self, .{
+            .built = false,
+        });
 
-        pub fn build(self: *Self, reader: options.Reader) Error!void {
+        pub fn build(self: *Self, _: std.mem.Allocator, reader: options.Reader) Error!void {
             if (self.built) {
                 const document = self.document;
                 const indexes = self.indexes;
-                self.* = .{};
+                self.* = .{
+                    .built = true,
+                };
                 self.document = document;
                 self.indexes = indexes;
             } else {
-                self.* = .{};
+                self.* = .{ .built = false };
                 self.document = try .init();
                 self.indexes = try .init();
                 self.built = true;
@@ -74,7 +78,7 @@ pub fn Stream(comptime options: Options) type {
             self.head.ixs += written;
         }
 
-        pub fn deinit(self: *Self) void {
+        pub fn deinit(self: *Self, _: std.mem.Allocator) void {
             if (self.built) {
                 self.document.deinit();
                 self.indexes.deinit();

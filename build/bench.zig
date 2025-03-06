@@ -92,6 +92,31 @@ pub fn Suite(comptime suite: []const u8) type {
             return .{ .module = mod, .name = name };
         }
 
+        pub fn addRustBenchmark(self: Self, comptime name: []const u8) Benchmark {
+            const b = self.zimdjson.owner;
+            const identifier = self.suite ++ "_" ++ name;
+            const dir = "bench/" ++ self.suite ++ "/" ++ name;
+            const cargo = b.addSystemCommand(&.{ "cargo", "-Z", "unstable-options", "-C", dir, "build" });
+            if (b.release_mode != .off) {
+                cargo.addArg("-r");
+            }
+            const write_wrapper = b.addWriteFiles();
+            write_wrapper.step.dependOn(&cargo.step);
+            const mod = b.createModule(.{
+                .root_source_file = write_wrapper.add(identifier ++ ".zig", formatWrapper(identifier, name)),
+                .target = self.target,
+                .optimize = self.optimize,
+            });
+            mod.linkSystemLibrary(identifier, .{});
+            mod.addIncludePath(b.addWriteFiles().add(identifier ++ ".h", formatTemplateHeader(name)).dirname());
+            if (b.release_mode != .off) {
+                mod.addLibraryPath(b.path(dir ++ "/target/release"));
+            } else {
+                mod.addLibraryPath(b.path(dir ++ "/target/debug"));
+            }
+            return .{ .module = mod, .name = name };
+        }
+
         pub fn create(
             self: Self,
             benchs: []const Benchmark,
@@ -117,6 +142,7 @@ pub fn Suite(comptime suite: []const u8) type {
                 .target = self.target,
                 .optimize = self.optimize,
             });
+            runner.linkLibCpp();
             runner.root_module.addImport("benchmarks", mod);
             const artifact = b.addRunArtifact(runner);
             artifact.addArg(file_path);

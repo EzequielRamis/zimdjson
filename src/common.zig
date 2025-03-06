@@ -1,4 +1,5 @@
 const std = @import("std");
+const Allocator = std.mem.Allocator;
 
 pub const tables = struct {
     pub const is_structural: [256]bool = init: {
@@ -60,12 +61,13 @@ pub const tables = struct {
 };
 
 pub fn readAllArrayListAlignedRetainingCapacity(
+    allocator: Allocator,
     self: anytype,
     comptime alignment: ?u29,
-    array_list: *std.ArrayListAligned(u8, alignment),
+    array_list: *std.ArrayListAlignedUnmanaged(u8, alignment),
     max_append_size: usize,
 ) !void {
-    try array_list.ensureTotalCapacity(@min(max_append_size, 4096));
+    try array_list.ensureTotalCapacity(allocator, @min(max_append_size, 4096));
     const original_len = array_list.items.len;
     var start_index: usize = original_len;
     while (true) {
@@ -85,6 +87,6 @@ pub fn readAllArrayListAlignedRetainingCapacity(
         }
 
         // This will trigger ArrayList to expand superlinearly at whatever its growth rate is.
-        try array_list.ensureTotalCapacity(start_index + 1);
+        try array_list.ensureTotalCapacity(allocator, start_index + 1);
     }
 }

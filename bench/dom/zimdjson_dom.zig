@@ -7,7 +7,7 @@ const allocator = traced.allocator();
 
 var json: []u8 = undefined;
 var size: usize = 0;
-var parser = zimdjson.dom.parserFromSlice(.{ .assume_padding = true }).init(allocator);
+var parser = zimdjson.dom.parserFromSlice(.{ .assume_padding = true }).init;
 
 pub fn init(path: []const u8) !void {
     const file = try std.fs.openFileAbsolute(path, .{});
@@ -22,13 +22,13 @@ pub fn init(path: []const u8) !void {
 pub fn prerun() !void {}
 
 pub fn run() !void {
-    _ = try parser.parse(json[0..size]);
+    _ = try parser.parse(allocator, json[0..size]);
 }
 
 pub fn postrun() !void {}
 
 pub fn deinit() void {
-    parser.deinit();
+    parser.deinit(allocator);
     allocator.free(json);
 }
 

@@ -20,7 +20,7 @@ const allocator = traced.allocator();
 
 var file: std.fs.File = undefined;
 var path: []const u8 = undefined;
-var parser = zimdjson.ondemand.parserFromFile(.{ .stream = .default }).init(allocator);
+var parser = zimdjson.ondemand.parserFromFile(.{ .stream = .default }).init;
 var result = std.ArrayList(PartialTweet).init(allocator);
 
 pub fn init(_path: []const u8) !void {
@@ -33,19 +33,19 @@ pub fn prerun() !void {
 
 pub fn run() !void {
     file = try std.fs.openFileAbsolute(path, .{});
-    const doc = try parser.parseWithCapacity(file.reader(), (try file.stat()).size);
+    const doc = try parser.parseWithCapacity(allocator, file.reader(), (try file.stat()).size);
     const statuses = try doc.at("statuses").asArray();
     while (try statuses.next()) |tweet| {
         try result.append(.{
-            .created_at = try tweet.at("created_at").asString().get(),
+            .created_at = try tweet.at("created_at").asString().get(allocator),
             .id = try tweet.at("id").asUnsigned(),
-            .result = try tweet.at("text").asString().get(),
-            .in_reply_to_status_id = try tweet.at("in_reply_to_status_id").as(?u64) orelse 0,
+            .result = try tweet.at("text").asString().get(allocator),
+            .in_reply_to_status_id = try tweet.at("in_reply_to_status_id").asLeaky(?u64, null) orelse 0,
             .user = brk: {
                 const user = tweet.at("user");
                 break :brk .{
                     .id = try user.at("id").asUnsigned(),
-                    .screen_name = try user.at("screen_name").asString().get(),
+                    .screen_name = try user.at("screen_name").asString().get(allocator),
                 };
             },
             .retweet_count = try tweet.at("retweet_count").asUnsigned(),
@@ -59,7 +59,7 @@ pub fn postrun() !void {
 }
 
 pub fn deinit() void {
-    parser.deinit();
+    parser.deinit(allocator);
 }
 
 pub fn memusage() usize {

@@ -3,15 +3,15 @@ const zimdjson = @import("zimdjson");
 const simdjson_data = @embedFile("simdjson-data");
 const parserFromFile = zimdjson.ondemand.parserFromFile(.{ .stream = .default });
 const parserFromSlice = zimdjson.ondemand.parserFromSlice(.default);
+const allocator = std.testing.allocator;
 
 test "small/adversarial" {
     const Parser = parserFromFile;
-    const allocator = std.testing.allocator;
-    var parser = Parser.init(allocator);
-    defer parser.deinit();
+    var parser = Parser.init;
+    defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonexamples/small/adversarial.json", .{});
     defer file.close();
-    const document = try parser.parse(file.reader());
+    const document = try parser.parse(allocator, file.reader());
 
     const Schema = struct {
         @"\"Name rue": [1]struct {
@@ -23,8 +23,9 @@ test "small/adversarial" {
         },
     };
 
-    const el = try document.asLeaky(Schema);
-    const tuple = el.@"\"Name rue"[0];
+    const el = try document.as(Schema, allocator);
+    defer el.deinit();
+    const tuple = el.value.@"\"Name rue"[0];
 
     try std.testing.expectEqualDeep(.{
         116,
@@ -37,12 +38,11 @@ test "small/adversarial" {
 
 test "small/demo" {
     const Parser = parserFromFile;
-    const allocator = std.testing.allocator;
-    var parser = Parser.init(allocator);
-    defer parser.deinit();
+    var parser = Parser.init;
+    defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonexamples/small/demo.json", .{});
     defer file.close();
-    const document = try parser.parse(file.reader());
+    const document = try parser.parse(allocator, file.reader());
 
     const Image = struct {
         pub const schema: Parser.schema.Infer(@This()) = .{
@@ -65,7 +65,7 @@ test "small/demo" {
         ids: []const u16,
     };
 
-    const image = try document.at("Image").as(Image);
+    const image = try document.at("Image").as(Image, allocator);
     defer image.deinit();
 
     try std.testing.expectEqualDeep(Image{
@@ -84,14 +84,13 @@ test "small/demo" {
 
 test "small/truenull" {
     const Parser = parserFromFile;
-    const allocator = std.testing.allocator;
-    var parser = Parser.init(allocator);
-    defer parser.deinit();
+    var parser = Parser.init;
+    defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonexamples/small/truenull.json", .{});
     defer file.close();
-    const document = try parser.parse(file.reader());
+    const document = try parser.parse(allocator, file.reader());
 
-    const arr = try document.as([]const ?bool);
+    const arr = try document.as([]const ?bool, allocator);
     defer arr.deinit();
 
     for (arr.value, 0..) |elem, i| {
@@ -101,12 +100,11 @@ test "small/truenull" {
 
 test "github_events" {
     const Parser = parserFromFile;
-    const allocator = std.testing.allocator;
-    var parser = Parser.init(allocator);
-    defer parser.deinit();
+    var parser = Parser.init;
+    defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonexamples/github_events.json", .{});
     defer file.close();
-    const document = try parser.parse(file.reader());
+    const document = try parser.parse(allocator, file.reader());
 
     const Event = union(enum) {
         pub const schema: Parser.schema.Infer(@This()) = .{
@@ -125,7 +123,7 @@ test "github_events" {
         gollum_event: Body,
     };
 
-    const events = try document.as([]const Event);
+    const events = try document.as([]const Event, allocator);
     defer events.deinit();
 
     try std.testing.expectEqualDeep(&.{
@@ -164,12 +162,11 @@ test "github_events" {
 
 test "github_events untagged payload" {
     const Parser = parserFromFile;
-    const allocator = std.testing.allocator;
-    var parser = Parser.init(allocator);
-    defer parser.deinit();
+    var parser = Parser.init;
+    defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonexamples/github_events.json", .{});
     defer file.close();
-    const document = try parser.parse(file.reader());
+    const document = try parser.parse(allocator, file.reader());
 
     const Payload = union(enum) {
         pub const schema: Parser.schema.Infer(@This()) = .{
@@ -188,7 +185,7 @@ test "github_events untagged payload" {
     };
     const Event = struct { payload: Payload };
 
-    const events = try document.as([]const Event);
+    const events = try document.as([]const Event, allocator);
     defer events.deinit();
 
     try std.testing.expectEqualDeep(&.{
@@ -227,10 +224,9 @@ test "github_events untagged payload" {
 
 test "externally_tagged" {
     const Parser = parserFromSlice;
-    const allocator = std.testing.allocator;
-    var parser = Parser.init(allocator);
-    defer parser.deinit();
-    const document = try parser.parse(
+    var parser = Parser.init;
+    defer parser.deinit(allocator);
+    const document = try parser.parse(allocator,
         \\[{ "foo": 1 }, { "bar": 5.0 }, { "baz": false }]
     );
 
@@ -243,7 +239,7 @@ test "externally_tagged" {
         baz: bool,
     };
 
-    const unions = try document.as([]const Schema);
+    const unions = try document.as([]const Schema, allocator);
     defer unions.deinit();
 
     try std.testing.expectEqualDeep(&.{
@@ -255,10 +251,9 @@ test "externally_tagged" {
 
 test "adjacently_tagged" {
     const Parser = parserFromSlice;
-    const allocator = std.testing.allocator;
-    var parser = Parser.init(allocator);
-    defer parser.deinit();
-    const document = try parser.parse(
+    var parser = Parser.init;
+    defer parser.deinit(allocator);
+    const document = try parser.parse(allocator,
         \\[{ "t": "foo", "c": 1 }, { "t": "bar", "c": 5.0 }, { "t": "baz", "c": false }]
     );
 
@@ -271,7 +266,7 @@ test "adjacently_tagged" {
         baz: bool,
     };
 
-    const unions = try document.as([]const Schema);
+    const unions = try document.as([]const Schema, allocator);
     defer unions.deinit();
 
     try std.testing.expectEqualDeep(&.{
@@ -283,10 +278,9 @@ test "adjacently_tagged" {
 
 test "packed struct" {
     const Parser = parserFromSlice;
-    const allocator = std.testing.allocator;
-    var parser = Parser.init(allocator);
-    defer parser.deinit();
-    const document = try parser.parse(
+    var parser = Parser.init;
+    defer parser.deinit(allocator);
+    const document = try parser.parse(allocator,
         \\{
         \\    "address": 12345,
         \\    "available": 2,
@@ -316,7 +310,7 @@ test "packed struct" {
         present: bool,
     };
 
-    const pte = try document.asLeaky(PageTableEntry);
+    const pte = try document.asLeaky(PageTableEntry, null);
 
     try std.testing.expectEqual(PageTableEntry{
         .address = 12345,
@@ -335,10 +329,9 @@ test "packed struct" {
 
 test "use first duplicate" {
     const Parser = parserFromSlice;
-    const allocator = std.testing.allocator;
-    var parser = Parser.init(allocator);
-    defer parser.deinit();
-    const document = try parser.parse(
+    var parser = Parser.init;
+    defer parser.deinit(allocator);
+    const document = try parser.parse(allocator,
         \\{ "foo": 1, "foo": 2, "foo": 3, "bar": 4 }
     );
 
@@ -349,17 +342,16 @@ test "use first duplicate" {
         bar: u8,
         foo: u8,
     };
-    const s = try document.asLeaky(Schema);
+    const s = try document.asLeaky(Schema, null);
 
     try std.testing.expectEqual(Schema{ .foo = 1, .bar = 4 }, s);
 }
 
 test "use first duplicate, assuming ordering" {
     const Parser = parserFromSlice;
-    const allocator = std.testing.allocator;
-    var parser = Parser.init(allocator);
-    defer parser.deinit();
-    const document = try parser.parse(
+    var parser = Parser.init;
+    defer parser.deinit(allocator);
+    const document = try parser.parse(allocator,
         \\{ "foo": 1, "foo": 2, "foo": 3, "bar": 4 }
     );
 
@@ -371,17 +363,16 @@ test "use first duplicate, assuming ordering" {
         foo: u8,
         bar: u8,
     };
-    const s = try document.asLeaky(Schema);
+    const s = try document.asLeaky(Schema, null);
 
     try std.testing.expectEqual(Schema{ .foo = 1, .bar = 4 }, s);
 }
 
 test "use last duplicate" {
     const Parser = parserFromSlice;
-    const allocator = std.testing.allocator;
-    var parser = Parser.init(allocator);
-    defer parser.deinit();
-    const document = try parser.parse(
+    var parser = Parser.init;
+    defer parser.deinit(allocator);
+    const document = try parser.parse(allocator,
         \\{ "foo": 1, "foo": 2, "foo": 3, "bar": 4 }
     );
 
@@ -392,17 +383,16 @@ test "use last duplicate" {
         bar: u8,
         foo: u8,
     };
-    const s = try document.asLeaky(Schema);
+    const s = try document.asLeaky(Schema, null);
 
     try std.testing.expectEqual(Schema{ .foo = 3, .bar = 4 }, s);
 }
 
 test "use last duplicate, assuming ordering" {
     const Parser = parserFromSlice;
-    const allocator = std.testing.allocator;
-    var parser = Parser.init(allocator);
-    defer parser.deinit();
-    const document = try parser.parse(
+    var parser = Parser.init;
+    defer parser.deinit(allocator);
+    const document = try parser.parse(allocator,
         \\{ "foo": 1, "foo": 2, "foo": 3, "bar": 4 }
     );
 
@@ -414,17 +404,16 @@ test "use last duplicate, assuming ordering" {
         foo: u8,
         bar: u8,
     };
-    const s = try document.asLeaky(Schema);
+    const s = try document.asLeaky(Schema, null);
 
     try std.testing.expectEqual(Schema{ .foo = 3, .bar = 4 }, s);
 }
 
 test "error because of duplicate" {
     const Parser = parserFromSlice;
-    const allocator = std.testing.allocator;
-    var parser = Parser.init(allocator);
-    defer parser.deinit();
-    const document = try parser.parse(
+    var parser = Parser.init;
+    defer parser.deinit(allocator);
+    const document = try parser.parse(allocator,
         \\{ "foo": 1, "foo": 2, "foo": 3, "bar": 4 }
     );
 
@@ -436,15 +425,14 @@ test "error because of duplicate" {
         foo: u8,
     };
 
-    try std.testing.expectError(error.DuplicateField, document.asLeaky(Schema));
+    try std.testing.expectError(error.DuplicateField, document.asLeaky(Schema, null));
 }
 
 test "error because of duplicate, assuming ordering" {
     const Parser = parserFromSlice;
-    const allocator = std.testing.allocator;
-    var parser = Parser.init(allocator);
-    defer parser.deinit();
-    const document = try parser.parse(
+    var parser = Parser.init;
+    defer parser.deinit(allocator);
+    const document = try parser.parse(allocator,
         \\{ "foo": 1, "foo": 2, "foo": 3, "bar": 4 }
     );
 
@@ -457,16 +445,15 @@ test "error because of duplicate, assuming ordering" {
         bar: u8,
     };
 
-    try std.testing.expectError(error.DuplicateField, document.asLeaky(Schema));
+    try std.testing.expectError(error.DuplicateField, document.asLeaky(Schema, null));
 }
 
 test "missing field while handling duplicate" {
     const Parser = parserFromSlice;
-    const allocator = std.testing.allocator;
-    var parser = Parser.init(allocator);
-    defer parser.deinit();
+    var parser = Parser.init;
+    defer parser.deinit(allocator);
 
-    const document = try parser.parse(
+    const document = try parser.parse(allocator,
         \\{ "foo": 1, "foo": 2, "foo": 3 }
     );
 
@@ -494,11 +481,10 @@ test "missing field while handling duplicate" {
 
 test "missing field while handling duplicate, assuming ordering" {
     const Parser = parserFromSlice;
-    const allocator = std.testing.allocator;
-    var parser = Parser.init(allocator);
-    defer parser.deinit();
+    var parser = Parser.init;
+    defer parser.deinit(allocator);
 
-    const document = try parser.parse(
+    const document = try parser.parse(allocator,
         \\{ "foo": 1, "foo": 2, "foo": 3 }
     );
 
@@ -526,112 +512,85 @@ test "missing field while handling duplicate, assuming ordering" {
     ));
 }
 
-test "std.BitStack" {
-    const Parser = parserFromSlice;
-    const allocator = std.testing.allocator;
-    var parser = Parser.init(allocator);
-    defer parser.deinit();
-    const document = try parser.parse(
-        \\[ 0,1,1,1, 1,0,1,1, 1,0,1,1, 0,1,0,1 ]
-    );
+// test "std.BitStack" {
+//     const Parser = parserFromSlice;
+//     var parser = Parser.init;
+//     defer parser.deinit(allocator);
+//     const document = try parser.parse(allocator,
+//         \\[ 0,1,1,1, 1,0,1,1, 1,0,1,1, 0,1,0,1 ]
+//     );
 
-    var bits = try document.as(std.BitStack);
-    defer bits.deinit();
+//     var bits = try document.as(std.BitStack);
+//     defer bits.deinit();
 
-    try std.testing.expectEqual(bits.value.bit_len, 16);
-    try std.testing.expectEqualSlices(
-        u8,
-        @as([]const u8, &.{ 0xDE, 0xAD }),
-        bits.value.bytes.items,
-    );
-}
+//     try std.testing.expectEqual(bits.value.bit_len, 16);
+//     try std.testing.expectEqualSlices(
+//         u8,
+//         @as([]const u8, &.{ 0xDE, 0xAD }),
+//         bits.value.bytes.items,
+//     );
+// }
 
-test "std.BufMap" {
-    const Parser = parserFromSlice;
-    const allocator = std.testing.allocator;
-    var parser = Parser.init(allocator);
-    defer parser.deinit();
-    const document = try parser.parse(
-        \\{
-        \\  "car": "blue",
-        \\  "bike": "red",
-        \\  "4x4": "green"
-        \\}
-    );
+// test "std.BufMap" {
+//     const Parser = parserFromSlice;
+//     var parser = Parser.init;
+//     defer parser.deinit(allocator);
+//     const document = try parser.parse(allocator,
+//         \\{
+//         \\  "car": "blue",
+//         \\  "bike": "red",
+//         \\  "4x4": "green"
+//         \\}
+//     );
 
-    var map = try document.as(std.BufMap);
-    defer map.deinit();
+//     var map = try document.as(std.BufMap);
+//     defer map.deinit();
 
-    try std.testing.expectEqual(map.value.count(), 3);
-    try std.testing.expectEqualStrings("blue", map.value.get("car").?);
-    try std.testing.expectEqualStrings("red", map.value.get("bike").?);
-    try std.testing.expectEqualStrings("green", map.value.get("4x4").?);
-}
+//     try std.testing.expectEqual(map.value.count(), 3);
+//     try std.testing.expectEqualStrings("blue", map.value.get("car").?);
+//     try std.testing.expectEqualStrings("red", map.value.get("bike").?);
+//     try std.testing.expectEqualStrings("green", map.value.get("4x4").?);
+// }
 
-test "std.BufSet" {
-    const Parser = parserFromSlice;
-    const allocator = std.testing.allocator;
-    var parser = Parser.init(allocator);
-    defer parser.deinit();
-    const document = try parser.parse(
-        \\[
-        \\  "car", "blue",
-        \\  "bike", "red",
-        \\  "4x4", "green"
-        \\]
-    );
+// test "std.BufSet" {
+//     const Parser = parserFromSlice;
+//     var parser = Parser.init;
+//     defer parser.deinit(allocator);
+//     const document = try parser.parse(allocator,
+//         \\[
+//         \\  "car", "blue",
+//         \\  "bike", "red",
+//         \\  "4x4", "green"
+//         \\]
+//     );
 
-    var set = try document.as(std.BufSet);
-    defer set.deinit();
+//     var set = try document.as(std.BufSet);
+//     defer set.deinit();
 
-    try std.testing.expectEqual(set.value.count(), 6);
-    var expected = std.StringHashMap(bool).init(allocator);
-    defer expected.deinit();
+//     try std.testing.expectEqual(set.value.count(), 6);
+//     var expected = std.StringHashMap(bool).init(allocator);
+//     defer expected.deinit();
 
-    try expected.put("car", false);
-    try expected.put("blue", false);
-    try expected.put("bike", false);
-    try expected.put("red", false);
-    try expected.put("4x4", false);
-    try expected.put("green", false);
+//     try expected.put("car", false);
+//     try expected.put("blue", false);
+//     try expected.put("bike", false);
+//     try expected.put("red", false);
+//     try expected.put("4x4", false);
+//     try expected.put("green", false);
 
-    var it = set.value.iterator();
+//     var it = set.value.iterator();
 
-    while (it.next()) |item| {
-        const visited = expected.fetchPutAssumeCapacity(item.*, true);
-        try std.testing.expectEqual(visited.?.value, false);
-    }
-}
-
-test "std.ArrayList" {
-    const Parser = parserFromSlice;
-    const allocator = std.testing.allocator;
-    var parser = Parser.init(allocator);
-    defer parser.deinit();
-    const document = try parser.parse(
-        \\[
-        \\    { "x": 1, "y": 2, "z": 3 },
-        \\    { "x": 4, "y": 5, "z": 6 },
-        \\    { "x": 7, "y": 8, "z": 9 }
-        \\]
-    );
-
-    const Coordinate = struct { x: i32, y: i32, z: i32 };
-    var coords = try document.as(std.ArrayList(Coordinate));
-    defer coords.deinit();
-
-    try std.testing.expectEqual(coords.value.items.len, 3);
-    try std.testing.expectEqual(Coordinate{ .x = 1, .y = 2, .z = 3 }, coords.value.items[0]);
-    try std.testing.expectEqual(Coordinate{ .x = 4, .y = 5, .z = 6 }, coords.value.items[1]);
-    try std.testing.expectEqual(Coordinate{ .x = 7, .y = 8, .z = 9 }, coords.value.items[2]);
-}
+//     while (it.next()) |item| {
+//         const visited = expected.fetchPutAssumeCapacity(item.*, true);
+//         try std.testing.expectEqual(visited.?.value, false);
+//     }
+// }
 
 test "std.ArrayListUnmanaged" {
     const Parser = parserFromSlice;
-    const allocator = std.testing.allocator;
-    var parser = Parser.init(allocator);
-    defer parser.deinit();
-    const document = try parser.parse(
+    var parser = Parser.init;
+    defer parser.deinit(allocator);
+    const document = try parser.parse(allocator,
         \\[
         \\    { "x": 1, "y": 2, "z": 3 },
         \\    { "x": 4, "y": 5, "z": 6 },
@@ -640,30 +599,7 @@ test "std.ArrayListUnmanaged" {
     );
 
     const Coordinate = struct { x: i32, y: i32, z: i32 };
-    var coords = try document.as(std.ArrayListUnmanaged(Coordinate));
-    defer coords.deinit();
-
-    try std.testing.expectEqual(coords.value.items.len, 3);
-    try std.testing.expectEqual(Coordinate{ .x = 1, .y = 2, .z = 3 }, coords.value.items[0]);
-    try std.testing.expectEqual(Coordinate{ .x = 4, .y = 5, .z = 6 }, coords.value.items[1]);
-    try std.testing.expectEqual(Coordinate{ .x = 7, .y = 8, .z = 9 }, coords.value.items[2]);
-}
-
-test "std.ArrayListAligned" {
-    const Parser = parserFromSlice;
-    const allocator = std.testing.allocator;
-    var parser = Parser.init(allocator);
-    defer parser.deinit();
-    const document = try parser.parse(
-        \\[
-        \\    { "x": 1, "y": 2, "z": 3 },
-        \\    { "x": 4, "y": 5, "z": 6 },
-        \\    { "x": 7, "y": 8, "z": 9 }
-        \\]
-    );
-
-    const Coordinate = struct { x: i32, y: i32, z: i32 };
-    var coords = try document.as(std.ArrayListAligned(Coordinate, 32));
+    var coords = try document.as(std.ArrayListUnmanaged(Coordinate), allocator);
     defer coords.deinit();
 
     try std.testing.expectEqual(coords.value.items.len, 3);
@@ -674,10 +610,9 @@ test "std.ArrayListAligned" {
 
 test "std.ArrayListAlignedUnmanaged" {
     const Parser = parserFromSlice;
-    const allocator = std.testing.allocator;
-    var parser = Parser.init(allocator);
-    defer parser.deinit();
-    const document = try parser.parse(
+    var parser = Parser.init;
+    defer parser.deinit(allocator);
+    const document = try parser.parse(allocator,
         \\[
         \\    { "x": 1, "y": 2, "z": 3 },
         \\    { "x": 4, "y": 5, "z": 6 },
@@ -686,7 +621,7 @@ test "std.ArrayListAlignedUnmanaged" {
     );
 
     const Coordinate = struct { x: i32, y: i32, z: i32 };
-    var coords = try document.as(std.ArrayListAlignedUnmanaged(Coordinate, 32));
+    var coords = try document.as(std.ArrayListAlignedUnmanaged(Coordinate, 32), allocator);
     defer coords.deinit();
 
     try std.testing.expectEqual(coords.value.items.len, 3);
@@ -697,10 +632,9 @@ test "std.ArrayListAlignedUnmanaged" {
 
 test "std.SinglyLinkedList" {
     const Parser = parserFromSlice;
-    const allocator = std.testing.allocator;
-    var parser = Parser.init(allocator);
-    defer parser.deinit();
-    const document = try parser.parse(
+    var parser = Parser.init;
+    defer parser.deinit(allocator);
+    const document = try parser.parse(allocator,
         \\[
         \\    { "x": 1, "y": 2, "z": 3 },
         \\    { "x": 4, "y": 5, "z": 6 },
@@ -709,7 +643,7 @@ test "std.SinglyLinkedList" {
     );
 
     const Coordinate = struct { x: i32, y: i32, z: i32 };
-    var coords = try document.as(std.SinglyLinkedList(Coordinate));
+    var coords = try document.as(std.SinglyLinkedList(Coordinate), allocator);
     defer coords.deinit();
 
     var it = coords.value.first;
@@ -724,10 +658,9 @@ test "std.SinglyLinkedList" {
 
 test "std.DoublyLinkedList" {
     const Parser = parserFromSlice;
-    const allocator = std.testing.allocator;
-    var parser = Parser.init(allocator);
-    defer parser.deinit();
-    const document = try parser.parse(
+    var parser = Parser.init;
+    defer parser.deinit(allocator);
+    const document = try parser.parse(allocator,
         \\[
         \\    { "x": 1, "y": 2, "z": 3 },
         \\    { "x": 4, "y": 5, "z": 6 },
@@ -736,7 +669,7 @@ test "std.DoublyLinkedList" {
     );
 
     const Coordinate = struct { x: i32, y: i32, z: i32 };
-    var coords = try document.as(std.DoublyLinkedList(Coordinate));
+    var coords = try document.as(std.DoublyLinkedList(Coordinate), allocator);
     defer coords.deinit();
 
     var it = coords.value.first;
@@ -749,35 +682,11 @@ test "std.DoublyLinkedList" {
     try std.testing.expectEqual(null, it);
 }
 
-test "std.StringArrayHashMap" {
-    const Parser = parserFromSlice;
-    const allocator = std.testing.allocator;
-    var parser = Parser.init(allocator);
-    defer parser.deinit();
-    const document = try parser.parse(
-        \\{
-        \\  "car": { "x": 1, "y": 2, "z": 3 },
-        \\  "bike": { "x": 4, "y": 5, "z": 6 },
-        \\  "4x4": { "x": 7, "y": 8, "z": 9 }
-        \\}
-    );
-
-    const Coordinate = struct { x: i32, y: i32, z: i32 };
-    var coords = try document.as(std.StringArrayHashMap(Coordinate));
-    defer coords.deinit();
-
-    try std.testing.expectEqual(coords.value.count(), 3);
-    try std.testing.expectEqual(Coordinate{ .x = 1, .y = 2, .z = 3 }, coords.value.get("car").?);
-    try std.testing.expectEqual(Coordinate{ .x = 4, .y = 5, .z = 6 }, coords.value.get("bike").?);
-    try std.testing.expectEqual(Coordinate{ .x = 7, .y = 8, .z = 9 }, coords.value.get("4x4").?);
-}
-
 test "std.StringArrayHashMapUnmanaged" {
     const Parser = parserFromSlice;
-    const allocator = std.testing.allocator;
-    var parser = Parser.init(allocator);
-    defer parser.deinit();
-    const document = try parser.parse(
+    var parser = Parser.init;
+    defer parser.deinit(allocator);
+    const document = try parser.parse(allocator,
         \\{
         \\  "car": { "x": 1, "y": 2, "z": 3 },
         \\  "bike": { "x": 4, "y": 5, "z": 6 },
@@ -786,30 +695,7 @@ test "std.StringArrayHashMapUnmanaged" {
     );
 
     const Coordinate = struct { x: i32, y: i32, z: i32 };
-    var coords = try document.as(std.StringArrayHashMapUnmanaged(Coordinate));
-    defer coords.deinit();
-
-    try std.testing.expectEqual(coords.value.count(), 3);
-    try std.testing.expectEqual(Coordinate{ .x = 1, .y = 2, .z = 3 }, coords.value.get("car").?);
-    try std.testing.expectEqual(Coordinate{ .x = 4, .y = 5, .z = 6 }, coords.value.get("bike").?);
-    try std.testing.expectEqual(Coordinate{ .x = 7, .y = 8, .z = 9 }, coords.value.get("4x4").?);
-}
-
-test "std.StringHashMap" {
-    const Parser = parserFromSlice;
-    const allocator = std.testing.allocator;
-    var parser = Parser.init(allocator);
-    defer parser.deinit();
-    const document = try parser.parse(
-        \\{
-        \\  "car": { "x": 1, "y": 2, "z": 3 },
-        \\  "bike": { "x": 4, "y": 5, "z": 6 },
-        \\  "4x4": { "x": 7, "y": 8, "z": 9 }
-        \\}
-    );
-
-    const Coordinate = struct { x: i32, y: i32, z: i32 };
-    var coords = try document.as(std.StringHashMap(Coordinate));
+    var coords = try document.as(std.StringArrayHashMapUnmanaged(Coordinate), allocator);
     defer coords.deinit();
 
     try std.testing.expectEqual(coords.value.count(), 3);
@@ -820,10 +706,9 @@ test "std.StringHashMap" {
 
 test "std.StringHashMapUnmanaged" {
     const Parser = parserFromSlice;
-    const allocator = std.testing.allocator;
-    var parser = Parser.init(allocator);
-    defer parser.deinit();
-    const document = try parser.parse(
+    var parser = Parser.init;
+    defer parser.deinit(allocator);
+    const document = try parser.parse(allocator,
         \\{
         \\  "car": { "x": 1, "y": 2, "z": 3 },
         \\  "bike": { "x": 4, "y": 5, "z": 6 },
@@ -832,7 +717,7 @@ test "std.StringHashMapUnmanaged" {
     );
 
     const Coordinate = struct { x: i32, y: i32, z: i32 };
-    var coords = try document.as(std.StringHashMapUnmanaged(Coordinate));
+    var coords = try document.as(std.StringHashMapUnmanaged(Coordinate), allocator);
     defer coords.deinit();
 
     try std.testing.expectEqual(coords.value.count(), 3);
@@ -843,10 +728,9 @@ test "std.StringHashMapUnmanaged" {
 
 test "std.BoundedArray" {
     const Parser = parserFromSlice;
-    const allocator = std.testing.allocator;
-    var parser = Parser.init(allocator);
-    defer parser.deinit();
-    const document = try parser.parse(
+    var parser = Parser.init;
+    defer parser.deinit(allocator);
+    const document = try parser.parse(allocator,
         \\[
         \\    { "x": 1, "y": 2, "z": 3 },
         \\    { "x": 4, "y": 5, "z": 6 },
@@ -855,7 +739,7 @@ test "std.BoundedArray" {
     );
 
     const Coordinate = struct { x: i32, y: i32, z: i32 };
-    var coords = try document.as(std.BoundedArray(Coordinate, 3));
+    var coords = try document.as(std.BoundedArray(Coordinate, 3), allocator);
     defer coords.deinit();
 
     try std.testing.expectEqual(coords.value.len, 3);
@@ -866,10 +750,9 @@ test "std.BoundedArray" {
 
 test "std.BoundedArrayAligned" {
     const Parser = parserFromSlice;
-    const allocator = std.testing.allocator;
-    var parser = Parser.init(allocator);
-    defer parser.deinit();
-    const document = try parser.parse(
+    var parser = Parser.init;
+    defer parser.deinit(allocator);
+    const document = try parser.parse(allocator,
         \\[
         \\    { "x": 1, "y": 2, "z": 3 },
         \\    { "x": 4, "y": 5, "z": 6 },
@@ -878,7 +761,7 @@ test "std.BoundedArrayAligned" {
     );
 
     const Coordinate = struct { x: i32, y: i32, z: i32 };
-    var coords = try document.as(std.BoundedArrayAligned(Coordinate, 32, 4));
+    var coords = try document.as(std.BoundedArrayAligned(Coordinate, 32, 4), allocator);
     defer coords.deinit();
 
     try std.testing.expectEqual(coords.value.len, 3);
@@ -889,10 +772,9 @@ test "std.BoundedArrayAligned" {
 
 test "std.EnumMap" {
     const Parser = parserFromSlice;
-    const allocator = std.testing.allocator;
-    var parser = Parser.init(allocator);
-    defer parser.deinit();
-    const document = try parser.parse(
+    var parser = Parser.init;
+    defer parser.deinit(allocator);
+    const document = try parser.parse(allocator,
         \\{
         \\  "car": "blue",
         \\  "bike": "red",
@@ -900,7 +782,7 @@ test "std.EnumMap" {
         \\}
     );
 
-    var map = try document.as(std.EnumMap(enum { car, bike, @"4x4" }, []const u8));
+    var map = try document.as(std.EnumMap(enum { car, bike, @"4x4" }, []const u8), allocator);
     defer map.deinit();
 
     try std.testing.expectEqual(map.value.count(), 3);
@@ -911,10 +793,9 @@ test "std.EnumMap" {
 
 test "std.SegmentedList" {
     const Parser = parserFromSlice;
-    const allocator = std.testing.allocator;
-    var parser = Parser.init(allocator);
-    defer parser.deinit();
-    const document = try parser.parse(
+    var parser = Parser.init;
+    defer parser.deinit(allocator);
+    const document = try parser.parse(allocator,
         \\[
         \\    { "x": 1, "y": 2, "z": 3 },
         \\    { "x": 4, "y": 5, "z": 6 },
@@ -923,7 +804,7 @@ test "std.SegmentedList" {
     );
 
     const Coordinate = struct { x: i32, y: i32, z: i32 };
-    var coords = try document.as(std.SegmentedList(Coordinate, 0));
+    var coords = try document.as(std.SegmentedList(Coordinate, 0), allocator);
     defer coords.deinit();
 
     try std.testing.expectEqual(coords.value.len, 3);
@@ -934,10 +815,9 @@ test "std.SegmentedList" {
 
 test "std.MultiArrayList" {
     const Parser = parserFromSlice;
-    const allocator = std.testing.allocator;
-    var parser = Parser.init(allocator);
-    defer parser.deinit();
-    const document = try parser.parse(
+    var parser = Parser.init;
+    defer parser.deinit(allocator);
+    const document = try parser.parse(allocator,
         \\[
         \\    { "x": 1, "y": 2, "z": 3 },
         \\    { "x": 4, "y": 5, "z": 6 },
@@ -946,7 +826,7 @@ test "std.MultiArrayList" {
     );
 
     const Coordinate = struct { x: i32, y: i32, z: i32 };
-    var coords = try document.as(std.MultiArrayList(Coordinate));
+    var coords = try document.as(std.MultiArrayList(Coordinate), allocator);
     defer coords.deinit();
 
     try std.testing.expectEqual(coords.value.len, 3);

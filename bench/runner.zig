@@ -192,6 +192,7 @@ pub fn main() !void {
 
         const first_start = timer.read();
         var sample_index: usize = 0;
+        var mem_allocated: u64 = 0;
         while ((sample_index < min_samples or
             (timer.read() - first_start) < max_nano_seconds) and
             sample_index < samples_buf.len) : (sample_index += 1)
@@ -211,7 +212,7 @@ pub fn main() !void {
 
             _ = std.os.linux.ioctl(perf_fds[0], PERF.EVENT_IOC.DISABLE, PERF.IOC_FLAG_GROUP);
 
-            const mem_allocated = command.events.memusage() -| file_size;
+            if (sample_index == 0) mem_allocated = command.events.memusage() -| file_size;
 
             try @call(.never_inline, command.events.postrun, .{});
 

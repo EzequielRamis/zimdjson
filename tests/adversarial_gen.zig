@@ -56,11 +56,11 @@ pub fn main() !void {
         try checker_zig_content.appendSlice(try std.fmt.bufPrint(&buf,
             \\test "{[id]s}" {{
             \\    const allocator = std.testing.allocator;
-            \\    var parser = Parser.init(allocator);
-            \\    defer parser.deinit();
+            \\    var parser = Parser.init;
+            \\    defer parser.deinit(allocator);
             \\    const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/{[path]s}", .{{}});
             \\    defer file.close();
-            \\    _ = parser.parse(file.reader()) catch return;
+            \\    _ = parser.parse(allocator, file.reader()) catch return;
             \\    return error.MustHaveFailed;
             \\}}
             \\

@@ -11,6 +11,7 @@ const Number = types.Number;
 const vector = types.vector;
 const log = std.log;
 const assert = std.debug.assert;
+const ArenaAllocator = std.heap.ArenaAllocator;
 const ArrayList = std.ArrayListUnmanaged;
 
 pub const default_stream_chunk_length = tokens.ring_buffer.default_chunk_length;
@@ -74,9 +75,8 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
 
         document_buffer: if (need_document_buffer) std.ArrayListAlignedUnmanaged(u8, types.Aligned(true).alignment) else void,
 
-        arena: std.heap.ArenaAllocator = .{ .state = .{}, .child_allocator = undefined },
-        strings: types.BoundedArrayListUnmanaged(u8, max_capacity_bound),
-        temporal_string_buffer: if (want_stream) [options.stream.?.chunk_length + Vector.bytes_len]u8 else void = undefined,
+        allocator: Allocator,
+        string_buffer: StringBuffer,
 
         cursor: Cursor,
 
@@ -84,14 +84,11 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
         max_depth: usize,
         capacity: usize,
 
-        pub fn recommendedStringBuffer() ?type {
-            return if (want_stream) [options.stream.?.chunk_length + Vector.bytes_len]u8 else null;
-        }
-
         pub const init: Self = .{
+            .allocator = undefined,
             .cursor = .init,
             .document_buffer = if (need_document_buffer) .empty else {},
-            .strings = .empty,
+            .string_buffer = .init,
             .max_capacity = max_capacity_bound,
             .max_depth = default_max_depth,
             .capacity = 0,
@@ -99,7 +96,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
 
         pub fn deinit(self: *Self, allocator: Allocator) void {
             self.cursor.deinit(allocator);
-            self.arena.deinit();
+            self.string_buffer.deinit(allocator);
             if (need_document_buffer) self.document_buffer.deinit(allocator);
         }
 
@@ -132,12 +129,17 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
         }
 
         pub fn parse(self: *Self, allocator: Allocator, document: if (Reader) |reader| reader else Aligned.slice) Error!Document {
-            _ = self.arena.reset(.retain_capacity);
-            self.arena.child_allocator = allocator;
-            self.strings.list.clearRetainingCapacity();
+            if (builtin.mode == .Debug) {
+                try self.cursor.start_positions.ensureTotalCapacity(allocator, self.max_depth);
+                self.cursor.start_positions.expandToCapacity();
+            }
+
+            _ = self.string_buffer.reset(allocator, .retain_capacity);
+            self.allocator = allocator;
+
             if (need_document_buffer) {
                 self.document_buffer.clearRetainingCapacity();
-                try @as(Error!void, @errorCast(common.readAllArrayListAlignedRetainingCapacity(
+                try @as(Error!void, @errorCast(common.readAllRetainingCapacity(
                     allocator,
                     document,
                     types.Aligned(true).alignment,
@@ -145,26 +147,22 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     self.max_capacity,
                 )));
                 const len = self.document_buffer.items.len;
-                try self.document_buffer.appendNTimes(allocator, ' ', types.Vector.bytes_len);
                 try self.ensureTotalCapacity(allocator, len);
-                try self.strings.ensureTotalCapacity(self.arena.allocator(), len);
+                try self.string_buffer.ensureTotalCapacity(allocator, len + types.Vector.bytes_len);
+                self.document_buffer.appendNTimesAssumeCapacity(' ', types.Vector.bytes_len);
                 try self.cursor.tokens.build(allocator, self.document_buffer.items[0..len]);
             } else {
                 if (!want_stream) {
                     try self.ensureTotalCapacity(allocator, document.len);
-                    try self.strings.ensureTotalCapacity(self.arena.allocator(), document.len);
+                    try self.string_buffer.ensureTotalCapacity(allocator, document.len + types.Vector.bytes_len);
                 }
                 try self.cursor.tokens.build(allocator, document);
             }
+
             self.cursor.document = self;
-            self.cursor.strings = if (want_stream) 0 else self.strings.items().ptr;
             self.cursor.depth = 1;
             self.cursor.root = if (want_stream) 0 else @intFromPtr(self.cursor.tokens.indexes.items.ptr);
             self.cursor.err = null;
-            if (builtin.mode == .Debug) {
-                try self.cursor.start_positions.ensureTotalCapacity(allocator, self.max_depth);
-                self.cursor.start_positions.expandToCapacity();
-            }
 
             return .{
                 .iter = .{
@@ -174,44 +172,6 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     .start_char = self.cursor.peekChar(),
                 },
             };
-        }
-
-        pub fn parseAssumeCapacity(self: *Self, allocator: Allocator, document: if (Reader) |reader| reader else Aligned.slice) Error!Document {
-            if (need_document_buffer) {
-                self.document_buffer.expandToCapacity();
-                const len = try document.readAll(self.document_buffer.items);
-                if (len > self.capacity) return error.ExceededCapacity;
-                self.document_buffer.items.len = len;
-                try self.document_buffer.appendNTimes(allocator, ' ', types.Vector.bytes_len);
-                try self.cursor.tokens.build(allocator, self.document_buffer.items[0..len]);
-            } else {
-                if (!want_stream) if (document.len > self.capacity) return error.ExceededCapacity;
-                try self.cursor.tokens.build(allocator, document);
-            }
-            self.strings.list.clearRetainingCapacity();
-            self.cursor.document = self;
-            self.cursor.strings = if (want_stream) 0 else self.strings.items().ptr;
-            self.cursor.depth = 1;
-            self.cursor.root = if (want_stream) 0 else @intFromPtr(self.cursor.tokens.indexes.items.ptr);
-            self.cursor.err = null;
-            if (builtin.mode == .Debug) {
-                try self.cursor.start_positions.ensureTotalCapacity(allocator, self.max_depth);
-                self.cursor.start_positions.expandToCapacity();
-            }
-
-            return .{
-                .iter = .{
-                    .cursor = &self.cursor,
-                    .start_position = self.cursor.root,
-                    .start_depth = 1,
-                    .start_char = self.cursor.peekChar(),
-                },
-            };
-        }
-
-        pub fn parseWithCapacity(self: *Self, allocator: Allocator, document: if (Reader) |reader| reader else Aligned.slice, capacity: usize) Error!Document {
-            try self.ensureTotalCapacity(allocator, capacity);
-            return self.parseAssumeCapacity(allocator, document);
         }
 
         pub const AnyValue = union(types.ValueType) {
@@ -226,15 +186,16 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
         const Cursor = struct {
             document: *Self = undefined,
             tokens: Tokens,
-            strings: if (want_stream) usize else [*]u8 = undefined,
-            start_positions: if (builtin.mode == .Debug) ArrayList(usize) else void = undefined,
-            depth: u32 = 1,
+            start_positions: if (builtin.mode == .Debug) ArrayList(usize) else void,
+            depth: u32,
             root: usize = undefined,
-            err: ?Error = null,
+            err: ?Error,
 
             pub const init: Cursor = .{
                 .tokens = .init,
                 .start_positions = if (builtin.mode == .Debug) .empty else {},
+                .depth = 1,
+                .err = null,
             };
 
             pub fn deinit(self: *Cursor, allocator: Allocator) void {
@@ -766,7 +727,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 }
 
                 inline fn peekScalar(self: Iterator) Error![*]const u8 {
-                    // if (!self.isAtStart()) return error.OutOfOrderIteration;
+                    if (builtin.mode == .Debug) if (!self.isAtStart()) return error.OutOfOrderIteration;
                     self.assertAtStart();
                     return self.cursor.peek();
                 }
@@ -805,7 +766,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         try self.skipChild();
                         if (unordered) search_start = self.cursor.position();
                         has_value = try self.hasNextField();
-                        if (builtin.mode == .Debug) if (self.cursor.getStartPosition(self.start_depth) != self.cursor.position()) return error.OutOfOrderIteration;
+                        if (builtin.mode == .Debug) if (self.cursor.getStartPosition(self.start_depth) != self.start_position) return error.OutOfOrderIteration;
                     } else {
                         if (builtin.mode == .Debug) if (self.cursor.depth < self.start_depth - 1) return error.OutOfOrderIteration;
                         if (!unordered) return false;
@@ -843,7 +804,11 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 }
 
                 inline fn resetContainer(self: Iterator) Error!void {
-                    try self.cursor.tokens.revert(self.start_position + 1);
+                    if (want_stream) {
+                        try self.cursor.tokens.revert(self.start_position + 1);
+                    } else {
+                        try self.cursor.tokens.revert(self.start_position + 1 * @sizeOf(u32));
+                    }
                     self.cursor.depth = self.start_depth;
                 }
 
@@ -996,18 +961,6 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 return dest;
             }
 
-            // pub inline fn asAdvancedRef(
-            //     self: Value,
-            //     comptime T: type,
-            //     comptime S: ?schema.Infer(T),
-            //     allocator: ?Allocator,
-            //     dest: *T,
-            // ) schema.Error!void {
-            //     const sch = comptime schema.resolveSchema(T, S);
-            //     const custom_parser = comptime sch.parse_with orelse schema.CustomParser(T).infer();
-            //     return self.asAdvancedInner(T, sch, custom_parser, allocator, dest);
-            // }
-
             inline fn asAdvancedInner(
                 self: Value,
                 comptime T: type,
@@ -1016,11 +969,11 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 allocator: ?Allocator,
                 dest: *T,
             ) schema.Error!void {
-                const last_cursor_strings = self.iter.cursor.strings;
+                const string_breakpoint = self.iter.cursor.document.string_buffer.saveBreakpoint();
                 errdefer {
                     self.iter.cursor.tokens.revert(self.iter.start_position) catch |err| (self.iter.cursor.reportError(err) catch {});
                     self.iter.cursor.depth = self.iter.start_depth;
-                    self.iter.cursor.strings = last_cursor_strings;
+                    self.iter.cursor.document.string_buffer.loadBreakpoint(string_breakpoint);
                 }
                 if (P) |handler| return handler.parse(allocator, self, dest);
                 const info = @typeInfo(T);
@@ -1089,61 +1042,43 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             raw_str: [*]const u8,
             err: ?Error = null,
 
-            pub inline fn get(self: String, allocator: ?Allocator) Error![]const u8 {
-                return self.getAdvanced(null, allocator);
+            pub inline fn get(self: String) Error![]const u8 {
+                return self.getAdvanced(null);
             }
 
-            pub inline fn getSentinel(self: String, comptime sentinel: u8, allocator: ?Allocator) Error![:sentinel]const u8 {
-                return self.getAdvanced(sentinel, allocator);
-            }
-
-            inline fn getAdvanced(self: String, comptime sentinel: ?u8, _: ?Allocator) if (sentinel) |s| Error![:s]const u8 else Error![]const u8 {
-                if (self.err) |err| return err;
-
-                if (want_stream) {
-                    const alloc = self.iter.cursor.document.arena.allocator();
-                    try self.iter.cursor.document.strings.ensureUnusedCapacity(alloc, options.stream.?.chunk_length + Vector.bytes_len);
-                    const dest = self.iter.cursor.document.strings.items().ptr;
-                    const str = try self.iter.parseString(self.raw_str, dest[self.iter.cursor.strings..]);
-                    if (sentinel) |s| {
-                        self.iter.cursor.strings[str.len] = s;
-                        self.iter.cursor.strings += str.len + 1;
-                    } else {
-                        self.iter.cursor.strings += str.len;
-                    }
-                    return str;
-                } else {
-                    const str = try self.iter.parseString(self.raw_str, self.iter.cursor.strings);
-                    if (sentinel) |s| {
-                        self.iter.cursor.strings[str.len] = s;
-                        self.iter.cursor.strings += str.len + 1;
-                    } else {
-                        self.iter.cursor.strings += str.len;
-                    }
-                    return str;
-                }
-            }
-
-            pub inline fn write(self: String, dest: [*]u8) Error![]const u8 {
-                return self.writeAdvanced(dest, null);
-            }
-
-            pub inline fn writeSentinel(self: String, dest: [*]u8, comptime sentinel: u8) Error![:sentinel]const u8 {
-                return self.writeAdvanced(dest, sentinel);
-            }
-
-            inline fn writeAdvanced(self: String, dest: [*]u8, comptime sentinel: ?u8) if (sentinel) |s| Error![:s]const u8 else Error![]const u8 {
-                if (self.err) |err| return err;
-
-                const str = try self.iter.parseString(self.raw_str, dest);
-                if (sentinel) |s| dest[str.len] = s;
-                return str;
+            pub inline fn getSentinel(self: String, comptime sentinel: u8) Error![:sentinel]const u8 {
+                return self.getAdvanced(sentinel);
             }
 
             pub inline fn getTemporal(self: String) Error![]const u8 {
-                if (want_stream) return self.write(&self.iter.cursor.document.temporal_string_buffer);
+                const buffer = &self.iter.cursor.document.string_buffer;
+                const str = try self.write(null, buffer);
+                return str;
+            }
+
+            inline fn getAdvanced(self: String, comptime sentinel: ?u8) if (sentinel) |s| Error![:s]const u8 else Error![]const u8 {
+                const buffer = &self.iter.cursor.document.string_buffer;
+                const str = try self.write(sentinel, buffer);
+                if (sentinel) |_| {
+                    buffer.advance(str.len + 1);
+                } else {
+                    buffer.advance(str.len);
+                }
+                return str;
+            }
+
+            inline fn write(self: String, comptime sentinel: ?u8, buffer: *StringBuffer) if (sentinel) |s| Error![:s]const u8 else Error![]const u8 {
                 if (self.err) |err| return err;
-                const str = try self.iter.parseString(self.raw_str, self.iter.cursor.strings);
+
+                if (want_stream) {
+                    try buffer.ensureUnusedCapacity(self.iter.cursor.document.allocator, options.stream.?.chunk_length + Vector.bytes_len);
+                }
+                const dest = buffer.peek();
+
+                const str = try self.iter.parseString(self.raw_str, dest);
+                if (sentinel) |s| {
+                    dest[str.len] = s;
+                }
                 return str;
             }
 
@@ -1558,7 +1493,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             const alloc = allocator orelse return error.ExpectedAllocator;
                             const obj = try value.asObject();
                             while (try obj.next()) |field| {
-                                const key = try field.key.get(alloc);
+                                const key = try field.key.get();
                                 const val = try field.value.asAdvancedLeaky(V, null, alloc);
                                 try dest.put(alloc, key, val);
                             }
@@ -1573,7 +1508,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             const alloc = allocator orelse return error.ExpectedAllocator;
                             const obj = try value.asObject();
                             while (try obj.next()) |field| {
-                                const key = try field.key.get(alloc);
+                                const key = try field.key.get();
                                 const val = try field.value.asAdvancedLeaky(V, null, alloc);
                                 try dest.put(alloc, key, val);
                             }
@@ -1947,7 +1882,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             }
 
             fn parseUnion(comptime T: type, comptime S: schema.Union(T), allocator: ?Allocator, value: Value) schema.Error!T {
-                const last_cursor_strings = value.iter.cursor.strings;
+                const string_breakpoint = value.iter.cursor.document.string_buffer.saveBreakpoint();
                 const fields = _std.meta.fields(T);
                 if (S.representation == .untagged) {
                     comptime var ordered_fields = fields[0..fields.len].*;
@@ -1967,7 +1902,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             const payload = value.asAdvancedLeaky(field.type, field_schema.schema, allocator) catch {
                                 value.iter.cursor.tokens.revert(value.iter.start_position) catch |err| try value.iter.cursor.reportError(err);
                                 value.iter.cursor.depth = value.iter.start_depth;
-                                value.iter.cursor.strings = last_cursor_strings;
+                                value.iter.cursor.document.string_buffer.loadBreakpoint(string_breakpoint);
                                 break :inner;
                             };
                             return @unionInit(T, field.name, payload);
@@ -2147,12 +2082,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             .slice => {
                                 if (info.child == u8 and S.bytes_as_string) {
                                     if (info.sentinel()) |_| @compileError("Unable to parse into type '" ++ @typeName(T) ++ "'");
-                                    if (info.sentinel()) |s| {
-                                        return try value.asString().getSentinel(s, allocator);
-                                    } else {
-                                        return try value.asString().get(allocator);
-                                        // return "asdf";
-                                    }
+                                    return try value.asString().getAdvanced(info.sentinel());
                                 } else {
                                     const arr_parser = schema.std.ArrayList(info.child);
                                     var arr = arr_parser.init;
@@ -2261,6 +2191,58 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     depth,
                     parser.cursor.peekChar(),
                 });
+            }
+        };
+
+        pub const StringBuffer = struct {
+            arena: ArenaAllocator.State,
+            strings: types.BoundedArrayList(u8, max_capacity_bound),
+
+            pub const init: StringBuffer = .{
+                .arena = .{},
+                .strings = .empty,
+            };
+
+            pub fn ensureTotalCapacity(self: *StringBuffer, allocator: Allocator, new_capacity: usize) !void {
+                var arena = self.arena.promote(allocator);
+                defer self.arena = arena.state;
+                return self.strings.ensureTotalCapacity(arena.allocator(), new_capacity);
+            }
+
+            pub fn ensureUnusedCapacity(self: *StringBuffer, allocator: Allocator, additional_count: usize) !void {
+                var arena = self.arena.promote(allocator);
+                defer self.arena = arena.state;
+                return self.strings.ensureUnusedCapacity(arena.allocator(), additional_count);
+            }
+
+            pub fn saveBreakpoint(self: StringBuffer) usize {
+                return self.strings.items().len;
+            }
+
+            pub fn loadBreakpoint(self: *StringBuffer, index: usize) void {
+                self.strings.list.items.len = index;
+            }
+
+            pub fn peek(self: StringBuffer) [*]u8 {
+                return self.strings.items()[self.strings.items().len..].ptr;
+            }
+
+            pub fn advance(self: *StringBuffer, count: usize) void {
+                self.strings.list.items.len += count;
+            }
+
+            pub fn reset(self: *StringBuffer, allocator: Allocator, mode: ArenaAllocator.ResetMode) bool {
+                var arena = self.arena.promote(allocator);
+                defer self.arena = arena.state;
+                const successful = arena.reset(mode);
+                self.strings.list.clearRetainingCapacity();
+                return successful;
+            }
+
+            pub fn deinit(self: *StringBuffer, allocator: Allocator) void {
+                var arena = self.arena.promote(allocator);
+                defer self.arena = arena.state;
+                arena.deinit();
             }
         };
     };

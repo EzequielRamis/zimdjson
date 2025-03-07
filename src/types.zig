@@ -136,7 +136,7 @@ pub const Predicate = struct {
     }
 };
 
-pub fn BoundedArrayListUnmanaged(comptime T: type, comptime initial_max_capacity: usize) type {
+pub fn BoundedArrayList(comptime T: type, comptime initial_max_capacity: usize) type {
     const Error = ParseError || Allocator.Error;
 
     return struct {
@@ -180,7 +180,7 @@ pub fn BoundedArrayListUnmanaged(comptime T: type, comptime initial_max_capacity
             self.list.appendSliceAssumeCapacity(_items);
         }
 
-        pub fn items(self: Self) []T {
+        pub inline fn items(self: Self) []T {
             return self.list.items;
         }
     };

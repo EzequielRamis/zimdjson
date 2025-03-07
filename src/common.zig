@@ -60,7 +60,7 @@ pub const tables = struct {
     };
 };
 
-pub fn readAllArrayListAlignedRetainingCapacity(
+pub fn readAllRetainingCapacity(
     allocator: Allocator,
     self: anytype,
     comptime alignment: ?u29,

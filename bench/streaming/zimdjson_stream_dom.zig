@@ -18,7 +18,7 @@ pub fn prerun() !void {}
 pub fn run() !void {
     file = try std.fs.openFileAbsolute(path, .{});
     try parser.ensureTotalCapacity(allocator, (try file.stat()).size);
-    _ = try parser.parseAssumeCapacity(allocator, file.reader());
+    _ = try parser.parse(allocator, file.reader());
 }
 
 pub fn postrun() !void {

@@ -23,9 +23,8 @@ test "small/adversarial" {
         },
     };
 
-    const el = try document.as(Schema, allocator);
-    defer el.deinit();
-    const tuple = el.value.@"\"Name rue"[0];
+    const el = try document.asLeaky(Schema, null);
+    const tuple = el.@"\"Name rue"[0];
 
     try std.testing.expectEqualDeep(.{
         116,
@@ -782,13 +781,12 @@ test "std.EnumMap" {
         \\}
     );
 
-    var map = try document.as(std.EnumMap(enum { car, bike, @"4x4" }, []const u8), allocator);
-    defer map.deinit();
+    const map = try document.asLeaky(std.EnumMap(enum { car, bike, @"4x4" }, []const u8), null);
 
-    try std.testing.expectEqual(map.value.count(), 3);
-    try std.testing.expectEqualStrings("blue", map.value.get(.car).?);
-    try std.testing.expectEqualStrings("red", map.value.get(.bike).?);
-    try std.testing.expectEqualStrings("green", map.value.get(.@"4x4").?);
+    try std.testing.expectEqual(map.count(), 3);
+    try std.testing.expectEqualStrings("blue", map.get(.car).?);
+    try std.testing.expectEqualStrings("red", map.get(.bike).?);
+    try std.testing.expectEqualStrings("green", map.get(.@"4x4").?);
 }
 
 test "std.SegmentedList" {

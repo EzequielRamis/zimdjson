@@ -34,11 +34,12 @@ pub fn run() !void {
     result.retweet_count = -1;
 
     file = try std.fs.openFileAbsolute(path, .{});
-    const doc = try parser.parseWithCapacity(allocator, file.reader(), (try file.stat()).size);
+    try parser.ensureTotalCapacity(allocator, (try file.stat()).size);
+    const doc = try parser.parse(allocator, file.reader());
     const tweet = try doc.at("statuses").asArray();
     while (try tweet.next()) |t| {
-        const text = try t.at("text").asString().get(allocator);
-        const screen_name = try t.at("user").at("screen_name").asString().get(allocator);
+        const text = try t.at("text").asString().get();
+        const screen_name = try t.at("user").at("screen_name").asString().get();
         const retweet_count = try t.at("retweet_count").asSigned();
         if (retweet_count <= max_retweet_count and retweet_count >= result.retweet_count) {
             result = .{

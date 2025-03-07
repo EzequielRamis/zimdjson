@@ -33,19 +33,20 @@ pub fn prerun() !void {
 
 pub fn run() !void {
     file = try std.fs.openFileAbsolute(path, .{});
-    const doc = try parser.parseWithCapacity(allocator, file.reader(), (try file.stat()).size);
+    try parser.ensureTotalCapacity(allocator, (try file.stat()).size);
+    const doc = try parser.parse(allocator, file.reader());
     const statuses = try doc.at("statuses").asArray();
     while (try statuses.next()) |tweet| {
         try result.append(.{
-            .created_at = try tweet.at("created_at").asString().get(allocator),
+            .created_at = try tweet.at("created_at").asString().get(),
             .id = try tweet.at("id").asUnsigned(),
-            .result = try tweet.at("text").asString().get(allocator),
+            .result = try tweet.at("text").asString().get(),
             .in_reply_to_status_id = try tweet.at("in_reply_to_status_id").asLeaky(?u64, null) orelse 0,
             .user = brk: {
                 const user = tweet.at("user");
                 break :brk .{
                     .id = try user.at("id").asUnsigned(),
-                    .screen_name = try user.at("screen_name").asString().get(allocator),
+                    .screen_name = try user.at("screen_name").asString().get(),
                 };
             },
             .retweet_count = try tweet.at("retweet_count").asUnsigned(),

@@ -116,7 +116,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
         pub fn parse(self: *Self, allocator: Allocator, document: if (Reader) |reader| reader else Aligned.slice) Error!Value {
             if (need_document_buffer) {
                 self.document_buffer.clearRetainingCapacity();
-                try @as(Error!void, @errorCast(common.readAllArrayListAlignedRetainingCapacity(
+                try @as(Error!void, @errorCast(common.readAllRetainingCapacity(
                     allocator,
                     document,
                     types.Aligned(true).alignment,
@@ -124,8 +124,8 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     self.max_capacity,
                 )));
                 const len = self.document_buffer.items.len;
-                try self.document_buffer.appendNTimes(allocator, ' ', types.Vector.bytes_len);
                 try self.ensureTotalCapacity(allocator, len);
+                self.document_buffer.appendNTimesAssumeCapacity(' ', types.Vector.bytes_len);
                 try self.tape.build(allocator, self.document_buffer.items[0..len]);
             } else {
                 if (!want_stream) try self.ensureTotalCapacity(allocator, document.len);
@@ -135,29 +135,6 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 .tape = &self.tape,
                 .index = 0,
             };
-        }
-
-        pub fn parseAssumeCapacity(self: *Self, allocator: Allocator, document: if (Reader) |reader| reader else Aligned.slice) Error!Value {
-            if (need_document_buffer) {
-                self.document_buffer.expandToCapacity();
-                const len = try document.readAll(self.document_buffer.items);
-                if (len > self.capacity) return error.ExceededCapacity;
-                self.document_buffer.items.len = len;
-                try self.document_buffer.appendNTimes(allocator, ' ', types.Vector.bytes_len);
-                try self.tape.build(allocator, self.document_buffer.items[0..len]);
-            } else {
-                if (!want_stream) if (document.len > self.capacity) return error.ExceededCapacity;
-                try self.tape.build(allocator, document);
-            }
-            return .{
-                .tape = &self.tape,
-                .index = 0,
-            };
-        }
-
-        pub fn parseWithCapacity(self: *Self, allocator: Allocator, document: if (Reader) |reader| reader else Aligned.slice, capacity: usize) Error!Value {
-            try self.ensureTotalCapacity(allocator, capacity);
-            return self.parseAssumeCapacity(allocator, document);
         }
 
         pub const AnyValue = union(types.ValueType) {
@@ -570,10 +547,10 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
 
             tokens: Tokens,
 
-            words: types.BoundedArrayListUnmanaged(u64, max_capacity_bound),
+            words: types.BoundedArrayList(u64, max_capacity_bound),
             stack: Stack,
 
-            strings: types.BoundedArrayListUnmanaged(u8, max_capacity_bound + types.Vector.bytes_len),
+            strings: types.BoundedArrayList(u8, max_capacity_bound + types.Vector.bytes_len),
 
             words_ptr: if (want_stream) void else [*]u64 = undefined,
             strings_ptr: if (want_stream) void else [*]u8 = undefined,

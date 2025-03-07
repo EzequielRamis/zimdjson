@@ -26,7 +26,8 @@ pub fn prerun() !void {
 
 pub fn run() !void {
     file = try std.fs.openFileAbsolute(path, .{});
-    const doc = try parser.parseWithCapacity(allocator, file.reader(), (try file.stat()).size);
+    try parser.ensureTotalCapacity(allocator, (try file.stat()).size);
+    const doc = try parser.parse(allocator, file.reader());
     const systems = try doc.asArray();
     var it = systems.iterator();
     while (it.next()) |sys| {

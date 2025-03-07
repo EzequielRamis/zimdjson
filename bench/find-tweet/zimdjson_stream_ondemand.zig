@@ -21,11 +21,12 @@ pub fn prerun() !void {}
 
 pub fn run() !void {
     file = try std.fs.openFileAbsolute(path, .{});
-    const doc = try parser.parseWithCapacity(allocator, file.reader(), (try file.stat()).size);
+    try parser.ensureTotalCapacity(allocator, (try file.stat()).size);
+    const doc = try parser.parse(allocator, file.reader());
     const tweet = try doc.at("statuses").asArray();
     while (try tweet.next()) |t| {
         if (try t.at("id").asUnsigned() == find_id) {
-            result = try t.at("text").asString().get(allocator);
+            result = try t.at("text").asString().get();
             return;
         }
     }

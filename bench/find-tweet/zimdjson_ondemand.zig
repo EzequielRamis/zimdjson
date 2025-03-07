@@ -5,7 +5,8 @@ const TracedAllocator = @import("TracedAllocator");
 const find_id = 505874901689851904;
 const expected = "RT @shiawaseomamori: 一に止まると書いて、正しいという意味だなんて、この年になるまで知りませんでした。 人は生きていると、前へ前へという気持ちばかり急いて、どんどん大切なものを置き去りにしていくものでしょう。本当に正しいことというのは、一番初めの場所にあるの…";
 
-var traced = TracedAllocator{ .wrapped = std.heap.c_allocator };
+var gpa = std.heap.GeneralPurposeAllocator(.{}).init;
+var traced = TracedAllocator{ .wrapped = gpa.allocator() };
 const allocator = traced.allocator();
 
 var file: std.fs.File = undefined;
@@ -21,11 +22,12 @@ pub fn prerun() !void {}
 
 pub fn run() !void {
     file = try std.fs.openFileAbsolute(path, .{});
-    const doc = try parser.parseWithCapacity(allocator, file.reader(), (try file.stat()).size);
+    try parser.ensureTotalCapacity(allocator, (try file.stat()).size);
+    const doc = try parser.parse(allocator, file.reader());
     const tweet = try doc.at("statuses").asArray();
     while (try tweet.next()) |t| {
         if (try t.at("id").asUnsigned() == find_id) {
-            result = try t.at("text").asString().get(allocator);
+            result = try t.at("text").asString().get();
             return;
         }
     }

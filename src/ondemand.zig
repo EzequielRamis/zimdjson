@@ -82,7 +82,6 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
 
         max_capacity: usize,
         max_depth: usize,
-        capacity: usize,
 
         pub const init: Self = .{
             .allocator = undefined,
@@ -91,7 +90,6 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             .string_buffer = .init,
             .max_capacity = max_capacity_bound,
             .max_depth = default_max_depth,
-            .capacity = 0,
         };
 
         pub fn deinit(self: *Self, allocator: Allocator) void {
@@ -124,8 +122,6 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             if (!want_stream) {
                 try self.cursor.tokens.ensureTotalCapacity(allocator, new_capacity);
             }
-
-            self.capacity = new_capacity;
         }
 
         pub fn parse(self: *Self, allocator: Allocator, document: if (Reader) |reader| reader else Aligned.slice) Error!Document {
@@ -325,11 +321,13 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             iter: Value.Iterator,
 
             pub inline fn asValue(self: Document) Value {
+                if (builtin.mode == .Debug) if (!self.iter.isAtRoot()) return .{ .iter = self.iter, .err = error.OutOfOrderIteration };
                 self.iter.assertAtRoot();
                 return .{ .iter = self.iter };
             }
 
             pub inline fn asObject(self: Document) Error!Object {
+                if (builtin.mode == .Debug) if (!self.iter.isAtRoot()) return error.OutOfOrderIteration;
                 self.iter.assertAtRoot();
                 const started, const object = try Object.start(self.iter);
                 if (started or try self.iter.isAtEnd()) return object;
@@ -337,6 +335,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             }
 
             pub inline fn asArray(self: Document) Error!Array {
+                if (builtin.mode == .Debug) if (!self.iter.isAtRoot()) return error.OutOfOrderIteration;
                 self.iter.assertAtRoot();
                 const started, const array = try Array.start(self.iter);
                 if (started or try self.iter.isAtEnd()) return array;
@@ -344,6 +343,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             }
 
             pub inline fn asNumber(self: Document) Error!Number {
+                if (builtin.mode == .Debug) if (!self.iter.isAtRoot()) return error.OutOfOrderIteration;
                 self.iter.assertAtRoot();
                 const n = try self.iter.asNumber();
                 if (try self.iter.isAtEnd()) return n;
@@ -351,6 +351,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             }
 
             pub inline fn asUnsigned(self: Document) Error!u64 {
+                if (builtin.mode == .Debug) if (!self.iter.isAtRoot()) return error.OutOfOrderIteration;
                 self.iter.assertAtRoot();
                 const n = try self.iter.asUnsigned();
                 if (try self.iter.isAtEnd()) return n;
@@ -358,6 +359,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             }
 
             pub inline fn asSigned(self: Document) Error!i64 {
+                if (builtin.mode == .Debug) if (!self.iter.isAtRoot()) return error.OutOfOrderIteration;
                 self.iter.assertAtRoot();
                 const n = try self.iter.asSigned();
                 if (try self.iter.isAtEnd()) return n;
@@ -365,6 +367,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             }
 
             pub inline fn asFloat(self: Document) Error!f64 {
+                if (builtin.mode == .Debug) if (!self.iter.isAtRoot()) return error.OutOfOrderIteration;
                 self.iter.assertAtRoot();
                 const n = try self.iter.asFloat();
                 if (try self.iter.isAtEnd()) return n;
@@ -372,8 +375,9 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             }
 
             pub inline fn asString(self: Document) String {
+                if (builtin.mode == .Debug) if (!self.iter.isAtRoot()) return .{ .iter = self.iter, .raw_str = undefined, .err = error.OutOfOrderIteration };
                 self.iter.assertAtRoot();
-                const str = self.iter.asString() catch |err| .{
+                const str: String = self.iter.asString() catch |err| .{
                     .iter = self.iter,
                     .raw_str = undefined,
                     .err = err,
@@ -392,6 +396,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             }
 
             pub inline fn asBool(self: Document) Error!bool {
+                if (builtin.mode == .Debug) if (!self.iter.isAtRoot()) return error.OutOfOrderIteration;
                 self.iter.assertAtRoot();
                 const b = try self.iter.asBool();
                 if (try self.iter.isAtEnd()) return b;
@@ -399,6 +404,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             }
 
             pub inline fn isNull(self: Document) Error!bool {
+                if (builtin.mode == .Debug) if (!self.iter.isAtRoot()) return error.OutOfOrderIteration;
                 self.iter.assertAtRoot();
                 const n = try self.iter.isNull();
                 if (try self.iter.isAtEnd()) return n;
@@ -406,6 +412,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             }
 
             pub inline fn asAny(self: Document) Error!AnyValue {
+                if (builtin.mode == .Debug) if (!self.iter.isAtRoot()) return error.OutOfOrderIteration;
                 self.iter.assertAtRoot();
                 return switch (self.iter.cursor.peekChar()) {
                     't', 'f' => .{ .bool = try self.asBool() },
@@ -414,22 +421,16 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         break :brk {};
                     } },
                     '"' => .{ .string = self.asString() },
-                    '-', '0'...'9' => switch (try self.asNumber()) {
-                        .unsigned => |n| .{ .unsigned = n },
-                        .signed => |n| .{ .signed = n },
-                        .float => |n| .{ .float = n },
-                    },
+                    '-', '0'...'9' => .{ .number = try self.asNumber() },
                     '[' => .{ .array = try self.asArray() },
                     '{' => .{ .object = try self.asObject() },
-                    else => {
-                        return error.ExpectedDocument;
-                    },
+                    else => return error.ExpectedValue,
                 };
             }
 
             pub inline fn getType(self: Document) Error!types.ValueType {
-                self.iter.assertAtRoot();
-                return switch (self.iter.cursor.peekChar()) {
+                if (self.err) |err| return err;
+                return switch (self.iter.start_char) {
                     't', 'f' => .bool,
                     'n' => .null,
                     '"' => .string,
@@ -481,6 +482,11 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 @setEvalBranchQuota(2000000);
                 const arr = self.asArray() catch |err| return .{ .iter = self.iter, .err = err };
                 return arr.at(index);
+            }
+
+            pub inline fn reset(self: Document) Error!void {
+                try self.iter.reset();
+                self.iter.cursor.document.string_buffer.reset();
             }
 
             inline fn startOrResumeObject(self: Document) Error!Object {
@@ -613,6 +619,10 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     return self.cursor.position() == self.start_position;
                 }
 
+                inline fn isAtRoot(self: Iterator) bool {
+                    return self.isAtStart() and self.start_depth == 1;
+                }
+
                 inline fn isAtContainerStart(self: Iterator) bool {
                     const delta = self.cursor.position() - self.start_position;
                     return delta == 1 or delta == 2;
@@ -725,9 +735,13 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 }
 
                 inline fn peekScalar(self: Iterator) Error![*]const u8 {
-                    if (builtin.mode == .Debug) if (!self.isAtStart()) return error.OutOfOrderIteration;
+                    if (!self.isAtStart()) return self.peekStart();
                     self.assertAtStart();
                     return self.cursor.peek();
+                }
+
+                inline fn peekStart(self: Iterator) Error![*]const u8 {
+                    return self.cursor.tokens.peekPosition(self.start_position);
                 }
 
                 inline fn advanceScalar(self: Iterator) Error!void {
@@ -806,6 +820,15 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         try self.cursor.tokens.revert(self.start_position + 1);
                     } else {
                         try self.cursor.tokens.revert(self.start_position + 1 * @sizeOf(u32));
+                    }
+                    self.cursor.depth = self.start_depth;
+                }
+
+                inline fn reset(self: Iterator) Error!void {
+                    if (want_stream) {
+                        try self.cursor.tokens.revert(self.start_position);
+                    } else {
+                        try self.cursor.tokens.revert(self.start_position);
                     }
                     self.cursor.depth = self.start_depth;
                 }
@@ -920,7 +943,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
 
             pub inline fn getType(self: Value) Error!types.ValueType {
                 if (self.err) |err| return err;
-                return switch (self.iter.cursor.peekChar()) {
+                return switch (self.iter.start_char) {
                     't', 'f' => .bool,
                     'n' => .null,
                     '"' => .string,
@@ -972,8 +995,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             ) schema.Error!void {
                 const string_breakpoint = self.iter.cursor.document.string_buffer.saveBreakpoint();
                 errdefer {
-                    self.iter.cursor.tokens.revert(self.iter.start_position) catch |err| (self.iter.cursor.reportError(err) catch {});
-                    self.iter.cursor.depth = self.iter.start_depth;
+                    self.iter.reset() catch |err| (self.iter.cursor.reportError(err) catch {});
                     self.iter.cursor.document.string_buffer.loadBreakpoint(string_breakpoint);
                 }
                 if (P) |handler| return handler.parse(allocator, self, dest);
@@ -1089,7 +1111,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             }
         };
 
-        const Array = struct {
+        pub const Array = struct {
             iter: Value.Iterator,
 
             pub inline fn next(self: Array) Error!?Value {
@@ -1118,9 +1140,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 while (self.next() catch |err| return .{
                     .iter = self.iter,
                     .err = err,
-                }) |v| : (i += 1)
-                    if (i == index) return v;
-
+                }) |v| : (i += 1) if (i == index) return v;
                 return .{
                     .iter = self.iter,
                     .err = error.IndexOutOfBounds,
@@ -1140,7 +1160,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             }
         };
 
-        const Object = struct {
+        pub const Object = struct {
             iter: Value.Iterator,
 
             pub const Field = struct {
@@ -1895,8 +1915,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         inner: {
                             const field_schema = @field(S.fields, field.name);
                             const payload = value.asLeaky(field.type, allocator, .{ .schema = field_schema.schema }) catch {
-                                value.iter.cursor.tokens.revert(value.iter.start_position) catch |err| try value.iter.cursor.reportError(err);
-                                value.iter.cursor.depth = value.iter.start_depth;
+                                value.iter.reset() catch |err| try value.iter.cursor.reportError(err);
                                 value.iter.cursor.document.string_buffer.loadBreakpoint(string_breakpoint);
                                 break :inner;
                             };

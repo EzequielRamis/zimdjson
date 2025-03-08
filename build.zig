@@ -132,6 +132,21 @@ pub fn build(b: *std.Build) !void {
             com_generate.dependOn(&run_examples_gen.step);
         }
         {
+            const com_ondemand = try com.sub("ondemand", "Run test suite 'ondemand'", .{});
+            const ondemand = b.addTest(.{
+                .root_source_file = b.path("tests/ondemand.zig"),
+                .target = target,
+                .optimize = optimize,
+            });
+            if (com_ondemand.with("simdjson-data")) |dep| {
+                addEmbeddedPath(b, ondemand, dep, "simdjson-data");
+            }
+            ondemand.root_module.addImport("zimdjson", debugged_zimdjson);
+
+            const run_ondemand = b.addRunArtifact(ondemand);
+            com_ondemand.dependOn(&run_ondemand.step);
+        }
+        {
             const com_schema = try com.sub("schema", "Run test suite 'schema'", .{});
             const schema = b.addTest(.{
                 .root_source_file = b.path("tests/schema.zig"),

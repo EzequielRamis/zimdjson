@@ -131,6 +131,11 @@ pub fn Iterator(comptime options: Options) type {
             }
         }
 
+        pub inline fn peekPosition(self: *Self, pos: usize) ![*]const u8 {
+            const token: [*]u32 = @ptrFromInt(pos);
+            return self.document.ptr[token[0]..];
+        }
+
         pub inline fn revert(self: *Self, pos: usize) !void {
             self.token = @ptrFromInt(pos);
         }

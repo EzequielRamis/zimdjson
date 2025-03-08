@@ -108,12 +108,25 @@ pub fn Stream(comptime options: Options) type {
             return self.fetch(false);
         }
 
+        pub inline fn peekPosition(self: *Self, pos: usize) Error![*]const u8 {
+            const peek_offset = try self.calculateDocumentOffset(pos);
+            const doc_prefix = self.document.ptr()[self.document.mask(peek_offset)..];
+            const ixs_offset = self.indexes.ptr()[self.indexes.mask(pos)];
+            const ptr = doc_prefix[ixs_offset..];
+            return ptr;
+        }
+
         pub inline fn revert(self: *Self, pos: usize) Error!void {
-            if (self.head.ixs - pos > chunk_len) return error.BatchOverflow;
-            var revert_offset: usize = 0;
-            for (pos..self.tail.ixs) |i| revert_offset += self.indexes.ptr()[self.indexes.mask(i)];
+            const revert_offset = try self.calculateDocumentOffset(pos);
             self.tail.ixs = pos;
             self.tail.doc -= revert_offset;
+        }
+
+        inline fn calculateDocumentOffset(self: Self, pos: usize) Error!usize {
+            if (self.head.ixs - pos > chunk_len) return error.BatchOverflow;
+            var doc_offset: usize = 0;
+            for (pos..self.tail.ixs) |i| doc_offset += self.indexes.ptr()[self.indexes.mask(i)];
+            return doc_offset;
         }
 
         inline fn fetch(self: *Self, comptime and_consume: bool) Error![*]const u8 {

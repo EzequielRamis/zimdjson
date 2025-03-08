@@ -176,7 +176,7 @@ test "github_events untagged payload" {
         fork: struct { forkee: struct { url: []const u8 } },
         watch: struct { action: []const u8 },
 
-        // 'issue_comment' is a subset of 'issues' so it is discarded if 'issues' succeeds
+        // 'issue_comment' is a subset of 'issues' because of the additional field 'issue.id', so it is discarded if 'issues' succeeds
         issue_comment: struct { action: []const u8, issue: struct { url: []const u8 } },
         issues: struct { action: []const u8, issue: struct { url: []const u8, id: usize } },
 
@@ -257,7 +257,7 @@ test "adjacently_tagged" {
     );
 
     const Schema = union(enum) {
-        pub const schema: Parser.schema.Infer(@This()) = .{
+        pub const schema: Parser.schema.Union(@This()) = .{
             .representation = .{ .adjacently_tagged = .{ .tag = "t", .content = "c" } },
         };
         foo: u8,

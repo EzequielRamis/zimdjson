@@ -1,35 +1,35 @@
 const std = @import("std");
 const zimdjson = @import("zimdjson");
 const TracedAllocator = @import("TracedAllocator");
-const Parser = zimdjson.ondemand.parserFromFile(.{ .stream = .default });
+const Parser = zimdjson.ondemand.parserFromSlice(.default);
 const ArrayList = std.ArrayListUnmanaged;
 
 var traced = TracedAllocator{ .wrapped = std.heap.c_allocator };
 const allocator = traced.allocator();
 
-var file: std.fs.File = undefined;
-var json: []const u8 = undefined;
+var json: []u8 = undefined;
 var doc: std.json.Parsed(Schema) = undefined;
 var parser = Parser.init;
 
 pub fn init(path: []const u8) !void {
-    json = path;
+    const file = try std.fs.openFileAbsolute(path, .{});
+    defer file.close();
+    json = try file.readToEndAlloc(allocator, std.math.maxInt(u32));
 }
 
 pub fn prerun() !void {}
 
 pub fn run() !void {
-    file = try std.fs.openFileAbsolute(json, .{});
-    const document = try parser.parse(allocator, file.reader());
+    const document = try parser.parse(allocator, json);
     doc = try document.as(Schema, allocator, .{});
 }
 
 pub fn postrun() !void {
-    file.close();
     doc.deinit();
 }
 
 pub fn deinit() void {
+    allocator.free(json);
     parser.deinit(allocator);
 }
 
@@ -38,10 +38,12 @@ pub fn memusage() usize {
 }
 
 const Schema = struct {
+    pub const schema: Parser.schema.Struct(@This()) = .{ .assume_ordering = true };
     statuses: ArrayList(Status),
 };
 
 const Status = struct {
+    pub const schema: Parser.schema.Struct(@This()) = .{ .assume_ordering = true };
     metadata: Metadata,
     created_at: []const u8,
     id: u64,
@@ -55,10 +57,10 @@ const Status = struct {
     in_reply_to_user_id_str: ?[]const u8,
     in_reply_to_screen_name: ?[]const u8,
     user: User,
-    geo: ?struct {},
-    coordinates: ?struct {},
-    place: ?struct {},
-    contributors: ?struct {},
+    geo: void,
+    coordinates: void,
+    place: void,
+    contributors: void,
     // retweeted_status: ?*const Status, // see std_json.zig
     retweet_count: u32,
     favorite_count: u32,
@@ -70,6 +72,7 @@ const Status = struct {
 };
 
 const Metadata = struct {
+    pub const schema: Parser.schema.Struct(@This()) = .{ .assume_ordering = true };
     result_type: ResultType,
     iso_language_code: LanguageCode,
 };
@@ -78,19 +81,22 @@ const ResultType = enum { recent };
 const LanguageCode = enum { @"zh-cn", cn, en, es, it, ja, zh };
 
 const StatusEntities = struct {
+    pub const schema: Parser.schema.Struct(@This()) = .{ .assume_ordering = true };
     hashtags: ArrayList(HashTag),
-    symbols: [0]?struct {},
+    symbols: [0]void,
     urls: ArrayList(Url),
     user_mentions: ArrayList(UserMention),
     // media: ?[]const Media, // see std_json.zig
 };
 
 const HashTag = struct {
+    pub const schema: Parser.schema.Struct(@This()) = .{ .assume_ordering = true };
     text: []const u8,
     indices: struct { u8, u8 },
 };
 
 const Url = struct {
+    pub const schema: Parser.schema.Struct(@This()) = .{ .assume_ordering = true };
     url: []const u8,
     expanded_url: []const u8,
     display_url: []const u8,
@@ -98,6 +104,7 @@ const Url = struct {
 };
 
 const UserMention = struct {
+    pub const schema: Parser.schema.Struct(@This()) = .{ .assume_ordering = true };
     screen_name: []const u8,
     name: []const u8,
     id: u32,
@@ -106,6 +113,7 @@ const UserMention = struct {
 };
 
 const Media = struct {
+    pub const schema: Parser.schema.Struct(@This()) = .{ .assume_ordering = true };
     id: u64,
     id_str: []const u8,
     media_url: []const u8,
@@ -120,6 +128,7 @@ const Media = struct {
 };
 
 const Sizes = struct {
+    pub const schema: Parser.schema.Struct(@This()) = .{ .assume_ordering = true };
     medium: Size,
     small: Size,
     thumb: Size,
@@ -127,12 +136,14 @@ const Sizes = struct {
 };
 
 const Size = struct {
+    pub const schema: Parser.schema.Struct(@This()) = .{ .assume_ordering = true };
     w: u16,
     h: u16,
     resize: []const u8,
 };
 
 const User = struct {
+    pub const schema: Parser.schema.Struct(@This()) = .{ .assume_ordering = true };
     id: u32,
     id_str: []const u8,
     name: []const u8,
@@ -176,6 +187,10 @@ const User = struct {
 };
 
 const UserEntities = struct {
+    pub const schema: Parser.schema.Struct(@This()) = .{ .assume_ordering = true };
     // url: ?struct { urls: []const Url }, // see std_json.zig
-    description: struct { urls: ArrayList(Url) },
+    description: struct {
+        pub const schema: Parser.schema.Struct(@This()) = .{ .assume_ordering = true };
+        urls: ArrayList(Url),
+    },
 };

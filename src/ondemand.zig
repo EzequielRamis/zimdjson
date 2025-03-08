@@ -134,7 +134,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 self.cursor.start_positions.expandToCapacity();
             }
 
-            _ = self.string_buffer.reset(allocator, .retain_capacity);
+            self.string_buffer.reset();
             self.allocator = allocator;
 
             if (need_document_buffer) {
@@ -440,26 +440,24 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
-            pub inline fn as(self: Document, comptime T: type, allocator: Allocator) schema.Error!std.json.Parsed(T) {
-                const data = try self.asValue().as(T, allocator);
+            pub inline fn as(
+                self: Document,
+                comptime T: type,
+                allocator: Allocator,
+                schema_options: schema.Options(T),
+            ) schema.Error!std.json.Parsed(T) {
+                const data = try self.asValue().as(T, allocator, schema_options);
                 if (try self.atEnd()) return data;
                 return error.TrailingContent;
             }
 
-            pub inline fn asAdvanced(self: Document, comptime T: type, comptime S: ?schema.Infer(T), allocator: Allocator) schema.Error!std.json.Parsed(T) {
-                const data = try self.asValue().asAdvanced(T, S, allocator);
-                if (try self.atEnd()) return data;
-                return error.TrailingContent;
-            }
-
-            pub inline fn asLeaky(self: Document, comptime T: type, allocator: ?Allocator) schema.Error!T {
-                const data = try self.asValue().asLeaky(T, allocator);
-                if (try self.atEnd()) return data;
-                return error.TrailingContent;
-            }
-
-            pub inline fn asAdvancedLeaky(self: Document, comptime T: type, comptime S: ?schema.Infer(T), allocator: ?Allocator) schema.Error!T {
-                const data = try self.asValue().asAdvancedLeaky(T, S, allocator);
+            pub inline fn asLeaky(
+                self: Document,
+                comptime T: type,
+                allocator: ?Allocator,
+                schema_options: schema.Options(T),
+            ) schema.Error!T {
+                const data = try self.asValue().asLeaky(T, allocator, schema_options);
                 if (try self.atEnd()) return data;
                 return error.TrailingContent;
             }
@@ -819,7 +817,8 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 }
 
                 inline fn assertAtContainerStart(self: Iterator) void {
-                    assert(self.cursor.position() == self.start_position + Cursor.position_size);
+                    const position = self.cursor.position();
+                    assert(position == self.start_position + Cursor.position_size);
                     assert(self.cursor.depth == self.start_depth);
                     assert(self.start_depth > 0);
                 }
@@ -932,11 +931,12 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
-            pub inline fn as(self: Value, comptime T: type, allocator: Allocator) schema.Error!std.json.Parsed(T) {
-                return self.asAdvanced(T, null, allocator);
-            }
-
-            pub inline fn asAdvanced(self: Value, comptime T: type, comptime S: ?schema.Infer(T), allocator: Allocator) schema.Error!std.json.Parsed(T) {
+            pub inline fn as(
+                self: Value,
+                comptime T: type,
+                allocator: Allocator,
+                schema_options: schema.Options(T),
+            ) schema.Error!std.json.Parsed(T) {
                 var dest: std.json.Parsed(T) = .{
                     .arena = try allocator.create(std.heap.ArenaAllocator),
                     .value = schema_utils.undefinedInit(T),
@@ -944,17 +944,18 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 errdefer allocator.destroy(dest.arena);
                 dest.arena.* = .init(allocator);
                 errdefer dest.arena.deinit();
-                dest.value = try self.asAdvancedLeaky(T, S, dest.arena.allocator());
+                dest.value = try self.asLeaky(T, dest.arena.allocator(), schema_options);
                 return dest;
             }
 
-            pub inline fn asLeaky(self: Value, comptime T: type, allocator: ?Allocator) schema.Error!T {
-                return self.asAdvancedLeaky(T, null, allocator);
-            }
-
-            pub inline fn asAdvancedLeaky(self: Value, comptime T: type, comptime S: ?schema.Infer(T), allocator: ?Allocator) schema.Error!T {
+            pub inline fn asLeaky(
+                self: Value,
+                comptime T: type,
+                allocator: ?Allocator,
+                schema_options: schema.Options(T),
+            ) schema.Error!T {
                 var dest = schema_utils.undefinedInit(T);
-                const sch = comptime schema.resolveSchema(T, S);
+                const sch = comptime schema.resolveSchema(T, schema_options.schema);
                 const custom_parser = comptime sch.parse_with orelse schema.CustomParser(T).infer();
                 if (custom_parser) |handler| dest = handler.init;
                 try self.asAdvancedInner(T, sch, custom_parser, allocator, &dest);
@@ -1127,15 +1128,15 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             }
 
             pub inline fn isEmpty(self: Array) Error!bool {
-                return !(try self.iter.startedArray());
+                return !try self.reset();
             }
 
             pub inline fn skip(self: Array) Error!void {
                 return self.iter.cursor.skip(self.iter.start_depth - 1, '[');
             }
 
-            pub inline fn reset(self: Array) Error!void {
-                _ = try self.iter.resetArray();
+            pub inline fn reset(self: Array) Error!bool {
+                return self.iter.resetArray();
             }
         };
 
@@ -1151,23 +1152,10 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     const key_quote = try iter.cursor.next();
                     if (key_quote[0] != '"') return iter.reportError(error.ExpectedKey);
 
-                    // var key_len: usize = brk: {
-                    //     if (want_stream) {
-                    //         const offset = iter.cursor.tokens().fetchLocalOffset();
-                    //         break :brk offset;
-                    //     } else {
-                    //         break :brk undefined;
-                    //     }
-                    // };
-
                     iter.assertAtNext();
                     const colon = try iter.cursor.next();
                     if (colon[0] != ':') return iter.reportError(error.ExpectedColon);
                     iter.cursor.descend(iter.start_depth + 1);
-
-                    // if (!want_stream) {
-                    //     key_len = @intFromPtr(colon) - @intFromPtr(key_quote);
-                    // }
 
                     return .{
                         .key = .{
@@ -1223,7 +1211,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             }
 
             pub inline fn isEmpty(self: Object) Error!bool {
-                return !(try self.iter.startedObject());
+                return !try self.reset();
             }
 
             pub inline fn skip(self: Object) Error!void {
@@ -1233,8 +1221,8 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 return self.iter.cursor.skip(self.iter.start_depth - 1, '{');
             }
 
-            pub inline fn reset(self: Object) Error!void {
-                _ = try self.iter.resetObject();
+            pub inline fn reset(self: Object) Error!bool {
+                return self.iter.resetObject();
             }
         };
 
@@ -1246,6 +1234,12 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 UnknownUnionVariant,
                 DuplicateField,
             };
+
+            pub fn Options(comptime T: type) type {
+                return struct {
+                    schema: ?Infer(T) = null,
+                };
+            }
 
             pub fn Handler(comptime T: type) type {
                 return fn (allocator: ?Allocator, value: Value, dest: *T) schema.Error!void;
@@ -1300,7 +1294,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             const alloc = allocator orelse return error.ExpectedAllocator;
                             const arr = try value.asArray();
                             while (try arr.next()) |child| {
-                                const item = try child.asAdvancedLeaky(T, null, alloc);
+                                const item = try child.asLeaky(T, alloc, .{});
                                 try dest.append(alloc, item);
                             }
                         }
@@ -1314,7 +1308,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             const alloc = allocator orelse return error.ExpectedAllocator;
                             const arr = try value.asArray();
                             while (try arr.next()) |child| {
-                                const item = try child.asAdvancedLeaky(T, null, alloc);
+                                const item = try child.asLeaky(T, alloc, .{});
                                 try dest.append(alloc, item);
                             }
                         }
@@ -1330,7 +1324,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 //         pub fn parse(_: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                 //             const arr = try value.asArray();
                 //             while (try arr.next()) |child| {
-                //                 const item = try child.asAdvancedLeaky(u1, null, null);
+                //                 const item = try child.asLeaky(u1, null, null);
                 //                 try dest.push(item);
                 //             }
                 //         }
@@ -1343,7 +1337,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const arr = try value.asArray();
                             while (try arr.next()) |child| {
-                                const item = try child.asAdvancedLeaky(T, null, allocator);
+                                const item = try child.asLeaky(T, allocator, .{});
                                 dest.append(item) catch return error.ExceededCapacity;
                             }
                         }
@@ -1360,7 +1354,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const arr = try value.asArray();
                             while (try arr.next()) |child| {
-                                const item = try child.asAdvancedLeaky(T, null, allocator);
+                                const item = try child.asLeaky(T, allocator, .{});
                                 dest.append(item) catch return error.ExceededCapacity;
                             }
                         }
@@ -1407,7 +1401,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             const alloc = allocator orelse return error.ExpectedAllocator;
                             const arr = try value.asArray();
                             while (try arr.next()) |child| {
-                                const item = try child.asAdvancedLeaky(T, null, allocator);
+                                const item = try child.asLeaky(T, allocator, .{});
                                 const node = try alloc.create(Parsed.Node);
                                 node.* = .{ .data = item };
                                 dest.append(node);
@@ -1425,7 +1419,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             while (try obj.next()) |field| {
                                 const variant = try field.key.getTemporal();
                                 const enum_literal = try parseEnumFromSlice(E, enum_schema, variant);
-                                const enum_value = try field.value.asAdvancedLeaky(V, null, allocator);
+                                const enum_value = try field.value.asLeaky(V, allocator, .{});
                                 dest.put(enum_literal, enum_value);
                             }
                         }
@@ -1439,7 +1433,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             const alloc = allocator orelse return error.ExpectedAllocator;
                             const arr = try value.asArray();
                             while (try arr.next()) |child| {
-                                const item = try child.asAdvancedLeaky(T, null, alloc);
+                                const item = try child.asLeaky(T, alloc, .{});
                                 try dest.append(alloc, item);
                             }
                         }
@@ -1453,7 +1447,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             const alloc = allocator orelse return error.ExpectedAllocator;
                             const arr = try value.asArray();
                             while (try arr.next()) |child| {
-                                const item = try child.asAdvancedLeaky(T, null, alloc);
+                                const item = try child.asLeaky(T, alloc, .{});
                                 try dest.append(alloc, item);
                             }
                         }
@@ -1468,14 +1462,14 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             const arr = try value.asArray();
                             if (try arr.next()) |first| {
                                 {
-                                    const item = try first.asAdvancedLeaky(T, null, allocator);
+                                    const item = try first.asLeaky(T, allocator, .{});
                                     const node = try alloc.create(Parsed.Node);
                                     node.* = .{ .data = item };
                                     dest.prepend(node);
                                 }
                                 var head = dest.first.?;
                                 while (try arr.next()) |child| {
-                                    const item = try child.asAdvancedLeaky(T, null, allocator);
+                                    const item = try child.asLeaky(T, allocator, .{});
                                     const node = try alloc.create(Parsed.Node);
                                     node.* = .{ .data = item };
                                     head.insertAfter(node);
@@ -1494,7 +1488,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             const obj = try value.asObject();
                             while (try obj.next()) |field| {
                                 const key = try field.key.get();
-                                const val = try field.value.asAdvancedLeaky(V, null, alloc);
+                                const val = try field.value.asLeaky(V, alloc, .{});
                                 try dest.put(alloc, key, val);
                             }
                         }
@@ -1509,7 +1503,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             const obj = try value.asObject();
                             while (try obj.next()) |field| {
                                 const key = try field.key.get();
-                                const val = try field.value.asAdvancedLeaky(V, null, alloc);
+                                const val = try field.value.asLeaky(V, alloc, .{});
                                 try dest.put(alloc, key, val);
                             }
                         }
@@ -1536,7 +1530,6 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             pub fn Struct(comptime T: type) type {
                 return struct {
                     assume_ordering: bool = false,
-                    // on_init: ?*const SimpleRefHandler(T) = null,
                     on_unknown_field: UnknownField(T) = .ignore,
                     on_duplicate_field: DuplicateField(T) = .@"error",
 
@@ -1614,7 +1607,6 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         const sp = @field(fields_schema_parser, field.name);
                         if (sp[1]) |handler| @field(dest, field.name) = handler.init;
                     }
-                    // if (S.on_init) |handle| try handle(allocator, &dest);
                     const array = try value.asArray();
                     inline for (fields) |field| {
                         if (try array.next()) |item| {
@@ -1647,7 +1639,6 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         non_skipped_field_count += 1;
                     }
                 }
-                // if (S.on_init) |handle| try handle(allocator, &dest);
                 if (non_skipped_field_count == 0) {
                     switch (S.on_unknown_field) {
                         .ignore => {},
@@ -1686,25 +1677,26 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             }
                         };
                         if (is_packed) {
-                            const packed_field_value = try field_value.asAdvancedLeaky(field.type, field_schema.schema, allocator);
+                            const packed_field_value = try field_value.asLeaky(field.type, allocator, .{ .schema = field_schema.schema });
                             _std.mem.writePackedIntNative(field.type, _std.mem.asBytes(&dest), @bitOffsetOf(T, field.name), packed_field_value);
                         } else {
-                            @field(dest, field.name) = try field_value.asAdvancedLeaky(field.type, field_schema.schema, allocator);
+                            @field(dest, field.name) = try field_value.asLeaky(field.type, allocator, .{ .schema = field_schema.schema });
                         }
                         while (true) {
                             if (try object.next()) |next_field| {
                                 const next_field_key = try next_field.key.getTemporal();
                                 const next_field_value = next_field.value;
                                 if (_std.mem.eql(u8, next_field_key, renamed_key)) {
+                                    @branchHint(.unlikely);
                                     switch (S.on_duplicate_field) {
                                         .@"error" => return error.DuplicateField,
                                         .use_first => continue,
                                         .use_last => {
                                             if (is_packed) {
-                                                const packed_field_value = try next_field_value.asAdvancedLeaky(field.type, field_schema.schema, allocator);
+                                                const packed_field_value = try next_field_value.asLeaky(field.type, allocator, .{ .schema = field_schema.schema });
                                                 _std.mem.writePackedIntNative(field.type, _std.mem.asBytes(&dest), @bitOffsetOf(T, field.name), packed_field_value);
                                             } else {
-                                                @field(dest, field.name) = try next_field_value.asAdvancedLeaky(field.type, field_schema.schema, allocator);
+                                                @field(dest, field.name) = try next_field_value.asLeaky(field.type, allocator, .{ .schema = field_schema.schema });
                                             }
                                         },
                                         .handle => |handle| try handle(allocator, next_field_key, next_field_value, &dest),
@@ -1758,14 +1750,17 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             },
                         };
                         const dispatch = struct_map.atIndex(field_index);
-                        if (seen[field_index]) switch (S.on_duplicate_field) {
-                            .use_first => continue,
-                            .use_last => {},
-                            .@"error" => return error.DuplicateField,
-                            .handle => |handle| {
-                                try handle(allocator, key, field.value, &dest);
-                                continue;
-                            },
+                        if (seen[field_index]) {
+                            @branchHint(.unlikely);
+                            switch (S.on_duplicate_field) {
+                                .use_first => continue,
+                                .use_last => {},
+                                .@"error" => return error.DuplicateField,
+                                .handle => |handle| {
+                                    try handle(allocator, key, field.value, &dest);
+                                    continue;
+                                },
+                            }
                         } else {
                             seen[field_index] = true;
                             if (dispatch.has_undefined_value) undefined_count_runtime -= 1;
@@ -1899,7 +1894,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     inline for (ordered_fields) |field| {
                         inner: {
                             const field_schema = @field(S.fields, field.name);
-                            const payload = value.asAdvancedLeaky(field.type, field_schema.schema, allocator) catch {
+                            const payload = value.asLeaky(field.type, allocator, .{ .schema = field_schema.schema }) catch {
                                 value.iter.cursor.tokens.revert(value.iter.start_position) catch |err| try value.iter.cursor.reportError(err);
                                 value.iter.cursor.depth = value.iter.start_depth;
                                 value.iter.cursor.document.string_buffer.loadBreakpoint(string_breakpoint);
@@ -1992,7 +1987,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             const payload = try parseStructWithObject(F.type, g, allocator, .{ .iter = value.iter });
                             return @unionInit(T, F.name, payload);
                         } else {
-                            const payload = try value.asAdvancedLeaky(F.type, G, allocator);
+                            const payload = try value.asLeaky(F.type, allocator, .{ .schema = G });
                             return @unionInit(T, F.name, payload);
                         }
                     }
@@ -2017,7 +2012,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         if (try value.isNull()) {
                             return null;
                         } else {
-                            const dest = try value.asAdvancedLeaky(info.child, null, allocator);
+                            const dest = try value.asLeaky(info.child, allocator, .{});
                             return dest;
                         }
                     },
@@ -2038,7 +2033,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             var dest = schema_utils.undefinedInit(T);
                             for (0..info.len) |i| {
                                 if (try arr.next()) |item| {
-                                    dest[i] = try item.asAdvancedLeaky(info.child, null, allocator);
+                                    dest[i] = try item.asLeaky(info.child, allocator, .{});
                                 } else {
                                     return error.IncompleteArray;
                                 }
@@ -2056,7 +2051,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         var dest = schema_utils.undefinedInit(T);
                         for (0..info.len) |i| {
                             if (try arr.next()) |item| {
-                                dest[i] = try item.asAdvancedLeaky(info.child, null, allocator);
+                                dest[i] = try item.asLeaky(info.child, allocator, .{});
                             } else {
                                 return error.IncompleteArray;
                             }
@@ -2076,7 +2071,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                                 const r = try alloc.create(info.child);
                                 errdefer alloc.destroy(r);
 
-                                r.* = try value.asAdvancedLeaky(info.child, null, alloc);
+                                r.* = try value.asLeaky(info.child, alloc, .{});
                                 return r;
                             },
                             .slice => {
@@ -2195,24 +2190,18 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
         };
 
         pub const StringBuffer = struct {
-            arena: ArenaAllocator.State,
             strings: types.BoundedArrayList(u8, max_capacity_bound),
 
             pub const init: StringBuffer = .{
-                .arena = .{},
                 .strings = .empty,
             };
 
             pub fn ensureTotalCapacity(self: *StringBuffer, allocator: Allocator, new_capacity: usize) !void {
-                var arena = self.arena.promote(allocator);
-                defer self.arena = arena.state;
-                return self.strings.ensureTotalCapacity(arena.allocator(), new_capacity);
+                return self.strings.ensureTotalCapacity(allocator, new_capacity);
             }
 
             pub fn ensureUnusedCapacity(self: *StringBuffer, allocator: Allocator, additional_count: usize) !void {
-                var arena = self.arena.promote(allocator);
-                defer self.arena = arena.state;
-                return self.strings.ensureUnusedCapacity(arena.allocator(), additional_count);
+                return self.strings.ensureUnusedCapacity(allocator, additional_count);
             }
 
             pub fn saveBreakpoint(self: StringBuffer) usize {
@@ -2231,18 +2220,12 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 self.strings.list.items.len += count;
             }
 
-            pub fn reset(self: *StringBuffer, allocator: Allocator, mode: ArenaAllocator.ResetMode) bool {
-                var arena = self.arena.promote(allocator);
-                defer self.arena = arena.state;
-                const successful = arena.reset(mode);
+            pub fn reset(self: *StringBuffer) void {
                 self.strings.list.clearRetainingCapacity();
-                return successful;
             }
 
             pub fn deinit(self: *StringBuffer, allocator: Allocator) void {
-                var arena = self.arena.promote(allocator);
-                defer self.arena = arena.state;
-                arena.deinit();
+                self.strings.deinit(allocator);
             }
         };
     };

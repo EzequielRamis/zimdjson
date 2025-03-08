@@ -447,13 +447,14 @@ pub fn build(b: *std.Build) !void {
                 };
                 const runner = suite.create(
                     &.{
-                        // suite.addZigBenchmark("zimdjson_ondemand"),
-                        // suite.addCppBenchmark("simdjson_ondemand", p.simdjson),
-                        // suite.addCppBenchmark("yyjson", p.yyjson),
-                        // suite.addZigBenchmark("zimdjson_ondemand_reversed"),
-                        // suite.addCppBenchmark("simdjson_ondemand_reversed", p.simdjson),
+                        suite.addZigBenchmark("zimdjson_ondemand"),
+                        suite.addZigBenchmark("zimdjson_ondemand_unordered"),
+                        suite.addZigBenchmark("stream_zimdjson_ondemand"),
+                        suite.addZigBenchmark("stream_zimdjson_ondemand_unordered"),
                         suite.addZigBenchmark("zimdjson_schema"),
+                        suite.addZigBenchmark("zimdjson_schema_ordered"),
                         suite.addZigBenchmark("stream_zimdjson_schema"),
+                        suite.addZigBenchmark("stream_zimdjson_schema_ordered"),
                         suite.addZigBenchmark("std_json"),
                         suite.addZigBenchmark("stream_std_json"),
                         suite.addRustBenchmark("serde"),

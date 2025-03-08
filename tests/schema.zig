@@ -23,7 +23,7 @@ test "small/adversarial" {
         },
     };
 
-    const el = try document.asLeaky(Schema, null);
+    const el = try document.asLeaky(Schema, null, .{});
     const tuple = el.@"\"Name rue"[0];
 
     try std.testing.expectEqualDeep(.{
@@ -64,7 +64,7 @@ test "small/demo" {
         ids: []const u16,
     };
 
-    const image = try document.at("Image").as(Image, allocator);
+    const image = try document.at("Image").as(Image, allocator, .{});
     defer image.deinit();
 
     try std.testing.expectEqualDeep(Image{
@@ -89,7 +89,7 @@ test "small/truenull" {
     defer file.close();
     const document = try parser.parse(allocator, file.reader());
 
-    const arr = try document.as([]const ?bool, allocator);
+    const arr = try document.as([]const ?bool, allocator, .{});
     defer arr.deinit();
 
     for (arr.value, 0..) |elem, i| {
@@ -122,7 +122,7 @@ test "github_events" {
         gollum_event: Body,
     };
 
-    const events = try document.as([]const Event, allocator);
+    const events = try document.as([]const Event, allocator, .{});
     defer events.deinit();
 
     try std.testing.expectEqualDeep(&.{
@@ -184,7 +184,7 @@ test "github_events untagged payload" {
     };
     const Event = struct { payload: Payload };
 
-    const events = try document.as([]const Event, allocator);
+    const events = try document.as([]const Event, allocator, .{});
     defer events.deinit();
 
     try std.testing.expectEqualDeep(&.{
@@ -238,7 +238,7 @@ test "externally_tagged" {
         baz: bool,
     };
 
-    const unions = try document.as([]const Schema, allocator);
+    const unions = try document.as([]const Schema, allocator, .{});
     defer unions.deinit();
 
     try std.testing.expectEqualDeep(&.{
@@ -265,7 +265,7 @@ test "adjacently_tagged" {
         baz: bool,
     };
 
-    const unions = try document.as([]const Schema, allocator);
+    const unions = try document.as([]const Schema, allocator, .{});
     defer unions.deinit();
 
     try std.testing.expectEqualDeep(&.{
@@ -309,7 +309,7 @@ test "packed struct" {
         present: bool,
     };
 
-    const pte = try document.asLeaky(PageTableEntry, null);
+    const pte = try document.asLeaky(PageTableEntry, null, .{});
 
     try std.testing.expectEqual(PageTableEntry{
         .address = 12345,
@@ -341,7 +341,7 @@ test "use first duplicate" {
         bar: u8,
         foo: u8,
     };
-    const s = try document.asLeaky(Schema, null);
+    const s = try document.asLeaky(Schema, null, .{});
 
     try std.testing.expectEqual(Schema{ .foo = 1, .bar = 4 }, s);
 }
@@ -362,7 +362,7 @@ test "use first duplicate, assuming ordering" {
         foo: u8,
         bar: u8,
     };
-    const s = try document.asLeaky(Schema, null);
+    const s = try document.asLeaky(Schema, null, .{});
 
     try std.testing.expectEqual(Schema{ .foo = 1, .bar = 4 }, s);
 }
@@ -382,7 +382,7 @@ test "use last duplicate" {
         bar: u8,
         foo: u8,
     };
-    const s = try document.asLeaky(Schema, null);
+    const s = try document.asLeaky(Schema, null, .{});
 
     try std.testing.expectEqual(Schema{ .foo = 3, .bar = 4 }, s);
 }
@@ -403,7 +403,7 @@ test "use last duplicate, assuming ordering" {
         foo: u8,
         bar: u8,
     };
-    const s = try document.asLeaky(Schema, null);
+    const s = try document.asLeaky(Schema, null, .{});
 
     try std.testing.expectEqual(Schema{ .foo = 3, .bar = 4 }, s);
 }
@@ -424,7 +424,7 @@ test "error because of duplicate" {
         foo: u8,
     };
 
-    try std.testing.expectError(error.DuplicateField, document.asLeaky(Schema, null));
+    try std.testing.expectError(error.DuplicateField, document.asLeaky(Schema, null, .{}));
 }
 
 test "error because of duplicate, assuming ordering" {
@@ -444,7 +444,7 @@ test "error because of duplicate, assuming ordering" {
         bar: u8,
     };
 
-    try std.testing.expectError(error.DuplicateField, document.asLeaky(Schema, null));
+    try std.testing.expectError(error.DuplicateField, document.asLeaky(Schema, null, .{}));
 }
 
 test "missing field while handling duplicate" {
@@ -461,20 +461,20 @@ test "missing field while handling duplicate" {
         foo: u8,
     };
 
-    try std.testing.expectError(error.MissingField, document.asAdvancedLeaky(
+    try std.testing.expectError(error.MissingField, document.asLeaky(
         Schema,
-        .{
-            .on_duplicate_field = .use_first,
-        },
         allocator,
+        .{ .schema = .{
+            .on_duplicate_field = .use_first,
+        } },
     ));
 
-    try std.testing.expectError(error.MissingField, document.asAdvancedLeaky(
+    try std.testing.expectError(error.MissingField, document.asLeaky(
         Schema,
-        .{
-            .on_duplicate_field = .use_last,
-        },
         allocator,
+        .{ .schema = .{
+            .on_duplicate_field = .use_last,
+        } },
     ));
 }
 
@@ -492,22 +492,22 @@ test "missing field while handling duplicate, assuming ordering" {
         bar: u8,
     };
 
-    try std.testing.expectError(error.MissingField, document.asAdvancedLeaky(
+    try std.testing.expectError(error.MissingField, document.asLeaky(
         Schema,
-        .{
+        allocator,
+        .{ .schema = .{
             .assume_ordering = true,
             .on_duplicate_field = .use_first,
-        },
-        allocator,
+        } },
     ));
 
-    try std.testing.expectError(error.MissingField, document.asAdvancedLeaky(
+    try std.testing.expectError(error.MissingField, document.asLeaky(
         Schema,
-        .{
+        allocator,
+        .{ .schema = .{
             .assume_ordering = true,
             .on_duplicate_field = .use_last,
-        },
-        allocator,
+        } },
     ));
 }
 
@@ -519,7 +519,7 @@ test "missing field while handling duplicate, assuming ordering" {
 //         \\[ 0,1,1,1, 1,0,1,1, 1,0,1,1, 0,1,0,1 ]
 //     );
 
-//     var bits = try document.as(std.BitStack);
+//     var bits = try document.as(std.BitStack,.{});
 //     defer bits.deinit();
 
 //     try std.testing.expectEqual(bits.value.bit_len, 16);
@@ -542,7 +542,7 @@ test "missing field while handling duplicate, assuming ordering" {
 //         \\}
 //     );
 
-//     var map = try document.as(std.BufMap);
+//     var map = try document.as(std.BufMap,.{});
 //     defer map.deinit();
 
 //     try std.testing.expectEqual(map.value.count(), 3);
@@ -563,7 +563,7 @@ test "missing field while handling duplicate, assuming ordering" {
 //         \\]
 //     );
 
-//     var set = try document.as(std.BufSet);
+//     var set = try document.as(std.BufSet,.{});
 //     defer set.deinit();
 
 //     try std.testing.expectEqual(set.value.count(), 6);
@@ -598,7 +598,7 @@ test "std.ArrayListUnmanaged" {
     );
 
     const Coordinate = struct { x: i32, y: i32, z: i32 };
-    var coords = try document.as(std.ArrayListUnmanaged(Coordinate), allocator);
+    var coords = try document.as(std.ArrayListUnmanaged(Coordinate), allocator, .{});
     defer coords.deinit();
 
     try std.testing.expectEqual(coords.value.items.len, 3);
@@ -620,7 +620,7 @@ test "std.ArrayListAlignedUnmanaged" {
     );
 
     const Coordinate = struct { x: i32, y: i32, z: i32 };
-    var coords = try document.as(std.ArrayListAlignedUnmanaged(Coordinate, 32), allocator);
+    var coords = try document.as(std.ArrayListAlignedUnmanaged(Coordinate, 32), allocator, .{});
     defer coords.deinit();
 
     try std.testing.expectEqual(coords.value.items.len, 3);
@@ -642,7 +642,7 @@ test "std.SinglyLinkedList" {
     );
 
     const Coordinate = struct { x: i32, y: i32, z: i32 };
-    var coords = try document.as(std.SinglyLinkedList(Coordinate), allocator);
+    var coords = try document.as(std.SinglyLinkedList(Coordinate), allocator, .{});
     defer coords.deinit();
 
     var it = coords.value.first;
@@ -668,7 +668,7 @@ test "std.DoublyLinkedList" {
     );
 
     const Coordinate = struct { x: i32, y: i32, z: i32 };
-    var coords = try document.as(std.DoublyLinkedList(Coordinate), allocator);
+    var coords = try document.as(std.DoublyLinkedList(Coordinate), allocator, .{});
     defer coords.deinit();
 
     var it = coords.value.first;
@@ -694,7 +694,7 @@ test "std.StringArrayHashMapUnmanaged" {
     );
 
     const Coordinate = struct { x: i32, y: i32, z: i32 };
-    var coords = try document.as(std.StringArrayHashMapUnmanaged(Coordinate), allocator);
+    var coords = try document.as(std.StringArrayHashMapUnmanaged(Coordinate), allocator, .{});
     defer coords.deinit();
 
     try std.testing.expectEqual(coords.value.count(), 3);
@@ -716,7 +716,7 @@ test "std.StringHashMapUnmanaged" {
     );
 
     const Coordinate = struct { x: i32, y: i32, z: i32 };
-    var coords = try document.as(std.StringHashMapUnmanaged(Coordinate), allocator);
+    var coords = try document.as(std.StringHashMapUnmanaged(Coordinate), allocator, .{});
     defer coords.deinit();
 
     try std.testing.expectEqual(coords.value.count(), 3);
@@ -738,7 +738,7 @@ test "std.BoundedArray" {
     );
 
     const Coordinate = struct { x: i32, y: i32, z: i32 };
-    var coords = try document.as(std.BoundedArray(Coordinate, 3), allocator);
+    var coords = try document.as(std.BoundedArray(Coordinate, 3), allocator, .{});
     defer coords.deinit();
 
     try std.testing.expectEqual(coords.value.len, 3);
@@ -760,7 +760,7 @@ test "std.BoundedArrayAligned" {
     );
 
     const Coordinate = struct { x: i32, y: i32, z: i32 };
-    var coords = try document.as(std.BoundedArrayAligned(Coordinate, 32, 4), allocator);
+    var coords = try document.as(std.BoundedArrayAligned(Coordinate, 32, 4), allocator, .{});
     defer coords.deinit();
 
     try std.testing.expectEqual(coords.value.len, 3);
@@ -781,7 +781,7 @@ test "std.EnumMap" {
         \\}
     );
 
-    const map = try document.asLeaky(std.EnumMap(enum { car, bike, @"4x4" }, []const u8), null);
+    const map = try document.asLeaky(std.EnumMap(enum { car, bike, @"4x4" }, []const u8), null, .{});
 
     try std.testing.expectEqual(map.count(), 3);
     try std.testing.expectEqualStrings("blue", map.get(.car).?);
@@ -802,7 +802,7 @@ test "std.SegmentedList" {
     );
 
     const Coordinate = struct { x: i32, y: i32, z: i32 };
-    var coords = try document.as(std.SegmentedList(Coordinate, 0), allocator);
+    var coords = try document.as(std.SegmentedList(Coordinate, 0), allocator, .{});
     defer coords.deinit();
 
     try std.testing.expectEqual(coords.value.len, 3);
@@ -824,7 +824,7 @@ test "std.MultiArrayList" {
     );
 
     const Coordinate = struct { x: i32, y: i32, z: i32 };
-    var coords = try document.as(std.MultiArrayList(Coordinate), allocator);
+    var coords = try document.as(std.MultiArrayList(Coordinate), allocator, .{});
     defer coords.deinit();
 
     try std.testing.expectEqual(coords.value.len, 3);

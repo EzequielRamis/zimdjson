@@ -21,7 +21,7 @@ pub fn prerun() !void {}
 
 pub fn run() !void {
     const document = try parser.parse(allocator, json);
-    doc = try document.as(Schema, allocator);
+    doc = try document.as(Schema, allocator, .{});
 }
 
 pub fn postrun() !void {

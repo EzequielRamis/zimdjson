@@ -1187,7 +1187,8 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
 
             pub fn at(self: Array, index: usize) Value {
                 var i: usize = 0;
-                while (self.next() catch |err| return .{
+                var it = self.iterator();
+                while (it.next() catch |err| return .{
                     .iter = self.iter,
                     .err = err,
                 }) |v| : (i += 1) if (i == index) return v;

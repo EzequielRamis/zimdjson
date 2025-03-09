@@ -21,6 +21,25 @@ pub fn build(b: *std.Build) !void {
     });
     b.modules.put(b.dupe("zimdjson"), zimdjson) catch @panic("OOM");
 
+    {
+        const com = center.command("docs", "Generate documentation");
+
+        const obj = b.addObject(.{
+            .name = "zimdjson",
+            .root_source_file = b.path("src/zimdjson.zig"),
+            .target = target,
+            .optimize = optimize,
+        });
+
+        const install_docs = b.addInstallDirectory(.{
+            .source_dir = obj.getEmittedDocs(),
+            .install_dir = .prefix,
+            .install_subdir = "docs",
+        });
+
+        com.dependOn(&install_docs.step);
+    }
+
     // -- Testing
     {
         var com = center.command("tests", "Run all test suites");
@@ -647,7 +666,7 @@ fn getZimdjsonModule(
     },
 ) *std.Build.Module {
     const module = b.createModule(.{
-        .root_source_file = b.path("src/root.zig"),
+        .root_source_file = b.path("src/zimdjson.zig"),
     });
     module.addImport("debug", getDebugModule(b, .{
         .target = options.target,

@@ -193,7 +193,7 @@ fn parseSchema(document: Parser.Document) !std.json.Parsed(Schema) {
 }
 
 fn parseSchemaInner(document: Parser.Document, alloc: std.mem.Allocator, dest: *Schema) !void {
-    const statuses = try document.at("statuses").asArray();
+    var statuses = (try document.at("statuses").asArray()).iterator();
     while (try statuses.next()) |status| {
         try dest.statuses.append(alloc, try parseStatus(status, alloc));
     }
@@ -297,7 +297,7 @@ fn parseUser(value: Parser.Value, alloc: std.mem.Allocator) !User {
 }
 
 fn parseUserEntities(value: Parser.Value, alloc: std.mem.Allocator) !UserEntities {
-    const arr = try value.at("description").at("urls").asArray();
+    var arr = (try value.at("description").at("urls").asArray()).iterator();
     var arr_result: ArrayList(Url) = .empty;
     while (try arr.next()) |url| {
         try arr_result.append(alloc, try parseUrl(url));
@@ -312,7 +312,7 @@ fn parseUrl(value: Parser.Value) !Url {
         .display_url = try value.at("display_url").asString().get(),
         .indices = brk: {
             var indices: struct { u8, u8 } = undefined;
-            const arr = try value.at("indices").asArray();
+            var arr = (try value.at("indices").asArray()).iterator();
             indices[0] = @intCast(try (try arr.next() orelse return error.MissingField).asUnsigned());
             indices[1] = @intCast(try (try arr.next() orelse return error.MissingField).asUnsigned());
             break :brk indices;
@@ -321,19 +321,19 @@ fn parseUrl(value: Parser.Value) !Url {
 }
 
 fn parseStatusEntities(value: Parser.Value, alloc: std.mem.Allocator) !StatusEntities {
-    const hashtags_arr = try value.at("hashtags").asArray();
+    var hashtags_arr = (try value.at("hashtags").asArray()).iterator();
     var hashtags_result: ArrayList(HashTag) = .empty;
     while (try hashtags_arr.next()) |hashtag| {
         try hashtags_result.append(alloc, try parseHashTag(hashtag));
     }
     const symbols_arr = try value.at("symbols").asArray();
     if (!try symbols_arr.isEmpty()) return error.IncorrectType;
-    const urls_arr = try value.at("urls").asArray();
+    var urls_arr = (try value.at("urls").asArray()).iterator();
     var urls_result: ArrayList(Url) = .empty;
     while (try urls_arr.next()) |url| {
         try urls_result.append(alloc, try parseUrl(url));
     }
-    const user_mentions_arr = try value.at("user_mentions").asArray();
+    var user_mentions_arr = (try value.at("user_mentions").asArray()).iterator();
     var user_mentions_result: ArrayList(UserMention) = .empty;
     while (try user_mentions_arr.next()) |user_mention| {
         try user_mentions_result.append(alloc, try parseUserMention(user_mention));
@@ -351,7 +351,7 @@ fn parseHashTag(value: Parser.Value) !HashTag {
         .text = try value.at("text").asString().get(),
         .indices = brk: {
             var indices: struct { u8, u8 } = undefined;
-            const arr = try value.at("indices").asArray();
+            var arr = (try value.at("indices").asArray()).iterator();
             indices[0] = @intCast(try (try arr.next() orelse return error.MissingField).asUnsigned());
             indices[1] = @intCast(try (try arr.next() orelse return error.MissingField).asUnsigned());
             break :brk indices;
@@ -367,7 +367,7 @@ fn parseUserMention(value: Parser.Value) !UserMention {
         .id_str = try value.at("id_str").asString().get(),
         .indices = brk: {
             var indices: struct { u8, u8 } = undefined;
-            const arr = try value.at("indices").asArray();
+            var arr = (try value.at("indices").asArray()).iterator();
             indices[0] = @intCast(try (try arr.next() orelse return error.MissingField).asUnsigned());
             indices[1] = @intCast(try (try arr.next() orelse return error.MissingField).asUnsigned());
             break :brk indices;

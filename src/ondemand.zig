@@ -1392,7 +1392,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         pub const init: Parsed = .empty;
                         pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const alloc = allocator orelse return error.ExpectedAllocator;
-                            const arr = try value.asArray();
+                            var arr = (try value.asArray()).iterator();
                             while (try arr.next()) |child| {
                                 const item = try child.asLeaky(T, alloc, .{});
                                 try dest.append(alloc, item);
@@ -1406,7 +1406,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         pub const init: Parsed = .empty;
                         pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const alloc = allocator orelse return error.ExpectedAllocator;
-                            const arr = try value.asArray();
+                            var arr = (try value.asArray()).iterator();
                             while (try arr.next()) |child| {
                                 const item = try child.asLeaky(T, alloc, .{});
                                 try dest.append(alloc, item);
@@ -1435,7 +1435,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     return .from(struct {
                         pub const init: Parsed = Parsed.init(0) catch unreachable;
                         pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
-                            const arr = try value.asArray();
+                            var arr = (try value.asArray()).iterator();
                             while (try arr.next()) |child| {
                                 const item = try child.asLeaky(T, allocator, .{});
                                 dest.append(item) catch return error.ExceededCapacity;
@@ -1452,7 +1452,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     return .from(struct {
                         pub const init: Parsed = Parsed.init(0) catch unreachable;
                         pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
-                            const arr = try value.asArray();
+                            var arr = (try value.asArray()).iterator();
                             while (try arr.next()) |child| {
                                 const item = try child.asLeaky(T, allocator, .{});
                                 dest.append(item) catch return error.ExceededCapacity;
@@ -1499,7 +1499,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         pub const init: Parsed = .{};
                         pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const alloc = allocator orelse return error.ExpectedAllocator;
-                            const arr = try value.asArray();
+                            var arr = (try value.asArray()).iterator();
                             while (try arr.next()) |child| {
                                 const item = try child.asLeaky(T, allocator, .{});
                                 const node = try alloc.create(Parsed.Node);
@@ -1515,7 +1515,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         pub const init: Parsed = .init(.{});
                         pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const enum_schema = comptime resolveSchema(E, null);
-                            const obj = try value.asObject();
+                            var obj = (try value.asObject()).iterator();
                             while (try obj.next()) |field| {
                                 const variant = try field.key.getTemporal();
                                 const enum_literal = try parseEnumFromSlice(E, enum_schema, variant);
@@ -1531,7 +1531,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         pub const init: Parsed = .empty;
                         pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const alloc = allocator orelse return error.ExpectedAllocator;
-                            const arr = try value.asArray();
+                            var arr = (try value.asArray()).iterator();
                             while (try arr.next()) |child| {
                                 const item = try child.asLeaky(T, alloc, .{});
                                 try dest.append(alloc, item);
@@ -1545,7 +1545,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         pub const init: Parsed = .{};
                         pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const alloc = allocator orelse return error.ExpectedAllocator;
-                            const arr = try value.asArray();
+                            var arr = (try value.asArray()).iterator();
                             while (try arr.next()) |child| {
                                 const item = try child.asLeaky(T, alloc, .{});
                                 try dest.append(alloc, item);
@@ -1559,7 +1559,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         pub const init: Parsed = .{};
                         pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const alloc = allocator orelse return error.ExpectedAllocator;
-                            const arr = try value.asArray();
+                            var arr = (try value.asArray()).iterator();
                             if (try arr.next()) |first| {
                                 {
                                     const item = try first.asLeaky(T, allocator, .{});
@@ -1585,7 +1585,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         pub const init: Parsed = .empty;
                         pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const alloc = allocator orelse return error.ExpectedAllocator;
-                            const obj = try value.asObject();
+                            var obj = (try value.asObject()).iterator();
                             while (try obj.next()) |field| {
                                 const key = try field.key.get();
                                 const val = try field.value.asLeaky(V, alloc, .{});
@@ -1600,7 +1600,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         pub const init: Parsed = .empty;
                         pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const alloc = allocator orelse return error.ExpectedAllocator;
-                            const obj = try value.asObject();
+                            var obj = (try value.asObject()).iterator();
                             while (try obj.next()) |field| {
                                 const key = try field.key.get();
                                 const val = try field.value.asLeaky(V, alloc, .{});
@@ -1707,7 +1707,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         const sp = @field(fields_schema_parser, field.name);
                         if (sp[1]) |handler| @field(dest, field.name) = handler.init;
                     }
-                    const array = try value.asArray();
+                    var array = (try value.asArray()).iterator();
                     inline for (fields) |field| {
                         if (try array.next()) |item| {
                             const sp = @field(fields_schema_parser, field.name);
@@ -1720,10 +1720,11 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     return dest;
                 }
                 const object = try value.asObject();
-                return parseStructWithObject(T, S, allocator, object);
+                var it = object.iterator();
+                return parseStructWithObjectIterator(T, S, allocator, &it);
             }
 
-            fn parseStructWithObject(comptime T: type, comptime S: schema.Struct(T), allocator: ?Allocator, object: Object) schema.Error!T {
+            fn parseStructWithObjectIterator(comptime T: type, comptime S: schema.Struct(T), allocator: ?Allocator, it: *Object.Iterator) schema.Error!T {
                 const fields = _std.meta.fields(T);
                 const is_packed = @typeInfo(T).@"struct".layout == .@"packed";
                 var dest = schema_utils.undefinedInit(T);
@@ -1742,8 +1743,8 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 if (non_skipped_field_count == 0) {
                     switch (S.on_unknown_field) {
                         .ignore => {},
-                        .@"error" => if (try object.next()) |_| return error.UnknownField,
-                        .handle => |handle| while (try object.next()) |field| try handle(allocator, try field.key.getTemporal(), field.value, &dest),
+                        .@"error" => if (try it.next()) |_| return error.UnknownField,
+                        .handle => |handle| while (try it.next()) |field| try handle(allocator, try field.key.getTemporal(), field.value, &dest),
                     }
                     return dest;
                 }
@@ -1755,16 +1756,34 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         if (field_schema.skip) continue;
                         const renamed_key: []const u8 = if (field_schema.rename) |rename| rename else comptime schema_utils.renameField(S.rename_all, field.name);
                         const field_value = brk: {
+
+                            // handle the adjacent field after the previous queried field
                             if (prev_field_key) |prev_key| {
                                 if (_std.mem.eql(u8, prev_key, renamed_key)) break :brk prev_field_value;
                                 switch (S.on_unknown_field) {
-                                    .ignore => break :brk object.atOrdered(renamed_key),
+                                    .ignore => {
+                                        while (try it.next()) |next_field| {
+                                            const next_field_key = try next_field.key.getTemporal();
+                                            if (_std.mem.eql(u8, next_field_key, renamed_key)) break :brk next_field.value;
+                                        }
+                                        return error.MissingField;
+                                    },
                                     .@"error" => return error.UnknownField,
                                     .handle => |handle| try handle(allocator, prev_key, prev_field_value, &dest),
                                 }
                             }
-                            if (S.on_unknown_field == .ignore) break :brk object.atOrdered(renamed_key);
-                            if (try object.next()) |next_field| {
+
+                            // search for the first queried field ignoring previous unknown fields
+                            if (S.on_unknown_field == .ignore) {
+                                while (try it.next()) |next_field| {
+                                    const next_field_key = try next_field.key.getTemporal();
+                                    if (_std.mem.eql(u8, next_field_key, renamed_key)) break :brk next_field.value;
+                                }
+                                return error.MissingField;
+                            }
+
+                            // handle the first found field
+                            if (try it.next()) |next_field| {
                                 const field_key = try next_field.key.getTemporal();
                                 if (_std.mem.eql(u8, field_key, renamed_key)) break :brk next_field.value;
                                 switch (S.on_unknown_field) {
@@ -1783,7 +1802,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             @field(dest, field.name) = try field_value.asLeaky(field.type, allocator, .{ .schema = field_schema.schema });
                         }
                         while (true) {
-                            if (try object.next()) |next_field| {
+                            if (try it.next()) |next_field| {
                                 const next_field_key = try next_field.key.getTemporal();
                                 const next_field_value = next_field.value;
                                 if (_std.mem.eql(u8, next_field_key, renamed_key)) {
@@ -1813,8 +1832,8 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     }
                     switch (S.on_unknown_field) {
                         .ignore => {},
-                        .@"error" => if (try object.next()) |_| return error.UnknownField,
-                        .handle => |handle| while (try object.next()) |field| try handle(allocator, try field.key.getTemporal(), field.value, &dest),
+                        .@"error" => if (try it.next()) |_| return error.UnknownField,
+                        .handle => |handle| while (try it.next()) |field| try handle(allocator, try field.key.getTemporal(), field.value, &dest),
                     }
                 } else {
                     var seen: [non_skipped_field_count]bool = @splat(false);
@@ -1839,7 +1858,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     const dispatches = dispatches_mut;
                     const struct_map = comptime schema_utils.Map(StructDispatch, &dispatches);
                     var undefined_count_runtime = undefined_count;
-                    while (try object.next()) |field| {
+                    while (try it.next()) |field| {
                         const key = try field.key.getTemporal();
                         const field_index = struct_map.getIndex(key) orelse switch (S.on_unknown_field) {
                             .ignore => continue,
@@ -2029,7 +2048,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     var dest = schema_utils.undefinedInit(T);
                     switch (S.representation) {
                         .externally_tagged => {
-                            const object = try value.asObject();
+                            var object = (try value.asObject()).iterator();
                             if (try object.next()) |content| {
                                 const tag_key = try content.key.getTemporal();
                                 const dispatch = union_map.get(tag_key) orelse return error.UnknownUnionVariant;
@@ -2038,7 +2057,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             if (try object.next()) |_| return error.IncorrectType;
                         },
                         .internally_tagged => |t| {
-                            const object = try value.asObject();
+                            var object = (try value.asObject()).iterator();
                             if (try object.next()) |tag| {
                                 const tag_key = try tag.key.getTemporal();
                                 if (!_std.mem.eql(u8, tag_key, t)) return error.UnknownField;
@@ -2048,7 +2067,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             } else return error.MissingField;
                         },
                         .adjacently_tagged => |a| {
-                            const object = try value.asObject();
+                            var object = (try value.asObject()).iterator();
                             if (try object.next()) |tag| {
                                 const tag_key = try tag.key.getTemporal();
                                 if (!_std.mem.eql(u8, tag_key, a.tag)) return error.UnknownField;
@@ -2083,7 +2102,8 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         if (repr == .internally_tagged) {
                             const g = comptime resolveSchema(F.type, G);
                             assert(@typeInfo(F.type) == .@"struct");
-                            const payload = try parseStructWithObject(F.type, g, allocator, .{ .iter = value.iter });
+                            var it: Object.Iterator = .{ .first = false, .iter = value.iter };
+                            const payload = try parseStructWithObjectIterator(F.type, g, allocator, &it);
                             return @unionInit(T, F.name, payload);
                         } else {
                             const payload = try value.asLeaky(F.type, allocator, .{ .schema = G });
@@ -2128,7 +2148,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             }
                             return dest;
                         } else {
-                            const arr = try value.asArray();
+                            var arr = (try value.asArray()).iterator();
                             var dest = schema_utils.undefinedInit(T);
                             for (0..info.len) |i| {
                                 if (try arr.next()) |item| {
@@ -2146,7 +2166,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     },
                     .vector => |info| {
                         if (!isParseable(info.child)) @compileError("Unable to parse into type '" ++ @typeName(T) ++ "'");
-                        const arr = try value.asArray();
+                        var arr = (try value.asArray()).iterator();
                         var dest = schema_utils.undefinedInit(T);
                         for (0..info.len) |i| {
                             if (try arr.next()) |item| {

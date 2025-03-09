@@ -34,7 +34,7 @@ pub fn run() !void {
     file = try std.fs.openFileAbsolute(path, .{});
     try parser.ensureTotalCapacity(allocator, (try file.stat()).size);
     const doc = try parser.parse(allocator, file.reader());
-    const systems = try doc.asArray();
+    var systems = (try doc.asArray()).iterator();
     while (try systems.next()) |system| {
         const id = try system.at("id64").asUnsigned();
         const name = try system.at("name").asString().get();

@@ -36,9 +36,8 @@ pub fn run() !void {
     file = try std.fs.openFileAbsolute(path, .{});
     try parser.ensureTotalCapacity(allocator, (try file.stat()).size);
     const doc = try parser.parse(allocator, file.reader());
-    const systems = try doc.asArray();
-    var it = systems.iterator();
-    while (it.next()) |system| {
+    var systems = (try doc.asArray()).iterator();
+    while (systems.next()) |system| {
         const factions = system.at("factions");
         if (factions.err) |err| if (err == error.MissingField) continue else return err;
         const factions_count = try factions.getSize();

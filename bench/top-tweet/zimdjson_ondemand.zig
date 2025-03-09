@@ -36,7 +36,7 @@ pub fn run() !void {
     file = try std.fs.openFileAbsolute(path, .{});
     try parser.ensureTotalCapacity(allocator, (try file.stat()).size);
     const doc = try parser.parse(allocator, file.reader());
-    const tweet = try doc.at("statuses").asArray();
+    var tweet = (try doc.at("statuses").asArray()).iterator();
     while (try tweet.next()) |t| {
         const text = try t.at("text").asString().get();
         const screen_name = try t.at("user").at("screen_name").asString().get();

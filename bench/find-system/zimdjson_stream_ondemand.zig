@@ -23,7 +23,7 @@ pub fn run() !void {
     file = try std.fs.openFileAbsolute(path, .{});
     try parser.ensureTotalCapacity(allocator, (try file.stat()).size);
     const doc = try parser.parse(allocator, file.reader());
-    const systems = try doc.asArray();
+    var systems = (try doc.asArray()).iterator();
     while (try systems.next()) |s| {
         if (try s.at("id64").asUnsigned() == find_id) {
             result = try s.at("name").asString().get();

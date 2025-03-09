@@ -22,9 +22,8 @@ pub fn run() !void {
     file = try std.fs.openFileAbsolute(path, .{});
     try parser.ensureTotalCapacity(allocator, (try file.stat()).size);
     const doc = try parser.parse(allocator, file.reader());
-    const statuses = try doc.at("statuses").asArray();
-    var it = statuses.iterator();
-    while (it.next()) |tweet| {
+    var statuses = (try doc.at("statuses").asArray()).iterator();
+    while (statuses.next()) |tweet| {
         try result.append(try tweet.at("user").at("id").asUnsigned());
         const retweet = tweet.at("retweeted_status");
         if (retweet.err) |err| if (err == error.MissingField) continue else return err;

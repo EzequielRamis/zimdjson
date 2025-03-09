@@ -28,9 +28,8 @@ pub fn run() !void {
     file = try std.fs.openFileAbsolute(path, .{});
     try parser.ensureTotalCapacity(allocator, (try file.stat()).size);
     const doc = try parser.parse(allocator, file.reader());
-    const systems = try doc.asArray();
-    var it = systems.iterator();
-    while (it.next()) |sys| {
+    var systems = (try doc.asArray()).iterator();
+    while (systems.next()) |sys| {
         const coords = try sys.at("coords").asObject();
         try result.append(.{
             .x = try coords.at("x").asFloat(),

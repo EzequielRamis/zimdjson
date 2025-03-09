@@ -279,6 +279,8 @@ test "packed struct" {
     const Parser = parserFromSlice;
     var parser = Parser.init;
     defer parser.deinit(allocator);
+
+    // cursed
     const document = try parser.parse(allocator,
         \\{
         \\    "address": 12345,

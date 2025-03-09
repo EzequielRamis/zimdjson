@@ -303,8 +303,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
-            pub inline fn at(self: Value, key: []const u8) Value {
-                @setEvalBranchQuota(10000);
+            pub fn at(self: Value, key: []const u8) Value {
                 if (self.err) |_| return self;
                 const obj = self.asObject() catch |err| return .{
                     .tape = self.tape,
@@ -314,8 +313,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 return obj.at(key);
             }
 
-            pub inline fn atIndex(self: Value, index: usize) Value {
-                @setEvalBranchQuota(10000);
+            pub fn atIndex(self: Value, index: usize) Value {
                 if (self.err) |_| return self;
                 const arr = self.asArray() catch |err| return .{
                     .tape = self.tape,
@@ -325,12 +323,16 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 return arr.at(index);
             }
 
-            pub fn getSize(self: Value) Error!u24 {
+            pub fn getArraySize(self: Value) Error!u24 {
                 if (self.err) |err| return err;
+                const arr = try self.asArray();
+                return arr.getSize();
+            }
 
-                if (self.asArray()) |arr| return arr.getSize() else |_| {}
-                if (self.asObject()) |obj| return obj.getSize() else |_| {}
-                return error.IncorrectType;
+            pub fn getObjectSize(self: Value) Error!u24 {
+                if (self.err) |err| return err;
+                const obj = try self.asObject();
+                return obj.getSize();
             }
         };
 
@@ -361,8 +363,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
-            pub inline fn at(self: Array, index: u32) Value {
-                @setEvalBranchQuota(10000);
+            pub fn at(self: Array, index: u32) Value {
                 var it = self.iterator();
                 var i: u32 = 0;
                 while (it.next()) |v| : (i += 1) if (i == index) return v;
@@ -420,8 +421,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
-            pub inline fn at(self: Object, key: []const u8) Value {
-                @setEvalBranchQuota(2000000);
+            pub fn at(self: Object, key: []const u8) Value {
                 var it = self.iterator();
                 while (it.next()) |field| if (std.mem.eql(u8, field.key, key)) return field.value;
                 return .{

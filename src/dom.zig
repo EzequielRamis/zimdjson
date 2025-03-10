@@ -54,6 +54,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
 
         pub const Error = Tokens.Error || types.ParseError || Allocator.Error || if (Reader) |reader| reader.Error else error{};
         pub const max_capacity_bound = if (want_stream) std.math.maxInt(u32) * @sizeOf(Tape.Word) else std.math.maxInt(u32);
+        pub const default_max_depth = 1024;
 
         document_buffer: if (need_document_buffer) std.ArrayListAlignedUnmanaged(u8, types.Aligned(true).alignment) else void,
         tape: Tape,
@@ -68,6 +69,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             .capacity = 0,
         };
 
+        /// Release all allocated memory, including the strings.
         pub fn deinit(self: *Self, allocator: Allocator) void {
             self.tape.deinit(allocator);
             if (need_document_buffer) self.document_buffer.deinit(allocator);
@@ -137,6 +139,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             };
         }
 
+        /// Any valid JSON value.
         pub const AnyValue = union(types.ValueType) {
             null,
             bool: bool,
@@ -146,11 +149,13 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             array: Array,
         };
 
+        /// References a value in a JSON document.
         pub const Value = struct {
             tape: *const Tape,
             index: u32,
             err: ?Error = null,
 
+            /// Cast the value to an object.
             pub fn asObject(self: Value) Error!Object {
                 if (self.err) |err| return err;
 
@@ -160,6 +165,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
+            /// Cast the value to an array.
             pub fn asArray(self: Value) Error!Array {
                 if (self.err) |err| return err;
 
@@ -169,6 +175,11 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
+            /// Cast the value to a string.
+            /// The string is guaranteed to be valid UTF-8.
+            ///
+            /// **Note**: The string is stored in the parser and will be invalidated the next time it
+            /// parses a document or when it is destroyed.
             pub fn asString(self: Value) Error![]const u8 {
                 if (self.err) |err| return err;
 
@@ -185,17 +196,19 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
+            /// Cast the value to a number.
             pub fn asNumber(self: Value) Error!Number {
                 if (self.err) |err| return err;
 
                 const w = self.tape.get(self.index);
                 const number = self.tape.get(self.index + 1);
                 return switch (w.tag) {
-                    inline .unsigned, .signed, .float => |t| @unionInit(Number, @tagName(t), @bitCast(number)),
+                    inline .unsigned, .signed, .double => |t| @unionInit(Number, @tagName(t), @bitCast(number)),
                     else => error.IncorrectType,
                 };
             }
 
+            /// Cast the value to an unsigned integer.
             pub fn asUnsigned(self: Value) Error!u64 {
                 if (self.err) |err| return err;
 
@@ -208,6 +221,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
+            /// Cast the value to a signed integer.
             pub fn asSigned(self: Value) Error!i64 {
                 if (self.err) |err| return err;
 
@@ -220,19 +234,21 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
+            /// Cast the value to a double floating point.
             pub fn asDouble(self: Value) Error!f64 {
                 if (self.err) |err| return err;
 
                 const w = self.tape.get(self.index);
                 const number = self.tape.get(self.index + 1);
                 return switch (w.tag) {
-                    .float => @bitCast(number),
+                    .double => @bitCast(number),
                     .unsigned => @floatFromInt(@as(u64, @bitCast(number))),
                     .signed => @floatFromInt(@as(i64, @bitCast(number))),
                     else => error.IncorrectType,
                 };
             }
 
+            /// Cast the value to a bool.
             pub fn asBool(self: Value) Error!bool {
                 if (self.err) |err| return err;
 
@@ -243,12 +259,14 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
+            /// Check whether the value is a JSON `null`.
             pub fn isNull(self: Value) Error!bool {
                 if (self.err) |err| return err;
 
                 return self.tape.get(self.index).tag == .null;
             }
 
+            /// Cast the value to any valid JSON value.
             pub fn asAny(self: Value) Error!AnyValue {
                 if (self.err) |err| return err;
 
@@ -257,7 +275,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     .true => .{ .bool = true },
                     .false => .{ .bool = false },
                     .null => .null,
-                    .unsigned, .signed, .float => .{ .number = self.asNumber() catch unreachable },
+                    .unsigned, .signed, .double => .{ .number = self.asNumber() catch unreachable },
                     .string => .{ .string = self.asString() catch unreachable },
                     .object_opening => .{ .object = .{ .tape = self.tape, .root = self.index } },
                     .array_opening => .{ .array = .{ .tape = self.tape, .root = self.index } },
@@ -265,13 +283,17 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
+            /// Cast the value to the specified type.
+            ///
+            /// **Note**: The method is limited to simple types. For more complex deserialization,
+            /// consider using the [`ondemand.Parser.schema`](#zimdjson.ondemand.Parser.schema) interface.
             pub fn as(self: Value, comptime T: type) Error!T {
                 const info = @typeInfo(T);
                 switch (info) {
                     .int => {
                         const n = try self.asNumber();
                         return switch (n) {
-                            .float => error.IncorrectType,
+                            .double => error.IncorrectType,
                             inline else => n.cast(T) orelse error.NumberOutOfRange,
                         };
                     },
@@ -282,12 +304,22 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         const child = try self.as(opt.child);
                         return child;
                     },
+                    .void => {
+                        if (try self.isNull()) return {};
+                        return error.IncorrectType;
+                    },
                     else => {
-                        if (T == []const u8) return self.asString() else @compileError(std.fmt.comptimePrint("it is not possible to automagically cast a JSON value to type {s}", .{@typeName(T)}));
+                        if (T == []const u8) return self.asString();
+                        if (T == Number) return self.asNumber();
+                        if (T == Array) return self.asArray();
+                        if (T == Object) return self.asObject();
+                        if (T == AnyValue) return self.asAny();
+                        @compileError("Unable to parse into type '" ++ @typeName(T) ++ "'");
                     },
                 }
             }
 
+            /// Get the type of the value.
             pub fn getType(self: Value) Error!types.ValueType {
                 if (self.err) |err| return err;
 
@@ -303,6 +335,22 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
+            /// Get the value associated with the given key.
+            /// The key is matched against **unescaped** JSON.
+            /// The method has linear-time complexity.
+            ///
+            /// Since the method is chainable, it can be called multiple times in a row.
+            /// For example:
+            ///
+            /// ```zig
+            /// const document = try parser.parse(allocator, "{ \"a\": { \"b\": 1 } }");
+            /// const value = try document.at("a").at("b").asUnsigned();
+            /// std.debug.assert(value == 1);
+            /// ```
+            ///
+            /// If the key is not found, an `error.MissingField` will be returned when a cast method is used.
+            ///
+            /// **Note**: Avoid calling the `at` method repeatedly.
             pub fn at(self: Value, key: []const u8) Value {
                 if (self.err) |_| return self;
                 const obj = self.asObject() catch |err| return .{
@@ -313,6 +361,21 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 return obj.at(key);
             }
 
+            /// Get the value at the given index.
+            /// The method has linear-time complexity.
+            ///
+            /// Since the method is chainable, it can be called multiple times in a row.
+            /// For example:
+            ///
+            /// ```zig
+            /// const document = try parser.parse(allocator, "[ [], [1] ]");
+            /// const value = try document.atIndex(1).atIndex(0).asUnsigned();
+            /// std.debug.assert(value == 1);
+            /// ```
+            ///
+            /// If the value is not found, an `error.IndexOutOfBounds` will be returned when a cast method is used.
+            ///
+            /// **Note**: Avoid calling the `atIndex` method repeatedly.
             pub fn atIndex(self: Value, index: usize) Value {
                 if (self.err) |_| return self;
                 const arr = self.asArray() catch |err| return .{
@@ -323,12 +386,16 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 return arr.at(index);
             }
 
+            /// Get the size of the array (number of immediate children).
+            /// It is a saturated value with a maximum of `std.math.maxInt(u24)`.
             pub fn getArraySize(self: Value) Error!u24 {
                 if (self.err) |err| return err;
                 const arr = try self.asArray();
                 return arr.getSize();
             }
 
+            /// Get the size of the object (number of keys).
+            /// It is a saturated value with a maximum of `std.math.maxInt(u24)`.
             pub fn getObjectSize(self: Value) Error!u24 {
                 if (self.err) |err| return err;
                 const obj = try self.asObject();
@@ -336,6 +403,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             }
         };
 
+        /// A valid JSON array.
         pub const Array = struct {
             tape: *const Tape,
             root: u32,
@@ -344,18 +412,20 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 tape: *const Tape,
                 curr: u32,
 
+                /// Go to the next value in the array, if any.
                 pub fn next(self: *Iterator) ?Value {
                     const curr = self.tape.get(self.curr);
                     if (curr.tag == .array_closing) return null;
                     defer self.curr = switch (curr.tag) {
                         .array_opening, .object_opening => curr.data.ptr,
-                        .unsigned, .signed, .float => self.curr + 2,
+                        .unsigned, .signed, .double => self.curr + 2,
                         else => self.curr + 1,
                     };
                     return .{ .tape = self.tape, .index = self.curr };
                 }
             };
 
+            /// Iterate over the values in the array.
             pub fn iterator(self: Array) Iterator {
                 return .{
                     .tape = self.tape,
@@ -363,7 +433,22 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
-            pub fn at(self: Array, index: u32) Value {
+            /// Get the value at the given index.
+            /// The method has linear-time complexity.
+            ///
+            /// Since the method is chainable, it can be called multiple times in a row.
+            /// For example:
+            ///
+            /// ```zig
+            /// const document = try parser.parse(allocator, "[ [], [1] ]");
+            /// const value = try document.atIndex(1).atIndex(0).asUnsigned();
+            /// std.debug.assert(value == 1);
+            /// ```
+            ///
+            /// If the value is not found, an `error.IndexOutOfBounds` will be returned when a cast method is used.
+            ///
+            /// **Note**: Avoid calling the `at` method repeatedly.
+            pub fn at(self: Array, index: usize) Value {
                 var it = self.iterator();
                 var i: u32 = 0;
                 while (it.next()) |v| : (i += 1) if (i == index) return v;
@@ -374,16 +459,20 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
+            /// Check whether the array is empty.
             pub fn isEmpty(self: Array) bool {
                 return self.getSize() == 0;
             }
 
+            /// Get the size of the array (number of immediate children).
+            /// It is a saturated value with a maximum of `std.math.maxInt(u24)`.
             pub fn getSize(self: Array) u24 {
                 assert(self.tape.get(self.root).tag == .array_opening);
                 return self.tape.get(self.root).data.len;
             }
         };
 
+        /// A valid JSON object.
         pub const Object = struct {
             tape: *const Tape,
             root: u32,
@@ -397,6 +486,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 tape: *const Tape,
                 curr: u32,
 
+                /// Go to the next field in the object, if any.
                 pub fn next(self: *Iterator) ?Field {
                     if (self.tape.get(self.curr).tag == .object_closing) return null;
                     const field = Value{ .tape = self.tape, .index = self.curr };
@@ -404,7 +494,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     const curr = self.tape.get(self.curr + 1);
                     defer self.curr = switch (curr.tag) {
                         .array_opening, .object_opening => curr.data.ptr,
-                        .unsigned, .signed, .float => self.curr + 3,
+                        .unsigned, .signed, .double => self.curr + 3,
                         else => self.curr + 2,
                     };
                     return .{
@@ -414,6 +504,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 }
             };
 
+            /// Iterate over the fields in the object.
             pub fn iterator(self: Object) Iterator {
                 return .{
                     .tape = self.tape,
@@ -421,6 +512,22 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
+            /// Get the value associated with the given key.
+            /// The key is matched against **unescaped** JSON.
+            /// The method has linear-time complexity.
+            ///
+            /// Since the method is chainable, it can be called multiple times in a row.
+            /// For example:
+            ///
+            /// ```zig
+            /// const document = try parser.parse(allocator, "{ \"a\": { \"b\": 1 } }");
+            /// const value = try document.at("a").at("b").asUnsigned();
+            /// std.debug.assert(value == 1);
+            /// ```
+            ///
+            /// If the key is not found, an `error.MissingField` will be returned when a cast method is used.
+            ///
+            /// **Note**: Avoid calling the `at` method repeatedly.
             pub fn at(self: Object, key: []const u8) Value {
                 var it = self.iterator();
                 while (it.next()) |field| if (std.mem.eql(u8, field.key, key)) return field.value;
@@ -431,10 +538,13 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
+            /// Check whether the object is empty.
             pub fn isEmpty(self: Object) bool {
                 return self.getSize() == 0;
             }
 
+            /// Get the size of the object (number of keys).
+            /// It is a saturated value with a maximum of `std.math.maxInt(u24)`.
             pub fn getSize(self: Object) u24 {
                 assert(self.tape.get(self.root).tag == .object_opening);
                 return self.tape.get(self.root).data.len;
@@ -461,7 +571,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 null = 'n',
                 unsigned = @intFromEnum(types.Number.unsigned),
                 signed = @intFromEnum(types.Number.signed),
-                float = @intFromEnum(types.Number.float),
+                double = @intFromEnum(types.Number.double),
                 string = 's',
                 object_opening = '{',
                 object_closing = '}',
@@ -487,7 +597,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     data: Data,
                 };
 
-                max_depth: usize = 1024,
+                max_depth: usize = default_max_depth,
                 multi: std.MultiArrayList(Context) = .empty,
 
                 pub const empty: @This() = .{};

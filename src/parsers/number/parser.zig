@@ -38,7 +38,7 @@ pub inline fn parse(comptime Expected: ?types.NumberType, src: [*]const u8) Erro
                     if (i > 1 and integer_ptr[0] == '0') return error.InvalidNumberLiteral; // there is a leading zero
 
                     if (common.tables.is_structural_or_whitespace_negated[int_char]) {
-                        if (Expected == null or Expected == .float) { // there can be a decimal point
+                        if (Expected == null or Expected == .double) { // there can be a decimal point
                             decimal_ptr = integer_ptr + i;
                             integer_len = i;
                             if (int_char == '.') {
@@ -168,7 +168,7 @@ pub inline fn parse(comptime Expected: ?types.NumberType, src: [*]const u8) Erro
             }
             // at this point, there are 19 parsed digits
             if (integer_ptr[0] == '0') return error.InvalidNumberLiteral; // there is a leading zero
-            if (Expected != null and Expected != .float) {
+            if (Expected != null and Expected != .double) {
                 // remainder: there are 19 parsed digits and zero or more unparsed
                 if (Expected == .signed) {
                     // trying to parse the 20th digit if it exists
@@ -298,7 +298,7 @@ pub inline fn parse(comptime Expected: ?types.NumberType, src: [*]const u8) Erro
                 answer /= power_of_ten[@intCast(-exponent_10)]
             else
                 answer *= power_of_ten[@intCast(exponent_10)];
-            return .{ .float = if (is_negative) -answer else answer };
+            return .{ .double = if (is_negative) -answer else answer };
         }
 
         var bf = eisel_lemire.compute(mantissa_10, exponent_10);
@@ -320,7 +320,7 @@ pub inline fn parse(comptime Expected: ?types.NumberType, src: [*]const u8) Erro
 
         if (bf.e == number_common.inf_exp) return error.NumberOutOfRange;
 
-        return .{ .float = bf.toFloat(is_negative) };
+        return .{ .double = bf.toFloat(is_negative) };
     }
 }
 

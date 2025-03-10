@@ -17,6 +17,9 @@ pub const block_len = Mask.bits_len * masks_per_iter;
 
 pub fn Aligned(comptime aligned: bool) type {
     return struct {
+        /// Depending on the processor, aligned SIMD vector instructions may provide higher
+        /// performance (benchmarking is recommended). To enforce the use of these instructions,
+        /// the input must be properly aligned.
         pub const alignment = if (aligned) Vector.bytes_len else @alignOf(u8);
         pub const slice = []align(alignment) const u8;
         pub const vector = *align(alignment) const @Vector(Vector.bytes_len, u8);
@@ -29,24 +32,32 @@ pub fn Aligned(comptime aligned: bool) type {
 pub const NumberType = enum(u8) {
     unsigned = 'u',
     signed = 'i',
-    float = 'd',
+    double = 'd',
 };
 
 pub const Number = union(NumberType) {
+    /// The number is tagged as `.unsigned` if it fits in a `u64` but *not* in a `i64`.
     unsigned: u64,
+    /// The number is tagged as `.signed` if it fits in a `i64`.
     signed: i64,
-    float: f64,
+    /// The number is tagged as `.double` if it has a decimal point or an exponent.
+    double: f64,
 
+    /// Cast a number to a different type. If the number doesn't fit in, or can't be
+    /// perfectly represented by, the new type, it will be converted to the closest
+    /// possible representation.
     pub fn lossyCast(self: Number, comptime T: type) T {
         return switch (self) {
             inline else => |n| std.math.lossyCast(T, n),
         };
     }
 
+    /// Cast an integer to a different integer type. If the number doesn't fit, return
+    /// `null`.
     pub fn cast(self: Number, comptime T: type) ?T {
-        assert(self != .float); // must pass an integer
+        assert(self != .double); // must pass an integer
         return switch (self) {
-            .float => unreachable,
+            .double => unreachable,
             inline else => |n| std.math.cast(T, n),
         };
     }

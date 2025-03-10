@@ -34,7 +34,7 @@ pub inline fn parse(comptime Expected: ?types.NumberType, src: [*]const u8) Erro
                     @branchHint(.likely);
                     mantissa_10 = mantissa_10 *% 10 +% digit;
                 } else {
-                    if (i == 0) return error.ExpectedValue; // there is no digits
+                    if (i == 0) return error.IncorrectType; // there is no digits
                     if (i > 1 and integer_ptr[0] == '0') return error.InvalidNumberLiteral; // there is a leading zero
 
                     if (common.tables.is_structural_or_whitespace_negated[int_char]) {

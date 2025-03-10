@@ -366,10 +366,10 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 return error.TrailingContent;
             }
 
-            pub fn asFloat(self: Document) Error!f64 {
+            pub fn asDouble(self: Document) Error!f64 {
                 if (builtin.mode == .Debug) if (!self.iter.isAtRoot()) return error.OutOfOrderIteration;
                 self.iter.assertAtRoot();
-                const n = try self.iter.asFloat();
+                const n = try self.iter.asDouble();
                 if (try self.iter.isAtEnd()) return n;
                 return error.TrailingContent;
             }
@@ -424,7 +424,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     '-', '0'...'9' => .{ .number = try self.asNumber() },
                     '[' => .{ .array = try self.asArray() },
                     '{' => .{ .object = try self.asObject() },
-                    else => return error.ExpectedValue,
+                    else => return error.IncorrectType,
                 };
             }
 
@@ -436,7 +436,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     '-', '0'...'9' => .number,
                     '[' => .array,
                     '{' => .object,
-                    else => error.ExpectedValue,
+                    else => error.IncorrectType,
                 };
             }
 
@@ -476,7 +476,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 return error.TrailingContent;
             }
 
-            pub fn skip(self: Document) Error!void {
+            fn skip(self: Document) Error!void {
                 return self.iter.cursor.skip(0, self.iter.start_char);
             }
 
@@ -536,7 +536,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     return n;
                 }
 
-                inline fn asFloat(self: Iterator) Error!f64 {
+                inline fn asDouble(self: Iterator) Error!f64 {
                     const n = try self.parseFloat(try self.peekScalar());
                     try self.advanceScalar();
                     return n;
@@ -565,7 +565,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         is_null = true;
                         try self.advanceScalar();
                     } else |err| switch (err) {
-                        error.IncorrectType, error.ExpectedValue => {},
+                        error.IncorrectType => {},
                         else => return err,
                     }
                     return is_null;
@@ -920,9 +920,9 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 return self.iter.asSigned();
             }
 
-            pub fn asFloat(self: Value) Error!f64 {
+            pub fn asDouble(self: Value) Error!f64 {
                 if (self.err) |err| return err;
-                return self.iter.asFloat();
+                return self.iter.asDouble();
             }
 
             pub fn asString(self: Value) String {
@@ -959,7 +959,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     '-', '0'...'9' => .{ .number = try self.asNumber() },
                     '[' => .{ .array = try self.asArray() },
                     '{' => .{ .object = try self.asObject() },
-                    else => return error.ExpectedValue,
+                    else => return error.IncorrectType,
                 };
             }
 
@@ -972,7 +972,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     '-', '0'...'9' => .number,
                     '[' => .array,
                     '{' => .object,
-                    else => error.ExpectedValue,
+                    else => error.IncorrectType,
                 };
             }
 
@@ -1073,7 +1073,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 return self.asAdvancedInner(T, S, P, allocator, @alignCast(@ptrCast(dest)));
             }
 
-            pub fn skip(self: Value) Error!void {
+            fn skip(self: Value) Error!void {
                 if (self.err) |err| return err;
                 return self.iter.cursor.skip(self.iter.start_depth - 1, 0);
             }
@@ -1202,7 +1202,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 return !try self.iter.resetArray();
             }
 
-            pub fn skip(self: Array) Error!void {
+            fn skip(self: Array) Error!void {
                 return self.iter.cursor.skip(self.iter.start_depth - 1, '[');
             }
 
@@ -1307,7 +1307,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 return !try self.iter.resetObject();
             }
 
-            pub fn skip(self: Object) Error!void {
+            fn skip(self: Object) Error!void {
                 if (try self.iter.isAtKey()) {
                     _ = try Object.Field.start(self.iter);
                 }
@@ -2125,7 +2125,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                         const n = try if (info.signedness == .signed) value.asSigned() else value.asUnsigned();
                         return _std.math.cast(T, n) orelse error.NumberOutOfRange;
                     },
-                    .float => return @floatCast(try value.asFloat()),
+                    .float => return @floatCast(try value.asDouble()),
                     .bool => return value.asBool(),
                     .optional => |info| {
                         if (!isParseable(info.child)) @compileError("Unable to parse into type '" ++ @typeName(T) ++ "'");

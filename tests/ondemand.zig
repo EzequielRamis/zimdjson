@@ -70,7 +70,7 @@ test "object iterate error" {
     , error.ExpectedKey);
     try expectErrorAtObjectIteration(
         \\{ "a":  , "b": 2 }
-    , error.ExpectedValue);
+    , error.IncorrectType);
     try expectErrorAtObjectIteration(
         \\{ "a": 1  "b": 2 }
     , error.ExpectedObjectCommaOrEnd);
@@ -106,7 +106,7 @@ test "object iterate unclosed error" {
     , error.ExpectedObjectCommaOrEnd);
     try expectErrorAtObjectIteration(
         \\{ "a":
-    , error.ExpectedValue);
+    , error.IncorrectType);
     try expectErrorAtObjectIteration(
         \\{
     , error.ExpectedKey);
@@ -136,7 +136,7 @@ test "object lookup error" {
     , "a", error.ExpectedKey);
     try expectErrorAtObjectLookup(
         \\{ "a":  , "b": 2 }
-    , "a", error.ExpectedValue);
+    , "a", error.IncorrectType);
 }
 
 test "object lookup miss error" {
@@ -192,31 +192,31 @@ test "array iterate error" {
     , error.ExpectedArrayCommaOrEnd);
     try expectErrorAtArrayIteration(
         \\[1,,1]
-    , error.ExpectedValue);
+    , error.IncorrectType);
     try expectErrorAtArrayIteration(
         \\[,]
-    , error.ExpectedValue);
+    , error.IncorrectType);
     try expectErrorAtArrayIteration(
         \\[,,]
-    , error.ExpectedValue);
+    , error.IncorrectType);
 }
 
 test "array iterate unclosed error" {
     try expectErrorAtArrayIteration(
         \\[,
-    , error.ExpectedValue);
+    , error.IncorrectType);
     try expectErrorAtArrayIteration(
         \\[1
     , error.ExpectedArrayCommaOrEnd);
     try expectErrorAtArrayIteration(
         \\[,,
-    , error.ExpectedValue);
+    , error.IncorrectType);
     try expectErrorAtArrayIteration(
         \\[1
     , error.ExpectedArrayCommaOrEnd);
     try expectErrorAtArrayIteration(
         \\[
-    , error.ExpectedValue);
+    , error.IncorrectType);
 }
 
 test "simdjson/issues/2084" {
@@ -345,9 +345,9 @@ test "in order object index" {
 
     var arr = (try document.at("coordinates").asArray()).iterator();
     while (try arr.next()) |point| {
-        x += try point.at("x").asFloat();
-        y += try point.at("y").asFloat();
-        z += try point.at("z").asFloat();
+        x += try point.at("x").asDouble();
+        y += try point.at("y").asDouble();
+        z += try point.at("z").asDouble();
     }
 
     try std.testing.expectEqual(1.1, x);
@@ -368,9 +368,9 @@ test "out of order object index" {
 
     var arr = (try document.at("coordinates").asArray()).iterator();
     while (try arr.next()) |point| {
-        z += try point.at("z").asFloat();
-        x += try point.at("x").asFloat();
-        y += try point.at("y").asFloat();
+        z += try point.at("z").asDouble();
+        x += try point.at("x").asDouble();
+        y += try point.at("y").asDouble();
     }
 
     try std.testing.expectEqual(1.1, x);
@@ -394,11 +394,11 @@ test "for each object field" {
         var obj = (try point.asObject()).iterator();
         while (try obj.next()) |field| {
             if (std.mem.eql(u8, try field.key.get(), "z"))
-                z += try field.value.asFloat()
+                z += try field.value.asDouble()
             else if (std.mem.eql(u8, try field.key.get(), "x"))
-                x += try field.value.asFloat()
+                x += try field.value.asDouble()
             else if (std.mem.eql(u8, try field.key.get(), "y"))
-                y += try field.value.asFloat();
+                y += try field.value.asDouble();
         }
     }
 
@@ -425,9 +425,9 @@ test "use values out of order after array" {
         z = point.at("z");
     }
 
-    try std.testing.expectEqual(1.1, try x.asFloat());
-    try std.testing.expectEqual(3.3, try z.asFloat());
-    try std.testing.expectEqual(2.2, try y.asFloat());
+    try std.testing.expectEqual(1.1, try x.asDouble());
+    try std.testing.expectEqual(3.3, try z.asDouble());
+    try std.testing.expectEqual(2.2, try y.asDouble());
 }
 
 test "use object multiple times out of order" {
@@ -445,9 +445,9 @@ test "use object multiple times out of order" {
     y = document.at("coordinates").at("y");
     z = document.at("coordinates").at("z");
 
-    try std.testing.expectEqual(1.1, try x.asFloat());
-    try std.testing.expectEqual(3.3, try z.asFloat());
-    try std.testing.expectEqual(2.2, try y.asFloat());
+    try std.testing.expectEqual(1.1, try x.asDouble());
+    try std.testing.expectEqual(3.3, try z.asDouble());
+    try std.testing.expectEqual(2.2, try y.asDouble());
 }
 
 test "simdjson/issues/1588" {

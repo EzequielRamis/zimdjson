@@ -67,7 +67,6 @@ pub const ParseError = error{
     InvalidEscape,
     InvalidUnicodeCodePoint,
     InvalidNumberLiteral,
-    ExpectedValue,
     ExpectedColon,
     ExpectedKey,
     ExpectedArrayCommaOrEnd,

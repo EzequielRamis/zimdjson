@@ -32,9 +32,9 @@ pub fn run() !void {
     while (try systems.next()) |sys| {
         const coords = try sys.at("coords").asObject();
         try result.append(.{
-            .x = try coords.at("x").asFloat(),
-            .y = try coords.at("y").asFloat(),
-            .z = try coords.at("z").asFloat(),
+            .x = try coords.at("x").asDouble(),
+            .y = try coords.at("y").asDouble(),
+            .z = try coords.at("z").asDouble(),
         });
     }
 }

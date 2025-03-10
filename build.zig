@@ -61,6 +61,7 @@ pub fn build(b: *std.Build) !void {
             if (com_float_parsing.with("parse_number_fxx")) |dep| {
                 addEmbeddedPath(b, float_parsing, dep, "parse_number_fxx");
             }
+
             float_parsing.root_module.addImport("zimdjson", debugged_zimdjson);
 
             const run_float_parsing = b.addRunArtifact(float_parsing);

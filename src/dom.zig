@@ -220,7 +220,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 };
             }
 
-            pub fn asFloat(self: Value) Error!f64 {
+            pub fn asDouble(self: Value) Error!f64 {
                 if (self.err) |err| return err;
 
                 const w = self.tape.get(self.index);
@@ -275,7 +275,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             inline else => n.cast(T) orelse error.NumberOutOfRange,
                         };
                     },
-                    .float => return @floatCast(try self.asFloat()),
+                    .float => return @floatCast(try self.asDouble()),
                     .bool => return self.asBool(),
                     .optional => |opt| {
                         if (try self.isNull()) return null;

@@ -14,69 +14,79 @@ const assert = std.debug.assert;
 const ArenaAllocator = std.heap.ArenaAllocator;
 const ArrayList = std.ArrayListUnmanaged;
 
-pub const default_stream_chunk_length = tokens.ring_buffer.default_chunk_length;
+pub const FullOptions = struct {
+    pub const default: @This() = .{};
 
-pub fn ParserOptions(comptime Reader: ?type) type {
-    return if (Reader) |_| struct {
-        pub const default: @This() = .{};
-        aligned: bool = false,
-        stream: ?struct {
-            pub const default: @This() = .{};
-            chunk_length: u32 = default_stream_chunk_length,
-        } = null,
-        schema_identifier: []const u8 = "schema",
-    } else struct {
-        pub const default: @This() = .{};
-        aligned: bool = false,
-        assume_padding: bool = false,
-        schema_identifier: []const u8 = "schema",
+    /// Use this literal if you are certain that parsing will only be done from a reader.
+    pub const reader_only: @This() = .{ .aligned = true, .assume_padding = true };
+
+    aligned: bool = false,
+    assume_padding: bool = false,
+    schema_identifier: []const u8 = "schema",
+};
+
+pub const StreamOptions = struct {
+    pub const default: @This() = .{};
+
+    chunk_length: u32 = tokens.ring_buffer.default_chunk_length,
+    schema_identifier: []const u8 = "schema",
+};
+
+const Options = union(enum) {
+    full: FullOptions,
+    stream: StreamOptions,
+};
+
+pub fn FullParser(comptime options: FullOptions) type {
+    return Parser(.json, .{ .full = options });
+}
+
+pub fn StreamParser(comptime options: StreamOptions) type {
+    return Parser(.json, .{ .stream = options });
+}
+
+pub const ReaderError = types.ReaderError;
+pub const ParseError = types.ParseError;
+pub const StreamError = tokens.stream.StreamError;
+pub const IndexerError = @import("indexer.zig").Error;
+
+pub fn Parser(comptime format: types.Format, comptime options: Options) type {
+    _ = format;
+    const want_stream = options == .stream;
+    const aligned = options == .full and options.full.aligned;
+    const schema_identifier = switch (options) {
+        inline else => |o| o.schema_identifier,
     };
-}
-
-pub fn parserFromSlice(comptime options: ParserOptions(null)) type {
-    return Parser(null, options);
-}
-
-pub fn parserFromFile(comptime options: ParserOptions(std.fs.File.Reader)) type {
-    return Parser(std.fs.File.Reader, options);
-}
-
-pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) type {
-    const want_stream = Reader != null and options.stream != null;
-    const need_document_buffer = Reader != null and options.stream == null;
-    const aligned = Reader != null or options.aligned;
 
     return struct {
         const Self = @This();
 
-        const Aligned = types.Aligned(options.aligned);
+        const Aligned = types.Aligned(aligned);
         const Tokens = if (want_stream)
-            tokens.Stream(.{
-                .Reader = Reader.?,
-                .aligned = aligned,
-                .chunk_len = options.stream.?.chunk_length,
+            tokens.stream.Stream(.{
+                .aligned = true,
+                .chunk_len = options.stream.chunk_length,
                 .slots = 4,
             })
         else
-            tokens.Iterator(.{
+            tokens.iterator.Iterator(.{
                 .aligned = aligned,
-                .assume_padding = Reader != null or options.assume_padding,
+                .assume_padding = options.full.assume_padding,
             });
 
         pub const Error = Tokens.Error || types.ParseError || Allocator.Error ||
             error{
             ExpectedAllocator,
         } ||
-            (if (builtin.mode == .Debug) error{OutOfOrderIteration} else error{}) ||
-            (if (Reader) |reader| reader.Error else error{});
+            (if (builtin.mode == .Debug) error{OutOfOrderIteration} else error{});
 
         pub const max_capacity_bound = if (want_stream) std.math.maxInt(usize) else std.math.maxInt(u32);
-        pub const default_max_depth = 1024;
 
-        document_buffer: if (need_document_buffer) std.ArrayListAlignedUnmanaged(u8, types.Aligned(true).alignment) else void,
+        // only used in full mode
+        document_buffer: std.ArrayListAlignedUnmanaged(u8, types.Aligned(true).alignment),
+        reader_error: ?std.meta.Int(.unsigned, @bitSizeOf(anyerror)),
 
-        allocator: Allocator,
-        string_buffer: StringBuffer,
+        string_buffer: types.StringBuffer(max_capacity_bound),
 
         cursor: Cursor,
 
@@ -84,75 +94,106 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
         max_depth: usize,
 
         pub const init: Self = .{
-            .allocator = undefined,
             .cursor = .init,
-            .document_buffer = if (need_document_buffer) .empty else {},
             .string_buffer = .init,
             .max_capacity = max_capacity_bound,
-            .max_depth = default_max_depth,
+            .max_depth = common.default_max_depth,
+            .document_buffer = .empty,
+            .reader_error = null,
         };
 
         pub fn deinit(self: *Self, allocator: Allocator) void {
             self.cursor.deinit(allocator);
-            self.string_buffer.deinit(allocator);
-            if (need_document_buffer) self.document_buffer.deinit(allocator);
+            self.document_buffer.deinit(allocator);
+            self.string_buffer.deinit();
         }
 
-        pub fn setMaximumCapacity(self: *Self, allocator: Allocator, new_capacity: usize) Error!void {
-            if (new_capacity > max_capacity_bound) return error.ExceededCapacity;
-
-            if (!want_stream and new_capacity + 1 < self.tokens.indexes.items.len)
-                self.tokens.indexes.shrinkAndFree(allocator, new_capacity + 1);
-
-            if (new_capacity + types.Vector.bytes_len < self.strings.items().len) {
-                self.strings.list.shrinkRetainingCapacity(new_capacity + types.Vector.bytes_len);
-                self.strings.max_capacity = new_capacity + types.Vector.bytes_len;
-            }
-
-            self.max_capacity = new_capacity;
+        pub fn expectDocumentSize(self: *Self, allocator: Allocator, size: usize) Error!void {
+            return self.ensureTotalCapacityForReader(allocator, size);
         }
 
-        pub fn ensureTotalCapacity(self: *Self, allocator: Allocator, new_capacity: usize) Error!void {
+        fn ensureTotalCapacityForSlice(self: *Self, allocator: Allocator, new_capacity: usize) Error!void {
             if (new_capacity > self.max_capacity) return error.ExceededCapacity;
 
-            if (need_document_buffer) {
-                try self.document_buffer.ensureTotalCapacity(allocator, new_capacity + types.Vector.bytes_len);
-            }
+            try self.cursor.tokens.ensureTotalCapacity(allocator, new_capacity);
 
-            if (!want_stream) {
-                try self.cursor.tokens.ensureTotalCapacity(allocator, new_capacity);
-            }
+            self.string_buffer.allocator = allocator;
+            try self.string_buffer.ensureTotalCapacity(new_capacity);
         }
 
-        pub fn parse(self: *Self, allocator: Allocator, document: if (Reader) |reader| reader else Aligned.slice) Error!Document {
+        fn ensureTotalCapacityForReader(self: *Self, allocator: Allocator, new_capacity: usize) Error!void {
+            if (new_capacity > self.max_capacity) return error.ExceededCapacity;
+
+            if (!want_stream) {
+                try self.document_buffer.ensureTotalCapacity(allocator, new_capacity + types.Vector.bytes_len);
+                try self.cursor.tokens.ensureTotalCapacity(allocator, new_capacity);
+            }
+
+            self.string_buffer.allocator = allocator;
+            try self.string_buffer.ensureTotalCapacity(new_capacity);
+        }
+
+        pub fn parseFromSlice(self: *Self, allocator: Allocator, document: Aligned.slice) Error!Document {
+            if (want_stream) @compileError("Parsing from a slice is not supported in stream mode");
+            self.reader_error = null;
+
             if (builtin.mode == .Debug) {
                 try self.cursor.start_positions.ensureTotalCapacity(allocator, self.max_depth);
                 self.cursor.start_positions.expandToCapacity();
             }
 
             self.string_buffer.reset();
-            self.allocator = allocator;
+            self.string_buffer.allocator = allocator;
 
-            if (need_document_buffer) {
+            try self.ensureTotalCapacityForSlice(allocator, document.len);
+            try self.cursor.tokens.build(allocator, document);
+
+            self.cursor.document = self;
+            self.cursor.depth = 1;
+            self.cursor.root = if (want_stream) 0 else @intFromPtr(self.cursor.tokens.indexes.items.ptr);
+            self.cursor.err = null;
+
+            return .{
+                .iter = .{
+                    .cursor = &self.cursor,
+                    .start_position = self.cursor.root,
+                    .start_depth = 1,
+                    .start_char = self.cursor.peekChar(),
+                },
+            };
+        }
+
+        pub fn parseFromReader(self: *Self, allocator: Allocator, reader: std.io.AnyReader) (Error || ReaderError)!Document {
+            if (builtin.mode == .Debug) {
+                try self.cursor.start_positions.ensureTotalCapacity(allocator, self.max_depth);
+                self.cursor.start_positions.expandToCapacity();
+            }
+            self.reader_error = null;
+
+            self.string_buffer.reset();
+            self.string_buffer.allocator = allocator;
+
+            if (want_stream) {
+                try self.cursor.tokens.build(allocator, reader);
+            } else {
                 self.document_buffer.clearRetainingCapacity();
-                try @as(Error!void, @errorCast(common.readAllRetainingCapacity(
+                common.readAllRetainingCapacity(
                     allocator,
-                    document,
+                    reader,
                     types.Aligned(true).alignment,
                     &self.document_buffer,
                     self.max_capacity,
-                )));
+                ) catch |err| switch (err) {
+                    Allocator.Error.OutOfMemory => |e| return e,
+                    else => |e| {
+                        self.reader_error = @intFromError(e);
+                        return error.AnyReader;
+                    },
+                };
                 const len = self.document_buffer.items.len;
-                try self.ensureTotalCapacity(allocator, len);
-                try self.string_buffer.ensureTotalCapacity(allocator, len + types.Vector.bytes_len);
+                try self.ensureTotalCapacityForReader(allocator, len);
                 self.document_buffer.appendNTimesAssumeCapacity(' ', types.Vector.bytes_len);
                 try self.cursor.tokens.build(allocator, self.document_buffer.items[0..len]);
-            } else {
-                if (!want_stream) {
-                    try self.ensureTotalCapacity(allocator, document.len);
-                    try self.string_buffer.ensureTotalCapacity(allocator, document.len + types.Vector.bytes_len);
-                }
-                try self.cursor.tokens.build(allocator, document);
             }
 
             self.cursor.document = self;
@@ -537,7 +578,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 }
 
                 inline fn asDouble(self: Iterator) Error!f64 {
-                    const n = try self.parseFloat(try self.peekScalar());
+                    const n = try self.parseDouble(try self.peekScalar());
                     try self.advanceScalar();
                     return n;
                 }
@@ -591,12 +632,12 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     return n.signed;
                 }
 
-                fn parseFloat(self: Iterator, ptr: [*]const u8) Error!f64 {
+                fn parseDouble(self: Iterator, ptr: [*]const u8) Error!f64 {
                     // if (!(ptr[0] -% '0' < 10 or ptr[0] == '-')) return error.IncorrectType;
                     try Logger.log(self.cursor.document, ptr, "f64   ", self.start_depth);
-                    const n = try @import("parsers/number/parser.zig").parse(.float, ptr);
+                    const n = try @import("parsers/number/parser.zig").parse(.double, ptr);
                     return switch (n) {
-                        .float => |v| v,
+                        .double => |v| v,
                         inline else => |v| @floatFromInt(v),
                     };
                 }
@@ -1033,10 +1074,10 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 allocator: ?Allocator,
                 dest: *T,
             ) schema.Error!void {
-                const string_breakpoint = self.iter.cursor.document.string_buffer.saveBreakpoint();
+                const string_index = self.iter.cursor.document.string_buffer.saveIndex();
                 errdefer {
                     self.iter.reset() catch |err| (self.iter.cursor.reportError(err) catch {});
-                    self.iter.cursor.document.string_buffer.loadBreakpoint(string_breakpoint);
+                    self.iter.cursor.document.string_buffer.loadIndex(string_index);
                 }
                 if (P) |handler| return handler.parse(allocator, self, dest);
                 const info = @typeInfo(T);
@@ -1103,38 +1144,38 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             raw_str: [*]const u8,
             err: ?Error = null,
 
-            pub inline fn get(self: String) Error![]const u8 {
+            pub fn get(self: String) Error![]const u8 {
                 return self.getAdvanced(null);
             }
 
-            pub inline fn getSentinel(self: String, comptime sentinel: u8) Error![:sentinel]const u8 {
+            pub fn getSentinel(self: String, comptime sentinel: u8) Error![:sentinel]const u8 {
                 return self.getAdvanced(sentinel);
             }
 
-            pub inline fn getTemporal(self: String) Error![]const u8 {
+            pub fn getTemporal(self: String) Error![]const u8 {
                 const buffer = &self.iter.cursor.document.string_buffer;
                 const str = try self.write(null, buffer);
                 return str;
             }
 
             inline fn getAdvanced(self: String, comptime sentinel: ?u8) if (sentinel) |s| Error![:s]const u8 else Error![]const u8 {
-                const buffer = &self.iter.cursor.document.string_buffer;
-                const str = try self.write(sentinel, buffer);
+                const string_buffer = &self.iter.cursor.document.string_buffer;
+                const str = try self.write(sentinel, string_buffer);
                 if (sentinel) |_| {
-                    buffer.advance(str.len + 1);
+                    string_buffer.advance(str.len + 1);
                 } else {
-                    buffer.advance(str.len);
+                    string_buffer.advance(str.len);
                 }
                 return str;
             }
 
-            inline fn write(self: String, comptime sentinel: ?u8, buffer: *StringBuffer) if (sentinel) |s| Error![:s]const u8 else Error![]const u8 {
+            inline fn write(self: String, comptime sentinel: ?u8, string_buffer: *types.StringBuffer(max_capacity_bound)) if (sentinel) |s| Error![:s]const u8 else Error![]const u8 {
                 if (self.err) |err| return err;
 
                 if (want_stream) {
-                    try buffer.ensureUnusedCapacity(self.iter.cursor.document.allocator, options.stream.?.chunk_length + Vector.bytes_len);
+                    try string_buffer.ensureUnusedCapacity(options.stream.chunk_length + Vector.bytes_len);
                 }
-                const dest = buffer.peek();
+                const dest = string_buffer.peek();
 
                 const str = try self.iter.parseString(self.raw_str, dest);
                 if (sentinel) |s| {
@@ -1143,7 +1184,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 return str;
             }
 
-            pub inline fn eqlRaw(self: String, target: []const u8) Error!bool {
+            pub fn eqlRaw(self: String, target: []const u8) Error!bool {
                 if (self.err) |err| return err;
                 return self.raw_str[1..][target.len] == '"' and std.mem.eql(u8, self.raw_str[1..][0..target.len], target);
             }
@@ -1745,7 +1786,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     switch (S.on_unknown_field) {
                         .ignore => {},
                         .@"error" => if (try it.next()) |_| return error.UnknownField,
-                        .handle => |handle| while (try it.next()) |field| try handle(allocator, try field.key.getTemporal(), field.value, &dest),
+                        .handle => |handle| while (try it.next()) |field| try handle(allocator, try field.key.get(), field.value, &dest),
                     }
                     return dest;
                 }
@@ -1770,7 +1811,10 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                                         return error.MissingField;
                                     },
                                     .@"error" => return error.UnknownField,
-                                    .handle => |handle| try handle(allocator, prev_key, prev_field_value, &dest),
+                                    .handle => |handle| {
+                                        prev_field_value.iter.cursor.document.string_buffer.advance(prev_key.len);
+                                        try handle(allocator, prev_key, prev_field_value, &dest);
+                                    },
                                 }
                             }
 
@@ -1790,7 +1834,10 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                                 switch (S.on_unknown_field) {
                                     .ignore => unreachable,
                                     .@"error" => return error.UnknownField,
-                                    .handle => |handle| try handle(allocator, field_key, next_field.value, &dest),
+                                    .handle => |handle| {
+                                        next_field.value.iter.cursor.document.string_buffer.advance(field_key.len);
+                                        try handle(allocator, field_key, next_field.value, &dest);
+                                    },
                                 }
                             } else {
                                 return error.MissingField;
@@ -1812,6 +1859,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                                         .@"error" => return error.DuplicateField,
                                         .use_first => continue,
                                         .use_last => {
+                                            next_field.value.iter.cursor.document.string_buffer.advance(next_field_key.len);
                                             if (is_packed) {
                                                 const packed_field_value = try next_field_value.asLeaky(field.type, allocator, .{ .schema = field_schema.schema });
                                                 _std.mem.writePackedIntNative(field.type, _std.mem.asBytes(&dest), @bitOffsetOf(T, field.name), packed_field_value);
@@ -1819,7 +1867,10 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                                                 @field(dest, field.name) = try next_field_value.asLeaky(field.type, allocator, .{ .schema = field_schema.schema });
                                             }
                                         },
-                                        .handle => |handle| try handle(allocator, next_field_key, next_field_value, &dest),
+                                        .handle => |handle| {
+                                            next_field.value.iter.cursor.document.string_buffer.advance(next_field_key.len);
+                                            try handle(allocator, next_field_key, next_field_value, &dest);
+                                        },
                                     }
                                 } else {
                                     prev_field_key = next_field_key;
@@ -1834,7 +1885,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     switch (S.on_unknown_field) {
                         .ignore => {},
                         .@"error" => if (try it.next()) |_| return error.UnknownField,
-                        .handle => |handle| while (try it.next()) |field| try handle(allocator, try field.key.getTemporal(), field.value, &dest),
+                        .handle => |handle| while (try it.next()) |field| try handle(allocator, try field.key.get(), field.value, &dest),
                     }
                 } else {
                     var seen: [non_skipped_field_count]bool = @splat(false);
@@ -1865,6 +1916,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             .ignore => continue,
                             .@"error" => return error.UnknownField,
                             .handle => |handle| {
+                                field.value.iter.cursor.document.string_buffer.advance(key.len);
                                 try handle(allocator, key, field.value, &dest);
                                 continue;
                             },
@@ -1877,6 +1929,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                                 .use_last => {},
                                 .@"error" => return error.DuplicateField,
                                 .handle => |handle| {
+                                    field.value.iter.cursor.document.string_buffer.advance(key.len);
                                     try handle(allocator, key, field.value, &dest);
                                     continue;
                                 },
@@ -1997,7 +2050,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             }
 
             fn parseUnion(comptime T: type, comptime S: schema.Union(T), allocator: ?Allocator, value: Value) schema.Error!T {
-                const string_breakpoint = value.iter.cursor.document.string_buffer.saveBreakpoint();
+                const string_index = value.iter.cursor.document.string_buffer.saveIndex();
                 const fields = _std.meta.fields(T);
                 if (S.representation == .untagged) {
                     comptime var ordered_fields = fields[0..fields.len].*;
@@ -2016,7 +2069,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                             const field_schema = @field(S.fields, field.name);
                             const payload = value.asLeaky(field.type, allocator, .{ .schema = field_schema.schema }) catch {
                                 value.iter.reset() catch |err| try value.iter.cursor.reportError(err);
-                                value.iter.cursor.document.string_buffer.loadBreakpoint(string_breakpoint);
+                                value.iter.cursor.document.string_buffer.loadIndex(string_index);
                                 break :inner;
                             };
                             return @unionInit(T, field.name, payload);
@@ -2027,7 +2080,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 } else {
                     const tag_sch = brk: {
                         if (@typeInfo(T).@"union".tag_type) |tag_type| {
-                            break :brk @as(?schema.Enum(tag_type), if (@hasDecl(tag_type, options.schema_identifier)) @field(tag_type, options.schema_identifier) else .{});
+                            break :brk @as(?schema.Enum(tag_type), if (@hasDecl(tag_type, schema_identifier)) @field(tag_type, schema_identifier) else .{});
                         } else {
                             break :brk null;
                         }
@@ -2250,7 +2303,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     inline .@"struct",
                     .@"enum",
                     .@"union",
-                    => S orelse if (@hasDecl(T, options.schema_identifier)) @field(T, options.schema_identifier) else .{},
+                    => S orelse if (@hasDecl(T, schema_identifier)) @field(T, schema_identifier) else .{},
                     else => S orelse .{},
                 };
             }
@@ -2308,51 +2361,11 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 });
             }
         };
-
-        pub const StringBuffer = struct {
-            strings: types.BoundedArrayList(u8, max_capacity_bound),
-
-            pub const init: StringBuffer = .{
-                .strings = .empty,
-            };
-
-            pub fn ensureTotalCapacity(self: *StringBuffer, allocator: Allocator, new_capacity: usize) !void {
-                return self.strings.ensureTotalCapacity(allocator, new_capacity);
-            }
-
-            pub fn ensureUnusedCapacity(self: *StringBuffer, allocator: Allocator, additional_count: usize) !void {
-                return self.strings.ensureUnusedCapacity(allocator, additional_count);
-            }
-
-            pub fn saveBreakpoint(self: StringBuffer) usize {
-                return self.strings.items().len;
-            }
-
-            pub fn loadBreakpoint(self: *StringBuffer, index: usize) void {
-                self.strings.list.items.len = index;
-            }
-
-            pub fn peek(self: StringBuffer) [*]u8 {
-                return self.strings.items()[self.strings.items().len..].ptr;
-            }
-
-            pub fn advance(self: *StringBuffer, count: usize) void {
-                self.strings.list.items.len += count;
-            }
-
-            pub fn reset(self: *StringBuffer) void {
-                self.strings.list.clearRetainingCapacity();
-            }
-
-            pub fn deinit(self: *StringBuffer, allocator: Allocator) void {
-                self.strings.deinit(allocator);
-            }
-        };
     };
 }
 
-pub const schema_utils = struct {
-    pub const Map = @import("schema_map.zig").SchemaMap;
+const schema_utils = struct {
+    const Map = @import("schema_map.zig").SchemaMap;
 
     const UnionRepresentation = union(enum) {
         untagged,
@@ -2376,7 +2389,7 @@ pub const schema_utils = struct {
     };
 
     /// It is assumed the name is snake_cased
-    pub fn renameField(case: FieldsRenaming, name: []const u8) []const u8 {
+    fn renameField(case: FieldsRenaming, name: []const u8) []const u8 {
         var output = std.fmt.comptimePrint("{s}", .{name}).*;
         var output_len = name.len;
         switch (case) {
@@ -2409,7 +2422,7 @@ pub const schema_utils = struct {
         return output_copy[0..output_len];
     }
 
-    pub fn EnumFields(comptime T: type) type {
+    fn EnumFields(comptime T: type) type {
         assert(@typeInfo(T) == .@"enum");
         const fields = std.meta.fields(T);
         comptime var schema_fields: [fields.len]std.builtin.Type.StructField = undefined;

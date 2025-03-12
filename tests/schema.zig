@@ -1,17 +1,15 @@
 const std = @import("std");
 const zimdjson = @import("zimdjson");
 const simdjson_data = @embedFile("simdjson-data");
-const parserFromFile = zimdjson.ondemand.parserFromFile(.{ .stream = .default });
-const parserFromSlice = zimdjson.ondemand.parserFromSlice(.default);
+const Parser = zimdjson.ondemand.FullParser(.default);
 const allocator = std.testing.allocator;
 
 test "small/adversarial" {
-    const Parser = parserFromFile;
     var parser = Parser.init;
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonexamples/small/adversarial.json", .{});
     defer file.close();
-    const document = try parser.parse(allocator, file.reader());
+    const document = try parser.parseFromReader(allocator, file.reader().any());
 
     const Schema = struct {
         @"\"Name rue": [1]struct {
@@ -36,12 +34,11 @@ test "small/adversarial" {
 }
 
 test "small/demo" {
-    const Parser = parserFromFile;
     var parser = Parser.init;
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonexamples/small/demo.json", .{});
     defer file.close();
-    const document = try parser.parse(allocator, file.reader());
+    const document = try parser.parseFromReader(allocator, file.reader().any());
 
     const Image = struct {
         pub const schema: Parser.schema.Infer(@This()) = .{
@@ -82,12 +79,11 @@ test "small/demo" {
 }
 
 test "small/truenull" {
-    const Parser = parserFromFile;
     var parser = Parser.init;
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonexamples/small/truenull.json", .{});
     defer file.close();
-    const document = try parser.parse(allocator, file.reader());
+    const document = try parser.parseFromReader(allocator, file.reader().any());
 
     const arr = try document.as([]const ?bool, allocator, .{});
     defer arr.deinit();
@@ -98,12 +94,11 @@ test "small/truenull" {
 }
 
 test "github_events" {
-    const Parser = parserFromFile;
     var parser = Parser.init;
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonexamples/github_events.json", .{});
     defer file.close();
-    const document = try parser.parse(allocator, file.reader());
+    const document = try parser.parseFromReader(allocator, file.reader().any());
 
     const Event = union(enum) {
         pub const schema: Parser.schema.Infer(@This()) = .{
@@ -160,12 +155,11 @@ test "github_events" {
 }
 
 test "github_events untagged payload" {
-    const Parser = parserFromFile;
     var parser = Parser.init;
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonexamples/github_events.json", .{});
     defer file.close();
-    const document = try parser.parse(allocator, file.reader());
+    const document = try parser.parseFromReader(allocator, file.reader().any());
 
     const Payload = union(enum) {
         pub const schema: Parser.schema.Infer(@This()) = .{
@@ -222,10 +216,9 @@ test "github_events untagged payload" {
 }
 
 test "externally_tagged" {
-    const Parser = parserFromSlice;
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator,
+    const document = try parser.parseFromSlice(allocator,
         \\[{ "foo": 1 }, { "bar": 5.0 }, { "baz": false }]
     );
 
@@ -249,10 +242,9 @@ test "externally_tagged" {
 }
 
 test "adjacently_tagged" {
-    const Parser = parserFromSlice;
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator,
+    const document = try parser.parseFromSlice(allocator,
         \\[{ "t": "foo", "c": 1 }, { "t": "bar", "c": 5.0 }, { "t": "baz", "c": false }]
     );
 
@@ -276,12 +268,11 @@ test "adjacently_tagged" {
 }
 
 test "packed struct" {
-    const Parser = parserFromSlice;
     var parser = Parser.init;
     defer parser.deinit(allocator);
 
     // cursed
-    const document = try parser.parse(allocator,
+    const document = try parser.parseFromSlice(allocator,
         \\{
         \\    "address": 12345,
         \\    "available": 2,
@@ -329,10 +320,9 @@ test "packed struct" {
 }
 
 test "use first duplicate" {
-    const Parser = parserFromSlice;
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator,
+    const document = try parser.parseFromSlice(allocator,
         \\{ "foo": 1, "foo": 2, "foo": 3, "bar": 4 }
     );
 
@@ -349,10 +339,9 @@ test "use first duplicate" {
 }
 
 test "use first duplicate, assuming ordering" {
-    const Parser = parserFromSlice;
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator,
+    const document = try parser.parseFromSlice(allocator,
         \\{ "foo": 1, "foo": 2, "foo": 3, "bar": 4 }
     );
 
@@ -370,10 +359,9 @@ test "use first duplicate, assuming ordering" {
 }
 
 test "use last duplicate" {
-    const Parser = parserFromSlice;
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator,
+    const document = try parser.parseFromSlice(allocator,
         \\{ "foo": 1, "foo": 2, "foo": 3, "bar": 4 }
     );
 
@@ -390,10 +378,9 @@ test "use last duplicate" {
 }
 
 test "use last duplicate, assuming ordering" {
-    const Parser = parserFromSlice;
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator,
+    const document = try parser.parseFromSlice(allocator,
         \\{ "foo": 1, "foo": 2, "foo": 3, "bar": 4 }
     );
 
@@ -411,10 +398,9 @@ test "use last duplicate, assuming ordering" {
 }
 
 test "error because of duplicate" {
-    const Parser = parserFromSlice;
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator,
+    const document = try parser.parseFromSlice(allocator,
         \\{ "foo": 1, "foo": 2, "foo": 3, "bar": 4 }
     );
 
@@ -430,10 +416,9 @@ test "error because of duplicate" {
 }
 
 test "error because of duplicate, assuming ordering" {
-    const Parser = parserFromSlice;
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator,
+    const document = try parser.parseFromSlice(allocator,
         \\{ "foo": 1, "foo": 2, "foo": 3, "bar": 4 }
     );
 
@@ -450,11 +435,10 @@ test "error because of duplicate, assuming ordering" {
 }
 
 test "missing field while handling duplicate" {
-    const Parser = parserFromSlice;
     var parser = Parser.init;
     defer parser.deinit(allocator);
 
-    const document = try parser.parse(allocator,
+    const document = try parser.parseFromSlice(allocator,
         \\{ "foo": 1, "foo": 2, "foo": 3 }
     );
 
@@ -463,29 +447,20 @@ test "missing field while handling duplicate" {
         foo: u8,
     };
 
-    try std.testing.expectError(error.MissingField, document.asLeaky(
-        Schema,
-        allocator,
-        .{ .schema = .{
-            .on_duplicate_field = .use_first,
-        } },
-    ));
+    try std.testing.expectError(error.MissingField, document.asLeaky(Schema, allocator, .{
+        .schema = .{ .on_duplicate_field = .use_first },
+    }));
 
-    try std.testing.expectError(error.MissingField, document.asLeaky(
-        Schema,
-        allocator,
-        .{ .schema = .{
-            .on_duplicate_field = .use_last,
-        } },
-    ));
+    try std.testing.expectError(error.MissingField, document.asLeaky(Schema, allocator, .{
+        .schema = .{ .on_duplicate_field = .use_last },
+    }));
 }
 
 test "missing field while handling duplicate, assuming ordering" {
-    const Parser = parserFromSlice;
     var parser = Parser.init;
     defer parser.deinit(allocator);
 
-    const document = try parser.parse(allocator,
+    const document = try parser.parseFromSlice(allocator,
         \\{ "foo": 1, "foo": 2, "foo": 3 }
     );
 
@@ -497,27 +472,30 @@ test "missing field while handling duplicate, assuming ordering" {
     try std.testing.expectError(error.MissingField, document.asLeaky(
         Schema,
         allocator,
-        .{ .schema = .{
-            .assume_ordering = true,
-            .on_duplicate_field = .use_first,
-        } },
+        .{
+            .schema = .{
+                .assume_ordering = true,
+                .on_duplicate_field = .use_first,
+            },
+        },
     ));
 
     try std.testing.expectError(error.MissingField, document.asLeaky(
         Schema,
         allocator,
-        .{ .schema = .{
-            .assume_ordering = true,
-            .on_duplicate_field = .use_last,
-        } },
+        .{
+            .schema = .{
+                .assume_ordering = true,
+                .on_duplicate_field = .use_last,
+            },
+        },
     ));
 }
 
 // test "std.BitStack" {
-//     const Parser = parserFromSlice;
-//     var parser = Parser.init;
+// //     var parser = Parser.init;
 //     defer parser.deinit(allocator);
-//     const document = try parser.parse(allocator,
+//     const document = try parser.parseFromSlice(allocator,
 //         \\[ 0,1,1,1, 1,0,1,1, 1,0,1,1, 0,1,0,1 ]
 //     );
 
@@ -533,10 +511,9 @@ test "missing field while handling duplicate, assuming ordering" {
 // }
 
 // test "std.BufMap" {
-//     const Parser = parserFromSlice;
-//     var parser = Parser.init;
+// //     var parser = Parser.init;
 //     defer parser.deinit(allocator);
-//     const document = try parser.parse(allocator,
+//     const document = try parser.parseFromSlice(allocator,
 //         \\{
 //         \\  "car": "blue",
 //         \\  "bike": "red",
@@ -554,10 +531,9 @@ test "missing field while handling duplicate, assuming ordering" {
 // }
 
 // test "std.BufSet" {
-//     const Parser = parserFromSlice;
-//     var parser = Parser.init;
+// //     var parser = Parser.init;
 //     defer parser.deinit(allocator);
-//     const document = try parser.parse(allocator,
+//     const document = try parser.parseFromSlice(allocator,
 //         \\[
 //         \\  "car", "blue",
 //         \\  "bike", "red",
@@ -588,10 +564,9 @@ test "missing field while handling duplicate, assuming ordering" {
 // }
 
 test "std.ArrayListUnmanaged" {
-    const Parser = parserFromSlice;
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator,
+    const document = try parser.parseFromSlice(allocator,
         \\[
         \\    { "x": 1, "y": 2, "z": 3 },
         \\    { "x": 4, "y": 5, "z": 6 },
@@ -610,10 +585,9 @@ test "std.ArrayListUnmanaged" {
 }
 
 test "std.ArrayListAlignedUnmanaged" {
-    const Parser = parserFromSlice;
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator,
+    const document = try parser.parseFromSlice(allocator,
         \\[
         \\    { "x": 1, "y": 2, "z": 3 },
         \\    { "x": 4, "y": 5, "z": 6 },
@@ -632,10 +606,9 @@ test "std.ArrayListAlignedUnmanaged" {
 }
 
 test "std.SinglyLinkedList" {
-    const Parser = parserFromSlice;
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator,
+    const document = try parser.parseFromSlice(allocator,
         \\[
         \\    { "x": 1, "y": 2, "z": 3 },
         \\    { "x": 4, "y": 5, "z": 6 },
@@ -658,10 +631,9 @@ test "std.SinglyLinkedList" {
 }
 
 test "std.DoublyLinkedList" {
-    const Parser = parserFromSlice;
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator,
+    const document = try parser.parseFromSlice(allocator,
         \\[
         \\    { "x": 1, "y": 2, "z": 3 },
         \\    { "x": 4, "y": 5, "z": 6 },
@@ -684,10 +656,9 @@ test "std.DoublyLinkedList" {
 }
 
 test "std.StringArrayHashMapUnmanaged" {
-    const Parser = parserFromSlice;
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator,
+    const document = try parser.parseFromSlice(allocator,
         \\{
         \\  "car": { "x": 1, "y": 2, "z": 3 },
         \\  "bike": { "x": 4, "y": 5, "z": 6 },
@@ -706,10 +677,9 @@ test "std.StringArrayHashMapUnmanaged" {
 }
 
 test "std.StringHashMapUnmanaged" {
-    const Parser = parserFromSlice;
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator,
+    const document = try parser.parseFromSlice(allocator,
         \\{
         \\  "car": { "x": 1, "y": 2, "z": 3 },
         \\  "bike": { "x": 4, "y": 5, "z": 6 },
@@ -728,10 +698,9 @@ test "std.StringHashMapUnmanaged" {
 }
 
 test "std.BoundedArray" {
-    const Parser = parserFromSlice;
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator,
+    const document = try parser.parseFromSlice(allocator,
         \\[
         \\    { "x": 1, "y": 2, "z": 3 },
         \\    { "x": 4, "y": 5, "z": 6 },
@@ -750,10 +719,9 @@ test "std.BoundedArray" {
 }
 
 test "std.BoundedArrayAligned" {
-    const Parser = parserFromSlice;
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator,
+    const document = try parser.parseFromSlice(allocator,
         \\[
         \\    { "x": 1, "y": 2, "z": 3 },
         \\    { "x": 4, "y": 5, "z": 6 },
@@ -772,10 +740,9 @@ test "std.BoundedArrayAligned" {
 }
 
 test "std.EnumMap" {
-    const Parser = parserFromSlice;
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator,
+    const document = try parser.parseFromSlice(allocator,
         \\{
         \\  "car": "blue",
         \\  "bike": "red",
@@ -792,10 +759,9 @@ test "std.EnumMap" {
 }
 
 test "std.SegmentedList" {
-    const Parser = parserFromSlice;
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator,
+    const document = try parser.parseFromSlice(allocator,
         \\[
         \\    { "x": 1, "y": 2, "z": 3 },
         \\    { "x": 4, "y": 5, "z": 6 },
@@ -814,10 +780,9 @@ test "std.SegmentedList" {
 }
 
 test "std.MultiArrayList" {
-    const Parser = parserFromSlice;
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator,
+    const document = try parser.parseFromSlice(allocator,
         \\[
         \\    { "x": 1, "y": 2, "z": 3 },
         \\    { "x": 4, "y": 5, "z": 6 },

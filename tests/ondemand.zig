@@ -1,14 +1,13 @@
 const std = @import("std");
 const zimdjson = @import("zimdjson");
 const simdjson_data = @embedFile("simdjson-data");
-const parserFromSlice = zimdjson.ondemand.parserFromSlice(.default);
 const allocator = std.testing.allocator;
-const Parser = parserFromSlice;
+const Parser = zimdjson.ondemand.FullParser(.default);
 
 fn expectErrorAtObjectIteration(json: []const u8, exp: anyerror) !void {
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator, json);
+    const document = try parser.parseFromSlice(allocator, json);
 
     const obj = document.asObject() catch |err| {
         try std.testing.expectEqual(exp, err);
@@ -29,7 +28,7 @@ fn expectErrorAtObjectIteration(json: []const u8, exp: anyerror) !void {
 fn expectErrorAtObjectLookup(json: []const u8, key: []const u8, exp: anyerror) !void {
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator, json);
+    const document = try parser.parseFromSlice(allocator, json);
     const lookup = document.at(key);
     if (lookup.err) |err| {
         try std.testing.expectEqual(exp, err);
@@ -43,7 +42,7 @@ fn expectErrorAtObjectLookup(json: []const u8, key: []const u8, exp: anyerror) !
 fn expectErrorAtArrayIteration(json: []const u8, exp: anyerror) !void {
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator, json);
+    const document = try parser.parseFromSlice(allocator, json);
 
     const arr = document.asArray() catch |err| {
         try std.testing.expectEqual(exp, err);
@@ -178,7 +177,7 @@ test "object lookup miss wrong key type error" {
 test "object lookup miss next error" {
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator,
+    const document = try parser.parseFromSlice(allocator,
         \\{ "a": 1  "b": 2 }
     );
     const obj = try document.asObject();
@@ -226,7 +225,7 @@ test "simdjson/issues/2084" {
     {
         var parser = Parser.init;
         defer parser.deinit(allocator);
-        const document = try parser.parse(allocator, json);
+        const document = try parser.parseFromSlice(allocator, json);
 
         _ = try document.at("foo").asString().get();
         try std.testing.expectError(error.OutOfOrderIteration, document.asAny());
@@ -234,7 +233,7 @@ test "simdjson/issues/2084" {
     {
         var parser = Parser.init;
         defer parser.deinit(allocator);
-        const document = try parser.parse(allocator, json);
+        const document = try parser.parseFromSlice(allocator, json);
 
         _ = try document.at("foo").asString().get();
         try document.reset();
@@ -248,7 +247,7 @@ test "out of order top level object iteration error" {
     ;
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator, json);
+    const document = try parser.parseFromSlice(allocator, json);
 
     const obj = try document.asObject();
     var it = obj.iterator();
@@ -263,7 +262,7 @@ test "out of order object index child error" {
     {
         var parser = Parser.init;
         defer parser.deinit(allocator);
-        const document = try parser.parse(allocator, json);
+        const document = try parser.parseFromSlice(allocator, json);
 
         var arr = (try document.asArray()).iterator();
         var obj: Parser.Object = undefined;
@@ -277,7 +276,7 @@ test "out of order object index child error" {
     {
         var parser = Parser.init;
         defer parser.deinit(allocator);
-        const document = try parser.parse(allocator, json);
+        const document = try parser.parseFromSlice(allocator, json);
 
         var arr = (try document.asArray()).iterator();
         var obj: Parser.Value = undefined;
@@ -296,7 +295,7 @@ test "out of order object index sibling error" {
     {
         var parser = Parser.init;
         defer parser.deinit(allocator);
-        const document = try parser.parse(allocator, json);
+        const document = try parser.parseFromSlice(allocator, json);
 
         var last_obj: Parser.Object = undefined;
         var i: u64 = 0;
@@ -315,7 +314,7 @@ test "out of order object index sibling error" {
     {
         var parser = Parser.init;
         defer parser.deinit(allocator);
-        const document = try parser.parse(allocator, json);
+        const document = try parser.parseFromSlice(allocator, json);
 
         var last_obj: Parser.Value = undefined;
         var i: u64 = 0;
@@ -335,7 +334,7 @@ test "out of order object index sibling error" {
 test "in order object index" {
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator,
+    const document = try parser.parseFromSlice(allocator,
         \\{ "coordinates": [{ "x": 1.1, "y": 2.2, "z": 3.3 }] }
     );
 
@@ -358,7 +357,7 @@ test "in order object index" {
 test "out of order object index" {
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator,
+    const document = try parser.parseFromSlice(allocator,
         \\{ "coordinates": [{ "x": 1.1, "y": 2.2, "z": 3.3 }] }
     );
 
@@ -381,7 +380,7 @@ test "out of order object index" {
 test "for each object field" {
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator,
+    const document = try parser.parseFromSlice(allocator,
         \\{ "coordinates": [{ "x": 1.1, "y": 2.2, "z": 3.3 }] }
     );
 
@@ -410,7 +409,7 @@ test "for each object field" {
 test "use values out of order after array" {
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator,
+    const document = try parser.parseFromSlice(allocator,
         \\{ "coordinates": [{ "x": 1.1, "y": 2.2, "z": 3.3 }] }
     );
 
@@ -433,7 +432,7 @@ test "use values out of order after array" {
 test "use object multiple times out of order" {
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator,
+    const document = try parser.parseFromSlice(allocator,
         \\{ "coordinates": { "x": 1.1, "y": 2.2, "z": 3.3 } }
     );
 
@@ -500,7 +499,7 @@ test "simdjson/issues/1588" {
 
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator, json);
+    const document = try parser.parseFromSlice(allocator, json);
 
     const expected_value: []const [3]bool = &.{
         .{ true, false, true },
@@ -535,7 +534,7 @@ test "simdjson/issues/1588" {
 test "simdjson/issue/1876" {
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator, " [] ");
+    const document = try parser.parseFromSlice(allocator, " [] ");
 
     const len = try document.getArraySize();
     var arr = (try document.asArray()).iterator();
@@ -549,7 +548,7 @@ test "simdjson/issue/1876" {
 test "iterate complex array count" {
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator,
+    const document = try parser.parseFromSlice(allocator,
         \\{ "zero":[], "test":[ { "val1":1, "val2":2 }, { "val1":1, "val2":2 } ] }
     );
 
@@ -571,7 +570,7 @@ test "iterate complex array count" {
 test "iterate sub array count" {
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator,
+    const document = try parser.parseFromSlice(allocator,
         \\ { "test":[ 1,2,3], "joe": [1,2] }
     );
 
@@ -592,7 +591,7 @@ test "iterate array count" {
 
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator, json);
+    const document = try parser.parseFromSlice(allocator, json);
     try std.testing.expectEqual(.array, try document.getType());
     const arr = try document.asArray();
     const count = try arr.getSize();
@@ -609,7 +608,7 @@ test "iterate array count" {
 test "iterate bad array count" {
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator,
+    const document = try parser.parseFromSlice(allocator,
         \\[ 1, 10 100 ]
     );
 
@@ -621,7 +620,7 @@ test "iterate document array count" {
     {
         var parser = Parser.init;
         defer parser.deinit(allocator);
-        const document = try parser.parse(allocator,
+        const document = try parser.parseFromSlice(allocator,
             \\[]
         );
 
@@ -632,7 +631,7 @@ test "iterate document array count" {
     {
         var parser = Parser.init;
         defer parser.deinit(allocator);
-        const document = try parser.parse(allocator,
+        const document = try parser.parseFromSlice(allocator,
             \\ [-1.234, 100000000000000, null, [1,2,3], {"t":true, "f":false}]
         );
 
@@ -645,7 +644,7 @@ test "iterate document array count" {
 test "iterate bad document array count" {
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator,
+    const document = try parser.parseFromSlice(allocator,
         \\ [1.23, 2.34
     );
 
@@ -662,7 +661,7 @@ test "iterate document array" {
     {
         var parser = Parser.init;
         defer parser.deinit(allocator);
-        const document = try parser.parse(allocator, json);
+        const document = try parser.parseFromSlice(allocator, json);
 
         try std.testing.expectEqual(.array, try document.getType());
         const arr = try document.asArray();
@@ -678,7 +677,7 @@ test "iterate document array" {
     {
         var parser = Parser.init;
         defer parser.deinit(allocator);
-        const document = try parser.parse(allocator, json);
+        const document = try parser.parseFromSlice(allocator, json);
 
         try std.testing.expectEqual(.array, try document.getType());
         var arr = try document.asArray();
@@ -704,7 +703,7 @@ test "iterate document array" {
     {
         var parser = Parser.init;
         defer parser.deinit(allocator);
-        const document = try parser.parse(allocator, json);
+        const document = try parser.parseFromSlice(allocator, json);
 
         try std.testing.expectEqual(.array, try document.getType());
         const arr = try document.asArray();
@@ -728,7 +727,7 @@ test "iterate document array" {
 test "empty rewind" {
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator, "[]");
+    const document = try parser.parseFromSlice(allocator, "[]");
 
     const arr = try document.asArray();
     var it = arr.iterator();
@@ -743,7 +742,7 @@ test "empty rewind" {
 test "count rewind" {
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator, "[]");
+    const document = try parser.parseFromSlice(allocator, "[]");
 
     const arr = try document.asArray();
     try std.testing.expectEqual(0, try arr.getSize());
@@ -753,7 +752,7 @@ test "count rewind" {
 test "simdjson/issues/1742" {
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator,
+    const document = try parser.parseFromSlice(allocator,
         \\{
         \\  "code": 0,
         \\  "method": "subscribe",
@@ -779,7 +778,7 @@ test "simdjson/issues/1742" {
 test "iterate array partial children" {
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const document = try parser.parse(allocator,
+    const document = try parser.parseFromSlice(allocator,
         \\[
         \\  0,
         \\  [],

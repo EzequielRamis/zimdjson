@@ -7,7 +7,7 @@ const assert = std.debug.assert;
 const native_os = builtin.os.tag;
 const w = std.os.windows;
 
-pub const default_chunk_length = if (native_os == .windows) 1024 * 64 else std.mem.page_size * 16;
+pub const default_chunk_length = 1024 * 64;
 const min_chunk_length = if (native_os == .windows) 1024 * 64 else std.mem.page_size;
 
 pub const Error =

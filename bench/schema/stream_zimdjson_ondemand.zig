@@ -1,7 +1,7 @@
 const std = @import("std");
 const zimdjson = @import("zimdjson");
 const TracedAllocator = @import("TracedAllocator");
-const Parser = zimdjson.ondemand.parserFromFile(.{ .stream = .default });
+const Parser = zimdjson.ondemand.StreamParser(.default);
 const ArrayList = std.ArrayListUnmanaged;
 
 var traced = TracedAllocator{ .wrapped = std.heap.c_allocator };
@@ -20,7 +20,8 @@ pub fn prerun() !void {}
 
 pub fn run() !void {
     file = try std.fs.openFileAbsolute(json, .{});
-    const document = try parser.parse(allocator, file.reader());
+    try parser.expectDocumentSize(allocator, (try file.stat()).size);
+    const document = try parser.parseFromReader(allocator, file.reader().any());
     doc = try document.as(Schema, allocator, .{});
 }
 

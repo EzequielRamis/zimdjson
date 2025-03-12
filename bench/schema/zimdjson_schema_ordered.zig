@@ -1,7 +1,7 @@
 const std = @import("std");
 const zimdjson = @import("zimdjson");
 const TracedAllocator = @import("TracedAllocator");
-const Parser = zimdjson.ondemand.parserFromSlice(.default);
+const Parser = zimdjson.ondemand.FullParser(.default);
 const ArrayList = std.ArrayListUnmanaged;
 
 var traced = TracedAllocator{ .wrapped = std.heap.c_allocator };
@@ -20,7 +20,7 @@ pub fn init(path: []const u8) !void {
 pub fn prerun() !void {}
 
 pub fn run() !void {
-    const document = try parser.parse(allocator, json);
+    const document = try parser.parseFromSlice(allocator, json);
     doc = try document.as(Schema, allocator, .{});
 }
 

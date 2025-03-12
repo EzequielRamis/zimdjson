@@ -8,130 +8,162 @@ const Number = types.Number;
 const assert = std.debug.assert;
 const native_endian = builtin.cpu.arch.endian();
 
-pub fn ParserOptions(comptime Reader: ?type) type {
-    return if (Reader) |_| struct {
-        pub const default: @This() = .{};
-        stream: ?struct {
-            pub const default: @This() = .{};
-            chunk_length: u32 = tokens.ring_buffer.default_chunk_length,
-        } = null,
-    } else struct {
-        pub const default: @This() = .{};
-        aligned: bool = false,
-        assume_padding: bool = false,
-    };
+pub const FullOptions = struct {
+    pub const default: @This() = .{};
+
+    /// Use this literal if you are certain that parsing will only be done from a reader.
+    pub const reader_only: @This() = .{ .aligned = true, .assume_padding = true };
+
+    aligned: bool = false,
+    assume_padding: bool = false,
+};
+
+pub const StreamOptions = struct {
+    pub const default: @This() = .{};
+
+    chunk_length: u32 = tokens.ring_buffer.default_chunk_length,
+};
+
+const Options = union(enum) {
+    full: FullOptions,
+    stream: StreamOptions,
+};
+
+pub fn FullParser(comptime options: FullOptions) type {
+    return Parser(.json, .{ .full = options });
 }
 
-pub fn parserFromSlice(comptime options: ParserOptions(null)) type {
-    return Parser(null, options);
+pub fn StreamParser(comptime options: StreamOptions) type {
+    return Parser(.json, .{ .stream = options });
 }
 
-pub fn parserFromFile(comptime options: ParserOptions(std.fs.File.Reader)) type {
-    return Parser(std.fs.File.Reader, options);
-}
+pub const ReaderError = types.ReaderError;
+pub const ParseError = types.ParseError;
+pub const StreamError = tokens.stream.StreamError;
+pub const IndexerError = @import("indexer.zig").Error;
 
-pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) type {
-    const want_stream = Reader != null and options.stream != null;
-    const need_document_buffer = Reader != null and options.stream == null;
-    const aligned = Reader != null or options.aligned;
+pub fn Parser(comptime format: types.Format, comptime options: Options) type {
+    _ = format;
+    const want_stream = options == .stream;
+    const aligned = options == .full and options.full.aligned;
 
     return struct {
         const Self = @This();
 
         const Aligned = types.Aligned(aligned);
         const Tokens = if (want_stream)
-            tokens.Stream(.{
-                .Reader = Reader.?,
-                .aligned = aligned,
-                .chunk_len = options.stream.?.chunk_length,
+            tokens.stream.Stream(.{
+                .aligned = true,
+                .chunk_len = options.stream.chunk_length,
                 .slots = 2,
             })
         else
-            tokens.Iterator(.{
+            tokens.iterator.Iterator(.{
                 .aligned = aligned,
-                .assume_padding = Reader != null or options.assume_padding,
+                .assume_padding = options.full.assume_padding,
             });
 
-        pub const Error = Tokens.Error || types.ParseError || Allocator.Error || if (Reader) |reader| reader.Error else error{};
+        pub const Error = Tokens.Error || types.ParseError || Allocator.Error;
         pub const max_capacity_bound = if (want_stream) std.math.maxInt(u32) * @sizeOf(Tape.Word) else std.math.maxInt(u32);
-        pub const default_max_depth = 1024;
 
-        document_buffer: if (need_document_buffer) std.ArrayListAlignedUnmanaged(u8, types.Aligned(true).alignment) else void,
+        // only used in full mode
+        document_buffer: std.ArrayListAlignedUnmanaged(u8, types.Aligned(true).alignment),
+        reader_error: ?std.meta.Int(.unsigned, @bitSizeOf(anyerror)),
+
         tape: Tape,
 
         max_capacity: usize,
-        capacity: usize,
 
         pub const init: Self = .{
-            .document_buffer = if (need_document_buffer) .empty else {},
             .tape = .init,
             .max_capacity = max_capacity_bound,
-            .capacity = 0,
+            .document_buffer = .empty,
+            .reader_error = null,
         };
 
         /// Release all allocated memory, including the strings.
         pub fn deinit(self: *Self, allocator: Allocator) void {
             self.tape.deinit(allocator);
-            if (need_document_buffer) self.document_buffer.deinit(allocator);
+            self.document_buffer.deinit(allocator);
         }
 
-        pub fn setMaximumCapacity(self: *Self, new_capacity: usize) Error!void {
-            if (new_capacity > max_capacity_bound) return error.ExceededCapacity;
-
-            if (!want_stream and new_capacity + 1 < self.tape.tokens.indexes.items.len)
-                self.tape.tokens.indexes.shrinkAndFree(new_capacity + 1);
-
-            if (new_capacity < self.tape.words.list.items.len) {
-                self.tape.words.list.shrinkAndFree(self.tape.allocator, new_capacity + (new_capacity >> 1) + 1);
-                self.tape.words.max_capacity = new_capacity;
+        pub fn recoverReaderError(self: Self, comptime Reader: type) Reader.Error {
+            if (want_stream) {
+                assert(self.tape.tokens.reader_error != null);
+                return @errorCast(@errorFromInt(self.tape.tokens.reader_error.?));
+            } else {
+                assert(self.reader_error != null);
+                return @errorCast(@errorFromInt(self.reader_error.?));
             }
-
-            if (new_capacity + types.Vector.bytes_len < self.tape.strings.items().len) {
-                self.tape.strings.list.shrinkAndFree(self.tape.allocator, new_capacity + types.Vector.bytes_len);
-                self.tape.strings.max_capacity = new_capacity + types.Vector.bytes_len;
-            }
-
-            self.max_capacity = new_capacity;
         }
 
-        pub fn setMaximumDepth(self: *Self, new_depth: usize) Error!void {
-            if (new_depth > std.math.maxInt(u32)) return error.ExceededDepth;
-            try self.tape.stack.setMaxDepth(self.tape.allocator, new_depth);
+        pub fn expectDocumentSize(self: *Self, allocator: Allocator, size: usize) Error!void {
+            return self.ensureTotalCapacityForReader(allocator, size);
         }
 
-        pub fn ensureTotalCapacity(self: *Self, allocator: Allocator, new_capacity: usize) Error!void {
+        fn ensureTotalCapacityForSlice(self: *Self, allocator: Allocator, new_capacity: usize) Error!void {
             if (new_capacity > self.max_capacity) return error.ExceededCapacity;
 
-            if (need_document_buffer) {
-                try self.document_buffer.ensureTotalCapacity(allocator, new_capacity + types.Vector.bytes_len);
-            }
+            try self.tape.tokens.ensureTotalCapacity(allocator, new_capacity);
+
+            self.tape.string_buffer.allocator = allocator;
+            try self.tape.string_buffer.ensureTotalCapacity(new_capacity);
+        }
+
+        fn ensureTotalCapacityForReader(self: *Self, allocator: Allocator, new_capacity: usize) Error!void {
+            if (new_capacity > self.max_capacity) return error.ExceededCapacity;
 
             if (!want_stream) {
+                try self.document_buffer.ensureTotalCapacity(allocator, new_capacity + types.Vector.bytes_len);
                 try self.tape.tokens.ensureTotalCapacity(allocator, new_capacity);
             }
 
-            try self.tape.strings.ensureTotalCapacity(allocator, new_capacity + types.Vector.bytes_len);
-
-            self.capacity = new_capacity;
+            self.tape.string_buffer.allocator = allocator;
+            try self.tape.string_buffer.ensureTotalCapacity(new_capacity);
         }
 
-        pub fn parse(self: *Self, allocator: Allocator, document: if (Reader) |reader| reader else Aligned.slice) Error!Value {
-            if (need_document_buffer) {
+        pub fn parseFromSlice(self: *Self, allocator: Allocator, document: Aligned.slice) Error!Value {
+            if (want_stream) @compileError("Parsing from a slice is not supported in stream mode");
+            self.reader_error = null;
+
+            self.tape.string_buffer.reset();
+            self.tape.string_buffer.allocator = allocator;
+
+            try self.ensureTotalCapacityForSlice(allocator, document.len);
+            try self.tape.buildFromSlice(allocator, document);
+            return .{
+                .tape = &self.tape,
+                .index = 0,
+            };
+        }
+
+        pub fn parseFromReader(self: *Self, allocator: Allocator, reader: std.io.AnyReader) (Error || ReaderError)!Value {
+            self.reader_error = null;
+
+            self.tape.string_buffer.reset();
+            self.tape.string_buffer.allocator = allocator;
+
+            if (want_stream) {
+                try self.tape.buildFromReader(allocator, reader);
+            } else {
                 self.document_buffer.clearRetainingCapacity();
-                try @as(Error!void, @errorCast(common.readAllRetainingCapacity(
+                common.readAllRetainingCapacity(
                     allocator,
-                    document,
+                    reader,
                     types.Aligned(true).alignment,
                     &self.document_buffer,
                     self.max_capacity,
-                )));
+                ) catch |err| switch (err) {
+                    Allocator.Error.OutOfMemory => |e| return e,
+                    else => |e| {
+                        self.reader_error = @intFromError(e);
+                        return error.AnyReader;
+                    },
+                };
                 const len = self.document_buffer.items.len;
-                try self.ensureTotalCapacity(allocator, len);
+                try self.ensureTotalCapacityForReader(allocator, len);
                 self.document_buffer.appendNTimesAssumeCapacity(' ', types.Vector.bytes_len);
-                try self.tape.build(allocator, self.document_buffer.items[0..len]);
-            } else {
-                if (!want_stream) try self.ensureTotalCapacity(allocator, document.len);
-                try self.tape.build(allocator, document);
+                try self.tape.buildFromSlice(allocator, self.document_buffer.items[0..len]);
             }
             return .{
                 .tape = &self.tape,
@@ -186,10 +218,10 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 const w = self.tape.get(self.index);
                 return switch (w.tag) {
                     .string => brk: {
-                        const low_bits = std.mem.readInt(u16, self.tape.strings.items().ptr[w.data.ptr..][0..@sizeOf(u16)], native_endian);
+                        const low_bits = std.mem.readInt(u16, self.tape.string_buffer.strings.items().ptr[w.data.ptr..][0..@sizeOf(u16)], native_endian);
                         const high_bits: u64 = w.data.len;
                         const len = high_bits << 16 | low_bits;
-                        const ptr = self.tape.strings.items().ptr[w.data.ptr + @sizeOf(u16) ..];
+                        const ptr = self.tape.string_buffer.strings.items().ptr[w.data.ptr + @sizeOf(u16) ..];
                         break :brk ptr[0..len];
                     },
                     else => error.IncorrectType,
@@ -343,7 +375,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             /// For example:
             ///
             /// ```zig
-            /// const document = try parser.parse(allocator, "{ \"a\": { \"b\": 1 } }");
+            /// const document = try parser.parseFromSlice(allocator, "{ \"a\": { \"b\": 1 } }");
             /// const value = try document.at("a").at("b").asUnsigned();
             /// std.debug.assert(value == 1);
             /// ```
@@ -368,7 +400,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             /// For example:
             ///
             /// ```zig
-            /// const document = try parser.parse(allocator, "[ [], [1] ]");
+            /// const document = try parser.parseFromSlice(allocator, "[ [], [1] ]");
             /// const value = try document.atIndex(1).atIndex(0).asUnsigned();
             /// std.debug.assert(value == 1);
             /// ```
@@ -440,7 +472,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             /// For example:
             ///
             /// ```zig
-            /// const document = try parser.parse(allocator, "[ [], [1] ]");
+            /// const document = try parser.parseFromSlice(allocator, "[ [], [1] ]");
             /// const value = try document.atIndex(1).atIndex(0).asUnsigned();
             /// std.debug.assert(value == 1);
             /// ```
@@ -520,7 +552,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             /// For example:
             ///
             /// ```zig
-            /// const document = try parser.parse(allocator, "{ \"a\": { \"b\": 1 } }");
+            /// const document = try parser.parseFromSlice(allocator, "{ \"a\": { \"b\": 1 } }");
             /// const value = try document.at("a").at("b").asUnsigned();
             /// std.debug.assert(value == 1);
             /// ```
@@ -597,7 +629,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                     data: Data,
                 };
 
-                max_depth: usize = default_max_depth,
+                max_depth: usize = common.default_max_depth,
                 multi: std.MultiArrayList(Context) = .empty,
 
                 pub const empty: @This() = .{};
@@ -660,7 +692,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             words: types.BoundedArrayList(u64, max_capacity_bound),
             stack: Stack,
 
-            strings: types.BoundedArrayList(u8, max_capacity_bound + types.Vector.bytes_len),
+            string_buffer: types.StringBuffer(max_capacity_bound),
 
             words_ptr: if (want_stream) void else [*]u64 = undefined,
             strings_ptr: if (want_stream) void else [*]u8 = undefined,
@@ -669,35 +701,39 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 .tokens = .init,
                 .words = .empty,
                 .stack = .empty,
-                .strings = .empty,
+                .string_buffer = .init,
             };
 
             pub fn deinit(self: *Tape, allocator: Allocator) void {
                 self.words.deinit(allocator);
                 self.stack.deinit(allocator);
-                self.strings.deinit(allocator);
                 self.tokens.deinit(allocator);
+                self.string_buffer.deinit();
             }
 
-            pub inline fn build(self: *Tape, allocator: Allocator, document: if (want_stream) Reader.? else Aligned.slice) Error!void {
+            pub inline fn buildFromSlice(self: *Tape, allocator: Allocator, document: Aligned.slice) Error!void {
                 try self.tokens.build(allocator, document);
                 try self.stack.ensureTotalCapacity(allocator, self.stack.max_depth);
 
-                if (!want_stream) {
-                    const tokens_count = self.tokens.indexes.items.len;
-                    // if there are only n numbers, there must be n - 1 commas plus an ending container token, so almost half of the tokens are numbers
-                    try self.words.ensureTotalCapacity(allocator, tokens_count + (tokens_count >> 1) + 1);
-                }
+                const tokens_count = self.tokens.indexes.items.len;
+                // if there are only n numbers, there must be n - 1 commas plus an ending container token, so almost half of the tokens are numbers
+                try self.words.ensureTotalCapacity(allocator, tokens_count + (tokens_count >> 1) + 1);
 
                 self.words.list.clearRetainingCapacity();
                 self.stack.clearRetainingCapacity();
 
-                self.strings.list.clearRetainingCapacity();
+                self.words_ptr = self.words.items().ptr;
+                self.strings_ptr = self.string_buffer.strings.items().ptr;
 
-                if (!want_stream) {
-                    self.words_ptr = self.words.items().ptr;
-                    self.strings_ptr = self.strings.items().ptr;
-                }
+                return self.dispatch(allocator);
+            }
+
+            pub inline fn buildFromReader(self: *Tape, allocator: Allocator, reader: std.io.AnyReader) Error!void {
+                try self.tokens.build(allocator, reader);
+                try self.stack.ensureTotalCapacity(allocator, self.stack.max_depth);
+
+                self.words.list.clearRetainingCapacity();
+                self.stack.clearRetainingCapacity();
 
                 return self.dispatch(allocator);
             }
@@ -745,7 +781,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
 
             inline fn currentString(self: Tape) [*]u8 {
                 if (want_stream) {
-                    const strings = self.strings.items();
+                    const strings = self.string_buffer.strings.items();
                     return strings.ptr[strings.len..];
                 } else {
                     return self.strings_ptr;
@@ -754,7 +790,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
 
             inline fn advanceString(self: *Tape, len: usize) void {
                 if (want_stream) {
-                    self.strings.list.items.len += len;
+                    self.string_buffer.strings.list.items.len += len;
                 } else {
                     self.strings_ptr += len;
                 }
@@ -950,7 +986,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
             inline fn visitString(self: *Tape, allocator: Allocator, ptr: [*]const u8) Error!void {
                 if (want_stream) {
                     try self.words.ensureUnusedCapacity(allocator, 1);
-                    try self.strings.ensureUnusedCapacity(allocator, options.stream.?.chunk_length);
+                    try self.string_buffer.ensureUnusedCapacity(options.stream.chunk_length);
                 }
                 const writeString = @import("parsers/string.zig").writeString;
                 const curr_str = self.currentString();
@@ -959,7 +995,7 @@ pub fn Parser(comptime Reader: ?type, comptime options: ParserOptions(Reader)) t
                 self.appendWordAssumeCapacity(.{
                     .tag = .string,
                     .data = .{
-                        .ptr = @intCast(curr_str - self.strings.items().ptr),
+                        .ptr = @intCast(curr_str - self.string_buffer.strings.items().ptr),
                         .len = @intCast(next_len >> 16),
                     },
                 });

@@ -1,7 +1,7 @@
 const std = @import("std");
 const zimdjson = @import("zimdjson");
 const TracedAllocator = @import("TracedAllocator");
-const Parser = zimdjson.dom.parserFromFile(.default);
+const Parser = zimdjson.dom.FullParser(.default);
 
 const TopTweet = struct {
     text: []const u8,
@@ -36,8 +36,8 @@ pub fn run() !void {
     var top_tweet: Parser.Value = undefined;
 
     file = try std.fs.openFileAbsolute(path, .{});
-    try parser.ensureTotalCapacity(allocator, (try file.stat()).size);
-    const doc = try parser.parse(allocator, file.reader());
+    try parser.expectDocumentSize(allocator, (try file.stat()).size);
+    const doc = try parser.parseFromReader(allocator, file.reader().any());
     var tweet = (try doc.at("statuses").asArray()).iterator();
     while (tweet.next()) |t| {
         const retweet_count = try t.at("retweet_count").asSigned();

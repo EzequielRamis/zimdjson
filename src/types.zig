@@ -29,12 +29,17 @@ pub fn Aligned(comptime aligned: bool) type {
     };
 }
 
+pub const Format = enum {
+    json,
+};
+
 pub const NumberType = enum(u8) {
     unsigned = 'u',
     signed = 'i',
     double = 'd',
 };
 
+/// A valid JSON number.
 pub const Number = union(NumberType) {
     /// The number is tagged as `.unsigned` if it fits in a `u64` but *not* in a `i64`.
     unsigned: u64,
@@ -71,6 +76,22 @@ pub const ValueType = enum {
     object,
     array,
 };
+
+/// A generic error occurred while reading from the provided reader. If you want to know
+/// which specific error occurred, you can "recover" it using the following pattern:
+///
+/// ```zig
+/// const document = parser.parseFromReader(allocator, file.reader().any()) catch |err| switch (err) {
+///    error.AnyReader => return parser.recoverReaderError(@TypeOf(file.reader())),
+///    else => |e| return e,
+/// };
+///
+/// const array = document.asArray() catch |err| switch (err) {
+///    error.AnyReader => return parser.recoverReaderError(@TypeOf(file.reader())),
+///    else => |e| return e,
+/// };
+/// ```
+pub const ReaderError = error{AnyReader};
 
 pub const ParseError = error{
     ExceededDepth,
@@ -192,6 +213,52 @@ pub fn BoundedArrayList(comptime T: type, comptime initial_max_capacity: usize) 
 
         pub inline fn items(self: Self) []T {
             return self.list.items;
+        }
+    };
+}
+
+pub fn StringBuffer(comptime initial_max_capacity: usize) type {
+    return struct {
+        const Self = @This();
+
+        allocator: Allocator,
+        strings: BoundedArrayList(u8, initial_max_capacity),
+
+        pub const init: Self = .{
+            .allocator = undefined,
+            .strings = .empty,
+        };
+
+        pub fn ensureTotalCapacity(self: *Self, new_capacity: usize) !void {
+            return self.strings.ensureTotalCapacity(self.allocator, new_capacity + Vector.bytes_len);
+        }
+
+        pub fn ensureUnusedCapacity(self: *Self, additional_count: usize) !void {
+            return self.strings.ensureUnusedCapacity(self.allocator, additional_count);
+        }
+
+        pub fn saveIndex(self: Self) usize {
+            return self.strings.items().len;
+        }
+
+        pub fn loadIndex(self: *Self, index: usize) void {
+            self.strings.list.items.len = index;
+        }
+
+        pub fn peek(self: Self) [*]u8 {
+            return self.strings.items()[self.strings.items().len..].ptr;
+        }
+
+        pub fn advance(self: *Self, count: usize) void {
+            self.strings.list.items.len += count;
+        }
+
+        pub fn reset(self: *Self) void {
+            self.strings.list.clearRetainingCapacity();
+        }
+
+        pub fn deinit(self: *Self) void {
+            self.strings.deinit(self.allocator);
         }
     };
 }

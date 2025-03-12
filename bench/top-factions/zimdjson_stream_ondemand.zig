@@ -19,7 +19,7 @@ const allocator = traced.allocator();
 
 var file: std.fs.File = undefined;
 var path: []const u8 = undefined;
-var parser = zimdjson.ondemand.parserFromFile(.{ .stream = .default }).init;
+var parser = zimdjson.ondemand.StreamParser(.default).init;
 var result: TopFactions = undefined;
 
 pub fn init(_path: []const u8) !void {
@@ -32,15 +32,15 @@ pub fn run() !void {
     result.factions_count = 0;
 
     file = try std.fs.openFileAbsolute(path, .{});
-    try parser.ensureTotalCapacity(allocator, (try file.stat()).size);
-    const doc = try parser.parse(allocator, file.reader());
+    try parser.expectDocumentSize(allocator, (try file.stat()).size);
+    const doc = try parser.parseFromReader(allocator, file.reader().any());
     var systems = (try doc.asArray()).iterator();
     while (try systems.next()) |system| {
         const id = try system.at("id64").asUnsigned();
         const name = try system.at("name").asString().get();
         const factions = system.at("factions");
         if (factions.err) |err| if (err == error.MissingField) continue else return err;
-        const arr = try factions.asArray();
+        var arr = (try factions.asArray()).iterator();
         var factions_count: usize = 0;
         while (try arr.next()) |_| factions_count += 1;
         if (factions_count >= result.factions_count) {

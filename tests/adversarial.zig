@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const zimdjson = @import("zimdjson");
-const Parser = zimdjson.dom.parserFromFile(.default);
+const Parser = zimdjson.dom.FullParser(.default);
 const simdjson_data = @embedFile("simdjson-data");
 
 test "1" {
@@ -11,7 +11,7 @@ test "1" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -21,7 +21,7 @@ test "10" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/10.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -31,7 +31,7 @@ test "100" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/100.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -41,7 +41,7 @@ test "1000" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1000.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -51,7 +51,7 @@ test "1001" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1001.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -61,7 +61,7 @@ test "1002" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1002.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -71,7 +71,7 @@ test "1003" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1003.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -81,7 +81,7 @@ test "1004" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1004.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -91,7 +91,7 @@ test "1005" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1005.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -101,7 +101,7 @@ test "1006" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1006.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -111,7 +111,7 @@ test "1007" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1007.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -121,7 +121,7 @@ test "1008" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1008.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -131,7 +131,7 @@ test "1009" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1009.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -141,7 +141,7 @@ test "101" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/101.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -151,7 +151,7 @@ test "1010" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1010.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -161,7 +161,7 @@ test "1011" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1011.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -171,7 +171,7 @@ test "1012" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1012.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -181,7 +181,7 @@ test "1013" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1013.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -191,7 +191,7 @@ test "1014" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1014.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -201,7 +201,7 @@ test "1015" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1015.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -211,7 +211,7 @@ test "1016" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1016.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -221,7 +221,7 @@ test "1017" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1017.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -231,7 +231,7 @@ test "1018" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1018.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -241,7 +241,7 @@ test "1019" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1019.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -251,7 +251,7 @@ test "102" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/102.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -261,7 +261,7 @@ test "1020" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1020.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -271,7 +271,7 @@ test "1021" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1021.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -281,7 +281,7 @@ test "1022" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1022.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -291,7 +291,7 @@ test "1023" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1023.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -301,7 +301,7 @@ test "1024" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1024.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -311,7 +311,7 @@ test "1025" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1025.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -321,7 +321,7 @@ test "1026" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1026.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -331,7 +331,7 @@ test "1027" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1027.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -341,7 +341,7 @@ test "1028" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1028.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -351,7 +351,7 @@ test "1029" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1029.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -361,7 +361,7 @@ test "103" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/103.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -371,7 +371,7 @@ test "1030" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1030.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -381,7 +381,7 @@ test "1031" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1031.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -391,7 +391,7 @@ test "1032" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1032.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -401,7 +401,7 @@ test "1033" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1033.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -411,7 +411,7 @@ test "1034" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1034.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -421,7 +421,7 @@ test "1035" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1035.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -431,7 +431,7 @@ test "1036" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1036.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -441,7 +441,7 @@ test "1037" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1037.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -451,7 +451,7 @@ test "1038" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1038.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -461,7 +461,7 @@ test "1039" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1039.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -471,7 +471,7 @@ test "104" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/104.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -481,7 +481,7 @@ test "1040" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1040.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -491,7 +491,7 @@ test "1041" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1041.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -501,7 +501,7 @@ test "1042" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1042.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -511,7 +511,7 @@ test "1043" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1043.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -521,7 +521,7 @@ test "1044" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1044.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -531,7 +531,7 @@ test "1045" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1045.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -541,7 +541,7 @@ test "1046" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1046.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -551,7 +551,7 @@ test "1047" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1047.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -561,7 +561,7 @@ test "1048" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1048.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -571,7 +571,7 @@ test "1049" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1049.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -581,7 +581,7 @@ test "105" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/105.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -591,7 +591,7 @@ test "1050" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1050.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -601,7 +601,7 @@ test "1051" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1051.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -611,7 +611,7 @@ test "1052" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1052.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -621,7 +621,7 @@ test "1053" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1053.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -631,7 +631,7 @@ test "1054" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1054.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -641,7 +641,7 @@ test "1055" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1055.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -651,7 +651,7 @@ test "1056" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1056.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -661,7 +661,7 @@ test "1057" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1057.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -671,7 +671,7 @@ test "1058" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1058.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -681,7 +681,7 @@ test "1059" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1059.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -691,7 +691,7 @@ test "106" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/106.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -701,7 +701,7 @@ test "1060" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1060.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -711,7 +711,7 @@ test "1061" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1061.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -721,7 +721,7 @@ test "1062" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1062.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -731,7 +731,7 @@ test "1063" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1063.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -741,7 +741,7 @@ test "1064" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1064.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -751,7 +751,7 @@ test "1065" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1065.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -761,7 +761,7 @@ test "1066" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1066.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -771,7 +771,7 @@ test "1067" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1067.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -781,7 +781,7 @@ test "1068" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1068.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -791,7 +791,7 @@ test "1069" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1069.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -801,7 +801,7 @@ test "107" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/107.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -811,7 +811,7 @@ test "1070" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1070.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -821,7 +821,7 @@ test "1071" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1071.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -831,7 +831,7 @@ test "1072" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1072.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -841,7 +841,7 @@ test "1073" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1073.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -851,7 +851,7 @@ test "1074" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1074.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -861,7 +861,7 @@ test "1075" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1075.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -871,7 +871,7 @@ test "1076" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1076.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -881,7 +881,7 @@ test "1077" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1077.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -891,7 +891,7 @@ test "1078" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1078.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -901,7 +901,7 @@ test "1079" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1079.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -911,7 +911,7 @@ test "108" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/108.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -921,7 +921,7 @@ test "1080" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1080.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -931,7 +931,7 @@ test "1081" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1081.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -941,7 +941,7 @@ test "1082" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1082.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -951,7 +951,7 @@ test "1083" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1083.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -961,7 +961,7 @@ test "1084" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1084.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -971,7 +971,7 @@ test "1085" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1085.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -981,7 +981,7 @@ test "1086" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1086.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -991,7 +991,7 @@ test "1087" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1087.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1001,7 +1001,7 @@ test "1088" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1088.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1011,7 +1011,7 @@ test "1089" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1089.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1021,7 +1021,7 @@ test "109" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/109.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1031,7 +1031,7 @@ test "1090" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1090.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1041,7 +1041,7 @@ test "1091" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1091.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1051,7 +1051,7 @@ test "1092" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1092.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1061,7 +1061,7 @@ test "1093" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1093.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1071,7 +1071,7 @@ test "1094" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1094.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1081,7 +1081,7 @@ test "1095" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1095.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1091,7 +1091,7 @@ test "1096" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1096.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1101,7 +1101,7 @@ test "1097" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1097.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1111,7 +1111,7 @@ test "1098" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1098.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1121,7 +1121,7 @@ test "1099" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1099.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1131,7 +1131,7 @@ test "11" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/11.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1141,7 +1141,7 @@ test "110" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/110.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1151,7 +1151,7 @@ test "1100" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1100.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1161,7 +1161,7 @@ test "1101" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1101.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1171,7 +1171,7 @@ test "1102" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1102.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1181,7 +1181,7 @@ test "1103" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1103.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1191,7 +1191,7 @@ test "1104" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1104.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1201,7 +1201,7 @@ test "1105" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1105.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1211,7 +1211,7 @@ test "1106" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1106.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1221,7 +1221,7 @@ test "1107" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1107.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1231,7 +1231,7 @@ test "1108" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1108.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1241,7 +1241,7 @@ test "1109" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1109.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1251,7 +1251,7 @@ test "111" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/111.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1261,7 +1261,7 @@ test "1110" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1110.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1271,7 +1271,7 @@ test "1111" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1111.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1281,7 +1281,7 @@ test "1112" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1112.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1291,7 +1291,7 @@ test "1113" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1113.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1301,7 +1301,7 @@ test "1114" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1114.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1311,7 +1311,7 @@ test "1115" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1115.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1321,7 +1321,7 @@ test "1116" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1116.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1331,7 +1331,7 @@ test "1117" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1117.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1341,7 +1341,7 @@ test "1118" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1118.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1351,7 +1351,7 @@ test "1119" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1119.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1361,7 +1361,7 @@ test "112" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/112.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1371,7 +1371,7 @@ test "1120" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1120.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1381,7 +1381,7 @@ test "1121" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1121.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1391,7 +1391,7 @@ test "1122" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1122.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1401,7 +1401,7 @@ test "1123" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1123.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1411,7 +1411,7 @@ test "1124" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1124.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1421,7 +1421,7 @@ test "1125" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1125.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1431,7 +1431,7 @@ test "1126" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1126.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1441,7 +1441,7 @@ test "1127" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1127.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1451,7 +1451,7 @@ test "1128" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1128.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1461,7 +1461,7 @@ test "1129" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1129.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1471,7 +1471,7 @@ test "113" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/113.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1481,7 +1481,7 @@ test "1130" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1130.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1491,7 +1491,7 @@ test "1131" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1131.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1501,7 +1501,7 @@ test "1132" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1132.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1511,7 +1511,7 @@ test "1133" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1133.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1521,7 +1521,7 @@ test "1134" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1134.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1531,7 +1531,7 @@ test "1135" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1135.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1541,7 +1541,7 @@ test "1136" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1136.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1551,7 +1551,7 @@ test "1137" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1137.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1561,7 +1561,7 @@ test "1138" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1138.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1571,7 +1571,7 @@ test "1139" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1139.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1581,7 +1581,7 @@ test "114" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/114.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1591,7 +1591,7 @@ test "1140" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1140.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1601,7 +1601,7 @@ test "1141" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1141.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1611,7 +1611,7 @@ test "1142" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1142.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1621,7 +1621,7 @@ test "1143" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1143.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1631,7 +1631,7 @@ test "1144" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1144.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1641,7 +1641,7 @@ test "1145" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1145.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1651,7 +1651,7 @@ test "1146" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1146.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1661,7 +1661,7 @@ test "1147" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1147.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1671,7 +1671,7 @@ test "1148" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1148.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1681,7 +1681,7 @@ test "1149" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1149.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1691,7 +1691,7 @@ test "115" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/115.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1701,7 +1701,7 @@ test "1150" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1150.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1711,7 +1711,7 @@ test "1151" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1151.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1721,7 +1721,7 @@ test "1152" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1152.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1731,7 +1731,7 @@ test "1153" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1153.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1741,7 +1741,7 @@ test "1154" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1154.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1751,7 +1751,7 @@ test "1155" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1155.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1761,7 +1761,7 @@ test "1156" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1156.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1771,7 +1771,7 @@ test "1157" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1157.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1781,7 +1781,7 @@ test "1158" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1158.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1791,7 +1791,7 @@ test "1159" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1159.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1801,7 +1801,7 @@ test "116" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/116.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1811,7 +1811,7 @@ test "1160" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1160.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1821,7 +1821,7 @@ test "1161" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1161.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1831,7 +1831,7 @@ test "1162" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1162.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1841,7 +1841,7 @@ test "1163" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1163.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1851,7 +1851,7 @@ test "1164" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1164.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1861,7 +1861,7 @@ test "1165" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1165.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1871,7 +1871,7 @@ test "1166" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1166.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1881,7 +1881,7 @@ test "1167" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1167.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1891,7 +1891,7 @@ test "1168" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1168.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1901,7 +1901,7 @@ test "1169" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1169.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1911,7 +1911,7 @@ test "117" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/117.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1921,7 +1921,7 @@ test "1170" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1170.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1931,7 +1931,7 @@ test "1171" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1171.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1941,7 +1941,7 @@ test "1172" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1172.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1951,7 +1951,7 @@ test "1173" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1173.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1961,7 +1961,7 @@ test "1174" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1174.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1971,7 +1971,7 @@ test "1175" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1175.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1981,7 +1981,7 @@ test "1176" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1176.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1991,7 +1991,7 @@ test "1177" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1177.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2001,7 +2001,7 @@ test "1178" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1178.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2011,7 +2011,7 @@ test "1179" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1179.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2021,7 +2021,7 @@ test "118" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/118.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2031,7 +2031,7 @@ test "1180" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1180.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2041,7 +2041,7 @@ test "1181" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1181.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2051,7 +2051,7 @@ test "1182" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1182.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2061,7 +2061,7 @@ test "1183" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1183.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2071,7 +2071,7 @@ test "1184" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1184.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2081,7 +2081,7 @@ test "1185" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1185.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2091,7 +2091,7 @@ test "1186" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1186.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2101,7 +2101,7 @@ test "1187" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1187.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2111,7 +2111,7 @@ test "1188" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1188.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2121,7 +2121,7 @@ test "1189" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1189.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2131,7 +2131,7 @@ test "119" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/119.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2141,7 +2141,7 @@ test "1190" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1190.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2151,7 +2151,7 @@ test "1191" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1191.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2161,7 +2161,7 @@ test "1192" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1192.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2171,7 +2171,7 @@ test "1193" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1193.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2181,7 +2181,7 @@ test "1194" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1194.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2191,7 +2191,7 @@ test "1195" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1195.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2201,7 +2201,7 @@ test "1196" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1196.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2211,7 +2211,7 @@ test "1197" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1197.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2221,7 +2221,7 @@ test "1198" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1198.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2231,7 +2231,7 @@ test "1199" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1199.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2241,7 +2241,7 @@ test "12" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/12.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2251,7 +2251,7 @@ test "120" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/120.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2261,7 +2261,7 @@ test "1200" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1200.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2271,7 +2271,7 @@ test "1201" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1201.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2281,7 +2281,7 @@ test "1202" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1202.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2291,7 +2291,7 @@ test "1203" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1203.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2301,7 +2301,7 @@ test "1204" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1204.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2311,7 +2311,7 @@ test "1205" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1205.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2321,7 +2321,7 @@ test "1206" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1206.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2331,7 +2331,7 @@ test "1207" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1207.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2341,7 +2341,7 @@ test "1208" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1208.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2351,7 +2351,7 @@ test "1209" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1209.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2361,7 +2361,7 @@ test "121" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/121.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2371,7 +2371,7 @@ test "1210" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1210.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2381,7 +2381,7 @@ test "1211" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1211.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2391,7 +2391,7 @@ test "1212" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1212.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2401,7 +2401,7 @@ test "1213" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1213.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2411,7 +2411,7 @@ test "1214" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1214.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2421,7 +2421,7 @@ test "1215" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1215.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2431,7 +2431,7 @@ test "1216" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1216.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2441,7 +2441,7 @@ test "1217" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1217.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2451,7 +2451,7 @@ test "1218" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1218.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2461,7 +2461,7 @@ test "1219" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1219.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2471,7 +2471,7 @@ test "122" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/122.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2481,7 +2481,7 @@ test "1220" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1220.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2491,7 +2491,7 @@ test "1221" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1221.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2501,7 +2501,7 @@ test "1222" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1222.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2511,7 +2511,7 @@ test "1223" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1223.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2521,7 +2521,7 @@ test "1224" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1224.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2531,7 +2531,7 @@ test "1225" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1225.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2541,7 +2541,7 @@ test "1226" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1226.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2551,7 +2551,7 @@ test "1227" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1227.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2561,7 +2561,7 @@ test "1228" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1228.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2571,7 +2571,7 @@ test "1229" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1229.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2581,7 +2581,7 @@ test "123" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/123.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2591,7 +2591,7 @@ test "1230" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1230.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2601,7 +2601,7 @@ test "1231" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1231.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2611,7 +2611,7 @@ test "1232" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1232.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2621,7 +2621,7 @@ test "1233" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1233.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2631,7 +2631,7 @@ test "1234" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1234.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2641,7 +2641,7 @@ test "1235" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1235.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2651,7 +2651,7 @@ test "1236" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1236.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2661,7 +2661,7 @@ test "1237" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1237.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2671,7 +2671,7 @@ test "1238" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1238.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2681,7 +2681,7 @@ test "1239" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1239.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2691,7 +2691,7 @@ test "124" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/124.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2701,7 +2701,7 @@ test "1240" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1240.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2711,7 +2711,7 @@ test "1241" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1241.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2721,7 +2721,7 @@ test "1242" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1242.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2731,7 +2731,7 @@ test "1243" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1243.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2741,7 +2741,7 @@ test "1244" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1244.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2751,7 +2751,7 @@ test "1245" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1245.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2761,7 +2761,7 @@ test "1246" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1246.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2771,7 +2771,7 @@ test "1247" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1247.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2781,7 +2781,7 @@ test "1248" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1248.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2791,7 +2791,7 @@ test "1249" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1249.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2801,7 +2801,7 @@ test "125" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/125.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2811,7 +2811,7 @@ test "1250" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1250.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2821,7 +2821,7 @@ test "1251" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1251.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2831,7 +2831,7 @@ test "1252" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1252.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2841,7 +2841,7 @@ test "1253" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1253.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2851,7 +2851,7 @@ test "1254" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1254.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2861,7 +2861,7 @@ test "1255" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1255.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2871,7 +2871,7 @@ test "1256" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1256.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2881,7 +2881,7 @@ test "1257" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1257.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2891,7 +2891,7 @@ test "1258" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1258.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2901,7 +2901,7 @@ test "1259" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1259.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2911,7 +2911,7 @@ test "126" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/126.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2921,7 +2921,7 @@ test "1260" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1260.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2931,7 +2931,7 @@ test "1261" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1261.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2941,7 +2941,7 @@ test "1262" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1262.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2951,7 +2951,7 @@ test "1263" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1263.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2961,7 +2961,7 @@ test "1264" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1264.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2971,7 +2971,7 @@ test "1265" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1265.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2981,7 +2981,7 @@ test "1266" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1266.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2991,7 +2991,7 @@ test "1267" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1267.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3001,7 +3001,7 @@ test "1268" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1268.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3011,7 +3011,7 @@ test "1269" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1269.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3021,7 +3021,7 @@ test "127" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/127.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3031,7 +3031,7 @@ test "1270" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1270.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3041,7 +3041,7 @@ test "1271" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1271.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3051,7 +3051,7 @@ test "1272" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1272.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3061,7 +3061,7 @@ test "1273" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1273.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3071,7 +3071,7 @@ test "1274" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1274.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3081,7 +3081,7 @@ test "1275" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1275.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3091,7 +3091,7 @@ test "1276" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1276.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3101,7 +3101,7 @@ test "1277" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1277.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3111,7 +3111,7 @@ test "1278" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1278.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3121,7 +3121,7 @@ test "1279" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1279.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3131,7 +3131,7 @@ test "128" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/128.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3141,7 +3141,7 @@ test "1280" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1280.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3151,7 +3151,7 @@ test "1281" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1281.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3161,7 +3161,7 @@ test "1282" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1282.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3171,7 +3171,7 @@ test "1283" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1283.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3181,7 +3181,7 @@ test "1284" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1284.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3191,7 +3191,7 @@ test "1285" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1285.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3201,7 +3201,7 @@ test "1286" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1286.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3211,7 +3211,7 @@ test "1287" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1287.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3221,7 +3221,7 @@ test "1288" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1288.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3231,7 +3231,7 @@ test "1289" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1289.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3241,7 +3241,7 @@ test "129" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/129.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3251,7 +3251,7 @@ test "1290" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1290.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3261,7 +3261,7 @@ test "1291" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1291.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3271,7 +3271,7 @@ test "1292" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1292.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3281,7 +3281,7 @@ test "1293" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1293.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3291,7 +3291,7 @@ test "1294" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1294.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3301,7 +3301,7 @@ test "1295" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1295.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3311,7 +3311,7 @@ test "1296" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1296.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3321,7 +3321,7 @@ test "1297" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1297.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3331,7 +3331,7 @@ test "1298" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1298.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3341,7 +3341,7 @@ test "1299" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1299.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3351,7 +3351,7 @@ test "13" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/13.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3361,7 +3361,7 @@ test "130" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/130.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3371,7 +3371,7 @@ test "1300" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1300.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3381,7 +3381,7 @@ test "1301" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1301.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3391,7 +3391,7 @@ test "1302" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1302.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3401,7 +3401,7 @@ test "1303" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1303.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3411,7 +3411,7 @@ test "1304" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1304.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3421,7 +3421,7 @@ test "1305" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1305.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3431,7 +3431,7 @@ test "1306" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1306.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3441,7 +3441,7 @@ test "1307" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1307.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3451,7 +3451,7 @@ test "1308" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1308.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3461,7 +3461,7 @@ test "1309" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1309.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3471,7 +3471,7 @@ test "131" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/131.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3481,7 +3481,7 @@ test "1310" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1310.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3491,7 +3491,7 @@ test "1311" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1311.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3501,7 +3501,7 @@ test "1312" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1312.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3511,7 +3511,7 @@ test "1313" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1313.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3521,7 +3521,7 @@ test "1314" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1314.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3531,7 +3531,7 @@ test "1315" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1315.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3541,7 +3541,7 @@ test "1316" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1316.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3551,7 +3551,7 @@ test "1317" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1317.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3561,7 +3561,7 @@ test "1318" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1318.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3571,7 +3571,7 @@ test "1319" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1319.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3581,7 +3581,7 @@ test "132" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/132.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3591,7 +3591,7 @@ test "1320" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1320.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3601,7 +3601,7 @@ test "1321" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1321.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3611,7 +3611,7 @@ test "1322" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1322.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3621,7 +3621,7 @@ test "1323" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1323.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3631,7 +3631,7 @@ test "1324" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1324.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3641,7 +3641,7 @@ test "1325" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1325.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3651,7 +3651,7 @@ test "1326" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1326.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3661,7 +3661,7 @@ test "1327" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1327.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3671,7 +3671,7 @@ test "1328" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1328.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3681,7 +3681,7 @@ test "1329" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1329.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3691,7 +3691,7 @@ test "133" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/133.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3701,7 +3701,7 @@ test "1330" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1330.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3711,7 +3711,7 @@ test "1331" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1331.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3721,7 +3721,7 @@ test "1332" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1332.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3731,7 +3731,7 @@ test "1333" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1333.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3741,7 +3741,7 @@ test "1334" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1334.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3751,7 +3751,7 @@ test "1335" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1335.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3761,7 +3761,7 @@ test "1336" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1336.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3771,7 +3771,7 @@ test "1337" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1337.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3781,7 +3781,7 @@ test "1338" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1338.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3791,7 +3791,7 @@ test "1339" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1339.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3801,7 +3801,7 @@ test "134" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/134.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3811,7 +3811,7 @@ test "1340" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1340.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3821,7 +3821,7 @@ test "1341" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1341.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3831,7 +3831,7 @@ test "1342" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1342.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3841,7 +3841,7 @@ test "1343" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1343.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3851,7 +3851,7 @@ test "1344" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1344.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3861,7 +3861,7 @@ test "1345" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1345.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3871,7 +3871,7 @@ test "1346" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1346.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3881,7 +3881,7 @@ test "1347" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1347.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3891,7 +3891,7 @@ test "1348" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1348.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3901,7 +3901,7 @@ test "1349" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1349.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3911,7 +3911,7 @@ test "135" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/135.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3921,7 +3921,7 @@ test "1350" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1350.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3931,7 +3931,7 @@ test "1351" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1351.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3941,7 +3941,7 @@ test "1352" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1352.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3951,7 +3951,7 @@ test "1353" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1353.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3961,7 +3961,7 @@ test "1354" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1354.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3971,7 +3971,7 @@ test "1355" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1355.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3981,7 +3981,7 @@ test "1356" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1356.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -3991,7 +3991,7 @@ test "1357" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1357.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4001,7 +4001,7 @@ test "1358" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1358.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4011,7 +4011,7 @@ test "1359" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1359.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4021,7 +4021,7 @@ test "136" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/136.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4031,7 +4031,7 @@ test "1360" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1360.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4041,7 +4041,7 @@ test "1361" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1361.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4051,7 +4051,7 @@ test "1362" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1362.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4061,7 +4061,7 @@ test "1363" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1363.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4071,7 +4071,7 @@ test "1364" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1364.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4081,7 +4081,7 @@ test "1365" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1365.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4091,7 +4091,7 @@ test "1366" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1366.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4101,7 +4101,7 @@ test "1367" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1367.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4111,7 +4111,7 @@ test "1368" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1368.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4121,7 +4121,7 @@ test "1369" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1369.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4131,7 +4131,7 @@ test "137" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/137.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4141,7 +4141,7 @@ test "1370" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1370.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4151,7 +4151,7 @@ test "1371" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1371.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4161,7 +4161,7 @@ test "1372" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1372.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4171,7 +4171,7 @@ test "1373" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1373.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4181,7 +4181,7 @@ test "1374" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1374.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4191,7 +4191,7 @@ test "1375" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1375.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4201,7 +4201,7 @@ test "1376" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1376.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4211,7 +4211,7 @@ test "1377" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1377.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4221,7 +4221,7 @@ test "1378" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1378.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4231,7 +4231,7 @@ test "1379" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1379.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4241,7 +4241,7 @@ test "138" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/138.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4251,7 +4251,7 @@ test "1380" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1380.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4261,7 +4261,7 @@ test "1381" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1381.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4271,7 +4271,7 @@ test "1382" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1382.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4281,7 +4281,7 @@ test "1383" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1383.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4291,7 +4291,7 @@ test "1384" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1384.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4301,7 +4301,7 @@ test "1385" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1385.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4311,7 +4311,7 @@ test "1386" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1386.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4321,7 +4321,7 @@ test "1387" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1387.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4331,7 +4331,7 @@ test "1388" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1388.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4341,7 +4341,7 @@ test "1389" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1389.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4351,7 +4351,7 @@ test "139" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/139.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4361,7 +4361,7 @@ test "1390" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1390.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4371,7 +4371,7 @@ test "1391" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1391.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4381,7 +4381,7 @@ test "1392" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1392.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4391,7 +4391,7 @@ test "1393" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1393.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4401,7 +4401,7 @@ test "1394" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1394.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4411,7 +4411,7 @@ test "1395" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1395.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4421,7 +4421,7 @@ test "1396" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1396.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4431,7 +4431,7 @@ test "1397" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1397.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4441,7 +4441,7 @@ test "1398" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1398.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4451,7 +4451,7 @@ test "1399" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1399.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4461,7 +4461,7 @@ test "14" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/14.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4471,7 +4471,7 @@ test "140" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/140.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4481,7 +4481,7 @@ test "1400" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1400.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4491,7 +4491,7 @@ test "1401" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1401.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4501,7 +4501,7 @@ test "1402" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1402.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4511,7 +4511,7 @@ test "1403" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1403.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4521,7 +4521,7 @@ test "1404" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1404.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4531,7 +4531,7 @@ test "1405" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1405.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4541,7 +4541,7 @@ test "1406" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1406.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4551,7 +4551,7 @@ test "1407" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1407.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4561,7 +4561,7 @@ test "1408" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1408.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4571,7 +4571,7 @@ test "1409" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1409.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4581,7 +4581,7 @@ test "141" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/141.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4591,7 +4591,7 @@ test "1410" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1410.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4601,7 +4601,7 @@ test "1411" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1411.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4611,7 +4611,7 @@ test "1412" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1412.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4621,7 +4621,7 @@ test "1413" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1413.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4631,7 +4631,7 @@ test "1414" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1414.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4641,7 +4641,7 @@ test "1415" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1415.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4651,7 +4651,7 @@ test "1416" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1416.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4661,7 +4661,7 @@ test "1417" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1417.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4671,7 +4671,7 @@ test "1418" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1418.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4681,7 +4681,7 @@ test "1419" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1419.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4691,7 +4691,7 @@ test "142" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/142.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4701,7 +4701,7 @@ test "1420" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1420.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4711,7 +4711,7 @@ test "1421" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1421.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4721,7 +4721,7 @@ test "1422" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1422.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4731,7 +4731,7 @@ test "1423" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1423.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4741,7 +4741,7 @@ test "1424" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1424.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4751,7 +4751,7 @@ test "1425" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1425.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4761,7 +4761,7 @@ test "1426" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1426.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4771,7 +4771,7 @@ test "1427" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1427.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4781,7 +4781,7 @@ test "1428" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1428.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4791,7 +4791,7 @@ test "1429" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1429.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4801,7 +4801,7 @@ test "143" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/143.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4811,7 +4811,7 @@ test "1430" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1430.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4821,7 +4821,7 @@ test "1431" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1431.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4831,7 +4831,7 @@ test "1432" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1432.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4841,7 +4841,7 @@ test "1433" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1433.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4851,7 +4851,7 @@ test "1434" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1434.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4861,7 +4861,7 @@ test "1435" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1435.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4871,7 +4871,7 @@ test "1436" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1436.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4881,7 +4881,7 @@ test "1437" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1437.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4891,7 +4891,7 @@ test "1438" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1438.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4901,7 +4901,7 @@ test "1439" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1439.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4911,7 +4911,7 @@ test "144" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/144.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4921,7 +4921,7 @@ test "1440" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1440.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4931,7 +4931,7 @@ test "1441" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1441.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4941,7 +4941,7 @@ test "1442" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1442.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4951,7 +4951,7 @@ test "1443" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1443.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4961,7 +4961,7 @@ test "1444" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1444.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4971,7 +4971,7 @@ test "1445" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1445.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4981,7 +4981,7 @@ test "1446" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1446.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -4991,7 +4991,7 @@ test "1447" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1447.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5001,7 +5001,7 @@ test "1448" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1448.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5011,7 +5011,7 @@ test "1449" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1449.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5021,7 +5021,7 @@ test "145" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/145.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5031,7 +5031,7 @@ test "1450" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1450.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5041,7 +5041,7 @@ test "1451" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1451.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5051,7 +5051,7 @@ test "1452" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1452.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5061,7 +5061,7 @@ test "1453" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1453.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5071,7 +5071,7 @@ test "1454" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1454.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5081,7 +5081,7 @@ test "1455" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1455.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5091,7 +5091,7 @@ test "1456" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1456.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5101,7 +5101,7 @@ test "1457" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/1457.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5111,7 +5111,7 @@ test "146" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/146.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5121,7 +5121,7 @@ test "147" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/147.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5131,7 +5131,7 @@ test "148" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/148.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5141,7 +5141,7 @@ test "149" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/149.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5151,7 +5151,7 @@ test "15" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/15.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5161,7 +5161,7 @@ test "150" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/150.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5171,7 +5171,7 @@ test "151" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/151.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5181,7 +5181,7 @@ test "152" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/152.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5191,7 +5191,7 @@ test "153" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/153.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5201,7 +5201,7 @@ test "154" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/154.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5211,7 +5211,7 @@ test "155" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/155.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5221,7 +5221,7 @@ test "156" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/156.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5231,7 +5231,7 @@ test "157" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/157.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5241,7 +5241,7 @@ test "158" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/158.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5251,7 +5251,7 @@ test "159" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/159.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5261,7 +5261,7 @@ test "16" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/16.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5271,7 +5271,7 @@ test "160" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/160.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5281,7 +5281,7 @@ test "161" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/161.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5291,7 +5291,7 @@ test "162" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/162.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5301,7 +5301,7 @@ test "163" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/163.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5311,7 +5311,7 @@ test "164" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/164.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5321,7 +5321,7 @@ test "165" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/165.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5331,7 +5331,7 @@ test "166" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/166.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5341,7 +5341,7 @@ test "167" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/167.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5351,7 +5351,7 @@ test "168" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/168.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5361,7 +5361,7 @@ test "169" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/169.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5371,7 +5371,7 @@ test "17" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/17.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5381,7 +5381,7 @@ test "170" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/170.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5391,7 +5391,7 @@ test "171" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/171.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5401,7 +5401,7 @@ test "172" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/172.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5411,7 +5411,7 @@ test "173" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/173.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5421,7 +5421,7 @@ test "174" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/174.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5431,7 +5431,7 @@ test "175" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/175.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5441,7 +5441,7 @@ test "176" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/176.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5451,7 +5451,7 @@ test "177" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/177.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5461,7 +5461,7 @@ test "178" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/178.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5471,7 +5471,7 @@ test "179" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/179.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5481,7 +5481,7 @@ test "18" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/18.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5491,7 +5491,7 @@ test "180" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/180.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5501,7 +5501,7 @@ test "181" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/181.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5511,7 +5511,7 @@ test "182" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/182.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5521,7 +5521,7 @@ test "183" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/183.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5531,7 +5531,7 @@ test "184" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/184.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5541,7 +5541,7 @@ test "185" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/185.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5551,7 +5551,7 @@ test "186" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/186.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5561,7 +5561,7 @@ test "187" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/187.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5571,7 +5571,7 @@ test "188" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/188.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5581,7 +5581,7 @@ test "189" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/189.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5591,7 +5591,7 @@ test "19" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/19.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5601,7 +5601,7 @@ test "190" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/190.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5611,7 +5611,7 @@ test "191" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/191.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5621,7 +5621,7 @@ test "192" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/192.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5631,7 +5631,7 @@ test "193" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/193.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5641,7 +5641,7 @@ test "194" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/194.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5651,7 +5651,7 @@ test "195" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/195.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5661,7 +5661,7 @@ test "196" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/196.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5671,7 +5671,7 @@ test "197" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/197.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5681,7 +5681,7 @@ test "198" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/198.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5691,7 +5691,7 @@ test "199" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/199.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5701,7 +5701,7 @@ test "2" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/2.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5711,7 +5711,7 @@ test "20" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/20.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5721,7 +5721,7 @@ test "200" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/200.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5731,7 +5731,7 @@ test "201" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/201.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5741,7 +5741,7 @@ test "202" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/202.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5751,7 +5751,7 @@ test "203" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/203.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5761,7 +5761,7 @@ test "204" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/204.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5771,7 +5771,7 @@ test "205" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/205.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5781,7 +5781,7 @@ test "206" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/206.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5791,7 +5791,7 @@ test "207" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/207.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5801,7 +5801,7 @@ test "208" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/208.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5811,7 +5811,7 @@ test "209" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/209.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5821,7 +5821,7 @@ test "21" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/21.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5831,7 +5831,7 @@ test "210" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/210.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5841,7 +5841,7 @@ test "211" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/211.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5851,7 +5851,7 @@ test "212" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/212.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5861,7 +5861,7 @@ test "213" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/213.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5871,7 +5871,7 @@ test "214" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/214.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5881,7 +5881,7 @@ test "215" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/215.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5891,7 +5891,7 @@ test "216" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/216.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5901,7 +5901,7 @@ test "217" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/217.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5911,7 +5911,7 @@ test "218" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/218.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5921,7 +5921,7 @@ test "219" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/219.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5931,7 +5931,7 @@ test "22" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/22.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5941,7 +5941,7 @@ test "220" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/220.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5951,7 +5951,7 @@ test "221" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/221.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5961,7 +5961,7 @@ test "222" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/222.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5971,7 +5971,7 @@ test "223" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/223.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5981,7 +5981,7 @@ test "224" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/224.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -5991,7 +5991,7 @@ test "225" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/225.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6001,7 +6001,7 @@ test "226" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/226.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6011,7 +6011,7 @@ test "227" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/227.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6021,7 +6021,7 @@ test "228" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/228.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6031,7 +6031,7 @@ test "229" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/229.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6041,7 +6041,7 @@ test "23" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/23.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6051,7 +6051,7 @@ test "230" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/230.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6061,7 +6061,7 @@ test "231" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/231.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6071,7 +6071,7 @@ test "232" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/232.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6081,7 +6081,7 @@ test "233" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/233.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6091,7 +6091,7 @@ test "234" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/234.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6101,7 +6101,7 @@ test "235" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/235.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6111,7 +6111,7 @@ test "236" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/236.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6121,7 +6121,7 @@ test "237" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/237.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6131,7 +6131,7 @@ test "238" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/238.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6141,7 +6141,7 @@ test "239" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/239.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6151,7 +6151,7 @@ test "24" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/24.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6161,7 +6161,7 @@ test "240" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/240.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6171,7 +6171,7 @@ test "241" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/241.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6181,7 +6181,7 @@ test "242" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/242.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6191,7 +6191,7 @@ test "243" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/243.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6201,7 +6201,7 @@ test "244" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/244.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6211,7 +6211,7 @@ test "245" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/245.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6221,7 +6221,7 @@ test "246" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/246.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6231,7 +6231,7 @@ test "247" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/247.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6241,7 +6241,7 @@ test "248" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/248.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6251,7 +6251,7 @@ test "249" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/249.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6261,7 +6261,7 @@ test "25" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/25.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6271,7 +6271,7 @@ test "250" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/250.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6281,7 +6281,7 @@ test "251" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/251.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6291,7 +6291,7 @@ test "252" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/252.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6301,7 +6301,7 @@ test "253" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/253.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6311,7 +6311,7 @@ test "254" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/254.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6321,7 +6321,7 @@ test "255" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/255.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6331,7 +6331,7 @@ test "256" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/256.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6341,7 +6341,7 @@ test "257" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/257.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6351,7 +6351,7 @@ test "258" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/258.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6361,7 +6361,7 @@ test "259" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/259.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6371,7 +6371,7 @@ test "26" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/26.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6381,7 +6381,7 @@ test "260" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/260.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6391,7 +6391,7 @@ test "261" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/261.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6401,7 +6401,7 @@ test "262" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/262.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6411,7 +6411,7 @@ test "263" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/263.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6421,7 +6421,7 @@ test "264" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/264.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6431,7 +6431,7 @@ test "265" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/265.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6441,7 +6441,7 @@ test "266" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/266.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6451,7 +6451,7 @@ test "267" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/267.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6461,7 +6461,7 @@ test "268" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/268.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6471,7 +6471,7 @@ test "269" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/269.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6481,7 +6481,7 @@ test "27" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/27.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6491,7 +6491,7 @@ test "270" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/270.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6501,7 +6501,7 @@ test "271" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/271.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6511,7 +6511,7 @@ test "272" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/272.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6521,7 +6521,7 @@ test "273" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/273.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6531,7 +6531,7 @@ test "274" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/274.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6541,7 +6541,7 @@ test "275" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/275.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6551,7 +6551,7 @@ test "276" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/276.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6561,7 +6561,7 @@ test "277" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/277.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6571,7 +6571,7 @@ test "278" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/278.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6581,7 +6581,7 @@ test "279" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/279.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6591,7 +6591,7 @@ test "28" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/28.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6601,7 +6601,7 @@ test "280" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/280.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6611,7 +6611,7 @@ test "281" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/281.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6621,7 +6621,7 @@ test "282" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/282.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6631,7 +6631,7 @@ test "283" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/283.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6641,7 +6641,7 @@ test "284" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/284.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6651,7 +6651,7 @@ test "285" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/285.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6661,7 +6661,7 @@ test "286" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/286.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6671,7 +6671,7 @@ test "287" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/287.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6681,7 +6681,7 @@ test "288" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/288.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6691,7 +6691,7 @@ test "289" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/289.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6701,7 +6701,7 @@ test "29" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/29.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6711,7 +6711,7 @@ test "290" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/290.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6721,7 +6721,7 @@ test "291" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/291.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6731,7 +6731,7 @@ test "292" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/292.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6741,7 +6741,7 @@ test "293" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/293.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6751,7 +6751,7 @@ test "294" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/294.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6761,7 +6761,7 @@ test "295" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/295.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6771,7 +6771,7 @@ test "296" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/296.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6781,7 +6781,7 @@ test "297" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/297.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6791,7 +6791,7 @@ test "298" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/298.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6801,7 +6801,7 @@ test "299" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/299.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6811,7 +6811,7 @@ test "3" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/3.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6821,7 +6821,7 @@ test "30" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/30.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6831,7 +6831,7 @@ test "300" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/300.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6841,7 +6841,7 @@ test "301" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/301.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6851,7 +6851,7 @@ test "302" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/302.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6861,7 +6861,7 @@ test "303" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/303.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6871,7 +6871,7 @@ test "304" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/304.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6881,7 +6881,7 @@ test "305" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/305.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6891,7 +6891,7 @@ test "306" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/306.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6901,7 +6901,7 @@ test "307" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/307.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6911,7 +6911,7 @@ test "308" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/308.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6921,7 +6921,7 @@ test "309" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/309.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6931,7 +6931,7 @@ test "31" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/31.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6941,7 +6941,7 @@ test "310" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/310.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6951,7 +6951,7 @@ test "311" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/311.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6961,7 +6961,7 @@ test "312" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/312.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6971,7 +6971,7 @@ test "313" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/313.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6981,7 +6981,7 @@ test "314" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/314.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -6991,7 +6991,7 @@ test "315" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/315.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7001,7 +7001,7 @@ test "316" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/316.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7011,7 +7011,7 @@ test "317" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/317.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7021,7 +7021,7 @@ test "318" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/318.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7031,7 +7031,7 @@ test "319" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/319.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7041,7 +7041,7 @@ test "32" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/32.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7051,7 +7051,7 @@ test "320" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/320.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7061,7 +7061,7 @@ test "321" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/321.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7071,7 +7071,7 @@ test "322" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/322.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7081,7 +7081,7 @@ test "323" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/323.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7091,7 +7091,7 @@ test "324" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/324.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7101,7 +7101,7 @@ test "325" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/325.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7111,7 +7111,7 @@ test "326" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/326.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7121,7 +7121,7 @@ test "327" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/327.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7131,7 +7131,7 @@ test "328" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/328.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7141,7 +7141,7 @@ test "329" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/329.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7151,7 +7151,7 @@ test "33" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/33.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7161,7 +7161,7 @@ test "330" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/330.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7171,7 +7171,7 @@ test "331" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/331.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7181,7 +7181,7 @@ test "332" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/332.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7191,7 +7191,7 @@ test "333" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/333.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7201,7 +7201,7 @@ test "334" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/334.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7211,7 +7211,7 @@ test "335" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/335.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7221,7 +7221,7 @@ test "336" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/336.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7231,7 +7231,7 @@ test "337" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/337.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7241,7 +7241,7 @@ test "338" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/338.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7251,7 +7251,7 @@ test "339" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/339.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7261,7 +7261,7 @@ test "34" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/34.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7271,7 +7271,7 @@ test "340" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/340.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7281,7 +7281,7 @@ test "341" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/341.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7291,7 +7291,7 @@ test "342" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/342.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7301,7 +7301,7 @@ test "343" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/343.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7311,7 +7311,7 @@ test "344" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/344.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7321,7 +7321,7 @@ test "345" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/345.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7331,7 +7331,7 @@ test "346" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/346.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7341,7 +7341,7 @@ test "347" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/347.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7351,7 +7351,7 @@ test "348" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/348.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7361,7 +7361,7 @@ test "349" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/349.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7371,7 +7371,7 @@ test "35" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/35.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7381,7 +7381,7 @@ test "350" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/350.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7391,7 +7391,7 @@ test "351" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/351.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7401,7 +7401,7 @@ test "352" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/352.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7411,7 +7411,7 @@ test "353" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/353.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7421,7 +7421,7 @@ test "354" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/354.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7431,7 +7431,7 @@ test "355" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/355.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7441,7 +7441,7 @@ test "356" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/356.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7451,7 +7451,7 @@ test "357" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/357.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7461,7 +7461,7 @@ test "358" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/358.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7471,7 +7471,7 @@ test "359" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/359.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7481,7 +7481,7 @@ test "36" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/36.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7491,7 +7491,7 @@ test "360" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/360.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7501,7 +7501,7 @@ test "361" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/361.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7511,7 +7511,7 @@ test "362" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/362.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7521,7 +7521,7 @@ test "363" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/363.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7531,7 +7531,7 @@ test "364" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/364.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7541,7 +7541,7 @@ test "365" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/365.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7551,7 +7551,7 @@ test "366" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/366.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7561,7 +7561,7 @@ test "367" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/367.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7571,7 +7571,7 @@ test "368" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/368.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7581,7 +7581,7 @@ test "369" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/369.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7591,7 +7591,7 @@ test "37" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/37.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7601,7 +7601,7 @@ test "370" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/370.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7611,7 +7611,7 @@ test "371" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/371.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7621,7 +7621,7 @@ test "372" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/372.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7631,7 +7631,7 @@ test "373" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/373.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7641,7 +7641,7 @@ test "374" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/374.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7651,7 +7651,7 @@ test "375" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/375.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7661,7 +7661,7 @@ test "376" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/376.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7671,7 +7671,7 @@ test "377" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/377.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7681,7 +7681,7 @@ test "378" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/378.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7691,7 +7691,7 @@ test "379" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/379.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7701,7 +7701,7 @@ test "38" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/38.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7711,7 +7711,7 @@ test "380" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/380.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7721,7 +7721,7 @@ test "381" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/381.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7731,7 +7731,7 @@ test "382" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/382.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7741,7 +7741,7 @@ test "383" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/383.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7751,7 +7751,7 @@ test "384" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/384.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7761,7 +7761,7 @@ test "385" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/385.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7771,7 +7771,7 @@ test "386" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/386.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7781,7 +7781,7 @@ test "387" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/387.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7791,7 +7791,7 @@ test "388" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/388.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7801,7 +7801,7 @@ test "389" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/389.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7811,7 +7811,7 @@ test "39" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/39.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7821,7 +7821,7 @@ test "390" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/390.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7831,7 +7831,7 @@ test "391" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/391.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7841,7 +7841,7 @@ test "392" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/392.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7851,7 +7851,7 @@ test "393" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/393.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7861,7 +7861,7 @@ test "394" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/394.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7871,7 +7871,7 @@ test "395" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/395.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7881,7 +7881,7 @@ test "396" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/396.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7891,7 +7891,7 @@ test "397" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/397.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7901,7 +7901,7 @@ test "398" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/398.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7911,7 +7911,7 @@ test "399" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/399.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7921,7 +7921,7 @@ test "4" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/4.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7931,7 +7931,7 @@ test "40" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/40.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7941,7 +7941,7 @@ test "400" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/400.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7951,7 +7951,7 @@ test "401" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/401.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7961,7 +7961,7 @@ test "402" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/402.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7971,7 +7971,7 @@ test "403" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/403.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7981,7 +7981,7 @@ test "404" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/404.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -7991,7 +7991,7 @@ test "405" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/405.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8001,7 +8001,7 @@ test "406" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/406.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8011,7 +8011,7 @@ test "407" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/407.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8021,7 +8021,7 @@ test "408" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/408.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8031,7 +8031,7 @@ test "409" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/409.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8041,7 +8041,7 @@ test "41" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/41.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8051,7 +8051,7 @@ test "410" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/410.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8061,7 +8061,7 @@ test "411" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/411.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8071,7 +8071,7 @@ test "412" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/412.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8081,7 +8081,7 @@ test "413" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/413.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8091,7 +8091,7 @@ test "414" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/414.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8101,7 +8101,7 @@ test "415" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/415.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8111,7 +8111,7 @@ test "416" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/416.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8121,7 +8121,7 @@ test "417" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/417.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8131,7 +8131,7 @@ test "418" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/418.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8141,7 +8141,7 @@ test "419" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/419.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8151,7 +8151,7 @@ test "42" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/42.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8161,7 +8161,7 @@ test "420" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/420.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8171,7 +8171,7 @@ test "421" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/421.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8181,7 +8181,7 @@ test "422" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/422.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8191,7 +8191,7 @@ test "423" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/423.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8201,7 +8201,7 @@ test "424" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/424.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8211,7 +8211,7 @@ test "425" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/425.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8221,7 +8221,7 @@ test "426" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/426.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8231,7 +8231,7 @@ test "427" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/427.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8241,7 +8241,7 @@ test "428" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/428.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8251,7 +8251,7 @@ test "429" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/429.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8261,7 +8261,7 @@ test "43" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/43.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8271,7 +8271,7 @@ test "430" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/430.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8281,7 +8281,7 @@ test "431" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/431.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8291,7 +8291,7 @@ test "432" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/432.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8301,7 +8301,7 @@ test "433" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/433.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8311,7 +8311,7 @@ test "434" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/434.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8321,7 +8321,7 @@ test "435" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/435.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8331,7 +8331,7 @@ test "436" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/436.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8341,7 +8341,7 @@ test "437" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/437.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8351,7 +8351,7 @@ test "438" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/438.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8361,7 +8361,7 @@ test "439" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/439.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8371,7 +8371,7 @@ test "44" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/44.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8381,7 +8381,7 @@ test "440" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/440.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8391,7 +8391,7 @@ test "441" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/441.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8401,7 +8401,7 @@ test "442" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/442.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8411,7 +8411,7 @@ test "443" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/443.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8421,7 +8421,7 @@ test "444" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/444.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8431,7 +8431,7 @@ test "445" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/445.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8441,7 +8441,7 @@ test "446" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/446.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8451,7 +8451,7 @@ test "447" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/447.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8461,7 +8461,7 @@ test "448" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/448.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8471,7 +8471,7 @@ test "449" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/449.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8481,7 +8481,7 @@ test "45" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/45.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8491,7 +8491,7 @@ test "450" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/450.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8501,7 +8501,7 @@ test "451" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/451.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8511,7 +8511,7 @@ test "452" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/452.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8521,7 +8521,7 @@ test "453" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/453.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8531,7 +8531,7 @@ test "454" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/454.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8541,7 +8541,7 @@ test "455" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/455.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8551,7 +8551,7 @@ test "456" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/456.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8561,7 +8561,7 @@ test "457" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/457.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8571,7 +8571,7 @@ test "458" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/458.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8581,7 +8581,7 @@ test "459" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/459.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8591,7 +8591,7 @@ test "46" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/46.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8601,7 +8601,7 @@ test "460" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/460.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8611,7 +8611,7 @@ test "461" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/461.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8621,7 +8621,7 @@ test "462" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/462.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8631,7 +8631,7 @@ test "463" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/463.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8641,7 +8641,7 @@ test "464" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/464.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8651,7 +8651,7 @@ test "465" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/465.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8661,7 +8661,7 @@ test "466" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/466.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8671,7 +8671,7 @@ test "467" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/467.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8681,7 +8681,7 @@ test "468" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/468.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8691,7 +8691,7 @@ test "469" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/469.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8701,7 +8701,7 @@ test "47" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/47.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8711,7 +8711,7 @@ test "470" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/470.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8721,7 +8721,7 @@ test "471" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/471.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8731,7 +8731,7 @@ test "472" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/472.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8741,7 +8741,7 @@ test "473" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/473.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8751,7 +8751,7 @@ test "474" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/474.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8761,7 +8761,7 @@ test "475" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/475.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8771,7 +8771,7 @@ test "476" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/476.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8781,7 +8781,7 @@ test "477" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/477.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8791,7 +8791,7 @@ test "478" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/478.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8801,7 +8801,7 @@ test "479" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/479.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8811,7 +8811,7 @@ test "48" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/48.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8821,7 +8821,7 @@ test "480" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/480.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8831,7 +8831,7 @@ test "481" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/481.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8841,7 +8841,7 @@ test "482" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/482.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8851,7 +8851,7 @@ test "483" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/483.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8861,7 +8861,7 @@ test "484" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/484.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8871,7 +8871,7 @@ test "485" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/485.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8881,7 +8881,7 @@ test "486" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/486.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8891,7 +8891,7 @@ test "487" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/487.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8901,7 +8901,7 @@ test "488" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/488.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8911,7 +8911,7 @@ test "489" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/489.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8921,7 +8921,7 @@ test "49" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/49.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8931,7 +8931,7 @@ test "490" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/490.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8941,7 +8941,7 @@ test "491" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/491.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8951,7 +8951,7 @@ test "492" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/492.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8961,7 +8961,7 @@ test "493" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/493.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8971,7 +8971,7 @@ test "494" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/494.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8981,7 +8981,7 @@ test "495" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/495.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -8991,7 +8991,7 @@ test "496" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/496.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9001,7 +9001,7 @@ test "497" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/497.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9011,7 +9011,7 @@ test "498" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/498.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9021,7 +9021,7 @@ test "499" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/499.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9031,7 +9031,7 @@ test "5" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/5.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9041,7 +9041,7 @@ test "50" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/50.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9051,7 +9051,7 @@ test "500" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/500.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9061,7 +9061,7 @@ test "501" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/501.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9071,7 +9071,7 @@ test "502" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/502.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9081,7 +9081,7 @@ test "503" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/503.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9091,7 +9091,7 @@ test "504" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/504.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9101,7 +9101,7 @@ test "505" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/505.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9111,7 +9111,7 @@ test "506" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/506.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9121,7 +9121,7 @@ test "507" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/507.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9131,7 +9131,7 @@ test "508" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/508.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9141,7 +9141,7 @@ test "509" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/509.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9151,7 +9151,7 @@ test "51" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/51.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9161,7 +9161,7 @@ test "510" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/510.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9171,7 +9171,7 @@ test "511" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/511.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9181,7 +9181,7 @@ test "512" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/512.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9191,7 +9191,7 @@ test "513" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/513.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9201,7 +9201,7 @@ test "514" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/514.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9211,7 +9211,7 @@ test "515" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/515.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9221,7 +9221,7 @@ test "516" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/516.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9231,7 +9231,7 @@ test "517" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/517.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9241,7 +9241,7 @@ test "518" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/518.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9251,7 +9251,7 @@ test "519" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/519.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9261,7 +9261,7 @@ test "52" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/52.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9271,7 +9271,7 @@ test "520" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/520.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9281,7 +9281,7 @@ test "521" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/521.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9291,7 +9291,7 @@ test "522" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/522.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9301,7 +9301,7 @@ test "523" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/523.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9311,7 +9311,7 @@ test "524" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/524.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9321,7 +9321,7 @@ test "525" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/525.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9331,7 +9331,7 @@ test "526" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/526.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9341,7 +9341,7 @@ test "527" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/527.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9351,7 +9351,7 @@ test "528" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/528.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9361,7 +9361,7 @@ test "529" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/529.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9371,7 +9371,7 @@ test "53" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/53.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9381,7 +9381,7 @@ test "530" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/530.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9391,7 +9391,7 @@ test "531" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/531.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9401,7 +9401,7 @@ test "532" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/532.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9411,7 +9411,7 @@ test "533" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/533.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9421,7 +9421,7 @@ test "534" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/534.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9431,7 +9431,7 @@ test "535" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/535.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9441,7 +9441,7 @@ test "536" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/536.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9451,7 +9451,7 @@ test "537" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/537.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9461,7 +9461,7 @@ test "538" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/538.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9471,7 +9471,7 @@ test "539" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/539.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9481,7 +9481,7 @@ test "54" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/54.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9491,7 +9491,7 @@ test "540" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/540.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9501,7 +9501,7 @@ test "541" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/541.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9511,7 +9511,7 @@ test "542" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/542.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9521,7 +9521,7 @@ test "543" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/543.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9531,7 +9531,7 @@ test "544" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/544.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9541,7 +9541,7 @@ test "545" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/545.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9551,7 +9551,7 @@ test "546" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/546.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9561,7 +9561,7 @@ test "547" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/547.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9571,7 +9571,7 @@ test "548" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/548.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9581,7 +9581,7 @@ test "549" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/549.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9591,7 +9591,7 @@ test "55" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/55.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9601,7 +9601,7 @@ test "550" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/550.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9611,7 +9611,7 @@ test "551" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/551.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9621,7 +9621,7 @@ test "552" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/552.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9631,7 +9631,7 @@ test "553" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/553.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9641,7 +9641,7 @@ test "554" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/554.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9651,7 +9651,7 @@ test "555" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/555.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9661,7 +9661,7 @@ test "556" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/556.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9671,7 +9671,7 @@ test "557" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/557.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9681,7 +9681,7 @@ test "558" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/558.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9691,7 +9691,7 @@ test "559" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/559.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9701,7 +9701,7 @@ test "56" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/56.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9711,7 +9711,7 @@ test "560" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/560.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9721,7 +9721,7 @@ test "561" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/561.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9731,7 +9731,7 @@ test "562" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/562.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9741,7 +9741,7 @@ test "563" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/563.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9751,7 +9751,7 @@ test "564" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/564.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9761,7 +9761,7 @@ test "565" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/565.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9771,7 +9771,7 @@ test "566" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/566.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9781,7 +9781,7 @@ test "567" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/567.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9791,7 +9791,7 @@ test "568" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/568.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9801,7 +9801,7 @@ test "569" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/569.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9811,7 +9811,7 @@ test "57" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/57.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9821,7 +9821,7 @@ test "570" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/570.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9831,7 +9831,7 @@ test "571" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/571.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9841,7 +9841,7 @@ test "572" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/572.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9851,7 +9851,7 @@ test "573" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/573.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9861,7 +9861,7 @@ test "574" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/574.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9871,7 +9871,7 @@ test "575" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/575.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9881,7 +9881,7 @@ test "576" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/576.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9891,7 +9891,7 @@ test "577" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/577.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9901,7 +9901,7 @@ test "578" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/578.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9911,7 +9911,7 @@ test "579" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/579.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9921,7 +9921,7 @@ test "58" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/58.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9931,7 +9931,7 @@ test "580" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/580.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9941,7 +9941,7 @@ test "581" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/581.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9951,7 +9951,7 @@ test "582" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/582.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9961,7 +9961,7 @@ test "583" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/583.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9971,7 +9971,7 @@ test "584" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/584.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9981,7 +9981,7 @@ test "585" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/585.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -9991,7 +9991,7 @@ test "586" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/586.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10001,7 +10001,7 @@ test "587" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/587.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10011,7 +10011,7 @@ test "588" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/588.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10021,7 +10021,7 @@ test "589" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/589.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10031,7 +10031,7 @@ test "59" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/59.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10041,7 +10041,7 @@ test "590" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/590.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10051,7 +10051,7 @@ test "591" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/591.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10061,7 +10061,7 @@ test "592" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/592.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10071,7 +10071,7 @@ test "593" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/593.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10081,7 +10081,7 @@ test "594" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/594.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10091,7 +10091,7 @@ test "595" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/595.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10101,7 +10101,7 @@ test "596" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/596.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10111,7 +10111,7 @@ test "597" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/597.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10121,7 +10121,7 @@ test "598" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/598.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10131,7 +10131,7 @@ test "599" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/599.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10141,7 +10141,7 @@ test "6" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/6.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10151,7 +10151,7 @@ test "60" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/60.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10161,7 +10161,7 @@ test "600" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/600.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10171,7 +10171,7 @@ test "601" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/601.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10181,7 +10181,7 @@ test "602" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/602.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10191,7 +10191,7 @@ test "603" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/603.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10201,7 +10201,7 @@ test "604" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/604.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10211,7 +10211,7 @@ test "605" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/605.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10221,7 +10221,7 @@ test "606" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/606.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10231,7 +10231,7 @@ test "607" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/607.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10241,7 +10241,7 @@ test "608" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/608.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10251,7 +10251,7 @@ test "609" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/609.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10261,7 +10261,7 @@ test "61" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/61.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10271,7 +10271,7 @@ test "610" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/610.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10281,7 +10281,7 @@ test "611" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/611.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10291,7 +10291,7 @@ test "612" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/612.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10301,7 +10301,7 @@ test "613" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/613.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10311,7 +10311,7 @@ test "614" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/614.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10321,7 +10321,7 @@ test "615" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/615.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10331,7 +10331,7 @@ test "616" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/616.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10341,7 +10341,7 @@ test "617" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/617.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10351,7 +10351,7 @@ test "618" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/618.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10361,7 +10361,7 @@ test "619" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/619.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10371,7 +10371,7 @@ test "62" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/62.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10381,7 +10381,7 @@ test "620" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/620.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10391,7 +10391,7 @@ test "621" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/621.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10401,7 +10401,7 @@ test "622" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/622.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10411,7 +10411,7 @@ test "623" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/623.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10421,7 +10421,7 @@ test "624" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/624.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10431,7 +10431,7 @@ test "625" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/625.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10441,7 +10441,7 @@ test "626" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/626.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10451,7 +10451,7 @@ test "627" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/627.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10461,7 +10461,7 @@ test "628" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/628.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10471,7 +10471,7 @@ test "629" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/629.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10481,7 +10481,7 @@ test "63" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/63.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10491,7 +10491,7 @@ test "630" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/630.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10501,7 +10501,7 @@ test "631" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/631.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10511,7 +10511,7 @@ test "632" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/632.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10521,7 +10521,7 @@ test "633" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/633.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10531,7 +10531,7 @@ test "634" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/634.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10541,7 +10541,7 @@ test "635" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/635.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10551,7 +10551,7 @@ test "636" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/636.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10561,7 +10561,7 @@ test "637" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/637.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10571,7 +10571,7 @@ test "638" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/638.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10581,7 +10581,7 @@ test "639" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/639.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10591,7 +10591,7 @@ test "64" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/64.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10601,7 +10601,7 @@ test "640" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/640.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10611,7 +10611,7 @@ test "641" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/641.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10621,7 +10621,7 @@ test "642" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/642.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10631,7 +10631,7 @@ test "643" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/643.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10641,7 +10641,7 @@ test "644" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/644.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10651,7 +10651,7 @@ test "645" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/645.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10661,7 +10661,7 @@ test "646" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/646.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10671,7 +10671,7 @@ test "647" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/647.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10681,7 +10681,7 @@ test "648" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/648.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10691,7 +10691,7 @@ test "649" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/649.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10701,7 +10701,7 @@ test "65" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/65.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10711,7 +10711,7 @@ test "650" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/650.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10721,7 +10721,7 @@ test "651" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/651.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10731,7 +10731,7 @@ test "652" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/652.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10741,7 +10741,7 @@ test "653" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/653.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10751,7 +10751,7 @@ test "654" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/654.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10761,7 +10761,7 @@ test "655" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/655.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10771,7 +10771,7 @@ test "656" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/656.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10781,7 +10781,7 @@ test "657" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/657.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10791,7 +10791,7 @@ test "658" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/658.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10801,7 +10801,7 @@ test "659" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/659.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10811,7 +10811,7 @@ test "66" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/66.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10821,7 +10821,7 @@ test "660" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/660.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10831,7 +10831,7 @@ test "661" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/661.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10841,7 +10841,7 @@ test "662" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/662.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10851,7 +10851,7 @@ test "663" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/663.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10861,7 +10861,7 @@ test "664" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/664.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10871,7 +10871,7 @@ test "665" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/665.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10881,7 +10881,7 @@ test "666" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/666.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10891,7 +10891,7 @@ test "667" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/667.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10901,7 +10901,7 @@ test "668" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/668.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10911,7 +10911,7 @@ test "669" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/669.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10921,7 +10921,7 @@ test "67" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/67.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10931,7 +10931,7 @@ test "670" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/670.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10941,7 +10941,7 @@ test "671" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/671.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10951,7 +10951,7 @@ test "672" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/672.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10961,7 +10961,7 @@ test "673" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/673.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10971,7 +10971,7 @@ test "674" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/674.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10981,7 +10981,7 @@ test "675" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/675.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -10991,7 +10991,7 @@ test "676" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/676.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11001,7 +11001,7 @@ test "677" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/677.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11011,7 +11011,7 @@ test "678" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/678.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11021,7 +11021,7 @@ test "679" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/679.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11031,7 +11031,7 @@ test "68" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/68.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11041,7 +11041,7 @@ test "680" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/680.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11051,7 +11051,7 @@ test "681" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/681.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11061,7 +11061,7 @@ test "682" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/682.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11071,7 +11071,7 @@ test "683" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/683.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11081,7 +11081,7 @@ test "684" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/684.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11091,7 +11091,7 @@ test "685" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/685.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11101,7 +11101,7 @@ test "686" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/686.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11111,7 +11111,7 @@ test "687" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/687.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11121,7 +11121,7 @@ test "688" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/688.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11131,7 +11131,7 @@ test "689" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/689.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11141,7 +11141,7 @@ test "69" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/69.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11151,7 +11151,7 @@ test "690" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/690.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11161,7 +11161,7 @@ test "691" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/691.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11171,7 +11171,7 @@ test "692" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/692.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11181,7 +11181,7 @@ test "693" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/693.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11191,7 +11191,7 @@ test "694" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/694.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11201,7 +11201,7 @@ test "695" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/695.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11211,7 +11211,7 @@ test "696" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/696.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11221,7 +11221,7 @@ test "697" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/697.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11231,7 +11231,7 @@ test "698" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/698.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11241,7 +11241,7 @@ test "699" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/699.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11251,7 +11251,7 @@ test "7" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/7.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11261,7 +11261,7 @@ test "70" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/70.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11271,7 +11271,7 @@ test "700" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/700.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11281,7 +11281,7 @@ test "701" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/701.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11291,7 +11291,7 @@ test "702" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/702.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11301,7 +11301,7 @@ test "703" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/703.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11311,7 +11311,7 @@ test "704" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/704.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11321,7 +11321,7 @@ test "705" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/705.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11331,7 +11331,7 @@ test "706" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/706.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11341,7 +11341,7 @@ test "707" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/707.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11351,7 +11351,7 @@ test "708" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/708.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11361,7 +11361,7 @@ test "709" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/709.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11371,7 +11371,7 @@ test "71" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/71.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11381,7 +11381,7 @@ test "710" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/710.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11391,7 +11391,7 @@ test "711" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/711.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11401,7 +11401,7 @@ test "712" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/712.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11411,7 +11411,7 @@ test "713" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/713.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11421,7 +11421,7 @@ test "714" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/714.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11431,7 +11431,7 @@ test "715" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/715.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11441,7 +11441,7 @@ test "716" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/716.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11451,7 +11451,7 @@ test "717" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/717.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11461,7 +11461,7 @@ test "718" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/718.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11471,7 +11471,7 @@ test "719" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/719.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11481,7 +11481,7 @@ test "72" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/72.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11491,7 +11491,7 @@ test "720" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/720.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11501,7 +11501,7 @@ test "721" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/721.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11511,7 +11511,7 @@ test "722" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/722.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11521,7 +11521,7 @@ test "723" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/723.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11531,7 +11531,7 @@ test "724" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/724.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11541,7 +11541,7 @@ test "725" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/725.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11551,7 +11551,7 @@ test "726" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/726.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11561,7 +11561,7 @@ test "727" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/727.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11571,7 +11571,7 @@ test "728" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/728.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11581,7 +11581,7 @@ test "729" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/729.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11591,7 +11591,7 @@ test "73" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/73.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11601,7 +11601,7 @@ test "730" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/730.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11611,7 +11611,7 @@ test "731" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/731.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11621,7 +11621,7 @@ test "732" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/732.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11631,7 +11631,7 @@ test "733" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/733.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11641,7 +11641,7 @@ test "734" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/734.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11651,7 +11651,7 @@ test "735" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/735.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11661,7 +11661,7 @@ test "736" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/736.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11671,7 +11671,7 @@ test "737" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/737.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11681,7 +11681,7 @@ test "738" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/738.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11691,7 +11691,7 @@ test "739" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/739.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11701,7 +11701,7 @@ test "74" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/74.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11711,7 +11711,7 @@ test "740" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/740.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11721,7 +11721,7 @@ test "741" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/741.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11731,7 +11731,7 @@ test "742" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/742.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11741,7 +11741,7 @@ test "743" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/743.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11751,7 +11751,7 @@ test "744" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/744.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11761,7 +11761,7 @@ test "745" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/745.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11771,7 +11771,7 @@ test "746" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/746.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11781,7 +11781,7 @@ test "747" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/747.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11791,7 +11791,7 @@ test "748" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/748.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11801,7 +11801,7 @@ test "749" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/749.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11811,7 +11811,7 @@ test "75" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/75.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11821,7 +11821,7 @@ test "750" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/750.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11831,7 +11831,7 @@ test "751" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/751.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11841,7 +11841,7 @@ test "752" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/752.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11851,7 +11851,7 @@ test "753" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/753.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11861,7 +11861,7 @@ test "754" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/754.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11871,7 +11871,7 @@ test "755" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/755.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11881,7 +11881,7 @@ test "756" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/756.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11891,7 +11891,7 @@ test "757" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/757.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11901,7 +11901,7 @@ test "758" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/758.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11911,7 +11911,7 @@ test "759" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/759.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11921,7 +11921,7 @@ test "76" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/76.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11931,7 +11931,7 @@ test "760" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/760.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11941,7 +11941,7 @@ test "761" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/761.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11951,7 +11951,7 @@ test "762" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/762.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11961,7 +11961,7 @@ test "763" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/763.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11971,7 +11971,7 @@ test "764" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/764.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11981,7 +11981,7 @@ test "765" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/765.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -11991,7 +11991,7 @@ test "766" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/766.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12001,7 +12001,7 @@ test "767" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/767.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12011,7 +12011,7 @@ test "768" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/768.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12021,7 +12021,7 @@ test "769" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/769.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12031,7 +12031,7 @@ test "77" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/77.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12041,7 +12041,7 @@ test "770" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/770.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12051,7 +12051,7 @@ test "771" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/771.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12061,7 +12061,7 @@ test "772" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/772.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12071,7 +12071,7 @@ test "773" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/773.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12081,7 +12081,7 @@ test "774" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/774.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12091,7 +12091,7 @@ test "775" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/775.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12101,7 +12101,7 @@ test "776" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/776.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12111,7 +12111,7 @@ test "777" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/777.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12121,7 +12121,7 @@ test "778" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/778.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12131,7 +12131,7 @@ test "779" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/779.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12141,7 +12141,7 @@ test "78" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/78.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12151,7 +12151,7 @@ test "780" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/780.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12161,7 +12161,7 @@ test "781" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/781.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12171,7 +12171,7 @@ test "782" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/782.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12181,7 +12181,7 @@ test "783" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/783.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12191,7 +12191,7 @@ test "784" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/784.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12201,7 +12201,7 @@ test "785" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/785.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12211,7 +12211,7 @@ test "786" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/786.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12221,7 +12221,7 @@ test "787" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/787.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12231,7 +12231,7 @@ test "788" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/788.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12241,7 +12241,7 @@ test "789" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/789.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12251,7 +12251,7 @@ test "79" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/79.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12261,7 +12261,7 @@ test "790" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/790.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12271,7 +12271,7 @@ test "791" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/791.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12281,7 +12281,7 @@ test "792" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/792.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12291,7 +12291,7 @@ test "793" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/793.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12301,7 +12301,7 @@ test "794" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/794.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12311,7 +12311,7 @@ test "795" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/795.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12321,7 +12321,7 @@ test "796" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/796.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12331,7 +12331,7 @@ test "797" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/797.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12341,7 +12341,7 @@ test "798" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/798.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12351,7 +12351,7 @@ test "799" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/799.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12361,7 +12361,7 @@ test "8" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/8.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12371,7 +12371,7 @@ test "80" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/80.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12381,7 +12381,7 @@ test "800" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/800.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12391,7 +12391,7 @@ test "801" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/801.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12401,7 +12401,7 @@ test "802" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/802.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12411,7 +12411,7 @@ test "803" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/803.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12421,7 +12421,7 @@ test "804" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/804.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12431,7 +12431,7 @@ test "805" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/805.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12441,7 +12441,7 @@ test "806" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/806.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12451,7 +12451,7 @@ test "807" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/807.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12461,7 +12461,7 @@ test "808" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/808.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12471,7 +12471,7 @@ test "809" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/809.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12481,7 +12481,7 @@ test "81" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/81.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12491,7 +12491,7 @@ test "810" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/810.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12501,7 +12501,7 @@ test "811" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/811.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12511,7 +12511,7 @@ test "812" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/812.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12521,7 +12521,7 @@ test "813" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/813.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12531,7 +12531,7 @@ test "814" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/814.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12541,7 +12541,7 @@ test "815" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/815.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12551,7 +12551,7 @@ test "816" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/816.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12561,7 +12561,7 @@ test "817" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/817.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12571,7 +12571,7 @@ test "818" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/818.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12581,7 +12581,7 @@ test "819" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/819.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12591,7 +12591,7 @@ test "82" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/82.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12601,7 +12601,7 @@ test "820" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/820.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12611,7 +12611,7 @@ test "821" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/821.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12621,7 +12621,7 @@ test "822" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/822.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12631,7 +12631,7 @@ test "823" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/823.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12641,7 +12641,7 @@ test "824" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/824.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12651,7 +12651,7 @@ test "825" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/825.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12661,7 +12661,7 @@ test "826" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/826.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12671,7 +12671,7 @@ test "827" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/827.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12681,7 +12681,7 @@ test "828" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/828.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12691,7 +12691,7 @@ test "829" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/829.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12701,7 +12701,7 @@ test "83" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/83.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12711,7 +12711,7 @@ test "830" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/830.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12721,7 +12721,7 @@ test "831" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/831.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12731,7 +12731,7 @@ test "832" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/832.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12741,7 +12741,7 @@ test "833" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/833.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12751,7 +12751,7 @@ test "834" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/834.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12761,7 +12761,7 @@ test "835" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/835.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12771,7 +12771,7 @@ test "836" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/836.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12781,7 +12781,7 @@ test "837" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/837.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12791,7 +12791,7 @@ test "838" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/838.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12801,7 +12801,7 @@ test "839" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/839.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12811,7 +12811,7 @@ test "84" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/84.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12821,7 +12821,7 @@ test "840" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/840.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12831,7 +12831,7 @@ test "841" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/841.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12841,7 +12841,7 @@ test "842" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/842.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12851,7 +12851,7 @@ test "843" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/843.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12861,7 +12861,7 @@ test "844" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/844.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12871,7 +12871,7 @@ test "845" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/845.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12881,7 +12881,7 @@ test "846" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/846.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12891,7 +12891,7 @@ test "847" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/847.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12901,7 +12901,7 @@ test "848" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/848.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12911,7 +12911,7 @@ test "849" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/849.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12921,7 +12921,7 @@ test "85" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/85.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12931,7 +12931,7 @@ test "850" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/850.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12941,7 +12941,7 @@ test "851" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/851.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12951,7 +12951,7 @@ test "852" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/852.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12961,7 +12961,7 @@ test "853" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/853.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12971,7 +12971,7 @@ test "854" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/854.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12981,7 +12981,7 @@ test "855" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/855.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -12991,7 +12991,7 @@ test "856" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/856.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13001,7 +13001,7 @@ test "857" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/857.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13011,7 +13011,7 @@ test "858" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/858.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13021,7 +13021,7 @@ test "859" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/859.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13031,7 +13031,7 @@ test "86" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/86.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13041,7 +13041,7 @@ test "860" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/860.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13051,7 +13051,7 @@ test "861" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/861.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13061,7 +13061,7 @@ test "862" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/862.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13071,7 +13071,7 @@ test "863" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/863.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13081,7 +13081,7 @@ test "864" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/864.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13091,7 +13091,7 @@ test "865" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/865.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13101,7 +13101,7 @@ test "866" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/866.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13111,7 +13111,7 @@ test "867" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/867.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13121,7 +13121,7 @@ test "868" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/868.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13131,7 +13131,7 @@ test "869" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/869.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13141,7 +13141,7 @@ test "87" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/87.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13151,7 +13151,7 @@ test "870" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/870.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13161,7 +13161,7 @@ test "871" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/871.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13171,7 +13171,7 @@ test "872" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/872.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13181,7 +13181,7 @@ test "873" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/873.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13191,7 +13191,7 @@ test "874" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/874.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13201,7 +13201,7 @@ test "875" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/875.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13211,7 +13211,7 @@ test "876" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/876.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13221,7 +13221,7 @@ test "877" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/877.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13231,7 +13231,7 @@ test "878" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/878.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13241,7 +13241,7 @@ test "879" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/879.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13251,7 +13251,7 @@ test "88" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/88.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13261,7 +13261,7 @@ test "880" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/880.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13271,7 +13271,7 @@ test "881" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/881.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13281,7 +13281,7 @@ test "882" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/882.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13291,7 +13291,7 @@ test "883" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/883.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13301,7 +13301,7 @@ test "884" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/884.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13311,7 +13311,7 @@ test "885" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/885.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13321,7 +13321,7 @@ test "886" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/886.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13331,7 +13331,7 @@ test "887" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/887.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13341,7 +13341,7 @@ test "888" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/888.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13351,7 +13351,7 @@ test "889" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/889.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13361,7 +13361,7 @@ test "89" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/89.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13371,7 +13371,7 @@ test "890" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/890.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13381,7 +13381,7 @@ test "891" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/891.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13391,7 +13391,7 @@ test "892" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/892.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13401,7 +13401,7 @@ test "893" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/893.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13411,7 +13411,7 @@ test "894" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/894.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13421,7 +13421,7 @@ test "895" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/895.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13431,7 +13431,7 @@ test "896" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/896.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13441,7 +13441,7 @@ test "897" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/897.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13451,7 +13451,7 @@ test "898" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/898.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13461,7 +13461,7 @@ test "899" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/899.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13471,7 +13471,7 @@ test "9" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/9.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13481,7 +13481,7 @@ test "90" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/90.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13491,7 +13491,7 @@ test "900" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/900.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13501,7 +13501,7 @@ test "901" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/901.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13511,7 +13511,7 @@ test "902" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/902.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13521,7 +13521,7 @@ test "903" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/903.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13531,7 +13531,7 @@ test "904" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/904.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13541,7 +13541,7 @@ test "905" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/905.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13551,7 +13551,7 @@ test "906" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/906.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13561,7 +13561,7 @@ test "907" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/907.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13571,7 +13571,7 @@ test "908" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/908.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13581,7 +13581,7 @@ test "909" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/909.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13591,7 +13591,7 @@ test "91" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/91.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13601,7 +13601,7 @@ test "910" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/910.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13611,7 +13611,7 @@ test "911" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/911.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13621,7 +13621,7 @@ test "912" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/912.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13631,7 +13631,7 @@ test "913" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/913.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13641,7 +13641,7 @@ test "914" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/914.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13651,7 +13651,7 @@ test "915" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/915.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13661,7 +13661,7 @@ test "916" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/916.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13671,7 +13671,7 @@ test "917" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/917.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13681,7 +13681,7 @@ test "918" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/918.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13691,7 +13691,7 @@ test "919" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/919.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13701,7 +13701,7 @@ test "92" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/92.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13711,7 +13711,7 @@ test "920" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/920.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13721,7 +13721,7 @@ test "921" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/921.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13731,7 +13731,7 @@ test "922" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/922.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13741,7 +13741,7 @@ test "923" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/923.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13751,7 +13751,7 @@ test "924" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/924.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13761,7 +13761,7 @@ test "925" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/925.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13771,7 +13771,7 @@ test "926" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/926.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13781,7 +13781,7 @@ test "927" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/927.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13791,7 +13791,7 @@ test "928" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/928.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13801,7 +13801,7 @@ test "929" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/929.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13811,7 +13811,7 @@ test "93" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/93.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13821,7 +13821,7 @@ test "930" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/930.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13831,7 +13831,7 @@ test "931" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/931.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13841,7 +13841,7 @@ test "932" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/932.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13851,7 +13851,7 @@ test "933" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/933.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13861,7 +13861,7 @@ test "934" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/934.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13871,7 +13871,7 @@ test "935" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/935.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13881,7 +13881,7 @@ test "936" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/936.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13891,7 +13891,7 @@ test "937" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/937.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13901,7 +13901,7 @@ test "938" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/938.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13911,7 +13911,7 @@ test "939" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/939.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13921,7 +13921,7 @@ test "94" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/94.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13931,7 +13931,7 @@ test "940" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/940.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13941,7 +13941,7 @@ test "941" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/941.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13951,7 +13951,7 @@ test "942" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/942.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13961,7 +13961,7 @@ test "943" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/943.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13971,7 +13971,7 @@ test "944" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/944.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13981,7 +13981,7 @@ test "945" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/945.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -13991,7 +13991,7 @@ test "946" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/946.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14001,7 +14001,7 @@ test "947" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/947.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14011,7 +14011,7 @@ test "948" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/948.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14021,7 +14021,7 @@ test "949" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/949.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14031,7 +14031,7 @@ test "95" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/95.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14041,7 +14041,7 @@ test "950" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/950.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14051,7 +14051,7 @@ test "951" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/951.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14061,7 +14061,7 @@ test "952" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/952.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14071,7 +14071,7 @@ test "953" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/953.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14081,7 +14081,7 @@ test "954" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/954.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14091,7 +14091,7 @@ test "955" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/955.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14101,7 +14101,7 @@ test "956" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/956.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14111,7 +14111,7 @@ test "957" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/957.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14121,7 +14121,7 @@ test "958" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/958.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14131,7 +14131,7 @@ test "959" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/959.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14141,7 +14141,7 @@ test "96" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/96.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14151,7 +14151,7 @@ test "960" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/960.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14161,7 +14161,7 @@ test "961" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/961.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14171,7 +14171,7 @@ test "962" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/962.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14181,7 +14181,7 @@ test "963" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/963.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14191,7 +14191,7 @@ test "964" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/964.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14201,7 +14201,7 @@ test "965" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/965.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14211,7 +14211,7 @@ test "966" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/966.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14221,7 +14221,7 @@ test "967" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/967.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14231,7 +14231,7 @@ test "968" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/968.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14241,7 +14241,7 @@ test "969" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/969.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14251,7 +14251,7 @@ test "97" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/97.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14261,7 +14261,7 @@ test "970" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/970.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14271,7 +14271,7 @@ test "971" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/971.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14281,7 +14281,7 @@ test "972" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/972.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14291,7 +14291,7 @@ test "973" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/973.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14301,7 +14301,7 @@ test "974" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/974.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14311,7 +14311,7 @@ test "975" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/975.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14321,7 +14321,7 @@ test "976" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/976.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14331,7 +14331,7 @@ test "977" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/977.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14341,7 +14341,7 @@ test "978" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/978.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14351,7 +14351,7 @@ test "979" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/979.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14361,7 +14361,7 @@ test "98" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/98.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14371,7 +14371,7 @@ test "980" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/980.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14381,7 +14381,7 @@ test "981" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/981.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14391,7 +14391,7 @@ test "982" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/982.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14401,7 +14401,7 @@ test "983" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/983.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14411,7 +14411,7 @@ test "984" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/984.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14421,7 +14421,7 @@ test "985" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/985.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14431,7 +14431,7 @@ test "986" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/986.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14441,7 +14441,7 @@ test "987" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/987.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14451,7 +14451,7 @@ test "988" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/988.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14461,7 +14461,7 @@ test "989" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/989.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14471,7 +14471,7 @@ test "99" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/99.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14481,7 +14481,7 @@ test "990" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/990.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14491,7 +14491,7 @@ test "991" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/991.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14501,7 +14501,7 @@ test "992" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/992.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14511,7 +14511,7 @@ test "993" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/993.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14521,7 +14521,7 @@ test "994" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/994.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14531,7 +14531,7 @@ test "995" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/995.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14541,7 +14541,7 @@ test "996" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/996.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14551,7 +14551,7 @@ test "997" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/997.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14561,7 +14561,7 @@ test "998" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/998.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
 
@@ -14571,7 +14571,6 @@ test "999" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/adversarial/issue150/999.json", .{});
     defer file.close();
-    _ = parser.parse(allocator, file.reader()) catch return;
+    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
     return error.MustHaveFailed;
 }
-

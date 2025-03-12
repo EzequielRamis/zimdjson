@@ -1,7 +1,7 @@
 const std = @import("std");
 const zimdjson = @import("zimdjson");
 const TracedAllocator = @import("TracedAllocator");
-const Parser = zimdjson.dom.parserFromFile(.{ .stream = .default });
+const Parser = zimdjson.dom.StreamParser(.default);
 
 const TopFactions = struct {
     id: u64,
@@ -34,13 +34,13 @@ pub fn run() !void {
     var top_factions: Parser.Value = undefined;
 
     file = try std.fs.openFileAbsolute(path, .{});
-    try parser.ensureTotalCapacity(allocator, (try file.stat()).size);
-    const doc = try parser.parse(allocator, file.reader());
+    try parser.expectDocumentSize(allocator, (try file.stat()).size);
+    const doc = try parser.parseFromReader(allocator, file.reader().any());
     var systems = (try doc.asArray()).iterator();
     while (systems.next()) |system| {
         const factions = system.at("factions");
         if (factions.err) |err| if (err == error.MissingField) continue else return err;
-        const factions_count = try factions.getSize();
+        const factions_count = try factions.getArraySize();
         if (factions_count >= result.factions_count) {
             result.factions_count = factions_count;
             top_factions = system;

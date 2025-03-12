@@ -1,6 +1,6 @@
 const std = @import("std");
 const zimdjson = @import("zimdjson");
-const Parser = zimdjson.dom.parserFromFile(.{ .stream = .default });
+const Parser = zimdjson.ondemand.StreamParser(.default);
 
 var gpa = std.heap.GeneralPurposeAllocator(.{}).init;
 const allocator = gpa.allocator();
@@ -24,9 +24,9 @@ fn walk(v: Parser.Value) !void {
             depth += 1;
             var size: usize = 0;
             var it = c.iterator();
-            while (it.next()) |field| : (size += 1) {
+            while (try it.next()) |field| : (size += 1) {
                 try printDepth();
-                try w.print("{s}: ", .{field.key});
+                try w.print("{s}: ", .{try field.key.getTemporal()});
                 try walk(field.value);
             }
             depth -= 1;
@@ -38,7 +38,7 @@ fn walk(v: Parser.Value) !void {
             depth += 1;
             var size: usize = 0;
             var it = c.iterator();
-            while (it.next()) |value| : (size += 1) {
+            while (try it.next()) |value| : (size += 1) {
                 try printDepth();
                 try walk(value);
             }
@@ -46,7 +46,7 @@ fn walk(v: Parser.Value) !void {
             if (size != 0) try printDepth();
             try w.writeByte(']');
         },
-        .string => |value| try w.print("\"{s}\"", .{value}),
+        .string => |value| try w.print("\"{s}\"", .{try value.getTemporal()}),
         .number => |value| switch (value) {
             inline else => |n| try w.print("{}", .{n}),
         },
@@ -65,7 +65,9 @@ pub fn main() !void {
     defer parser.deinit(allocator);
 
     const file = try std.fs.openFileAbsolute(args[1], .{});
-    const json = try parser.parse(allocator, file.reader());
-    try walk(json);
+    defer file.close();
+
+    const json = try parser.parseFromReader(allocator, file.reader().any());
+    try walk(json.asValue());
     try buf.flush();
 }

@@ -20,7 +20,7 @@ const allocator = traced.allocator();
 
 var file: std.fs.File = undefined;
 var path: []const u8 = undefined;
-var parser = zimdjson.ondemand.parserFromFile(.{ .stream = .default }).init;
+var parser = zimdjson.ondemand.StreamParser(.default).init;
 var result = std.ArrayList(PartialTweet).init(allocator);
 
 pub fn init(_path: []const u8) !void {
@@ -33,15 +33,15 @@ pub fn prerun() !void {
 
 pub fn run() !void {
     file = try std.fs.openFileAbsolute(path, .{});
-    try parser.ensureTotalCapacity(allocator, (try file.stat()).size);
-    const doc = try parser.parse(allocator, file.reader());
+    try parser.expectDocumentSize(allocator, (try file.stat()).size);
+    const doc = try parser.parseFromReader(allocator, file.reader().any());
     var statuses = (try doc.at("statuses").asArray()).iterator();
     while (try statuses.next()) |tweet| {
         try result.append(.{
             .created_at = try tweet.at("created_at").asString().get(),
             .id = try tweet.at("id").asUnsigned(),
             .result = try tweet.at("text").asString().get(),
-            .in_reply_to_status_id = try tweet.at("in_reply_to_status_id").asLeaky(?u64, null) orelse 0,
+            .in_reply_to_status_id = try tweet.at("in_reply_to_status_id").asLeaky(?u64, null, .{}) orelse 0,
             .user = brk: {
                 const user = tweet.at("user");
                 break :brk .{

@@ -11,13 +11,17 @@ const atomic = std.atomic;
 const Vector = types.Vector;
 
 const Options = struct {
-    Reader: type,
     chunk_len: u32,
     aligned: bool,
     slots: usize,
 };
 
+pub const StreamError = error{
+    BatchOverflow,
+};
+
 pub fn Stream(comptime options: Options) type {
+    assert(options.chunk_len < 1024 * 1024 * 1024 * 4);
     assert(options.slots >= 2 and std.math.isPowerOfTwo(options.slots));
     const chunk_len = options.chunk_len;
     const index_type = if (chunk_len >= 1024 * 64) u32 else u16;
@@ -32,17 +36,19 @@ pub fn Stream(comptime options: Options) type {
         });
 
         pub const Error =
-            options.Reader.Error ||
             indexer.Error ||
             ring_buffer.Error ||
-            error{BatchOverflow};
+            types.ReaderError ||
+            StreamError;
 
         const Cursor = struct {
             doc: usize = 0,
             ixs: usize = 0,
         };
 
-        reader: options.Reader = undefined,
+        reader: std.io.AnyReader = undefined,
+        reader_error: ?std.meta.Int(.unsigned, @bitSizeOf(anyerror)),
+
         document: RingBuffer(u8, chunk_len * options.slots) = undefined,
         indexes: RingBuffer(index_type, chunk_len * options.slots) = undefined,
         indexer: Indexer = .init,
@@ -50,36 +56,42 @@ pub fn Stream(comptime options: Options) type {
         head: Cursor align(atomic.cache_line) = .{},
         tail: Cursor align(atomic.cache_line) = .{},
 
-        built: bool,
+        mapped: bool,
 
         const bogus_token = ' ';
         pub const init = std.mem.zeroInit(Self, .{
-            .built = false,
+            .reader_error = null,
+            .mapped = false,
         });
 
-        pub fn build(self: *Self, _: std.mem.Allocator, reader: options.Reader) Error!void {
-            if (self.built) {
+        pub fn build(self: *Self, _: std.mem.Allocator, reader: std.io.AnyReader) Error!void {
+            if (self.mapped) {
                 const document = self.document;
                 const indexes = self.indexes;
                 self.* = .{
-                    .built = true,
+                    .reader = reader,
+                    .reader_error = null,
+                    .mapped = true,
                 };
                 self.document = document;
                 self.indexes = indexes;
             } else {
-                self.* = .{ .built = false };
+                self.* = .{
+                    .reader = reader,
+                    .reader_error = null,
+                    .mapped = false,
+                };
                 self.document = try .init();
                 self.indexes = try .init();
-                self.built = true;
+                self.mapped = true;
             }
-            self.reader = reader;
             const written = try self.index(self.head);
             self.head.doc += chunk_len;
             self.head.ixs += written;
         }
 
         pub fn deinit(self: *Self, _: std.mem.Allocator) void {
-            if (self.built) {
+            if (self.mapped) {
                 self.document.deinit();
                 self.indexes.deinit();
             }
@@ -150,7 +162,10 @@ pub fn Stream(comptime options: Options) type {
 
         fn index(self: *Self, head: Cursor) Error!usize {
             const buf = self.document.ptr()[self.document.mask(head.doc)..][0..chunk_len];
-            const read: u32 = @intCast(try self.reader.readAll(buf));
+            const read: u32 = @intCast(self.reader.readAll(buf) catch |err| {
+                self.reader_error = @intFromError(err);
+                return error.AnyReader;
+            });
 
             if (read < chunk_len) {
                 @branchHint(.unlikely);

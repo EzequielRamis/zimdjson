@@ -1,6 +1,8 @@
 const std = @import("std");
 const Allocator = std.mem.Allocator;
 
+pub const default_max_depth = 1024;
+
 pub const tables = struct {
     pub const is_structural: [256]bool = init: {
         var res: [256]bool = undefined;

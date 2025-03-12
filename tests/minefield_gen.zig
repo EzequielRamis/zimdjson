@@ -25,7 +25,7 @@ pub fn main() !void {
         \\
         \\const std = @import("std");
         \\const zimdjson = @import("zimdjson");
-        \\const Parser = zimdjson.dom.parserFromFile(.default);
+        \\const Parser = zimdjson.dom.FullParser(.default);
         \\const simdjson_data = @embedFile("simdjson-data");
         \\
         \\
@@ -87,7 +87,7 @@ pub fn main() !void {
                 try checker_zig_content.appendSlice(
                     \\", .{});
                     \\    defer file.close();
-                    \\    _ = try parser.parse(allocator, file.reader());
+                    \\    _ = try parser.parseFromReader(allocator, file.reader().any());
                 );
             } else {
                 try checker_zig_content.appendSlice(
@@ -98,7 +98,7 @@ pub fn main() !void {
                 try checker_zig_content.appendSlice(
                     \\", .{});
                     \\    defer file.close();
-                    \\    _ = parser.parse(allocator, file.reader()) catch return;
+                    \\    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
                     \\    return error.MustHaveFailed;
                 );
             }

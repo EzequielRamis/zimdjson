@@ -20,6 +20,9 @@
 //!
 //! For daily use, the `ondemand` approach is recommended, as it is more efficient and
 //! has an API similar to `dom`.
+//!
+//! For more infomation, including code examples and benchmarks, check out
+//! https://github.com/ezequielramis/zimdjson.
 
 const std = @import("std");
 const types = @import("types.zig");

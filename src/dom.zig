@@ -1,3 +1,25 @@
+//! With a Document Object Model (DOM) parser, unlike On-Demand, the entire document is
+//! parsed, validated, and stored in memory as a tree-like structure. Only after the
+//! process is complete can the programmer access and navigate the content.
+//!
+//! During parsing, the input must remain unmodified. Once parsing finishes, the input
+//! can safely be discarded.
+//!
+//! A parser instance manages one document at a time and owns all allocated resources.
+//! For optimal performance, it should be reused over several documents when possible.
+//! If there is a need to have multiple documents in memory, multiple parser instances
+//! should be used.
+//!
+//! Although the Document Object Model is an approach, it has two distinct variants:
+//! * `FullParser`: The parser reads the entire document before parsing.
+//! * `StreamParser`: The parser reads and parses the document progressively, handling it
+//! in chunks as data arrives.
+//!
+//! Regardless of the variant, the complete DOM tree is constructed in memory.
+//!
+//! If memory usage is a concern or the document is too large, consider using the
+//! `StreamParser`. Otherwise, the `FullParser` is recommended.
+
 const std = @import("std");
 const builtin = @import("builtin");
 const common = @import("common.zig");
@@ -8,19 +30,44 @@ const Number = types.Number;
 const assert = std.debug.assert;
 const native_endian = builtin.cpu.arch.endian();
 
+/// The available options for parsing in full mode.
 pub const FullOptions = struct {
     pub const default: @This() = .{};
 
-    /// Use this literal if you are certain that parsing will only be done from a reader.
+    /// Use this literal if parsing is exclusively done from a reader.
     pub const reader_only: @This() = .{ .aligned = true, .assume_padding = true };
 
+    /// This option forces the input type to have a [`zimdjson.alignment`](#zimdjson.alignment).
+    /// When enabled, aligned SIMD vector instruction will be used during parsing, which may
+    /// improve performance.
+    ///
+    /// It is useful when parsing from a reader, as the data is always loaded with alignment.
+    ///
+    /// When parsing from a slice, you must ensure it is aligned or a compiler error will
+    /// occur.
     aligned: bool = false,
+
+    /// This option assumes the input is padded with [`zimdjson.padding`](#zimdjson.padding).
+    /// When enabled, there will be no bounds checking during parsing, improving performance.
+    ///
+    /// It is useful when parsing from a reader, as the data is always loaded with padding.
+    ///
+    /// When parsing from a slice, you must ensure it is padded or undefined behavior will
+    /// occur.
     assume_padding: bool = false,
 };
 
+/// The available options for parsing in streaming mode.
 pub const StreamOptions = struct {
     pub const default: @This() = .{};
 
+    /// This option sets the stream's chunk length, which determines the number of
+    /// bytes available for parsing at any given time.
+    ///
+    /// If a value (such a JSON string) exceeds the chunk length, an `error.BatchOverflow`
+    /// will be returned.
+    ///
+    /// By default, the chunk length is set to 64KiB.
     chunk_length: u32 = tokens.ring_buffer.default_chunk_length,
 };
 
@@ -63,7 +110,11 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 .assume_padding = options.full.assume_padding,
             });
 
-        pub const Error = Tokens.Error || types.ParseError || Allocator.Error;
+        pub const Error = Tokens.Error || ParseError || Allocator.Error;
+
+        /// The `FullParser` supports JSON documents up to **4GiB**.
+        /// On the other hand, the `StreamParser` supports JSON documents up to **32GiB**.
+        /// If the document exceeds these limits, an `error.ExceededCapacity` is returned.
         pub const max_capacity_bound = if (want_stream) std.math.maxInt(u32) * @sizeOf(Tape.Word) else std.math.maxInt(u32);
 
         // only used in full mode
@@ -87,6 +138,9 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             self.document_buffer.deinit(allocator);
         }
 
+        /// Recover the error returned from the reader.
+        /// This method should be used only when the parser returns [`error.AnyReader`](#zimdjson.types.ReaderError).
+        /// Otherwise, it results in undefined behavior.
         pub fn recoverReaderError(self: Self, comptime Reader: type) Reader.Error {
             if (want_stream) {
                 assert(self.tape.tokens.reader_error != null);
@@ -97,6 +151,9 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             }
         }
 
+        /// This method preallocates the necessary memory for a document based on its size.
+        /// It should not be used when parsing from a slice, as the document size is already
+        /// known, resulting in unnecessary allocations.
         pub fn expectDocumentSize(self: *Self, allocator: Allocator, size: usize) Error!void {
             return self.ensureTotalCapacityForReader(allocator, size);
         }
@@ -122,8 +179,9 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             try self.tape.string_buffer.ensureTotalCapacity(new_capacity);
         }
 
+        /// Parse a JSON document from slice. Allocated resources are owned by the parser.
         pub fn parseFromSlice(self: *Self, allocator: Allocator, document: Aligned.slice) Error!Value {
-            if (want_stream) @compileError("Parsing from a slice is not supported in stream mode");
+            if (want_stream) @compileError("Parsing from a slice is not supported in streaming mode");
             self.reader_error = null;
 
             self.tape.string_buffer.reset();
@@ -137,6 +195,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             };
         }
 
+        /// Parse a JSON document from reader. Allocated resources are owned by the parser.
         pub fn parseFromReader(self: *Self, allocator: Allocator, reader: std.io.AnyReader) (Error || ReaderError)!Value {
             self.reader_error = null;
 
@@ -171,7 +230,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             };
         }
 
-        /// Any valid JSON value.
+        /// Represents any valid JSON value.
         pub const AnyValue = union(types.ValueType) {
             null,
             bool: bool,
@@ -181,7 +240,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             array: Array,
         };
 
-        /// References a value in a JSON document.
+        /// Represents a value in a JSON document.
         pub const Value = struct {
             tape: *const Tape,
             index: u32,
@@ -601,9 +660,9 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 true = 't',
                 false = 'f',
                 null = 'n',
-                unsigned = @intFromEnum(types.Number.unsigned),
-                signed = @intFromEnum(types.Number.signed),
-                double = @intFromEnum(types.Number.double),
+                unsigned = @intFromEnum(Number.unsigned),
+                signed = @intFromEnum(Number.signed),
+                double = @intFromEnum(Number.double),
                 string = 's',
                 object_opening = '{',
                 object_closing = '}',
@@ -1052,4 +1111,35 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             }
         };
     };
+}
+
+test "dom" {
+    const allocator = std.testing.allocator;
+    var parser = FullParser(.default).init;
+    defer parser.deinit(allocator);
+
+    const document = try parser.parseFromSlice(allocator,
+        \\{
+        \\  "Image": {
+        \\      "Width":  800,
+        \\      "Height": 600,
+        \\      "Title":  "View from 15th Floor",
+        \\      "Thumbnail": {
+        \\          "Url":    "http://www.example.com/image/481989943",
+        \\          "Height": 125,
+        \\          "Width":  100
+        \\      },
+        \\      "Animated" : false,
+        \\      "IDs": [116, 943, 234, 38793]
+        \\    }
+        \\}
+    );
+
+    const image = try document.at("Image").asObject();
+
+    const title = try image.at("Title").asString();
+    try std.testing.expectEqualStrings("View from 15th Floor", title);
+
+    const third_id = try image.at("IDs").atIndex(2).asUnsigned();
+    try std.testing.expectEqual(234, third_id);
 }

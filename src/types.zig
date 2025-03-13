@@ -39,7 +39,7 @@ pub const NumberType = enum(u8) {
     double = 'd',
 };
 
-/// A valid JSON number.
+/// Represents a valid JSON number.
 pub const Number = union(NumberType) {
     /// The number is tagged as `.unsigned` if it fits in a `u64` but *not* in a `i64`.
     unsigned: u64,

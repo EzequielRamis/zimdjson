@@ -78,6 +78,60 @@ test "small/demo" {
     }, image.value);
 }
 
+test "small/demo2" {
+    var parser = Parser.init;
+    defer parser.deinit(allocator);
+    const document = try parser.parseFromSlice(allocator,
+        \\ {
+        \\   "Image": {
+        \\       "Width":  800,
+        \\       "Height": 600,
+        \\       "Title":  "View from 15th Floor",
+        \\       "Thumbnail": {
+        \\           "Url":    "http://www.example.com/image/481989943",
+        \\           "Height": 125,
+        \\           "Width":  100
+        \\       },
+        \\       "Animated" : false,
+        \\       "IDs": [116, 943, 234, 38793]
+        \\     }
+        \\ }
+    );
+
+    const Image = struct {
+        pub const schema: Parser.schema.Infer(@This()) = .{
+            .rename_all = .PascalCase,
+            .fields = .{ .ids = .{ .rename = "IDs" } },
+        };
+        width: u16,
+        height: u16,
+        title: []const u8,
+        thumbnail: struct {
+            pub const schema: Parser.schema.Infer(@This()) = .{
+                .rename_all = .PascalCase,
+            };
+            url: []const u8,
+            height: u16,
+            width: u16,
+        },
+        animated: bool,
+        ids: std.ArrayListUnmanaged(u16),
+    };
+
+    const image = try document.at("Image").as(Image, allocator, .{});
+    defer image.deinit();
+
+    const value = image.value;
+    try std.testing.expectEqual(800, value.width);
+    try std.testing.expectEqual(600, value.height);
+    try std.testing.expectEqualStrings("View from 15th Floor", value.title);
+    try std.testing.expectEqualStrings("http://www.example.com/image/481989943", value.thumbnail.url);
+    try std.testing.expectEqual(125, value.thumbnail.height);
+    try std.testing.expectEqual(100, value.thumbnail.width);
+    try std.testing.expectEqual(false, value.animated);
+    try std.testing.expectEqualSlices(u16, &.{ 116, 943, 234, 38793 }, value.ids.items);
+}
+
 test "small/truenull" {
     var parser = Parser.init;
     defer parser.deinit(allocator);
@@ -168,11 +222,18 @@ test "github_events untagged payload" {
         push: struct { push_id: usize },
         create: struct { description: []const u8 },
         fork: struct { forkee: struct { url: []const u8 } },
-        watch: struct { action: []const u8 },
 
-        // 'issue_comment' is a subset of 'issues' because of the additional field 'issue.id', so it is discarded if 'issues' succeeds
-        issue_comment: struct { action: []const u8, issue: struct { url: []const u8 } },
-        issues: struct { action: []const u8, issue: struct { url: []const u8, id: usize } },
+        watch: struct { action: enum { started } },
+
+        // 'issue_comment' is weaker than 'issues' because of the additional field 'issue.id', so it is discarded if 'issues' succeeds
+        issues: struct {
+            action: []const u8,
+            issue: struct { url: []const u8, id: usize },
+        },
+        issue_comment: struct {
+            action: []const u8,
+            issue: struct { url: []const u8 },
+        },
 
         gollum: struct { pages: []const struct { page_name: []const u8 } },
     };
@@ -185,12 +246,12 @@ test "github_events untagged payload" {
         Event{ .payload = .{ .push = .{ .push_id = 134107894 } } },
         Event{ .payload = .{ .create = .{ .description = "blog system" } } },
         Event{ .payload = .{ .fork = .{ .forkee = .{ .url = "https://api.github.com/repos/rtlong/digiusb.rb" } } } },
-        Event{ .payload = .{ .watch = .{ .action = "started" } } },
+        Event{ .payload = .{ .watch = .{ .action = .started } } },
         Event{ .payload = .{ .push = .{ .push_id = 134107891 } } },
         Event{ .payload = .{ .push = .{ .push_id = 134107890 } } },
-        Event{ .payload = .{ .watch = .{ .action = "started" } } },
-        Event{ .payload = .{ .watch = .{ .action = "started" } } },
-        Event{ .payload = .{ .watch = .{ .action = "started" } } },
+        Event{ .payload = .{ .watch = .{ .action = .started } } },
+        Event{ .payload = .{ .watch = .{ .action = .started } } },
+        Event{ .payload = .{ .watch = .{ .action = .started } } },
         Event{ .payload = .{ .push = .{ .push_id = 134107888 } } },
         Event{ .payload = .{ .issues = .{ .action = "created", .issue = .{ .url = "https://api.github.com/repos/pat/thinking-sphinx/issues/415", .id = 9704821 } } } },
         Event{ .payload = .{ .issues = .{ .action = "opened", .issue = .{ .url = "https://api.github.com/repos/imsky/holder/issues/27", .id = 9833911 } } } },
@@ -199,10 +260,10 @@ test "github_events untagged payload" {
         Event{ .payload = .{ .push = .{ .push_id = 134107879 } } },
         Event{ .payload = .{ .push = .{ .push_id = 134107876 } } },
         Event{ .payload = .{ .push = .{ .push_id = 134107874 } } },
-        Event{ .payload = .{ .watch = .{ .action = "started" } } },
+        Event{ .payload = .{ .watch = .{ .action = .started } } },
         Event{ .payload = .{ .push = .{ .push_id = 134107873 } } },
         Event{ .payload = .{ .gollum = .{ .pages = &.{.{ .page_name = "Home" }} } } },
-        Event{ .payload = .{ .watch = .{ .action = "started" } } },
+        Event{ .payload = .{ .watch = .{ .action = .started } } },
         Event{ .payload = .{ .create = .{ .description = "" } } },
         Event{ .payload = .{ .create = .{ .description = "Translation infrastructure work for colobot levels" } } },
         Event{ .payload = .{ .issues = .{ .action = "created", .issue = .{ .url = "https://api.github.com/repos/SynoCommunity/spksrc/issues/249", .id = 7071528 } } } },

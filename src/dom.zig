@@ -1,6 +1,6 @@
 //! With a Document Object Model (DOM) parser, unlike On-Demand, the entire document is
 //! parsed, validated, and stored in memory as a tree-like structure. Only after the
-//! process is complete can the programmer access and navigate the content.
+//! process is complete can the user access and navigate the content.
 //!
 //! During parsing, the input must remain unmodified. Once parsing finishes, the input
 //! can safely be discarded.
@@ -112,8 +112,8 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
 
         pub const Error = Tokens.Error || ParseError || Allocator.Error;
 
-        /// The `FullParser` supports JSON documents up to **4GiB**.
-        /// On the other hand, the `StreamParser` supports JSON documents up to **32GiB**.
+        /// The `FullParser` supports JSON documents up to **4GiB**, while
+        /// the `StreamParser` supports JSON documents up to **32GiB**.
         /// If the document exceeds these limits, an `error.ExceededCapacity` is returned.
         pub const max_capacity_bound = if (want_stream) std.math.maxInt(u32) * @sizeOf(Tape.Word) else std.math.maxInt(u32);
 

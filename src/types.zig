@@ -77,38 +77,56 @@ pub const ValueType = enum {
     array,
 };
 
-/// A generic error occurred while reading from the provided reader. If you want to know
-/// which specific error occurred, you can "recover" it using the following pattern:
-///
-/// ```zig
-/// const document = parser.parseFromReader(allocator, file.reader().any()) catch |err| switch (err) {
-///    error.AnyReader => return parser.recoverReaderError(@TypeOf(file.reader())),
-///    else => |e| return e,
-/// };
-///
-/// const array = document.asArray() catch |err| switch (err) {
-///    error.AnyReader => return parser.recoverReaderError(@TypeOf(file.reader())),
-///    else => |e| return e,
-/// };
-/// ```
-pub const ReaderError = error{AnyReader};
+pub const ReaderError = error{
+    /// A generic error occurred while reading from the provided reader. If you want to know
+    /// which specific error occurred, you can "recover" it using the following pattern:
+    ///
+    /// ```zig
+    /// const document = parser.parseFromReader(allocator, file.reader().any()) catch |err| switch (err) {
+    ///    error.AnyReader => return parser.recoverReaderError(@TypeOf(file.reader())),
+    ///    else => |e| return e,
+    /// };
+    ///
+    /// const array = document.asArray() catch |err| switch (err) {
+    ///    error.AnyReader => return parser.recoverReaderError(@TypeOf(file.reader())),
+    ///    else => |e| return e,
+    /// };
+    /// ```
+    AnyReader,
+};
 
 pub const ParseError = error{
+    /// The document exceeds the user-specified depth limitation.
     ExceededDepth,
+    /// The parser can not support a document that big.
     ExceededCapacity,
+    /// The parser can not recognize escape sequence.
     InvalidEscape,
+    /// The parser can not decode the Unicode code point.
     InvalidUnicodeCodePoint,
+    /// Found a non-numerical character in the number.
     InvalidNumberLiteral,
+    /// Expected a colon after key in object.
     ExpectedColon,
+    /// Expected a string typed key in object.
     ExpectedKey,
+    /// Expected a comma or a closing bracket in array.
     ExpectedArrayCommaOrEnd,
+    /// Expected a comma or a closing brace in object.
     ExpectedObjectCommaOrEnd,
+    /// The array ends early.
     IncompleteArray,
+    /// The object ends early.
     IncompleteObject,
+    /// The number does not fit in the target type.
     NumberOutOfRange,
+    /// The array index is too large.
     IndexOutOfBounds,
+    /// An unexpected trailing content in document.
     TrailingContent,
+    /// The value has a different type than user expected.
     IncorrectType,
+    /// The field is not found in object.
     MissingField,
 };
 

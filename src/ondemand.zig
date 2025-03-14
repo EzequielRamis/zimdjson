@@ -14,21 +14,109 @@ const assert = std.debug.assert;
 const ArenaAllocator = std.heap.ArenaAllocator;
 const ArrayList = std.ArrayListUnmanaged;
 
+/// The available options for parsing in full mode.
 pub const FullOptions = struct {
     pub const default: @This() = .{};
 
-    /// Use this literal if you are certain that parsing will only be done from a reader.
+    /// Use this literal if parsing is exclusively done from a reader.
     pub const reader_only: @This() = .{ .aligned = true, .assume_padding = true };
 
+    /// This option forces the input type to have a [`zimdjson.alignment`](#zimdjson.alignment).
+    /// When enabled, aligned SIMD vector instruction will be used during parsing, which may
+    /// improve performance.
+    ///
+    /// It is useful when parsing from a reader, as the data is always loaded with alignment.
+    ///
+    /// When parsing from a slice, you must ensure it is aligned or a compiler error will
+    /// occur.
     aligned: bool = false,
+
+    /// This option assumes the input is padded with [`zimdjson.padding`](#zimdjson.padding).
+    /// When enabled, there will be no bounds checking during parsing, improving performance.
+    ///
+    /// It is useful when parsing from a reader, as the data is always loaded with padding.
+    ///
+    /// When parsing from a slice, you must ensure it is padded or undefined behavior will
+    /// occur.
     assume_padding: bool = false,
+
+    /// This option identifies a schema declaration for a type, which can reside within
+    /// any container type (`struct`, `union` or `enum`).
+    ///
+    /// Consider the following `struct` type:
+    /// ```zig
+    /// const Image = struct {
+    ///     pub const S: Parser.schema.Infer(@This()) = .{
+    ///         .rename_all = .PascalCase,
+    ///         .fields = .{ .ids = .{ .rename = "IDs" } },
+    ///     };
+    ///     width: u16,
+    ///     height: u16,
+    ///     title: []const u8,
+    ///     thumbnail: struct {
+    ///         pub const S: Parser.schema.Infer(@This()) = .{
+    ///             .rename_all = .PascalCase,
+    ///         };
+    ///         url: []const u8,
+    ///         height: u16,
+    ///         width: u16,
+    ///     },
+    ///     animated: bool,
+    ///     ids: []const u16,
+    /// };
+    /// ```
+    ///
+    /// With `.schema_identifier = "S"`, the parser interprets that:
+    /// * The `Image` struct has a schema that renames all fields to `.PascalCase`, except `ids`, which is renamed to `IDs`.
+    /// * The `thumbnail` field has its own schema, also renaming all fields to `.PascalCase`.
+    ///
+    /// While this option exists, it is not recommended to change it unless absolutely necessary.
     schema_identifier: []const u8 = "schema",
 };
 
 pub const StreamOptions = struct {
     pub const default: @This() = .{};
 
+    /// This option sets the stream's chunk length, which determines the number of
+    /// bytes available for parsing at any given time.
+    ///
+    /// If a value (such a JSON string) exceeds the chunk length, an `error.BatchOverflow`
+    /// will be returned.
+    ///
+    /// By default, the chunk length is set to 64KiB.
     chunk_length: u32 = tokens.ring_buffer.default_chunk_length,
+
+    /// This option identifies a schema declaration for a type, which can reside within
+    /// any container type (`struct`, `union` or `enum`).
+    ///
+    /// Consider the following `struct` type:
+    /// ```zig
+    /// const Image = struct {
+    ///     pub const S: Parser.schema.Infer(@This()) = .{
+    ///         .rename_all = .PascalCase,
+    ///         .fields = .{ .ids = .{ .rename = "IDs" } },
+    ///     };
+    ///     width: u16,
+    ///     height: u16,
+    ///     title: []const u8,
+    ///     thumbnail: struct {
+    ///         pub const S: Parser.schema.Infer(@This()) = .{
+    ///             .rename_all = .PascalCase,
+    ///         };
+    ///         url: []const u8,
+    ///         height: u16,
+    ///         width: u16,
+    ///     },
+    ///     animated: bool,
+    ///     ids: []const u16,
+    /// };
+    /// ```
+    ///
+    /// With `.schema_identifier = "S"`, the parser interprets that:
+    /// * The `Image` struct has a schema that renames all fields to `.PascalCase`, except `ids`, which is renamed to `IDs`.
+    /// * The `thumbnail` field has its own schema, also renaming all fields to `.PascalCase`.
+    ///
+    /// While this option exists, it is not recommended to change it unless absolutely necessary.
     schema_identifier: []const u8 = "schema",
 };
 
@@ -76,10 +164,17 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
 
         pub const Error = Tokens.Error || types.ParseError || Allocator.Error ||
             error{
+            /// An allocator was not provided.
             ExpectedAllocator,
         } ||
-            (if (builtin.mode == .Debug) error{OutOfOrderIteration} else error{});
+            (if (builtin.mode == .Debug) error{
+            /// Found an illegal iteration order.
+            OutOfOrderIteration,
+        } else error{});
 
+        /// The `FullParser` supports JSON documents up to **4GiB**, while the
+        /// the `StreamParser` supports JSON documents of **unlimited size**.
+        /// If the document exceeds these limits, an `error.ExceededCapacity` is returned.
         pub const max_capacity_bound = if (want_stream) std.math.maxInt(usize) else std.math.maxInt(u32);
 
         // only used in full mode
@@ -102,12 +197,29 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             .reader_error = null,
         };
 
+        /// Release all allocated memory, including the strings.
         pub fn deinit(self: *Self, allocator: Allocator) void {
             self.cursor.deinit(allocator);
             self.document_buffer.deinit(allocator);
             self.string_buffer.deinit();
         }
 
+        /// Recover the error returned from the reader.
+        /// This method should be used only when the parser returns [`error.AnyReader`](#zimdjson.types.ReaderError).
+        /// Otherwise, it results in undefined behavior.
+        pub fn recoverReaderError(self: Self, comptime Reader: type) Reader.Error {
+            if (want_stream) {
+                assert(self.tape.tokens.reader_error != null);
+                return @errorCast(@errorFromInt(self.tape.tokens.reader_error.?));
+            } else {
+                assert(self.reader_error != null);
+                return @errorCast(@errorFromInt(self.reader_error.?));
+            }
+        }
+
+        /// This method preallocates the necessary memory for a document based on its size.
+        /// It should not be used when parsing from a slice, as the document size is already
+        /// known, resulting in unnecessary allocations.
         pub fn expectDocumentSize(self: *Self, allocator: Allocator, size: usize) Error!void {
             return self.ensureTotalCapacityForReader(allocator, size);
         }
@@ -133,8 +245,9 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             try self.string_buffer.ensureTotalCapacity(new_capacity);
         }
 
+        /// Parse a JSON document from slice. Allocated resources are owned by the parser.
         pub fn parseFromSlice(self: *Self, allocator: Allocator, document: Aligned.slice) Error!Document {
-            if (want_stream) @compileError("Parsing from a slice is not supported in stream mode");
+            if (want_stream) @compileError("Parsing from a slice is not supported in streaming mode");
             self.reader_error = null;
 
             if (builtin.mode == .Debug) {
@@ -163,6 +276,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             };
         }
 
+        /// Parse a JSON document from reader. Allocated resources are owned by the parser.
         pub fn parseFromReader(self: *Self, allocator: Allocator, reader: std.io.AnyReader) (Error || ReaderError)!Document {
             if (builtin.mode == .Debug) {
                 try self.cursor.start_positions.ensureTotalCapacity(allocator, self.max_depth);
@@ -211,6 +325,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             };
         }
 
+        /// Represents any valid JSON value.
         pub const AnyValue = union(types.ValueType) {
             null,
             bool: bool,
@@ -1043,7 +1158,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             ) schema.Error!std.json.Parsed(T) {
                 var dest: std.json.Parsed(T) = .{
                     .arena = try allocator.create(std.heap.ArenaAllocator),
-                    .value = schema_utils.undefinedInit(T),
+                    .value = undefinedInit(T),
                 };
                 errdefer allocator.destroy(dest.arena);
                 dest.arena.* = .init(allocator);
@@ -1058,7 +1173,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 allocator: ?Allocator,
                 schema_options: schema.Options(T),
             ) schema.Error!T {
-                var dest = schema_utils.undefinedInit(T);
+                var dest = undefinedInit(T);
                 const sch = comptime schema.resolveSchema(T, schema_options.schema);
                 const custom_parser = comptime sch.parse_with orelse schema.CustomParser(T).infer();
                 if (custom_parser) |handler| dest = handler.init;
@@ -1368,45 +1483,39 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             }
         };
 
+        /// This module contains the necessary utilities for deserializing JSON values directly into Zig types thanks to compile-time reflection.
         pub const schema = struct {
             const _std = @import("std");
             pub const Error = Self.Error || error{
+                /// Found a field that was not expected.
                 UnknownField,
+                /// Found an enum literal that was not expected.
                 UnknownEnumLiteral,
+                /// Found a variant that was not expected.
                 UnknownUnionVariant,
+                /// Found a duplicate field.
                 DuplicateField,
             };
 
             pub fn Options(comptime T: type) type {
                 return struct {
+                    /// Provide a schema for this type.
+                    /// If a schema declaration already exists, this one will take priority.
                     schema: ?Infer(T) = null,
                 };
             }
 
-            pub fn Handler(comptime T: type) type {
+            pub fn CustomParserHandler(comptime T: type) type {
                 return fn (allocator: ?Allocator, value: Value, dest: *T) schema.Error!void;
-            }
-
-            pub fn SimpleRefHandler(comptime T: type) type {
-                return fn (allocator: ?Allocator, dest: *T) schema.Error!void;
             }
 
             pub fn CustomParser(comptime T: type) type {
                 return struct {
                     init: T,
-                    parse: *const Handler(T),
-
-                    pub fn from(comptime S: type) @This() {
-                        assert(@typeInfo(S) == .@"struct");
-                        assert(@hasDecl(S, "parse") and @TypeOf(@field(S, "parse")) == Handler(T));
-                        return .{
-                            .init = S.init,
-                            .parse = S.parse,
-                        };
-                    }
+                    parse: *const CustomParserHandler(T),
 
                     fn infer() ?@This() {
-                        const std_data_structure = schema_utils.StandardDataStructure.infer(T) orelse return null;
+                        const std_data_structure = StandardDataStructure.infer(T) orelse return null;
                         return switch (std_data_structure) {
                             .array_list => |p| schema.std.ArrayList(p[0]),
                             .array_list_aligned => |p| schema.std.ArrayListAligned(p[0], p[1]),
@@ -1430,8 +1539,9 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             pub const std = struct {
                 pub fn ArrayList(comptime T: type) CustomParser(_std.ArrayListUnmanaged(T)) {
                     const Parsed = _std.ArrayListUnmanaged(T);
-                    return .from(struct {
+                    const Custom = struct {
                         pub const init: Parsed = .empty;
+
                         pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const alloc = allocator orelse return error.ExpectedAllocator;
                             var arr = (try value.asArray()).iterator();
@@ -1440,12 +1550,17 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                                 try dest.append(alloc, item);
                             }
                         }
-                    });
+                    };
+                    return .{
+                        .init = Custom.init,
+                        .parse = Custom.parse,
+                    };
                 }
                 pub fn ArrayListAligned(comptime T: type, comptime alignment: ?u29) CustomParser(_std.ArrayListAlignedUnmanaged(T, alignment)) {
                     const Parsed = _std.ArrayListAlignedUnmanaged(T, alignment);
-                    return .from(struct {
+                    const Custom = struct {
                         pub const init: Parsed = .empty;
+
                         pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const alloc = allocator orelse return error.ExpectedAllocator;
                             var arr = (try value.asArray()).iterator();
@@ -1454,7 +1569,11 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                                 try dest.append(alloc, item);
                             }
                         }
-                    });
+                    };
+                    return .{
+                        .init = Custom.init,
+                        .parse = Custom.parse,
+                    };
                 }
                 // pub const BitStack: CustomParser(_std.BitStack) = brk: {
                 //     const Parsed = _std.BitStack;
@@ -1474,8 +1593,9 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 // };
                 pub fn BoundedArray(comptime T: type, comptime buffer_capacity: usize) CustomParser(_std.BoundedArray(T, buffer_capacity)) {
                     const Parsed = _std.BoundedArray(T, buffer_capacity);
-                    return .from(struct {
+                    const Custom = struct {
                         pub const init: Parsed = Parsed.init(0) catch unreachable;
+
                         pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             var arr = (try value.asArray()).iterator();
                             while (try arr.next()) |child| {
@@ -1483,7 +1603,11 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                                 dest.append(item) catch return error.ExceededCapacity;
                             }
                         }
-                    });
+                    };
+                    return .{
+                        .init = Custom.init,
+                        .parse = Custom.parse,
+                    };
                 }
                 pub fn BoundedArrayAligned(
                     comptime T: type,
@@ -1491,8 +1615,9 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     comptime buffer_capacity: usize,
                 ) CustomParser(_std.BoundedArrayAligned(T, alignment, buffer_capacity)) {
                     const Parsed = _std.BoundedArrayAligned(T, alignment, buffer_capacity);
-                    return .from(struct {
+                    const Custom = struct {
                         pub const init: Parsed = Parsed.init(0) catch unreachable;
+
                         pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             var arr = (try value.asArray()).iterator();
                             while (try arr.next()) |child| {
@@ -1500,7 +1625,11 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                                 dest.append(item) catch return error.ExceededCapacity;
                             }
                         }
-                    });
+                    };
+                    return .{
+                        .init = Custom.init,
+                        .parse = Custom.parse,
+                    };
                 }
                 // pub const BufMap: CustomParser(_std.BufMap) = brk: {
                 //     const Parsed = _std.BufMap;
@@ -1537,8 +1666,9 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 // };
                 pub fn DoublyLinkedList(comptime T: type) CustomParser(_std.DoublyLinkedList(T)) {
                     const Parsed = _std.DoublyLinkedList(T);
-                    return .from(struct {
+                    const Custom = struct {
                         pub const init: Parsed = .{};
+
                         pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const alloc = allocator orelse return error.ExpectedAllocator;
                             var arr = (try value.asArray()).iterator();
@@ -1549,12 +1679,17 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                                 dest.append(node);
                             }
                         }
-                    });
+                    };
+                    return .{
+                        .init = Custom.init,
+                        .parse = Custom.parse,
+                    };
                 }
                 pub fn EnumMap(comptime E: type, comptime V: type) CustomParser(_std.EnumMap(E, V)) {
                     const Parsed = _std.EnumMap(E, V);
-                    return .from(struct {
+                    const Custom = struct {
                         pub const init: Parsed = .init(.{});
+
                         pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const enum_schema = comptime resolveSchema(E, null);
                             var obj = (try value.asObject()).iterator();
@@ -1565,12 +1700,17 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                                 dest.put(enum_literal, enum_value);
                             }
                         }
-                    });
+                    };
+                    return .{
+                        .init = Custom.init,
+                        .parse = Custom.parse,
+                    };
                 }
                 pub fn MultiArrayList(comptime T: type) CustomParser(_std.MultiArrayList(T)) {
                     const Parsed = _std.MultiArrayList(T);
-                    return .from(struct {
+                    const Custom = struct {
                         pub const init: Parsed = .empty;
+
                         pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const alloc = allocator orelse return error.ExpectedAllocator;
                             var arr = (try value.asArray()).iterator();
@@ -1579,12 +1719,17 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                                 try dest.append(alloc, item);
                             }
                         }
-                    });
+                    };
+                    return .{
+                        .init = Custom.init,
+                        .parse = Custom.parse,
+                    };
                 }
                 pub fn SegmentedList(comptime T: type, comptime prealloc_item_count: usize) CustomParser(_std.SegmentedList(T, prealloc_item_count)) {
                     const Parsed = _std.SegmentedList(T, prealloc_item_count);
-                    return .from(struct {
+                    const Custom = struct {
                         pub const init: Parsed = .{};
+
                         pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const alloc = allocator orelse return error.ExpectedAllocator;
                             var arr = (try value.asArray()).iterator();
@@ -1593,12 +1738,17 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                                 try dest.append(alloc, item);
                             }
                         }
-                    });
+                    };
+                    return .{
+                        .init = Custom.init,
+                        .parse = Custom.parse,
+                    };
                 }
                 pub fn SinglyLinkedList(comptime T: type) CustomParser(_std.SinglyLinkedList(T)) {
                     const Parsed = _std.SinglyLinkedList(T);
-                    return .from(struct {
+                    const Custom = struct {
                         pub const init: Parsed = .{};
+
                         pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const alloc = allocator orelse return error.ExpectedAllocator;
                             var arr = (try value.asArray()).iterator();
@@ -1619,12 +1769,17 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                                 }
                             }
                         }
-                    });
+                    };
+                    return .{
+                        .init = Custom.init,
+                        .parse = Custom.parse,
+                    };
                 }
                 pub fn StringArrayHashMap(comptime V: type) CustomParser(_std.StringArrayHashMapUnmanaged(V)) {
                     const Parsed = _std.StringArrayHashMapUnmanaged(V);
-                    return .from(struct {
+                    const Custom = struct {
                         pub const init: Parsed = .empty;
+
                         pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const alloc = allocator orelse return error.ExpectedAllocator;
                             var obj = (try value.asObject()).iterator();
@@ -1634,12 +1789,17 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                                 try dest.put(alloc, key, val);
                             }
                         }
-                    });
+                    };
+                    return .{
+                        .init = Custom.init,
+                        .parse = Custom.parse,
+                    };
                 }
                 pub fn StringHashMap(comptime V: type) CustomParser(_std.StringHashMapUnmanaged(V)) {
                     const Parsed = _std.StringHashMapUnmanaged(V);
-                    return .from(struct {
+                    const Custom = struct {
                         pub const init: Parsed = .empty;
+
                         pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                             const alloc = allocator orelse return error.ExpectedAllocator;
                             var obj = (try value.asObject()).iterator();
@@ -1649,7 +1809,11 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                                 try dest.put(alloc, key, val);
                             }
                         }
-                    });
+                    };
+                    return .{
+                        .init = Custom.init,
+                        .parse = Custom.parse,
+                    };
                 }
             };
 
@@ -1671,34 +1835,46 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
 
             pub fn Struct(comptime T: type) type {
                 return struct {
-                    assume_ordering: bool = false,
-                    on_unknown_field: UnknownField(T) = .ignore,
-                    on_duplicate_field: DuplicateField(T) = .@"error",
-
+                    /// Providing a `CustomParser` for this struct will ignore all other schema options.
                     parse_with: ?CustomParser(T) = null,
-                    rename_all: schema_utils.FieldsRenaming = .snake_case,
+
+                    /// Rename all the fields of this struct according to the given case convention.
+                    rename_all: ?FieldsRenaming = null,
+
+                    /// Schema options for each field of this struct.
                     fields: StructFields(T) = .{},
+
+                    /// Assume the field order in the JSON object matches the field order in the struct.
+                    /// This may provide a higher performance but can result in an `error.MissingField`
+                    /// if the order is not respected.
+                    assume_ordering: bool = false,
+
+                    /// Behavior when an unknown field is encountered.
+                    on_unknown_field: StructUnknownField(T) = .ignore,
+
+                    /// Behavior when a duplicate field is encountered.
+                    on_duplicate_field: StructDuplicateField(T) = .@"error",
                 };
             }
 
-            fn SchemaFieldHandler(comptime T: type) type {
+            pub fn StructFieldHandler(comptime T: type) type {
                 return fn (allocator: ?Allocator, key: []const u8, value: Value, dest: *T) schema.Error!void;
             }
 
-            fn UnknownField(comptime T: type) type {
+            pub fn StructUnknownField(comptime T: type) type {
                 return union(enum) {
                     ignore,
                     @"error",
-                    handle: *const SchemaFieldHandler(T),
+                    handle: *const StructFieldHandler(T),
                 };
             }
 
-            fn DuplicateField(comptime T: type) type {
+            pub fn StructDuplicateField(comptime T: type) type {
                 return union(enum) {
                     use_first,
                     @"error",
                     use_last,
-                    handle: *const SchemaFieldHandler(T),
+                    handle: *const StructFieldHandler(T),
                 };
             }
 
@@ -1729,10 +1905,19 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 });
             }
 
-            fn StructField(comptime T: type) type {
+            /// Schema options for a struct field.
+            pub fn StructField(comptime T: type) type {
                 return struct {
+                    /// Deserialize this field with the given name instead of its Zig name.
                     rename: ?[]const u8 = null,
+
+                    /// Skip this field during deserialization.
+                    /// Unless a `CustomParser` (such as any provided in `std`) is used,
+                    /// the field will be `undefined`, so a default value should be provided.
                     skip: bool = false,
+
+                    /// Provide a schema for this field.
+                    /// If a schema declaration already exists, this one will take priority.
                     schema: ?schema.Infer(T) = null,
                 };
             }
@@ -1740,8 +1925,8 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             fn parseStruct(comptime T: type, comptime S: schema.Struct(T), allocator: ?Allocator, value: Value) schema.Error!T {
                 const fields = _std.meta.fields(T);
                 if (@typeInfo(T).@"struct".is_tuple and fields.len > 0) {
-                    var dest = schema_utils.undefinedInit(T);
-                    const fields_schema_parser = makeFieldsSP(T, S, fields){};
+                    var dest = undefinedInit(T);
+                    const fields_schema_parser = makeFieldsSPTuple(T, S, fields){};
                     inline for (fields) |field| {
                         const field_schema = @field(S.fields, field.name);
                         if (field_schema.rename) |_| @compileError("Renamed fields are not supported in tuple struct '" ++ @typeName(T) ++ "'");
@@ -1766,11 +1951,16 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 return parseStructWithObjectIterator(T, S, allocator, &it);
             }
 
-            fn parseStructWithObjectIterator(comptime T: type, comptime S: schema.Struct(T), allocator: ?Allocator, it: *Object.Iterator) schema.Error!T {
+            fn parseStructWithObjectIterator(
+                comptime T: type,
+                comptime S: schema.Struct(T),
+                allocator: ?Allocator,
+                it: *Object.Iterator,
+            ) schema.Error!T {
                 const fields = _std.meta.fields(T);
                 const is_packed = @typeInfo(T).@"struct".layout == .@"packed";
-                var dest = schema_utils.undefinedInit(T);
-                const fields_schema_parser = makeFieldsSP(T, S, fields){};
+                var dest = undefinedInit(T);
+                const fields_schema_parser = makeFieldsSPTuple(T, S, fields){};
                 comptime var non_skipped_field_count: comptime_int = 0;
                 inline for (fields) |field| {
                     const field_schema = @field(S.fields, field.name);
@@ -1796,7 +1986,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     inline for (fields, 1..) |field, i| {
                         const field_schema = @field(S.fields, field.name);
                         if (field_schema.skip) continue;
-                        const renamed_key: []const u8 = if (field_schema.rename) |rename| rename else comptime schema_utils.renameField(S.rename_all, field.name);
+                        const renamed_key: []const u8 = comptime resolveFieldRenaming(T, S, field.name) orelse field.name;
                         const field_value = brk: {
 
                             // handle the adjacent field after the previous queried field
@@ -1896,7 +2086,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                         const field_schema = @field(S.fields, field.name);
                         if (field_schema.skip) continue;
                         defer i += 1;
-                        const renamed_key: []const u8 = if (field_schema.rename) |rename| rename else comptime schema_utils.renameField(S.rename_all, field.name);
+                        const renamed_key: []const u8 = comptime resolveFieldRenaming(T, S, field.name) orelse field.name;
                         const has_undefined_value = @typeInfo(field.type) != .optional and field.default_value_ptr == null;
                         if (has_undefined_value) undefined_count += 1;
                         const s, const p = @field(fields_schema_parser, field.name);
@@ -1908,7 +2098,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                         } };
                     }
                     const dispatches = dispatches_mut;
-                    const struct_map = comptime schema_utils.Map(StructDispatch, &dispatches);
+                    const struct_map = comptime Map(StructDispatch, &dispatches);
                     var undefined_count_runtime = undefined_count;
                     while (try it.next()) |field| {
                         const key = try field.key.getTemporal();
@@ -1946,7 +2136,9 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                             try dispatch.handle(allocator, field.value, @ptrFromInt(@intFromPtr(&dest) + dispatch.offset));
                         }
                     }
-                    if (undefined_count_runtime > 0) return error.MissingField;
+                    if (undefined_count_runtime > 0) {
+                        return error.MissingField;
+                    }
                 }
                 return dest;
             }
@@ -1955,10 +2147,10 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 offset: u32,
                 bit_count: u16,
                 has_undefined_value: bool,
-                handle: *const Handler(anyopaque),
+                handle: *const CustomParserHandler(anyopaque),
             };
 
-            inline fn makeFieldsSP(comptime T: type, comptime R: schema.Struct(T), comptime fields: []const _std.builtin.Type.StructField) type {
+            inline fn makeFieldsSPTuple(comptime T: type, comptime R: schema.Struct(T), comptime fields: []const _std.builtin.Type.StructField) type {
                 comptime var tuple_fields: [fields.len]_std.builtin.Type.StructField = undefined;
                 inline for (fields, &tuple_fields) |field, *tuple| {
                     const field_schema = @field(R.fields, field.name);
@@ -1981,14 +2173,52 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
 
             pub fn Enum(comptime T: type) type {
                 return struct {
+                    /// Providing a `CustomParser` for this enum will ignore all other schema options.
                     parse_with: ?CustomParser(T) = null,
-                    rename_all: schema_utils.FieldsRenaming = .snake_case,
-                    renames: schema_utils.EnumFields(T) = .{},
+
+                    /// Rename all the fields of this enum according to the given case convention.
+                    rename_all: ?FieldsRenaming = null,
+
+                    /// Schema options for each field of this enum.
+                    fields: EnumFields(T) = .{},
                 };
             }
 
+            fn EnumFields(comptime T: type) type {
+                assert(@typeInfo(T) == .@"enum");
+                const fields = _std.meta.fields(T);
+                comptime var schema_fields: [fields.len]_std.builtin.Type.StructField = undefined;
+                inline for (0..fields.len) |i| {
+                    const field = fields[i];
+                    const schema_field = EnumField;
+                    schema_fields[i] = .{
+                        .type = schema_field,
+                        .name = field.name,
+                        .default_value_ptr = &schema_field{},
+                        .is_comptime = false,
+                        .alignment = @alignOf(schema_field),
+                    };
+                }
+                const sf = schema_fields;
+                return @Type(.{
+                    .@"struct" = .{
+                        .fields = &sf,
+                        .layout = .auto,
+                        .decls = &.{},
+                        .is_tuple = false,
+                    },
+                });
+            }
+
+            /// Schema options for an enum field.
+            pub const EnumField = struct {
+                /// Deserialize this field with the given name instead of its Zig name.
+                rename: ?[]const u8 = null,
+            };
+
             fn parseEnum(comptime T: type, comptime S: schema.Enum(T), allocator: ?Allocator, value: Value) schema.Error!T {
                 _ = allocator;
+                if (!@typeInfo(T).@"enum".is_exhaustive) @compileError("Unable to parse into non-exhaustive enum '" ++ @typeName(T) ++ "'");
                 const variant = try value.asString().getTemporal();
                 return parseEnumFromSlice(T, S, variant);
             }
@@ -1997,21 +2227,27 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 const fields = _std.meta.fields(T);
                 comptime var dispatches_mut: [fields.len]struct { []const u8, T } = undefined;
                 inline for (fields, 0..) |field, i| {
-                    const field_rename = @field(S.renames, field.name);
-                    const renamed_variant: []const u8 = if (field_rename) |rename| rename else comptime schema_utils.renameField(S.rename_all, field.name);
+                    const renamed_variant: []const u8 = comptime resolveFieldRenaming(T, S, field.name) orelse field.name;
                     dispatches_mut[i] = .{ renamed_variant, @field(T, field.name) };
                 }
                 const dispatches = dispatches_mut;
-                const enum_map = comptime schema_utils.Map(T, &dispatches);
+                const enum_map = comptime Map(T, &dispatches);
                 const enum_literal = enum_map.get(slice) orelse return error.UnknownEnumLiteral;
                 return enum_literal;
             }
 
             pub fn Union(comptime T: type) type {
                 return struct {
+                    /// Providing a `CustomParser` for this union will ignore all other schema options.
                     parse_with: ?CustomParser(T) = null,
-                    rename_all: schema_utils.FieldsRenaming = .snake_case,
-                    representation: schema_utils.UnionRepresentation = .externally_tagged,
+
+                    /// Rename all the variants of this union according to the given case convention.
+                    rename_all: ?FieldsRenaming = null,
+
+                    /// Provide a JSON representation for this union.
+                    representation: UnionRepresentation = .externally_tagged,
+
+                    /// Schema options for each variant of this union.
                     fields: UnionFields(T) = .{},
                 };
             }
@@ -2042,9 +2278,14 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 });
             }
 
-            fn UnionField(comptime T: type) type {
+            /// Schema options for an union field.
+            pub fn UnionField(comptime T: type) type {
                 return struct {
+                    /// Deserialize this field with the given name instead of its Zig name.
                     rename: ?[]const u8 = null,
+
+                    /// Provide a schema for this field.
+                    /// If a schema declaration already exists, this one will take priority.
                     schema: ?schema.Infer(T) = null,
                 };
             }
@@ -2053,18 +2294,9 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 const string_index = value.iter.cursor.document.string_buffer.saveIndex();
                 const fields = _std.meta.fields(T);
                 if (S.representation == .untagged) {
-                    comptime var ordered_fields = fields[0..fields.len].*;
-                    const fieldsCount = struct {
-                        pub fn inner(_: void, lhs: _std.builtin.Type.UnionField, rhs: _std.builtin.Type.UnionField) bool {
-                            const lf = schema_utils.foundFieldsCount(lhs.type);
-                            const rf = schema_utils.foundFieldsCount(rhs.type);
-                            return lf > rf;
-                        }
-                    }.inner;
-                    comptime _std.mem.sort(_std.builtin.Type.UnionField, &ordered_fields, {}, fieldsCount);
 
                     // workaround from https://github.com/ziglang/zig/issues/9524#issuecomment-895802551
-                    inline for (ordered_fields) |field| {
+                    inline for (fields) |field| {
                         inner: {
                             const field_schema = @field(S.fields, field.name);
                             const payload = value.asLeaky(field.type, allocator, .{ .schema = field_schema.schema }) catch {
@@ -2078,9 +2310,10 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
 
                     return error.UnknownUnionVariant;
                 } else {
-                    const tag_sch = brk: {
-                        if (@typeInfo(T).@"union".tag_type) |tag_type| {
-                            break :brk @as(?schema.Enum(tag_type), if (@hasDecl(tag_type, schema_identifier)) @field(tag_type, schema_identifier) else .{});
+                    const maybe_enum_type = @typeInfo(T).@"union".tag_type;
+                    const maybe_enum_schema = comptime brk: {
+                        if (maybe_enum_type) |enum_type| {
+                            break :brk @as(?schema.Enum(enum_type), resolveSchema(enum_type, null));
                         } else {
                             break :brk null;
                         }
@@ -2088,18 +2321,22 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     comptime var dispatches_mut: [fields.len]struct { []const u8, UnionDispatch } = undefined;
                     inline for (fields, 0..) |field, i| {
                         const field_schema = @field(S.fields, field.name);
-                        const renamed_variant: []const u8 = brk: {
-                            const tag_rename: ?[]const u8 = if (tag_sch) |tag| if (@field(tag.renames, field.name)) |tag_rename| tag_rename else null else null;
-                            if (tag_rename) |rename| break :brk rename;
-                            break :brk if (field_schema.rename) |rename| rename else comptime schema_utils.renameField(S.rename_all, field.name);
+                        const renamed_variant: []const u8 = comptime brk: {
+                            if (resolveFieldRenaming(T, S, field.name)) |union_rename| break :brk union_rename;
+
+                            if (maybe_enum_schema) |enum_schema| {
+                                if (resolveFieldRenaming(maybe_enum_type.?, enum_schema, field.name)) |enum_rename| break :brk enum_rename;
+                            }
+
+                            break :brk field.name;
                         };
                         dispatches_mut[i] = .{ renamed_variant, .{
-                            .handle = TaggedUnionParser(T, S.representation, field, field_schema.schema).parseTypeErased,
+                            .handle = TaggedReprParser(T, S.representation, field, field_schema.schema).parseTypeErased,
                         } };
                     }
                     const dispatches = dispatches_mut;
-                    const union_map = comptime schema_utils.Map(UnionDispatch, &dispatches);
-                    var dest = schema_utils.undefinedInit(T);
+                    const union_map = comptime Map(UnionDispatch, &dispatches);
+                    var dest = undefinedInit(T);
                     switch (S.representation) {
                         .externally_tagged => {
                             var object = (try value.asObject()).iterator();
@@ -2142,23 +2379,43 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             }
 
             const UnionDispatch = struct {
-                handle: *const Handler(anyopaque),
+                handle: *const CustomParserHandler(anyopaque),
             };
 
-            fn TaggedUnionParser(
+            fn TaggedReprParser(
                 comptime T: type,
-                comptime repr: schema_utils.UnionRepresentation,
+                comptime repr: UnionRepresentation,
                 comptime F: _std.builtin.Type.UnionField,
                 comptime G: ?schema.Infer(F.type),
             ) type {
                 return struct {
                     pub fn parse(allocator: ?Allocator, value: Value) schema.Error!T {
                         if (repr == .internally_tagged) {
-                            const g = comptime resolveSchema(F.type, G);
-                            assert(@typeInfo(F.type) == .@"struct");
                             var it: Object.Iterator = .{ .first = false, .iter = value.iter };
-                            const payload = try parseStructWithObjectIterator(F.type, g, allocator, &it);
-                            return @unionInit(T, F.name, payload);
+                            switch (@typeInfo(F.type)) {
+                                .@"struct" => {
+                                    const g = comptime resolveSchema(F.type, G);
+                                    const custom_parser = comptime g.parse_with orelse schema.CustomParser(F.type).infer();
+                                    if (custom_parser) |_| @compileError(
+                                        "Unable to parse internally tagged union variant '" ++
+                                            @typeName(T) ++ "." ++ F.name ++
+                                            "' into type '" ++
+                                            @typeName(F.type) ++ "'",
+                                    );
+                                    const payload = try parseStructWithObjectIterator(F.type, g, allocator, &it);
+                                    return @unionInit(T, F.name, payload);
+                                },
+                                .void => {
+                                    if (try it.next()) |_| return error.UnknownUnionVariant;
+                                    return @unionInit(T, F.name, {});
+                                },
+                                else => @compileError(
+                                    "Unable to parse internally tagged union variant '" ++
+                                        @typeName(T) ++ "." ++ F.name ++
+                                        "' into type '" ++
+                                        @typeName(F.type) ++ "'",
+                                ),
+                            }
                         } else {
                             const payload = try value.asLeaky(F.type, allocator, .{ .schema = G });
                             return @unionInit(T, F.name, payload);
@@ -2195,7 +2452,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                         if (info.child == u8 and S.bytes_as_string) {
                             const str = try value.asString().getTemporal();
                             if (str.len != info.len) return error.IncorrectType;
-                            var dest = schema_utils.undefinedInit(T);
+                            var dest = undefinedInit(T);
                             @memcpy(&dest, str);
                             if (info.sentinel()) |s| {
                                 dest[str.len] = s;
@@ -2203,7 +2460,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                             return dest;
                         } else {
                             var arr = (try value.asArray()).iterator();
-                            var dest = schema_utils.undefinedInit(T);
+                            var dest = undefinedInit(T);
                             for (0..info.len) |i| {
                                 if (try arr.next()) |item| {
                                     dest[i] = try item.asLeaky(info.child, allocator, .{});
@@ -2221,7 +2478,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     .vector => |info| {
                         if (!isParseable(info.child)) @compileError("Unable to parse into type '" ++ @typeName(T) ++ "'");
                         var arr = (try value.asArray()).iterator();
-                        var dest = schema_utils.undefinedInit(T);
+                        var dest = undefinedInit(T);
                         for (0..info.len) |i| {
                             if (try arr.next()) |item| {
                                 dest[i] = try item.asLeaky(info.child, allocator, .{});
@@ -2307,6 +2564,16 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     else => S orelse .{},
                 };
             }
+
+            fn resolveFieldRenaming(comptime T: type, comptime S: schema.Infer(T), comptime name: []const u8) ?[]const u8 {
+                const field_schema = @field(S.fields, name);
+                if (field_schema.rename) |rename| return rename;
+                if (S.rename_all) |rename_all| {
+                    return renameField(rename_all, name);
+                } else {
+                    return null;
+                }
+            }
         };
 
         const Logger = struct {
@@ -2364,251 +2631,336 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
     };
 }
 
-const schema_utils = struct {
-    const Map = @import("schema_map.zig").SchemaMap;
+const Map = @import("schema_map.zig").SchemaMap;
 
-    const UnionRepresentation = union(enum) {
-        untagged,
-        externally_tagged,
-        internally_tagged: []const u8,
-        adjacently_tagged: struct {
-            tag: []const u8,
-            content: []const u8,
-        },
-    };
+const UnionRepresentation = union(enum) {
+    /// Consider the following union type:
+    /// ```zig
+    /// const Message = union(enum) {
+    ///     pub const schema: Parser.schema.Union(@This()) = .{
+    ///         .representation = .untagged,
+    ///     };
+    ///
+    ///     request: struct { id: []const u8, method: []const u8, params: Params },
+    ///     response: struct { id: []const u8, result: Value },
+    /// };
+    /// ```
+    ///
+    /// Written in JSON syntax, the untagged representation looks like this:
+    ///
+    /// ```json
+    /// {"id": "...", "method": "...", "params": {...}}
+    /// ```
+    ///
+    /// There is no explicit tag identifying which variant the data contains. Zimdjson will
+    /// try to match the data against each variant in order and the first one that
+    /// deserializes successfully is the one returned.
+    ///
+    /// This representation can handle unions containing any type of variant.
+    ///
+    /// As another example, this union can be deserialized from either an integer or an
+    /// array of two strings:
+    ///
+    /// ```zig
+    /// const Data = union(enum) {
+    ///     pub const schema: Parser.schema.Union(@This()) = .{
+    ///         .representation = .untagged,
+    ///     };
+    ///
+    ///     integer: u64,
+    ///     pair: struct { []const u8, []const u8 },
+    /// };
+    /// ```
+    untagged,
 
-    const FieldsRenaming = enum {
-        lowercase,
-        UPPERCASE,
-        PascalCase,
-        camelCase,
-        snake_case,
-        SCREAMING_SNAKE_CASE,
-        @"kebab-case",
-        @"SCREAMING-KEBAB-CASE",
-    };
+    /// Consider the following union type:
+    /// ```zig
+    /// const Message = union(enum) {
+    ///     pub const schema: Parser.schema.Union(@This()) = .{
+    ///         .representation = .externally_tagged,
+    ///     };
+    ///
+    ///     request: struct { id: []const u8, method: []const u8, params: Params },
+    ///     response: struct { id: []const u8, result: Value },
+    /// };
+    /// ```
+    ///
+    /// Written in JSON syntax, the externally tagged representation looks like this:
+    ///
+    /// ```json
+    /// {"request": {"id": "...", "method": "...", "params": {...}}}
+    /// ```
+    ///
+    /// The externally tagged representation is characterized by being able to know which
+    /// variant we are dealing with before beginning to parse the content of the variant.
+    ///
+    /// In JSON, the externally tagged representation is often not ideal for readability.
+    externally_tagged,
 
-    /// It is assumed the name is snake_cased
-    fn renameField(case: FieldsRenaming, name: []const u8) []const u8 {
-        var output = std.fmt.comptimePrint("{s}", .{name}).*;
-        var output_len = name.len;
-        switch (case) {
-            .lowercase, .snake_case => {},
-            .UPPERCASE, .SCREAMING_SNAKE_CASE => _ = std.ascii.upperString(&output, name),
-            .@"kebab-case" => std.mem.replaceScalar(u8, &output, '_', '-'),
-            .@"SCREAMING-KEBAB-CASE" => {
-                _ = std.ascii.upperString(&output, name);
-                std.mem.replaceScalar(u8, &output, '_', '-');
-            },
-            .camelCase, .PascalCase => {
-                var capitalize = case == .PascalCase;
-                var i: usize = 0;
-                for (name) |c| {
-                    if (c == '_') {
-                        capitalize = true;
-                    } else if (capitalize) {
-                        output[i] = std.ascii.toUpper(c);
-                        i += 1;
-                        capitalize = false;
-                    } else {
-                        output[i] = c;
-                        i += 1;
-                    }
-                }
-                output_len = i;
-            },
-        }
-        const output_copy = output;
-        return output_copy[0..output_len];
-    }
+    /// Consider the following union type:
+    /// ```zig
+    /// const Message = union(enum) {
+    ///     pub const schema: Parser.schema.Union(@This()) = .{
+    ///         .representation = .{ .internally_tagged = "type" },
+    ///     };
+    ///
+    ///     request: struct { id: []const u8, method: []const u8, params: Params },
+    ///     response: struct { id: []const u8, result: Value },
+    /// };
+    /// ```
+    ///
+    /// Written in JSON syntax, the internally tagged representation looks like this:
+    ///
+    /// ```json
+    /// {"type": "request", "id": "...", "method": "...", "params": {...}}
+    /// ```
+    ///
+    /// The tag identifying which variant we are dealing with is inside of the content, next
+    /// to any other fields of the variant. This representation is common in Java libraries.
+    internally_tagged: []const u8,
 
-    fn EnumFields(comptime T: type) type {
-        assert(@typeInfo(T) == .@"enum");
-        const fields = std.meta.fields(T);
-        comptime var schema_fields: [fields.len]std.builtin.Type.StructField = undefined;
-        inline for (0..fields.len) |i| {
-            const field = fields[i];
-            const schema_field = ?[]const u8;
-            schema_fields[i] = .{
-                .type = schema_field,
-                .name = field.name,
-                .default_value_ptr = &@as(schema_field, null),
-                .is_comptime = false,
-                .alignment = @alignOf(schema_field),
-            };
-        }
-        const sf = schema_fields;
-        return @Type(.{
-            .@"struct" = .{
-                .fields = &sf,
-                .layout = .auto,
-                .decls = &.{},
-                .is_tuple = false,
-            },
-        });
-    }
-
-    fn undefinedInit(comptime T: type) T {
-        const info = @typeInfo(T);
-        if (info != .@"struct") return undefined;
-        comptime var result: T = undefined;
-        inline for (std.meta.fields(T)) |field| {
-            switch (@typeInfo(field.type)) {
-                .optional => @field(result, field.name) = null,
-                else => {
-                    const default_value: *field.type = @constCast(@alignCast(@ptrCast(
-                        field.default_value_ptr orelse continue,
-                    )));
-                    @field(result, field.name) = default_value.*;
-                },
-            }
-        }
-        return result;
-    }
-
-    fn foundFieldsCount(comptime T: type) comptime_int {
-        switch (@typeInfo(T)) {
-            .@"struct" => {
-                comptime var count: comptime_int = 0;
-                inline for (std.meta.fields(T)) |field| {
-                    count += foundFieldsCount(field.type) + 1;
-                }
-                return count;
-            },
-            .@"union" => {
-                comptime var max: comptime_int = 0;
-                inline for (std.meta.fields(T)) |field| {
-                    max = @max(max, foundFieldsCount(field.type));
-                }
-                return max;
-            },
-            inline .optional, .pointer, .array => |info| return foundFieldsCount(info.child),
-            else => return 0,
-        }
-    }
-
-    const StandardDataStructure = union(enum) {
-        array_list: struct { type },
-        array_list_aligned: struct { type, ?u29 },
-        // bit_stack,
-        // buf_map,
-        // buf_set,
-        bounded_array: struct { type, usize },
-        bounded_array_aligned: struct { type, u29, usize },
-        enum_map: struct { type, type },
-        singly_linked_list: struct { type },
-        doubly_linked_list: struct { type },
-        multi_array_list: struct { type },
-        segmented_list: struct { type, usize },
-        string_array_hash_map: struct { type },
-        string_hash_map: struct { type },
-
-        pub fn infer(comptime T: type) ?@This() {
-            switch (@typeInfo(T)) {
-                .@"struct" => {},
-                else => return null,
-            }
-
-            // if (T == std.BitStack) return .bit_stack;
-
-            // if (T == std.BufMap) return .buf_map;
-
-            // if (T == std.BufSet) return .buf_set;
-
-            if (@hasDecl(T, "Slice")) {
-                switch (@typeInfo(@field(T, "Slice"))) {
-                    .pointer => |info| {
-                        if (info.size == .slice) {
-                            const child = info.child;
-                            if (T == std.ArrayListUnmanaged(child))
-                                return .{ .array_list = .{child} };
-                            if (T == std.ArrayListAlignedUnmanaged(child, info.alignment))
-                                return .{ .array_list_aligned = .{ child, info.alignment } };
-                        }
-                    },
-                    else => {},
-                }
-            }
-
-            if (@hasDecl(T, "Node")) {
-                const Node = @field(T, "Node");
-                if (@typeInfo(Node) == .@"struct" and @hasField(Node, "data")) {
-                    const child = @FieldType(Node, "data");
-                    if (T == std.SinglyLinkedList(child))
-                        return .{ .singly_linked_list = .{child} };
-                    if (T == std.DoublyLinkedList(child))
-                        return .{ .doubly_linked_list = .{child} };
-                }
-            }
-
-            if (@hasDecl(T, "KV")) {
-                const KV = @field(T, "KV");
-                if (@typeInfo(KV) == .@"struct" and @hasField(KV, "value")) {
-                    const V = @FieldType(KV, "value");
-                    if (T == std.StringHashMapUnmanaged(V))
-                        return .{ .string_hash_map = .{V} };
-                    if (T == std.StringArrayHashMapUnmanaged(V))
-                        return .{ .string_array_hash_map = .{V} };
-                }
-            }
-
-            if (@hasField(T, "buffer")) {
-                const buffer = @FieldType(T, "buffer");
-                switch (@typeInfo(buffer)) {
-                    .array => |info| {
-                        const buffer_capacity = info.len;
-                        const child = info.child;
-                        // if T == std.BoundedArrayAligned(sth aligned at 4, 32, ...), @alignOf(child) == 4 but wanted 32
-                        // that is why I search for it in the constSlice function
-                        const constSlice = @TypeOf(@field(T, "constSlice"));
-                        switch (@typeInfo(constSlice)) {
-                            .@"fn" => |fn_info| {
-                                if (fn_info.return_type) |return_type| {
-                                    const alignment = std.meta.alignment(return_type);
-                                    if (T == std.BoundedArray(child, buffer_capacity))
-                                        return .{ .bounded_array = .{ child, buffer_capacity } };
-                                    if (T == std.BoundedArrayAligned(child, alignment, buffer_capacity))
-                                        return .{ .bounded_array_aligned = .{ child, alignment, buffer_capacity } };
-                                }
-                            },
-                            else => {},
-                        }
-                    },
-                    else => {},
-                }
-            }
-
-            if (@hasDecl(T, "Value") and @hasDecl(T, "Key")) {
-                const E = @field(T, "Key");
-                const V = @field(T, "Value");
-                if (T == std.EnumMap(E, V)) return .{ .enum_map = .{ E, V } };
-            }
-
-            if (@hasField(T, "prealloc_segment")) {
-                const prealloc_segment = @FieldType(T, "prealloc_segment");
-                switch (@typeInfo(prealloc_segment)) {
-                    .array => |info| {
-                        if (T == std.SegmentedList(info.child, info.len))
-                            return .{ .segmented_list = .{ info.child, info.len } };
-                    },
-                    else => {},
-                }
-            }
-
-            if (@hasDecl(T, "get")) {
-                const get = @TypeOf(@field(T, "get"));
-                switch (@typeInfo(get)) {
-                    .@"fn" => |info| {
-                        if (info.return_type) |return_type| {
-                            if (T == std.MultiArrayList(return_type))
-                                return .{ .multi_array_list = .{return_type} };
-                        }
-                    },
-                    else => {},
-                }
-            }
-
-            return null;
-        }
-    };
+    /// Consider the following union type:
+    /// ```zig
+    /// const Block = union(enum) {
+    ///     pub const schema: Parser.schema.Union(@This()) = .{
+    ///         .representation = .{ .adjacently_tagged = .{ .tag = "t", .content = "c" } },
+    ///     };
+    ///
+    ///     para: std.ArrayListUnmanaged(Inline),
+    ///     str: []const u8,
+    /// };
+    /// ```
+    ///
+    /// This representation is common in the Haskell world. Written in JSON syntax:
+    ///
+    /// ```json
+    /// {"t": "para", "c": [{...}, {...}]}
+    /// {"t": "str", "c": "the string"}
+    /// ```
+    ///
+    /// The tag and the content are adjacent to each other as two fields within the same
+    /// object.
+    adjacently_tagged: struct {
+        tag: []const u8,
+        content: []const u8,
+    },
 };
+
+/// When renaming, it is assumed the fields are `snake_cased`, like described in https://ziglang.org/documentation/master/#Names.
+const FieldsRenaming = enum {
+    lowercase,
+    UPPERCASE,
+    PascalCase,
+    camelCase,
+    snake_case,
+    SCREAMING_SNAKE_CASE,
+    @"kebab-case",
+    @"SCREAMING-KEBAB-CASE",
+};
+
+fn renameField(case: FieldsRenaming, name: []const u8) []const u8 {
+    var output = std.fmt.comptimePrint("{s}", .{name}).*;
+    var output_len = name.len;
+    switch (case) {
+        .lowercase, .snake_case => {},
+        .UPPERCASE, .SCREAMING_SNAKE_CASE => _ = std.ascii.upperString(&output, name),
+        .@"kebab-case" => std.mem.replaceScalar(u8, &output, '_', '-'),
+        .@"SCREAMING-KEBAB-CASE" => {
+            _ = std.ascii.upperString(&output, name);
+            std.mem.replaceScalar(u8, &output, '_', '-');
+        },
+        .camelCase, .PascalCase => {
+            var capitalize = case == .PascalCase;
+            var i: usize = 0;
+            for (name) |c| {
+                if (c == '_') {
+                    capitalize = true;
+                } else if (capitalize) {
+                    output[i] = std.ascii.toUpper(c);
+                    i += 1;
+                    capitalize = false;
+                } else {
+                    output[i] = c;
+                    i += 1;
+                }
+            }
+            output_len = i;
+        },
+    }
+    const output_copy = output;
+    return output_copy[0..output_len];
+}
+
+fn undefinedInit(comptime T: type) T {
+    const info = @typeInfo(T);
+    if (info != .@"struct") return undefined;
+    comptime var result: T = undefined;
+    inline for (std.meta.fields(T)) |field| {
+        switch (@typeInfo(field.type)) {
+            .optional => @field(result, field.name) = null,
+            else => {
+                const default_value: *field.type = @constCast(@alignCast(@ptrCast(
+                    field.default_value_ptr orelse continue,
+                )));
+                @field(result, field.name) = default_value.*;
+            },
+        }
+    }
+    return result;
+}
+
+const StandardDataStructure = union(enum) {
+    array_list: struct { type },
+    array_list_aligned: struct { type, ?u29 },
+    // bit_stack,
+    // buf_map,
+    // buf_set,
+    bounded_array: struct { type, usize },
+    bounded_array_aligned: struct { type, u29, usize },
+    enum_map: struct { type, type },
+    singly_linked_list: struct { type },
+    doubly_linked_list: struct { type },
+    multi_array_list: struct { type },
+    segmented_list: struct { type, usize },
+    string_array_hash_map: struct { type },
+    string_hash_map: struct { type },
+
+    pub fn infer(comptime T: type) ?@This() {
+        switch (@typeInfo(T)) {
+            .@"struct" => {},
+            else => return null,
+        }
+
+        // if (T == std.BitStack) return .bit_stack;
+
+        // if (T == std.BufMap) return .buf_map;
+
+        // if (T == std.BufSet) return .buf_set;
+
+        if (@hasDecl(T, "Slice")) {
+            switch (@typeInfo(@field(T, "Slice"))) {
+                .pointer => |info| {
+                    if (info.size == .slice) {
+                        const child = info.child;
+                        if (T == std.ArrayListUnmanaged(child))
+                            return .{ .array_list = .{child} };
+                        if (T == std.ArrayListAlignedUnmanaged(child, info.alignment))
+                            return .{ .array_list_aligned = .{ child, info.alignment } };
+                    }
+                },
+                else => {},
+            }
+        }
+
+        if (@hasDecl(T, "Node")) {
+            const Node = @field(T, "Node");
+            if (@typeInfo(Node) == .@"struct" and @hasField(Node, "data")) {
+                const child = @FieldType(Node, "data");
+                if (T == std.SinglyLinkedList(child))
+                    return .{ .singly_linked_list = .{child} };
+                if (T == std.DoublyLinkedList(child))
+                    return .{ .doubly_linked_list = .{child} };
+            }
+        }
+
+        if (@hasDecl(T, "KV")) {
+            const KV = @field(T, "KV");
+            if (@typeInfo(KV) == .@"struct" and @hasField(KV, "value")) {
+                const V = @FieldType(KV, "value");
+                if (T == std.StringHashMapUnmanaged(V))
+                    return .{ .string_hash_map = .{V} };
+                if (T == std.StringArrayHashMapUnmanaged(V))
+                    return .{ .string_array_hash_map = .{V} };
+            }
+        }
+
+        if (@hasField(T, "buffer")) {
+            const buffer = @FieldType(T, "buffer");
+            switch (@typeInfo(buffer)) {
+                .array => |info| {
+                    const buffer_capacity = info.len;
+                    const child = info.child;
+                    // if T == std.BoundedArrayAligned(sth aligned at 4, 32, ...), @alignOf(child) == 4 but wanted 32
+                    // that is why I search for it in the constSlice function
+                    const constSlice = @TypeOf(@field(T, "constSlice"));
+                    switch (@typeInfo(constSlice)) {
+                        .@"fn" => |fn_info| {
+                            if (fn_info.return_type) |return_type| {
+                                const alignment = std.meta.alignment(return_type);
+                                if (T == std.BoundedArray(child, buffer_capacity))
+                                    return .{ .bounded_array = .{ child, buffer_capacity } };
+                                if (T == std.BoundedArrayAligned(child, alignment, buffer_capacity))
+                                    return .{ .bounded_array_aligned = .{ child, alignment, buffer_capacity } };
+                            }
+                        },
+                        else => {},
+                    }
+                },
+                else => {},
+            }
+        }
+
+        if (@hasDecl(T, "Value") and @hasDecl(T, "Key")) {
+            const E = @field(T, "Key");
+            const V = @field(T, "Value");
+            if (T == std.EnumMap(E, V)) return .{ .enum_map = .{ E, V } };
+        }
+
+        if (@hasField(T, "prealloc_segment")) {
+            const prealloc_segment = @FieldType(T, "prealloc_segment");
+            switch (@typeInfo(prealloc_segment)) {
+                .array => |info| {
+                    if (T == std.SegmentedList(info.child, info.len))
+                        return .{ .segmented_list = .{ info.child, info.len } };
+                },
+                else => {},
+            }
+        }
+
+        if (@hasDecl(T, "get")) {
+            const get = @TypeOf(@field(T, "get"));
+            switch (@typeInfo(get)) {
+                .@"fn" => |info| {
+                    if (info.return_type) |return_type| {
+                        if (T == std.MultiArrayList(return_type))
+                            return .{ .multi_array_list = .{return_type} };
+                    }
+                },
+                else => {},
+            }
+        }
+
+        return null;
+    }
+};
+
+test "ondemand" {
+    const allocator = std.testing.allocator;
+    var parser = FullParser(.default).init;
+    defer parser.deinit(allocator);
+
+    const document = try parser.parseFromSlice(allocator,
+        \\{
+        \\  "Image": {
+        \\      "Width":  800,
+        \\      "Height": 600,
+        \\      "Title":  "View from 15th Floor",
+        \\      "Thumbnail": {
+        \\          "Url":    "http://www.example.com/image/481989943",
+        \\          "Height": 125,
+        \\          "Width":  100
+        \\      },
+        \\      "Animated" : false,
+        \\      "IDs": [116, 943, 234, 38793]
+        \\    }
+        \\}
+    );
+
+    const image = try document.at("Image").asObject();
+
+    const title = try image.at("Title").asString().get();
+    try std.testing.expectEqualStrings("View from 15th Floor", title);
+
+    const third_id = try image.at("IDs").atIndex(2).asUnsigned();
+    try std.testing.expectEqual(234, third_id);
+}

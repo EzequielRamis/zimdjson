@@ -12,7 +12,7 @@
 //! * More efficient memory usage.
 //!
 //! To get started, choose one of the following parsing approaches:
-//! * `dom`: A simple and "programmer friendly" API in which an intermediate tree-like
+//! * `dom`: A simple and "user friendly" API in which an intermediate tree-like
 //! structure is constructed for the whole document and can be traversed.
 //! * `ondemand`: At the cost of incomplete validation, this API allows you to parse
 //! documents on-the-fly, without the need to store an entire document structure in

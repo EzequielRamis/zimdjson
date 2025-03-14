@@ -16,9 +16,13 @@ const Mask = types.Mask;
 const Predicate = types.Predicate;
 
 pub const Error = error{
-    FoundControlCharacter,
-    InvalidEncoding,
+    /// Found unescaped characters in string.
+    FoundUnescapedChars,
+    /// The input is not valid UTF-8.
+    InvalidUtf8,
+    /// Missing quote at the end.
     ExpectedStringEnd,
+    /// No structural element found.
     Empty,
 };
 
@@ -47,8 +51,8 @@ pub fn Indexer(comptime T: type, comptime options: Options) type {
         pub const init = std.mem.zeroInit(Self, .{});
 
         pub inline fn validate(self: Self) Error!void {
-            if (self.unescaped_error != 0) return error.FoundControlCharacter;
-            if (!self.utf8.succeeded()) return error.InvalidEncoding;
+            if (self.unescaped_error != 0) return error.FoundUnescapedChars;
+            if (!self.utf8.succeeded()) return error.InvalidUtf8;
         }
 
         pub inline fn validateEof(self: Self) Error!void {

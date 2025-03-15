@@ -493,12 +493,15 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
         pub const Document = struct {
             iter: Value.Iterator,
 
+            /// Cast the document to a JSON value.
+            /// Note that this method removes some validation, so it should be done manually.
             pub fn asValue(self: Document) Value {
                 if (builtin.mode == .Debug) if (!self.iter.isAtRoot()) return .{ .iter = self.iter, .err = error.OutOfOrderIteration };
                 self.iter.assertAtRoot();
                 return .{ .iter = self.iter };
             }
 
+            /// Cast the document to an object.
             pub fn asObject(self: Document) Error!Object {
                 if (builtin.mode == .Debug) if (!self.iter.isAtRoot()) return error.OutOfOrderIteration;
                 self.iter.assertAtRoot();
@@ -507,6 +510,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 return error.TrailingContent;
             }
 
+            /// Cast the document to an array.
             pub fn asArray(self: Document) Error!Array {
                 if (builtin.mode == .Debug) if (!self.iter.isAtRoot()) return error.OutOfOrderIteration;
                 self.iter.assertAtRoot();
@@ -515,6 +519,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 return error.TrailingContent;
             }
 
+            /// Cast the document to a number.
             pub fn asNumber(self: Document) Error!Number {
                 if (builtin.mode == .Debug) if (!self.iter.isAtRoot()) return error.OutOfOrderIteration;
                 self.iter.assertAtRoot();
@@ -523,6 +528,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 return error.TrailingContent;
             }
 
+            /// Cast the document to an unsigned integer.
             pub fn asUnsigned(self: Document) Error!u64 {
                 if (builtin.mode == .Debug) if (!self.iter.isAtRoot()) return error.OutOfOrderIteration;
                 self.iter.assertAtRoot();
@@ -531,6 +537,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 return error.TrailingContent;
             }
 
+            /// Cast the document to a signed integer.
             pub fn asSigned(self: Document) Error!i64 {
                 if (builtin.mode == .Debug) if (!self.iter.isAtRoot()) return error.OutOfOrderIteration;
                 self.iter.assertAtRoot();
@@ -539,6 +546,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 return error.TrailingContent;
             }
 
+            /// Cast the document to a double floating point.
             pub fn asDouble(self: Document) Error!f64 {
                 if (builtin.mode == .Debug) if (!self.iter.isAtRoot()) return error.OutOfOrderIteration;
                 self.iter.assertAtRoot();
@@ -547,6 +555,13 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 return error.TrailingContent;
             }
 
+            /// Cast the document to a string.
+            /// The string is guaranteed to be valid UTF-8.
+            ///
+            /// **Note**: The string is stored in the parser and will be invalidated the next time it
+            ///
+            /// **Note**: A value should be consumed once. Calling `asString` twice on the same value
+            /// is an error.
             pub fn asString(self: Document) Error![]const u8 {
                 if (builtin.mode == .Debug) if (!self.iter.isAtRoot()) return error.OutOfOrderIteration;
                 self.iter.assertAtRoot();
@@ -555,6 +570,12 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 return error.TrailingContent;
             }
 
+            /// Cast the document to a `RawString`.
+            /// The string is guaranteed to be valid UTF-8, and may have escapes in it (e.g. `\\` or
+            /// `\n`).
+            ///
+            /// **Note**: In streaming mode, this value becomes invalid once it is out of the current
+            /// chunk's scope, so it should be used immediately.
             pub fn asRawString(self: Document) RawString {
                 if (builtin.mode == .Debug) if (!self.iter.isAtRoot()) return .{ .iter = self.iter, .raw_str = undefined, .err = error.OutOfOrderIteration };
                 self.iter.assertAtRoot();
@@ -576,6 +597,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 };
             }
 
+            /// Cast the document to a bool.
             pub fn asBool(self: Document) Error!bool {
                 if (builtin.mode == .Debug) if (!self.iter.isAtRoot()) return error.OutOfOrderIteration;
                 self.iter.assertAtRoot();
@@ -584,6 +606,10 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 return error.TrailingContent;
             }
 
+            /// Checks if the document is null. If and only if the document is `null`,
+            /// then it is consumed (we advance).
+            /// If we find a token that begins with `'n'` but is not `'null'`, then an
+            /// `error.IncorrectType` is returned.
             pub fn isNull(self: Document) Error!bool {
                 if (builtin.mode == .Debug) if (!self.iter.isAtRoot()) return error.OutOfOrderIteration;
                 self.iter.assertAtRoot();
@@ -592,6 +618,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 return error.TrailingContent;
             }
 
+            /// Cast the document to any JSON value.
             pub fn asAny(self: Document) Error!AnyValue {
                 if (builtin.mode == .Debug) if (!self.iter.isAtRoot()) return error.OutOfOrderIteration;
                 self.iter.assertAtRoot();
@@ -609,6 +636,13 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 };
             }
 
+            /// Get the type of the document. It does not validate or consume the document.
+            /// E.g., you must still call `isNull` to check that the document is null even if
+            /// `getType` returns `.null`.
+            ///
+            /// **Note**: If you're only expecting the document to be one type (a typical case), it's
+            /// generally better to just call `asDouble`, `asString`, etc. and check for
+            /// `error.IncorrectType`.
             pub fn getType(self: Document) Error!types.ValueType {
                 return switch (self.iter.start_char) {
                     't', 'f' => .bool,
@@ -621,6 +655,20 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 };
             }
 
+            /// This method scans the array and counts the number of elements.
+            /// It should always be called before you have begun iterating through the array: it is
+            /// expected that you are pointing at the beginning of the array.
+            ///
+            /// The runtime complexity is linear in the size of the array. After calling this method,
+            /// if successful, the array is "reset" at its beginning as if it had never been
+            /// accessed. If the JSON is malformed (e.g., there is a missing comma), then an error is
+            /// returned and it is no longer safe to continue.
+            ///
+            /// To check that an array is empty, it is more performant to use
+            /// the `isEmpty` method.
+            ///
+            /// **Performance note:** You should only call `getArraySize` as a last resort as it may
+            /// require scanning the document twice or more.
             pub fn getArraySize(self: Document) Error!usize {
                 const arr = try self.asArray();
                 const size = try arr.getSize();
@@ -628,6 +676,20 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 return size;
             }
 
+            /// This method scans the object and counts the number of fields.
+            /// It should always be called before you have begun iterating through the object: it is
+            /// expected that you are pointing at the beginning of the object.
+            ///
+            /// The runtime complexity is linear in the size of the object. After calling this
+            /// method, if successful, the object is "reset" at its beginning as if it had never been
+            /// accessed.
+            /// If the JSON is malformed (e.g., there is a missing comma), then an error is returned
+            /// and it is no longer safe to continue.
+            ///
+            /// To check that an object is empty, it is more performant to use the `isEmpty` method.
+            ///
+            /// **Performance note:** You should only call `getObjectSize` as a last resort as it may
+            /// require scanning the document twice or more.
             pub fn getObjectSize(self: Document) Error!usize {
                 const arr = try self.asObject();
                 const size = try arr.getSize();
@@ -666,16 +728,86 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 return self.iter.isAtEnd();
             }
 
+            /// Look up a field by name on an object, without regard to key order.
+            ///
+            /// Since this method is chainable, it can be called multiple times in a row.
+            /// For example:
+            ///
+            /// ```zig
+            /// const document = try parser.parseFromSlice(allocator, "{ \"a\": { \"b\": 1 } }");
+            /// const value = try document.at("a").at("b").asUnsigned();
+            /// std.debug.assert(value == 1);
+            /// ```
+            ///
+            /// **Performance note:** This is a bit less performant than `atOrdered`, though its
+            /// effect varies and often appears negligible. It starts out normally, starting out at
+            /// the last field; but if the field is not found, it scans from the beginning of the
+            /// object to see if it missed it. That missing case has a non-cache-friendly bump and
+            /// lots of extra scanning, especially if the object in question is large. The fact that
+            /// the extra code is there also bumps the executable size.
+            ///
+            /// It is the default, however, because it would be highly surprising (and hard to debug)
+            /// if the default behavior failed to look up a field just because it was in the wrong
+            /// order--and many APIs assume this. Therefore, you must be explicit if you want to
+            /// treat objects as out of order.
+            ///
+            /// If you have multiple fields with a matching key (`{ "x": 1, "x": 1 }`) be mindful
+            /// that only one field is returned.
+            ///
+            /// Use `atOrdered` if you are sure fields will be in order (or are willing to treat it
+            /// as if the field as not there when they are not in order).
             pub fn at(self: Document, key: []const u8) Value {
                 const obj = self.startOrResumeObject() catch |err| return .{ .iter = self.iter, .err = err };
                 return obj.at(key);
             }
 
+            /// Look up a field by name on an object (order-sensitive).
+            ///
+            /// The following code reads `z`, then `y`, then `x`, and thus will not retrieve `x` or
+            /// `y` if fed the JSON `{ "x": 1, "y": 2, "z": 3 }`:
+            ///
+            /// ```zig
+            /// const obj = try parser.parseFromSlice(allocator,
+            ///     \\{ "x": 1, "y": 2, "z": 3 }
+            /// );
+            /// const z = try obj.atOrdered("z").asDouble();
+            /// const y = try obj.atOrdered("y").asDouble();
+            /// const x = try obj.atOrdered("x").asDouble();
+            /// ```
+            ///
+            /// **Raw Keys:** The lookup will be done against the *raw* key, and will not unescape
+            /// keys. e.g. `object.atOrdered("a")` will match `{ "a": 1 }`, but will *not* match
+            /// `{ "\u0061": 1 }`.
+            pub fn atOrdered(self: Document, key: []const u8) Value {
+                const obj = self.startOrResumeObject() catch |err| return .{ .iter = self.iter, .err = err };
+                return obj.atOrdered(key);
+            }
+
+            /// Get the value at the given index.
+            /// This method has linear-time complexity.
+            ///
+            /// Since this method is chainable, it can be called multiple times in a row.
+            /// For example:
+            ///
+            /// ```zig
+            /// const document = try parser.parseFromSlice(allocator, "[ [], [1] ]");
+            /// const value = try document.atIndex(1).atIndex(0).asUnsigned();
+            /// std.debug.assert(value == 1);
+            /// ```
+            ///
+            /// If the value is not found, an `error.IndexOutOfBounds` will be returned when a cast
+            /// method is used.
+            ///
+            /// **Note**: This method should only be called once on an array instance since the
+            /// array iterator is not reset between each call.
             pub fn atIndex(self: Document, index: usize) Value {
                 const arr = self.asArray() catch |err| return .{ .iter = self.iter, .err = err };
                 return arr.at(index);
             }
 
+            /// Reset the iterator inside the document instance so we are pointing back at the
+            /// beginning of the document, as if it had just been created. It invalidates all
+            /// values, objects and arrays that you have created so far (including unescaped strings).
             pub fn reset(self: Document) Error!void {
                 try self.iter.reset();
                 self.iter.cursor.document.string_buffer.reset();
@@ -1082,41 +1214,60 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 }
             };
 
+            /// Cast the value to an object.
             pub fn asObject(self: Value) Error!Object {
                 if (self.err) |err| return err;
                 return (try Object.start(self.iter))[1];
             }
 
+            /// Cast the value to an array.
             pub fn asArray(self: Value) Error!Array {
                 if (self.err) |err| return err;
                 return (try Array.start(self.iter))[1];
             }
 
+            /// Cast the value to a number.
             pub fn asNumber(self: Value) Error!Number {
                 if (self.err) |err| return err;
                 return self.iter.asNumber();
             }
 
+            /// Cast the value to an unsigned integer.
             pub fn asUnsigned(self: Value) Error!u64 {
                 if (self.err) |err| return err;
                 return self.iter.asUnsigned();
             }
 
+            /// Cast the value to a signed integer.
             pub fn asSigned(self: Value) Error!i64 {
                 if (self.err) |err| return err;
                 return self.iter.asSigned();
             }
 
+            /// Cast the value to a double floating point.
             pub fn asDouble(self: Value) Error!f64 {
                 if (self.err) |err| return err;
                 return self.iter.asDouble();
             }
 
+            /// Cast the value to a string.
+            /// The string is guaranteed to be valid UTF-8.
+            ///
+            /// **Note**: The string is stored in the parser and will be invalidated the next time it
+            ///
+            /// **Note**: A value should be consumed once. Calling `asString` twice on the same value
+            /// is an error.
             pub fn asString(self: Value) Error![]const u8 {
                 if (self.err) |err| return err;
                 return self.iter.asString();
             }
 
+            /// Cast the value to a `RawString`.
+            /// The string is guaranteed to be valid UTF-8, and may have escapes in it (e.g. `\\` or
+            /// `\n`).
+            ///
+            /// **Note**: In streaming mode, this value becomes invalid once it is out of the current
+            /// chunk's scope, so it should be used immediately.
             pub fn asRawString(self: Value) RawString {
                 if (self.err) |err| return .{
                     .iter = self.iter,
@@ -1130,16 +1281,22 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 };
             }
 
+            /// Cast the value to a bool.
             pub fn asBool(self: Value) Error!bool {
                 if (self.err) |err| return err;
                 return self.iter.asBool();
             }
 
+            /// Checks if the value is null. If and only if the value is `null`, then it is consumed
+            /// (we advance).
+            /// If we find a token that begins with `'n'` but is not `'null'`, then an
+            /// `error.IncorrectType` is returned.
             pub fn isNull(self: Value) Error!bool {
                 if (self.err) |err| return err;
                 return self.iter.isNull();
             }
 
+            /// Cast the value to any JSON value.
             pub fn asAny(self: Value) Error!AnyValue {
                 return switch (self.iter.cursor.peekChar()) {
                     't', 'f' => .{ .bool = try self.asBool() },
@@ -1155,6 +1312,13 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 };
             }
 
+            /// Get the type of the value. It does not validate or consume the value.
+            /// E.g., you must still call `isNull` to check that a value is null even if `getType`
+            /// returns `.null`.
+            ///
+            /// **Note**: If you're only expecting a value to be one type (a typical case), it's
+            /// generally better to just call `asDouble`, `asString`, etc. and check for
+            /// `error.IncorrectType`.
             pub fn getType(self: Value) Error!types.ValueType {
                 if (self.err) |err| return err;
                 return switch (self.iter.start_char) {
@@ -1168,6 +1332,20 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 };
             }
 
+            /// This method scans the array and counts the number of elements.
+            /// It should always be called before you have begun iterating through the array: it is
+            /// expected that you are pointing at the beginning of the array.
+            ///
+            /// The runtime complexity is linear in the size of the array. After calling this method,
+            /// if successful, the array is "reset" at its beginning as if it had never been
+            /// accessed. If the JSON is malformed (e.g., there is a missing comma), then an error is
+            /// returned and it is no longer safe to continue.
+            ///
+            /// To check that an array is empty, it is more performant to use
+            /// the `isEmpty` method.
+            ///
+            /// **Performance note:** You should only call `getArraySize` as a last resort as it may
+            /// require scanning the document twice or more.
             pub fn getArraySize(self: Value) Error!usize {
                 if (self.err) |err| return err;
 
@@ -1177,6 +1355,20 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 return size;
             }
 
+            /// This method scans the object and counts the number of fields.
+            /// It should always be called before you have begun iterating through the object: it is
+            /// expected that you are pointing at the beginning of the object.
+            ///
+            /// The runtime complexity is linear in the size of the object. After calling this
+            /// method, if successful, the object is "reset" at its beginning as if it had never been
+            /// accessed.
+            /// If the JSON is malformed (e.g., there is a missing comma), then an error is returned
+            /// and it is no longer safe to continue.
+            ///
+            /// To check that an object is empty, it is more performant to use the `isEmpty` method.
+            ///
+            /// **Performance note:** You should only call `getObjectSize` as a last resort as it may
+            /// require scanning the document twice or more.
             pub fn getObjectSize(self: Value) Error!usize {
                 if (self.err) |err| return err;
 
@@ -1270,12 +1462,80 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 return self.iter.cursor.skip(self.iter.start_depth - 1, 0);
             }
 
+            /// Look up a field by name on an object, without regard to key order.
+            ///
+            /// Since this method is chainable, it can be called multiple times in a row.
+            /// For example:
+            ///
+            /// ```zig
+            /// const document = try parser.parseFromSlice(allocator, "{ \"a\": { \"b\": 1 } }");
+            /// const value = try document.at("a").at("b").asUnsigned();
+            /// std.debug.assert(value == 1);
+            /// ```
+            ///
+            /// **Performance note:** This is a bit less performant than `atOrdered`, though its
+            /// effect varies and often appears negligible. It starts out normally, starting out at
+            /// the last field; but if the field is not found, it scans from the beginning of the
+            /// object to see if it missed it. That missing case has a non-cache-friendly bump and
+            /// lots of extra scanning, especially if the object in question is large. The fact that
+            /// the extra code is there also bumps the executable size.
+            ///
+            /// It is the default, however, because it would be highly surprising (and hard to debug)
+            /// if the default behavior failed to look up a field just because it was in the wrong
+            /// order--and many APIs assume this. Therefore, you must be explicit if you want to
+            /// treat objects as out of order.
+            ///
+            /// If you have multiple fields with a matching key (`{ "x": 1, "x": 1 }`) be mindful
+            /// that only one field is returned.
+            ///
+            /// Use `atOrdered` if you are sure fields will be in order (or are willing to treat it
+            /// as if the field as not there when they are not in order).
             pub fn at(self: Value, key: []const u8) Value {
                 if (self.err) |_| return self;
                 const obj = self.startOrResumeObject() catch |err| return .{ .iter = self.iter, .err = err };
                 return obj.at(key);
             }
 
+            /// Look up a field by name on an object (order-sensitive).
+            ///
+            /// The following code reads `z`, then `y`, then `x`, and thus will not retrieve `x` or
+            /// `y` if fed the JSON `{ "x": 1, "y": 2, "z": 3 }`:
+            ///
+            /// ```zig
+            /// const obj = try parser.parseFromSlice(allocator,
+            ///     \\{ "x": 1, "y": 2, "z": 3 }
+            /// );
+            /// const z = try obj.atOrdered("z").asDouble();
+            /// const y = try obj.atOrdered("y").asDouble();
+            /// const x = try obj.atOrdered("x").asDouble();
+            /// ```
+            ///
+            /// **Raw Keys:** The lookup will be done against the *raw* key, and will not unescape
+            /// keys. e.g. `object.atOrdered("a")` will match `{ "a": 1 }`, but will *not* match
+            /// `{ "\u0061": 1 }`.
+            pub fn atOrdered(self: Value, key: []const u8) Value {
+                if (self.err) |_| return self;
+                const obj = self.startOrResumeObject() catch |err| return .{ .iter = self.iter, .err = err };
+                return obj.atOrdered(key);
+            }
+
+            /// Get the value at the given index.
+            /// This method has linear-time complexity.
+            ///
+            /// Since this method is chainable, it can be called multiple times in a row.
+            /// For example:
+            ///
+            /// ```zig
+            /// const document = try parser.parseFromSlice(allocator, "[ [], [1] ]");
+            /// const value = try document.atIndex(1).atIndex(0).asUnsigned();
+            /// std.debug.assert(value == 1);
+            /// ```
+            ///
+            /// If the value is not found, an `error.IndexOutOfBounds` will be returned when a cast
+            /// method is used.
+            ///
+            /// **Note**: This method should only be called once on an array instance since the
+            /// array iterator is not reset between each call.
             pub fn atIndex(self: Value, index: usize) Value {
                 if (self.err) |_| return self;
                 const arr = self.asArray() catch |err| return .{ .iter = self.iter, .err = err };
@@ -1550,6 +1810,15 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             }
 
             /// Look up a field by name on an object, without regard to key order.
+            ///
+            /// Since this method is chainable, it can be called multiple times in a row.
+            /// For example:
+            ///
+            /// ```zig
+            /// const document = try parser.parseFromSlice(allocator, "{ \"a\": { \"b\": 1 } }");
+            /// const value = try document.at("a").at("b").asUnsigned();
+            /// std.debug.assert(value == 1);
+            /// ```
             ///
             /// **Performance note:** This is a bit less performant than `atOrdered`, though its
             /// effect varies and often appears negligible. It starts out normally, starting out at

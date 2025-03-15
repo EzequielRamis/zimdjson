@@ -38,8 +38,8 @@ pub fn run() !void {
     const doc = try parser.parseFromReader(allocator, file.reader().any());
     var tweet = (try doc.at("statuses").asArray()).iterator();
     while (try tweet.next()) |t| {
-        const text = try t.at("text").asString().get();
-        const screen_name = try t.at("user").at("screen_name").asString().get();
+        const text = try t.at("text").asString();
+        const screen_name = try t.at("user").at("screen_name").asString();
         const retweet_count = try t.at("retweet_count").asSigned();
         if (retweet_count <= max_retweet_count and retweet_count >= result.retweet_count) {
             result = .{

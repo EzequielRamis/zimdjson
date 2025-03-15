@@ -218,11 +218,11 @@ fn parseStatus(status: Parser.Value, alloc: std.mem.Allocator) !Status {
         .in_reply_to_status_id_str = try status.at("in_reply_to_status_id_str").asLeaky(?[]const u8, null, .{}),
         .in_reply_to_status_id = try status.at("in_reply_to_status_id").asLeaky(?u64, null, .{}),
         .truncated = try status.at("truncated").asBool(),
-        .source = try status.at("source").asString().get(),
-        .text = try status.at("text").asString().get(),
-        .id_str = try status.at("id_str").asString().get(),
+        .source = try status.at("source").asString(),
+        .text = try status.at("text").asString(),
+        .id_str = try status.at("id_str").asString(),
         .id = try status.at("id").asUnsigned(),
-        .created_at = try status.at("created_at").asString().get(),
+        .created_at = try status.at("created_at").asString(),
         .metadata = try parseMetadata(status.at("metadata")),
     };
 }
@@ -235,13 +235,13 @@ fn parseMetadata(metadata: Parser.Value) !Metadata {
 }
 
 fn parseResultType(value: Parser.Value) !ResultType {
-    const str = try value.asString().get();
+    const str = try value.asString();
     if (!std.mem.eql(u8, str, "recent")) return error.IncorrectType;
     return .recent;
 }
 
 fn parseLanguageCode(value: Parser.Value) !LanguageCode {
-    const str = try value.asString().get();
+    const str = try value.asString();
     if (std.mem.eql(u8, str, "zh-cn")) return .@"zh-cn";
     if (std.mem.eql(u8, str, "cn")) return .cn;
     if (std.mem.eql(u8, str, "en")) return .en;
@@ -260,16 +260,16 @@ fn parseUser(value: Parser.Value, alloc: std.mem.Allocator) !User {
         .default_profile_image = try value.at("default_profile_image").asBool(),
         .default_profile = try value.at("default_profile").asBool(),
         .profile_use_background_image = try value.at("profile_use_background_image").asBool(),
-        .profile_text_color = try value.at("profile_text_color").asString().get(),
-        .profile_sidebar_fill_color = try value.at("profile_sidebar_fill_color").asString().get(),
-        .profile_sidebar_border_color = try value.at("profile_sidebar_border_color").asString().get(),
-        .profile_link_color = try value.at("profile_link_color").asString().get(),
-        .profile_image_url_https = try value.at("profile_image_url_https").asString().get(),
-        .profile_image_url = try value.at("profile_image_url").asString().get(),
+        .profile_text_color = try value.at("profile_text_color").asString(),
+        .profile_sidebar_fill_color = try value.at("profile_sidebar_fill_color").asString(),
+        .profile_sidebar_border_color = try value.at("profile_sidebar_border_color").asString(),
+        .profile_link_color = try value.at("profile_link_color").asString(),
+        .profile_image_url_https = try value.at("profile_image_url_https").asString(),
+        .profile_image_url = try value.at("profile_image_url").asString(),
         .profile_background_tile = try value.at("profile_background_tile").asBool(),
-        .profile_background_image_url_https = try value.at("profile_background_image_url_https").asString().get(),
-        .profile_background_image_url = try value.at("profile_background_image_url").asString().get(),
-        .profile_background_color = try value.at("profile_background_color").asString().get(),
+        .profile_background_image_url_https = try value.at("profile_background_image_url_https").asString(),
+        .profile_background_image_url = try value.at("profile_background_image_url").asString(),
+        .profile_background_color = try value.at("profile_background_color").asString(),
         .is_translation_enabled = try value.at("is_translation_enabled").asBool(),
         .is_translator = try value.at("is_translator").asBool(),
         .contributors_enabled = try value.at("contributors_enabled").asBool(),
@@ -280,18 +280,18 @@ fn parseUser(value: Parser.Value, alloc: std.mem.Allocator) !User {
         .time_zone = try value.at("time_zone").asLeaky(?[]const u8, null, .{}),
         .utc_offset = try value.at("utc_offset").asLeaky(?i32, null, .{}),
         .favourites_count = @intCast(try value.at("favourites_count").asUnsigned()),
-        .created_at = try value.at("created_at").asString().get(),
+        .created_at = try value.at("created_at").asString(),
         .listed_count = @intCast(try value.at("listed_count").asUnsigned()),
         .friends_count = @intCast(try value.at("friends_count").asUnsigned()),
         .followers_count = @intCast(try value.at("followers_count").asUnsigned()),
         .protected = try value.at("protected").asBool(),
         .entities = try parseUserEntities(value.at("entities"), alloc),
         .url = try value.at("url").asLeaky(?[]const u8, null, .{}),
-        .description = try value.at("description").asString().get(),
-        .location = try value.at("location").asString().get(),
-        .screen_name = try value.at("screen_name").asString().get(),
-        .name = try value.at("name").asString().get(),
-        .id_str = try value.at("id_str").asString().get(),
+        .description = try value.at("description").asString(),
+        .location = try value.at("location").asString(),
+        .screen_name = try value.at("screen_name").asString(),
+        .name = try value.at("name").asString(),
+        .id_str = try value.at("id_str").asString(),
         .id = @intCast(try value.at("id").asUnsigned()),
     };
 }
@@ -314,9 +314,9 @@ fn parseUrl(value: Parser.Value) !Url {
             indices[1] = @intCast(try (try arr.next() orelse return error.MissingField).asUnsigned());
             break :brk indices;
         },
-        .display_url = try value.at("display_url").asString().get(),
-        .expanded_url = try value.at("expanded_url").asString().get(),
-        .url = try value.at("url").asString().get(),
+        .display_url = try value.at("display_url").asString(),
+        .expanded_url = try value.at("expanded_url").asString(),
+        .url = try value.at("url").asString(),
     };
 }
 
@@ -358,7 +358,7 @@ fn parseHashTag(value: Parser.Value) !HashTag {
             indices[1] = @intCast(try (try arr.next() orelse return error.MissingField).asUnsigned());
             break :brk indices;
         },
-        .text = try value.at("text").asString().get(),
+        .text = try value.at("text").asString(),
     };
 }
 
@@ -371,9 +371,9 @@ fn parseUserMention(value: Parser.Value) !UserMention {
             indices[1] = @intCast(try (try arr.next() orelse return error.MissingField).asUnsigned());
             break :brk indices;
         },
-        .id_str = try value.at("id_str").asString().get(),
+        .id_str = try value.at("id_str").asString(),
         .id = @intCast(try value.at("id").asUnsigned()),
-        .name = try value.at("name").asString().get(),
-        .screen_name = try value.at("screen_name").asString().get(),
+        .name = try value.at("name").asString(),
+        .screen_name = try value.at("screen_name").asString(),
     };
 }

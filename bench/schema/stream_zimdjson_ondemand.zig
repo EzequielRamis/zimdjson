@@ -203,11 +203,11 @@ fn parseSchemaInner(document: Parser.Document, alloc: std.mem.Allocator, dest: *
 fn parseStatus(status: Parser.Value, alloc: std.mem.Allocator) !Status {
     return .{
         .metadata = try parseMetadata(status.at("metadata")),
-        .created_at = try status.at("created_at").asString().get(),
+        .created_at = try status.at("created_at").asString(),
         .id = try status.at("id").asUnsigned(),
-        .id_str = try status.at("id_str").asString().get(),
-        .text = try status.at("text").asString().get(),
-        .source = try status.at("source").asString().get(),
+        .id_str = try status.at("id_str").asString(),
+        .text = try status.at("text").asString(),
+        .source = try status.at("source").asString(),
         .truncated = try status.at("truncated").asBool(),
         .in_reply_to_status_id = try status.at("in_reply_to_status_id").asLeaky(?u64, null, .{}),
         .in_reply_to_status_id_str = try status.at("in_reply_to_status_id_str").asLeaky(?[]const u8, null, .{}),
@@ -236,13 +236,13 @@ fn parseMetadata(metadata: Parser.Value) !Metadata {
 }
 
 fn parseResultType(value: Parser.Value) !ResultType {
-    const str = try value.asString().get();
+    const str = try value.asString();
     if (!std.mem.eql(u8, str, "recent")) return error.IncorrectType;
     return .recent;
 }
 
 fn parseLanguageCode(value: Parser.Value) !LanguageCode {
-    const str = try value.asString().get();
+    const str = try value.asString();
     if (std.mem.eql(u8, str, "zh-cn")) return .@"zh-cn";
     if (std.mem.eql(u8, str, "cn")) return .cn;
     if (std.mem.eql(u8, str, "en")) return .en;
@@ -256,18 +256,18 @@ fn parseLanguageCode(value: Parser.Value) !LanguageCode {
 fn parseUser(value: Parser.Value, alloc: std.mem.Allocator) !User {
     return .{
         .id = @intCast(try value.at("id").asUnsigned()),
-        .id_str = try value.at("id_str").asString().get(),
-        .name = try value.at("name").asString().get(),
-        .screen_name = try value.at("screen_name").asString().get(),
-        .location = try value.at("location").asString().get(),
-        .description = try value.at("description").asString().get(),
+        .id_str = try value.at("id_str").asString(),
+        .name = try value.at("name").asString(),
+        .screen_name = try value.at("screen_name").asString(),
+        .location = try value.at("location").asString(),
+        .description = try value.at("description").asString(),
         .url = try value.at("url").asLeaky(?[]const u8, null, .{}),
         .entities = try parseUserEntities(value.at("entities"), alloc),
         .protected = try value.at("protected").asBool(),
         .followers_count = @intCast(try value.at("followers_count").asUnsigned()),
         .friends_count = @intCast(try value.at("friends_count").asUnsigned()),
         .listed_count = @intCast(try value.at("listed_count").asUnsigned()),
-        .created_at = try value.at("created_at").asString().get(),
+        .created_at = try value.at("created_at").asString(),
         .favourites_count = @intCast(try value.at("favourites_count").asUnsigned()),
         .utc_offset = try value.at("utc_offset").asLeaky(?i32, null, .{}),
         .time_zone = try value.at("time_zone").asLeaky(?[]const u8, null, .{}),
@@ -278,16 +278,16 @@ fn parseUser(value: Parser.Value, alloc: std.mem.Allocator) !User {
         .contributors_enabled = try value.at("contributors_enabled").asBool(),
         .is_translator = try value.at("is_translator").asBool(),
         .is_translation_enabled = try value.at("is_translation_enabled").asBool(),
-        .profile_background_color = try value.at("profile_background_color").asString().get(),
-        .profile_background_image_url = try value.at("profile_background_image_url").asString().get(),
-        .profile_background_image_url_https = try value.at("profile_background_image_url_https").asString().get(),
+        .profile_background_color = try value.at("profile_background_color").asString(),
+        .profile_background_image_url = try value.at("profile_background_image_url").asString(),
+        .profile_background_image_url_https = try value.at("profile_background_image_url_https").asString(),
         .profile_background_tile = try value.at("profile_background_tile").asBool(),
-        .profile_image_url = try value.at("profile_image_url").asString().get(),
-        .profile_image_url_https = try value.at("profile_image_url_https").asString().get(),
-        .profile_link_color = try value.at("profile_link_color").asString().get(),
-        .profile_sidebar_border_color = try value.at("profile_sidebar_border_color").asString().get(),
-        .profile_sidebar_fill_color = try value.at("profile_sidebar_fill_color").asString().get(),
-        .profile_text_color = try value.at("profile_text_color").asString().get(),
+        .profile_image_url = try value.at("profile_image_url").asString(),
+        .profile_image_url_https = try value.at("profile_image_url_https").asString(),
+        .profile_link_color = try value.at("profile_link_color").asString(),
+        .profile_sidebar_border_color = try value.at("profile_sidebar_border_color").asString(),
+        .profile_sidebar_fill_color = try value.at("profile_sidebar_fill_color").asString(),
+        .profile_text_color = try value.at("profile_text_color").asString(),
         .profile_use_background_image = try value.at("profile_use_background_image").asBool(),
         .default_profile = try value.at("default_profile").asBool(),
         .default_profile_image = try value.at("default_profile_image").asBool(),
@@ -308,9 +308,9 @@ fn parseUserEntities(value: Parser.Value, alloc: std.mem.Allocator) !UserEntitie
 
 fn parseUrl(value: Parser.Value) !Url {
     return .{
-        .url = try value.at("url").asString().get(),
-        .expanded_url = try value.at("expanded_url").asString().get(),
-        .display_url = try value.at("display_url").asString().get(),
+        .url = try value.at("url").asString(),
+        .expanded_url = try value.at("expanded_url").asString(),
+        .display_url = try value.at("display_url").asString(),
         .indices = brk: {
             var indices: struct { u8, u8 } = undefined;
             var arr = (try value.at("indices").asArray()).iterator();
@@ -349,7 +349,7 @@ fn parseStatusEntities(value: Parser.Value, alloc: std.mem.Allocator) !StatusEnt
 
 fn parseHashTag(value: Parser.Value) !HashTag {
     return .{
-        .text = try value.at("text").asString().get(),
+        .text = try value.at("text").asString(),
         .indices = brk: {
             var indices: struct { u8, u8 } = undefined;
             var arr = (try value.at("indices").asArray()).iterator();
@@ -362,10 +362,10 @@ fn parseHashTag(value: Parser.Value) !HashTag {
 
 fn parseUserMention(value: Parser.Value) !UserMention {
     return .{
-        .screen_name = try value.at("screen_name").asString().get(),
-        .name = try value.at("name").asString().get(),
+        .screen_name = try value.at("screen_name").asString(),
+        .name = try value.at("name").asString(),
         .id = @intCast(try value.at("id").asUnsigned()),
-        .id_str = try value.at("id_str").asString().get(),
+        .id_str = try value.at("id_str").asString(),
         .indices = brk: {
             var indices: struct { u8, u8 } = undefined;
             var arr = (try value.at("indices").asArray()).iterator();

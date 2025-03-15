@@ -67,7 +67,7 @@ pub const FullOptions = struct {
     /// ```
     ///
     /// With `.schema_identifier = "S"`, the parser interprets that:
-    /// * The `Image` struct has a schema that renames all fields to `.PascalCase`, except `ids`, which is renamed to `IDs`.
+    /// * The `Image` struct has a schema that renames all fields to `.PascalCase`, except `ids`, which is renamed to `"IDs"`.
     /// * The `thumbnail` field has its own schema, also renaming all fields to `.PascalCase`.
     ///
     /// While this option exists, it is not recommended to change it unless absolutely necessary.
@@ -78,10 +78,14 @@ pub const StreamOptions = struct {
     pub const default: @This() = .{};
 
     /// This option sets the stream's chunk length, which determines the number of
-    /// bytes available for parsing at any given time.
+    /// bytes available for parsing at any time.
     ///
-    /// If a value (such a JSON string) exceeds the chunk length, an `error.BatchOverflow`
-    /// will be returned.
+    /// Exceeding the chunk length results in an `error.BatchOverflow`, which can occur in
+    /// three ways:
+    /// * A JSON literal (string or number) exceeds the chunk length.
+    /// * Whitespace exceeds the chunk length.
+    /// * Rewinding to a previous position, such as resetting an array iterator, that
+    /// surpasses the chunk length.
     ///
     /// By default, the chunk length is set to 64KiB.
     chunk_length: u32 = tokens.ring_buffer.default_chunk_length,
@@ -113,7 +117,7 @@ pub const StreamOptions = struct {
     /// ```
     ///
     /// With `.schema_identifier = "S"`, the parser interprets that:
-    /// * The `Image` struct has a schema that renames all fields to `.PascalCase`, except `ids`, which is renamed to `IDs`.
+    /// * The `Image` struct has a schema that renames all fields to `.PascalCase`, except `ids`, which is renamed to `"IDs"`.
     /// * The `thumbnail` field has its own schema, also renaming all fields to `.PascalCase`.
     ///
     /// While this option exists, it is not recommended to change it unless absolutely necessary.
@@ -202,6 +206,17 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             self.cursor.deinit(allocator);
             self.document_buffer.deinit(allocator);
             self.string_buffer.deinit();
+        }
+
+        /// Set the maximum capacity of a JSON document.
+        pub fn setMaximumCapacity(self: *Self, new_capacity: usize) Error!void {
+            if (new_capacity > max_capacity_bound) return error.ExceededCapacity;
+            self.max_capacity = new_capacity;
+        }
+
+        /// Set the maximum depth of a JSON document.
+        pub fn setMaximumDepth(self: *Self, new_depth: usize) void {
+            self.max_depth = new_depth;
         }
 
         /// Recover the error returned from the reader.
@@ -330,7 +345,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             null,
             bool: bool,
             number: Number,
-            string: String,
+            string: RawString,
             object: Object,
             array: Array,
         };
@@ -473,6 +488,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             }
         };
 
+        /// Represents a JSON document.
         pub const Document = struct {
             iter: Value.Iterator,
 
@@ -530,10 +546,18 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 return error.TrailingContent;
             }
 
-            pub fn asString(self: Document) String {
+            pub fn asString(self: Document) Error![]const u8 {
+                if (builtin.mode == .Debug) if (!self.iter.isAtRoot()) return error.OutOfOrderIteration;
+                self.iter.assertAtRoot();
+                const str: []const u8 = try self.iter.asString();
+                if (try self.iter.isAtEnd()) return str;
+                return error.TrailingContent;
+            }
+
+            pub fn asRawString(self: Document) RawString {
                 if (builtin.mode == .Debug) if (!self.iter.isAtRoot()) return .{ .iter = self.iter, .raw_str = undefined, .err = error.OutOfOrderIteration };
                 self.iter.assertAtRoot();
-                const str: String = self.iter.asString() catch |err| .{
+                const str: RawString = self.iter.asRawString() catch |err| .{
                     .iter = self.iter,
                     .raw_str = undefined,
                     .err = err,
@@ -576,7 +600,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                         _ = try self.isNull();
                         break :brk {};
                     } },
-                    '"' => .{ .string = self.asString() },
+                    '"' => .{ .string = self.asRawString() },
                     '-', '0'...'9' => .{ .number = try self.asNumber() },
                     '[' => .{ .array = try self.asArray() },
                     '{' => .{ .object = try self.asObject() },
@@ -664,6 +688,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             }
         };
 
+        /// Represents a value in a JSON document.
         pub const Value = struct {
             iter: Iterator,
             err: ?Error = null,
@@ -698,10 +723,15 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     return n;
                 }
 
-                inline fn asString(self: Iterator) Error!String {
+                inline fn asString(self: Iterator) Error![]const u8 {
+                    const str = try self.asRawString();
+                    return str.get();
+                }
+
+                inline fn asRawString(self: Iterator) Error!RawString {
                     const raw_str = try self.peekScalar();
                     if (raw_str[0] != '"') return error.IncorrectType;
-                    const str = String{
+                    const str = RawString{
                         .iter = self,
                         .raw_str = raw_str,
                     };
@@ -1081,13 +1111,18 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 return self.iter.asDouble();
             }
 
-            pub fn asString(self: Value) String {
+            pub fn asString(self: Value) Error![]const u8 {
+                if (self.err) |err| return err;
+                return self.iter.asString();
+            }
+
+            pub fn asRawString(self: Value) RawString {
                 if (self.err) |err| return .{
                     .iter = self.iter,
                     .raw_str = undefined,
                     .err = err,
                 };
-                return self.iter.asString() catch |err| .{
+                return self.iter.asRawString() catch |err| .{
                     .iter = self.iter,
                     .raw_str = undefined,
                     .err = err,
@@ -1111,7 +1146,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                         _ = try self.isNull();
                         break :brk {};
                     } },
-                    '"' => .{ .string = self.asString() },
+                    '"' => .{ .string = self.asRawString() },
                     '-', '0'...'9' => .{ .number = try self.asNumber() },
                     '[' => .{ .array = try self.asArray() },
                     '{' => .{ .object = try self.asObject() },
@@ -1198,8 +1233,8 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 const info = @typeInfo(T);
                 switch (info) {
                     .@"struct" => {
-                        if (T == String) {
-                            dest.* = self.asString();
+                        if (T == RawString) {
+                            dest.* = self.asRawString();
                         } else {
                             dest.* = try schema.parseStruct(T, S, allocator, self);
                         }
@@ -1254,28 +1289,47 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             }
         };
 
-        const String = struct {
+        /// A string escaped per JSON rules, terminated with quote (`"`).
+        /// They are used to represent unescaped keys inside JSON documents.
+        ///
+        /// (In other words, a pointer to the beginning of a string, just after the start quote,
+        /// inside a JSON document)
+        pub const RawString = struct {
             iter: Value.Iterator,
             raw_str: [*]const u8,
             err: ?Error = null,
 
-            pub fn get(self: String) Error![]const u8 {
+            /// Unescape this JSON string, replacing `\\` with `\`, `\n` with newline, etc.
+            /// The result will be a valid UTF-8.
+            pub fn get(self: RawString) Error![]const u8 {
                 return self.getAdvanced(null);
             }
 
-            pub fn getSentinel(self: String, comptime sentinel: u8) Error![:sentinel]const u8 {
+            /// Unescape this JSON string, replacing `\\` with `\`, `\n` with newline, etc.
+            /// The result will be a valid UTF-8 with a sentinel byte at the end.
+            pub fn getSentinel(self: RawString, comptime sentinel: u8) Error![:sentinel]const u8 {
                 return self.getAdvanced(sentinel);
             }
 
-            pub fn getTemporal(self: String) Error![]const u8 {
-                const buffer = &self.iter.cursor.document.string_buffer;
-                const str = try self.write(null, buffer);
+            /// Unescape this JSON string, replacing `\\` with `\`, `\n` with newline, etc.
+            /// The result will be a valid UTF-8 **until** the next string parsing.
+            ///
+            /// This method is useful when you want to minimize memory allocations.
+            pub fn getTemporal(self: RawString) Error![]const u8 {
+                const string_buffer = &self.iter.cursor.document.string_buffer;
+                if (want_stream) {
+                    try string_buffer.ensureUnusedCapacity(options.stream.chunk_length + Vector.bytes_len);
+                }
+                const str = try self.write(null, string_buffer.peek());
                 return str;
             }
 
-            inline fn getAdvanced(self: String, comptime sentinel: ?u8) if (sentinel) |s| Error![:s]const u8 else Error![]const u8 {
+            inline fn getAdvanced(self: RawString, comptime sentinel: ?u8) if (sentinel) |s| Error![:s]const u8 else Error![]const u8 {
                 const string_buffer = &self.iter.cursor.document.string_buffer;
-                const str = try self.write(sentinel, string_buffer);
+                if (want_stream) {
+                    try string_buffer.ensureUnusedCapacity(options.stream.chunk_length + Vector.bytes_len);
+                }
+                const str = try self.write(sentinel, string_buffer.peek());
                 if (sentinel) |_| {
                     string_buffer.advance(str.len + 1);
                 } else {
@@ -1284,13 +1338,18 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 return str;
             }
 
-            inline fn write(self: String, comptime sentinel: ?u8, string_buffer: *types.StringBuffer(max_capacity_bound)) if (sentinel) |s| Error![:s]const u8 else Error![]const u8 {
+            /// Unescape this JSON string, replacing `\\` with `\`, `\n` with newline, etc. to a
+            /// user-provided buffer. The result will be a valid UTF-8.
+            ///
+            /// You can ensure that your buffer is large enough depending on the parsing variant:
+            /// * `FullParser`: by allocating a block of memory at least as large as the input JSON
+            /// plus `zimdjson.padding`.
+            /// * `StreamParser`: by allocating a block of memory at least `chunk_len` plus
+            /// `zimdjson.padding`.
+            ///
+            /// The string is valid as long as the bytes in `dest`.
+            pub fn write(self: RawString, comptime sentinel: ?u8, dest: [*]u8) if (sentinel) |s| Error![:s]const u8 else Error![]const u8 {
                 if (self.err) |err| return err;
-
-                if (want_stream) {
-                    try string_buffer.ensureUnusedCapacity(options.stream.chunk_length + Vector.bytes_len);
-                }
-                const dest = string_buffer.peek();
 
                 const str = try self.iter.parseString(self.raw_str, dest);
                 if (sentinel) |s| {
@@ -1299,12 +1358,16 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 return str;
             }
 
-            pub fn eqlRaw(self: String, target: []const u8) Error!bool {
+            /// This method compares the current instance to target:
+            /// returns true if they are byte-by-byte equal (no escaping is done).
+            /// The target should not contain unescaped quote characters.
+            pub fn eqlRaw(self: RawString, target: []const u8) Error!bool {
                 if (self.err) |err| return err;
                 return self.raw_str[1..][target.len] == '"' and std.mem.eql(u8, self.raw_str[1..][0..target.len], target);
             }
         };
 
+        /// A found JSON array.
         pub const Array = struct {
             iter: Value.Iterator,
 
@@ -1312,6 +1375,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 iter: Value.Iterator,
                 first: bool = true,
 
+                /// Go to the next value in the array, if any.
                 pub fn next(self: *Iterator) Error!?Value {
                     if (!self.iter.isOpen()) return null;
                     if (self.first) {
@@ -1327,6 +1391,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 }
             };
 
+            /// Iterate over the values in the array.
             pub fn iterator(self: Array) Iterator {
                 if (builtin.mode == .Debug)
                     if (!self.iter.isAtContainerStart()) {
@@ -1341,6 +1406,23 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 return .{ started, .{ .iter = array } };
             }
 
+            /// Get the value at the given index.
+            /// This method has linear-time complexity.
+            ///
+            /// Since this method is chainable, it can be called multiple times in a row.
+            /// For example:
+            ///
+            /// ```zig
+            /// const document = try parser.parseFromSlice(allocator, "[ [], [1] ]");
+            /// const value = try document.atIndex(1).atIndex(0).asUnsigned();
+            /// std.debug.assert(value == 1);
+            /// ```
+            ///
+            /// If the value is not found, an `error.IndexOutOfBounds` will be returned when a cast
+            /// method is used.
+            ///
+            /// **Note**: This method should only be called once on an array instance since the
+            /// array iterator is not reset between each call.
             pub fn at(self: Array, index: usize) Value {
                 var i: usize = 0;
                 var it = self.iterator();
@@ -1354,6 +1436,12 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 };
             }
 
+            /// This method scans the beginning of the array and checks whether the array is empty.
+            /// The runtime complexity is constant time.
+            ///
+            /// After calling this method, if successful, the array is "reset" at its beginning as if
+            /// it had never been accessed. If the JSON is malformed (e.g., there is a missing comma),
+            /// then an error is returned and it is no longer safe to continue.
             pub fn isEmpty(self: Array) Error!bool {
                 return !try self.iter.resetArray();
             }
@@ -1362,10 +1450,32 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 return self.iter.cursor.skip(self.iter.start_depth - 1, '[');
             }
 
+            /// Reset the iterator so that we are pointing back at the beginning of the array.
+            ///
+            /// You should still consume values only once even if you can iterate through the array
+            /// more than once.
+            /// If you unescape a string within the array more than once, you have unsafe code.
+            ///
+            /// Note that resetting an array means that you may need to reparse it anew: it is not a
+            /// free operation.
             pub fn reset(self: Array) Error!void {
                 _ = try self.iter.resetArray();
             }
 
+            /// This method scans the array and counts the number of elements.
+            /// It should always be called before you have begun iterating through the array: it is
+            /// expected that you are pointing at the beginning of the array.
+            ///
+            /// The runtime complexity is linear in the size of the array. After calling this method,
+            /// if successful, the array is "reset" at its beginning as if it had never been
+            /// accessed. If the JSON is malformed (e.g., there is a missing comma), then an error is
+            /// returned and it is no longer safe to continue.
+            ///
+            /// To check that an array is empty, it is more performant to use
+            /// the `isEmpty` method.
+            ///
+            /// **Performance note:** You should only call `getSize` as a last resort as it may
+            /// require scanning the document twice or more.
             pub fn getSize(self: Array) Error!usize {
                 var size: usize = 0;
                 var it = self.iterator();
@@ -1375,11 +1485,12 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             }
         };
 
+        /// A found JSON object.
         pub const Object = struct {
             iter: Value.Iterator,
 
             pub const Field = struct {
-                key: String,
+                key: RawString,
                 value: Value,
 
                 inline fn start(iter: Value.Iterator) Error!Field {
@@ -1406,6 +1517,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 iter: Value.Iterator,
                 first: bool = true,
 
+                /// Go to the next field in the object, if any.
                 pub fn next(self: *Iterator) Error!?Field {
                     if (!self.iter.isOpen()) return null;
                     if (self.first) {
@@ -1421,6 +1533,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 }
             };
 
+            /// Iterate over the fields in the object.
             pub fn iterator(self: Object) Iterator {
                 if (builtin.mode == .Debug)
                     if (!self.iter.isAtContainerStart()) {
@@ -1435,10 +1548,46 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 return .{ started, .{ .iter = object } };
             }
 
+            /// Look up a field by name on an object, without regard to key order.
+            ///
+            /// **Performance note:** This is a bit less performant than `atOrdered`, though its
+            /// effect varies and often appears negligible. It starts out normally, starting out at
+            /// the last field; but if the field is not found, it scans from the beginning of the
+            /// object to see if it missed it. That missing case has a non-cache-friendly bump and
+            /// lots of extra scanning, especially if the object in question is large. The fact that
+            /// the extra code is there also bumps the executable size.
+            ///
+            /// It is the default, however, because it would be highly surprising (and hard to debug)
+            /// if the default behavior failed to look up a field just because it was in the wrong
+            /// order--and many APIs assume this. Therefore, you must be explicit if you want to
+            /// treat objects as out of order.
+            ///
+            /// If you have multiple fields with a matching key (`{ "x": 1, "x": 1 }`) be mindful
+            /// that only one field is returned.
+            ///
+            /// Use `atOrdered` if you are sure fields will be in order (or are willing to treat it
+            /// as if the field as not there when they are not in order).
             pub fn at(self: Object, key: []const u8) Value {
                 return self.atRaw(key, true);
             }
 
+            /// Look up a field by name on an object (order-sensitive).
+            ///
+            /// The following code reads `z`, then `y`, then `x`, and thus will not retrieve `x` or
+            /// `y` if fed the JSON `{ "x": 1, "y": 2, "z": 3 }`:
+            ///
+            /// ```zig
+            /// const obj = try parser.parseFromSlice(allocator,
+            ///     \\{ "x": 1, "y": 2, "z": 3 }
+            /// );
+            /// const z = try obj.atOrdered("z").asDouble();
+            /// const y = try obj.atOrdered("y").asDouble();
+            /// const x = try obj.atOrdered("x").asDouble();
+            /// ```
+            ///
+            /// **Raw Keys:** The lookup will be done against the *raw* key, and will not unescape
+            /// keys. e.g. `object.atOrdered("a")` will match `{ "a": 1 }`, but will *not* match
+            /// `{ "\u0061": 1 }`.
             pub fn atOrdered(self: Object, key: []const u8) Value {
                 return self.atRaw(key, false);
             }
@@ -1459,6 +1608,12 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     };
             }
 
+            /// This method scans the beginning of the object and checks whether the object is empty.
+            /// The runtime complexity is constant time.
+            ///
+            /// After calling this method, if successful, the object is "reset" at its beginning as
+            /// if it had never been accessed. If the JSON is malformed (e.g., there is a missing
+            /// comma), then an error is returned and it is no longer safe to continue.
             pub fn isEmpty(self: Object) Error!bool {
                 return !try self.iter.resetObject();
             }
@@ -1470,10 +1625,32 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 return self.iter.cursor.skip(self.iter.start_depth - 1, '{');
             }
 
+            /// Reset the iterator so that we are pointing back at the beginning of the object.
+            ///
+            /// You should still consume values only once even if you can iterate through the object
+            /// more than once.
+            /// If you unescape a string within the object more than once, you have unsafe code.
+            ///
+            /// Note that resetting an object means that you may need to reparse it anew: it is not a
+            /// free operation.
             pub fn reset(self: Object) Error!void {
                 _ = try self.iter.resetObject();
             }
 
+            /// This method scans the object and counts the number of fields.
+            /// It should always be called before you have begun iterating through the object: it is
+            /// expected that you are pointing at the beginning of the object.
+            ///
+            /// The runtime complexity is linear in the size of the object. After calling this
+            /// method, if successful, the object is "reset" at its beginning as if it had never been
+            /// accessed.
+            /// If the JSON is malformed (e.g., there is a missing comma), then an error is returned
+            /// and it is no longer safe to continue.
+            ///
+            /// To check that an object is empty, it is more performant to use the `isEmpty` method.
+            ///
+            /// **Performance note:** You should only call `getSize` as a last resort as it may
+            /// require scanning the document twice or more.
             pub fn getSize(self: Object) Error!usize {
                 var size: usize = 0;
                 var it = self.iterator();
@@ -1483,7 +1660,10 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             }
         };
 
-        /// This module contains the necessary utilities for deserializing JSON values directly into Zig types thanks to compile-time reflection.
+        /// This module contains the necessary utilities for deserializing JSON values directly
+        /// into Zig types thanks to compile-time reflection.
+        ///
+        /// Examples of usage can be found in https://github.com/ezequielramis/zimdjson/blob/main/tests/schema.zig.
         pub const schema = struct {
             const _std = @import("std");
             pub const Error = Self.Error || error{
@@ -1509,6 +1689,9 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 return fn (allocator: ?Allocator, value: Value, dest: *T) schema.Error!void;
             }
 
+            /// This interface allows you to define custom parsers for your types using
+            /// the `ondemand` base functionality.
+            /// On zimdjson, this interface is used to support data structures from the Zig Standard Library.
             pub fn CustomParser(comptime T: type) type {
                 return struct {
                     init: T,
@@ -1517,8 +1700,8 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     fn infer() ?@This() {
                         const std_data_structure = StandardDataStructure.infer(T) orelse return null;
                         return switch (std_data_structure) {
-                            .array_list => |p| schema.std.ArrayList(p[0]),
-                            .array_list_aligned => |p| schema.std.ArrayListAligned(p[0], p[1]),
+                            .array_list => |p| schema.std.ArrayListUnmanaged(p[0]),
+                            .array_list_aligned => |p| schema.std.ArrayListAlignedUnmanaged(p[0], p[1]),
                             // .bit_stack => schema.std.BitStack,
                             // .buf_map => schema.std.BufMap,
                             // .buf_set => schema.std.BufSet,
@@ -1529,15 +1712,16 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                             .doubly_linked_list => |p| schema.std.DoublyLinkedList(p[0]),
                             .multi_array_list => |p| schema.std.MultiArrayList(p[0]),
                             .segmented_list => |p| schema.std.SegmentedList(p[0], p[1]),
-                            .string_array_hash_map => |p| schema.std.StringArrayHashMap(p[0]),
-                            .string_hash_map => |p| schema.std.StringHashMap(p[0]),
+                            .string_array_hash_map => |p| schema.std.StringArrayHashMapUnmanaged(p[0]),
+                            .string_hash_map => |p| schema.std.StringHashMapUnmanaged(p[0]),
                         };
                     }
                 };
             }
 
+            /// The list of supported data structures from the Zig Standard Library.
             pub const std = struct {
-                pub fn ArrayList(comptime T: type) CustomParser(_std.ArrayListUnmanaged(T)) {
+                pub fn ArrayListUnmanaged(comptime T: type) CustomParser(_std.ArrayListUnmanaged(T)) {
                     const Parsed = _std.ArrayListUnmanaged(T);
                     const Custom = struct {
                         pub const init: Parsed = .empty;
@@ -1556,7 +1740,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                         .parse = Custom.parse,
                     };
                 }
-                pub fn ArrayListAligned(comptime T: type, comptime alignment: ?u29) CustomParser(_std.ArrayListAlignedUnmanaged(T, alignment)) {
+                pub fn ArrayListAlignedUnmanaged(comptime T: type, comptime alignment: ?u29) CustomParser(_std.ArrayListAlignedUnmanaged(T, alignment)) {
                     const Parsed = _std.ArrayListAlignedUnmanaged(T, alignment);
                     const Custom = struct {
                         pub const init: Parsed = .empty;
@@ -1642,7 +1826,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 //             const obj = try value.asObject();
                 //             while (try obj.next()) |field| {
                 //                 const key = try field.key.get();
-                //                 const str = try field.value.asString().getTemporal();
+                //                 const str = try field.value.asRawString().getTemporal();
                 //                 try dest.put(key, str);
                 //             }
                 //         }
@@ -1658,7 +1842,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 //         pub fn parse(_: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
                 //             const arr = try value.asArray();
                 //             while (try arr.next()) |child| {
-                //                 const item = try child.asString().getTemporal();
+                //                 const item = try child.asRawString().getTemporal();
                 //                 try dest.insert(item);
                 //             }
                 //         }
@@ -1775,7 +1959,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                         .parse = Custom.parse,
                     };
                 }
-                pub fn StringArrayHashMap(comptime V: type) CustomParser(_std.StringArrayHashMapUnmanaged(V)) {
+                pub fn StringArrayHashMapUnmanaged(comptime V: type) CustomParser(_std.StringArrayHashMapUnmanaged(V)) {
                     const Parsed = _std.StringArrayHashMapUnmanaged(V);
                     const Custom = struct {
                         pub const init: Parsed = .empty;
@@ -1795,7 +1979,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                         .parse = Custom.parse,
                     };
                 }
-                pub fn StringHashMap(comptime V: type) CustomParser(_std.StringHashMapUnmanaged(V)) {
+                pub fn StringHashMapUnmanaged(comptime V: type) CustomParser(_std.StringHashMapUnmanaged(V)) {
                     const Parsed = _std.StringHashMapUnmanaged(V);
                     const Custom = struct {
                         pub const init: Parsed = .empty;
@@ -1828,8 +2012,15 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
 
             pub fn Element(comptime T: type) type {
                 return struct {
-                    bytes_as_string: bool = true,
+                    /// Providing a `CustomParser` for this element will ignore all other schema options.
                     parse_with: ?CustomParser(T) = null,
+
+                    /// By default, the type `[]const u8` represents JSON strings.
+                    /// If this option is set to `false`, it instead represents JSON arrays of numbers.
+                    ///
+                    /// **Note**: Strings are always owned by the parser, whereas arrays of numbers are
+                    /// owned by the caller.
+                    bytes_as_string: bool = true,
                 };
             }
 
@@ -1850,9 +2041,11 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     assume_ordering: bool = false,
 
                     /// Behavior when an unknown field is encountered.
+                    /// If it is set to `.@"error"` it returns `error.UnknownField`.
                     on_unknown_field: StructUnknownField(T) = .ignore,
 
-                    /// Behavior when a duplicate field is encountered.
+                    /// Behaviour when a duplicate field is encountered.
+                    /// The default is to return `error.DuplicateField`.
                     on_duplicate_field: StructDuplicateField(T) = .@"error",
                 };
             }
@@ -1913,7 +2106,8 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
 
                     /// Skip this field during deserialization.
                     /// Unless a `CustomParser` (such as any provided in `std`) is used,
-                    /// the field will be `undefined`, so a default value should be provided.
+                    /// the field will be `undefined` (or `null` if it is an optional),
+                    /// so a default value should be provided.
                     skip: bool = false,
 
                     /// Provide a schema for this field.
@@ -1927,6 +2121,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 if (@typeInfo(T).@"struct".is_tuple and fields.len > 0) {
                     var dest = undefinedInit(T);
                     const fields_schema_parser = makeFieldsSPTuple(T, S, fields){};
+                    @setEvalBranchQuota(1000 * fields.len);
                     inline for (fields) |field| {
                         const field_schema = @field(S.fields, field.name);
                         if (field_schema.rename) |_| @compileError("Renamed fields are not supported in tuple struct '" ++ @typeName(T) ++ "'");
@@ -1935,6 +2130,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                         if (sp[1]) |handler| @field(dest, field.name) = handler.init;
                     }
                     var array = (try value.asArray()).iterator();
+                    @setEvalBranchQuota(1000 * fields.len);
                     inline for (fields) |field| {
                         if (try array.next()) |item| {
                             const sp = @field(fields_schema_parser, field.name);
@@ -1962,6 +2158,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 var dest = undefinedInit(T);
                 const fields_schema_parser = makeFieldsSPTuple(T, S, fields){};
                 comptime var non_skipped_field_count: comptime_int = 0;
+                @setEvalBranchQuota(1000 * fields.len);
                 inline for (fields) |field| {
                     const field_schema = @field(S.fields, field.name);
                     const sp = @field(fields_schema_parser, field.name);
@@ -1983,6 +2180,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 if (S.assume_ordering) {
                     var prev_field_key: ?[]const u8 = null;
                     var prev_field_value: Value = undefined;
+                    @setEvalBranchQuota(1000 * fields.len);
                     inline for (fields, 1..) |field, i| {
                         const field_schema = @field(S.fields, field.name);
                         if (field_schema.skip) continue;
@@ -2082,6 +2280,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     comptime var undefined_count: u16 = 0;
                     comptime var dispatches_mut: [non_skipped_field_count]struct { []const u8, StructDispatch } = undefined;
                     comptime var i: comptime_int = 0;
+                    @setEvalBranchQuota(1000 * fields.len);
                     inline for (fields) |field| {
                         const field_schema = @field(S.fields, field.name);
                         if (field_schema.skip) continue;
@@ -2152,6 +2351,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
 
             inline fn makeFieldsSPTuple(comptime T: type, comptime R: schema.Struct(T), comptime fields: []const _std.builtin.Type.StructField) type {
                 comptime var tuple_fields: [fields.len]_std.builtin.Type.StructField = undefined;
+                @setEvalBranchQuota(1000 * fields.len);
                 inline for (fields, &tuple_fields) |field, *tuple| {
                     const field_schema = @field(R.fields, field.name);
                     const S = comptime resolveSchema(field.type, field_schema.schema);
@@ -2219,13 +2419,14 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             fn parseEnum(comptime T: type, comptime S: schema.Enum(T), allocator: ?Allocator, value: Value) schema.Error!T {
                 _ = allocator;
                 if (!@typeInfo(T).@"enum".is_exhaustive) @compileError("Unable to parse into non-exhaustive enum '" ++ @typeName(T) ++ "'");
-                const variant = try value.asString().getTemporal();
+                const variant = try value.asRawString().getTemporal();
                 return parseEnumFromSlice(T, S, variant);
             }
 
             fn parseEnumFromSlice(comptime T: type, comptime S: schema.Enum(T), slice: []const u8) schema.Error!T {
                 const fields = _std.meta.fields(T);
                 comptime var dispatches_mut: [fields.len]struct { []const u8, T } = undefined;
+                @setEvalBranchQuota(1000 * fields.len);
                 inline for (fields, 0..) |field, i| {
                     const renamed_variant: []const u8 = comptime resolveFieldRenaming(T, S, field.name) orelse field.name;
                     dispatches_mut[i] = .{ renamed_variant, @field(T, field.name) };
@@ -2296,6 +2497,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 if (S.representation == .untagged) {
 
                     // workaround from https://github.com/ziglang/zig/issues/9524#issuecomment-895802551
+                    @setEvalBranchQuota(1000 * fields.len);
                     inline for (fields) |field| {
                         inner: {
                             const field_schema = @field(S.fields, field.name);
@@ -2319,6 +2521,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                         }
                     };
                     comptime var dispatches_mut: [fields.len]struct { []const u8, UnionDispatch } = undefined;
+                    @setEvalBranchQuota(1000 * fields.len);
                     inline for (fields, 0..) |field, i| {
                         const field_schema = @field(S.fields, field.name);
                         const renamed_variant: []const u8 = comptime brk: {
@@ -2352,7 +2555,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                             if (try object.next()) |tag| {
                                 const tag_key = try tag.key.getTemporal();
                                 if (!_std.mem.eql(u8, tag_key, t)) return error.UnknownField;
-                                const tag_value = try tag.value.asString().getTemporal();
+                                const tag_value = try tag.value.asRawString().getTemporal();
                                 const dispatch = union_map.get(tag_value) orelse return error.UnknownUnionVariant;
                                 try dispatch.handle(allocator, value, &dest);
                             } else return error.MissingField;
@@ -2362,7 +2565,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                             if (try object.next()) |tag| {
                                 const tag_key = try tag.key.getTemporal();
                                 if (!_std.mem.eql(u8, tag_key, a.tag)) return error.UnknownField;
-                                const tag_value = try tag.value.asString().getTemporal();
+                                const tag_value = try tag.value.asRawString().getTemporal();
                                 const dispatch = union_map.get(tag_value) orelse return error.UnknownUnionVariant;
                                 if (try object.next()) |content| {
                                     const content_key = try content.key.getTemporal();
@@ -2450,7 +2653,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     .array => |info| {
                         if (!isParseable(info.child)) @compileError("Unable to parse into type '" ++ @typeName(T) ++ "'");
                         if (info.child == u8 and S.bytes_as_string) {
-                            const str = try value.asString().getTemporal();
+                            const str = try value.asRawString().getTemporal();
                             if (str.len != info.len) return error.IncorrectType;
                             var dest = undefinedInit(T);
                             @memcpy(&dest, str);
@@ -2507,12 +2710,12 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                             .slice => {
                                 if (info.child == u8 and S.bytes_as_string) {
                                     if (info.sentinel()) |_| @compileError("Unable to parse into type '" ++ @typeName(T) ++ "'");
-                                    return try value.asString().getAdvanced(info.sentinel());
+                                    return try value.asRawString().getAdvanced(info.sentinel());
                                 } else {
-                                    const arr_parser = schema.std.ArrayList(info.child);
-                                    var arr = arr_parser.init;
-                                    try arr_parser.parse(allocator, value, &arr);
                                     const alloc = allocator orelse return error.ExpectedAllocator;
+                                    const arr_parser = schema.std.ArrayListUnmanaged(info.child);
+                                    var arr = arr_parser.init;
+                                    try arr_parser.parse(alloc, value, &arr);
                                     if (info.sentinel()) |s| {
                                         return try arr.toOwnedSliceSentinel(alloc, s);
                                     } else {
@@ -2958,7 +3161,7 @@ test "ondemand" {
 
     const image = try document.at("Image").asObject();
 
-    const title = try image.at("Title").asString().get();
+    const title = try image.at("Title").asString();
     try std.testing.expectEqualStrings("View from 15th Floor", title);
 
     const third_id = try image.at("IDs").atIndex(2).asUnsigned();

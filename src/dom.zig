@@ -62,10 +62,12 @@ pub const StreamOptions = struct {
     pub const default: @This() = .{};
 
     /// This option sets the stream's chunk length, which determines the number of
-    /// bytes available for parsing at any given time.
+    /// bytes available for parsing at any time.
     ///
-    /// If a value (such a JSON string) exceeds the chunk length, an `error.BatchOverflow`
-    /// will be returned.
+    /// Exceeding the chunk length results in an `error.BatchOverflow`, which can occur in
+    /// two ways:
+    /// * A JSON literal (string or number) exceeds the chunk length.
+    /// * Whitespace exceeds the chunk length.
     ///
     /// By default, the chunk length is set to 64KiB.
     chunk_length: u32 = tokens.ring_buffer.default_chunk_length,
@@ -136,6 +138,17 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
         pub fn deinit(self: *Self, allocator: Allocator) void {
             self.tape.deinit(allocator);
             self.document_buffer.deinit(allocator);
+        }
+
+        /// Set the maximum capacity of a JSON document.
+        pub fn setMaximumCapacity(self: *Self, new_capacity: usize) Error!void {
+            if (new_capacity > max_capacity_bound) return error.ExceededCapacity;
+            self.max_capacity = new_capacity;
+        }
+
+        /// Set the maximum depth of a JSON document.
+        pub fn setMaximumDepth(self: *Self, new_depth: usize) void {
+            self.max_depth = new_depth;
         }
 
         /// Recover the error returned from the reader.
@@ -376,7 +389,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
 
             /// Cast the value to the specified type.
             ///
-            /// **Note**: The method is limited to simple types. For more complex deserialization,
+            /// **Note**: This method is limited to simple types. For more complex deserialization,
             /// consider using the [`ondemand.Parser.schema`](#zimdjson.ondemand.Parser.schema) interface.
             pub fn as(self: Value, comptime T: type) Error!T {
                 const info = @typeInfo(T);
@@ -428,9 +441,9 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
 
             /// Get the value associated with the given key.
             /// The key is matched against **unescaped** JSON.
-            /// The method has linear-time complexity.
+            /// This method has linear-time complexity.
             ///
-            /// Since the method is chainable, it can be called multiple times in a row.
+            /// Since this method is chainable, it can be called multiple times in a row.
             /// For example:
             ///
             /// ```zig
@@ -453,9 +466,9 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             }
 
             /// Get the value at the given index.
-            /// The method has linear-time complexity.
+            /// This method has linear-time complexity.
             ///
-            /// Since the method is chainable, it can be called multiple times in a row.
+            /// Since this method is chainable, it can be called multiple times in a row.
             /// For example:
             ///
             /// ```zig
@@ -525,9 +538,9 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             }
 
             /// Get the value at the given index.
-            /// The method has linear-time complexity.
+            /// This method has linear-time complexity.
             ///
-            /// Since the method is chainable, it can be called multiple times in a row.
+            /// Since this method is chainable, it can be called multiple times in a row.
             /// For example:
             ///
             /// ```zig
@@ -605,9 +618,9 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
 
             /// Get the value associated with the given key.
             /// The key is matched against **unescaped** JSON.
-            /// The method has linear-time complexity.
+            /// This method has linear-time complexity.
             ///
-            /// Since the method is chainable, it can be called multiple times in a row.
+            /// Since this method is chainable, it can be called multiple times in a row.
             /// For example:
             ///
             /// ```zig

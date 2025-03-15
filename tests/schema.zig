@@ -4,34 +4,7 @@ const simdjson_data = @embedFile("simdjson-data");
 const Parser = zimdjson.ondemand.FullParser(.default);
 const allocator = std.testing.allocator;
 
-test "small/adversarial" {
-    var parser = Parser.init;
-    defer parser.deinit(allocator);
-    const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonexamples/small/adversarial.json", .{});
-    defer file.close();
-    const document = try parser.parseFromReader(allocator, file.reader().any());
-
-    const Schema = struct {
-        @"\"Name rue": [1]struct {
-            u8,
-            []const u8,
-            u8,
-            []const u8,
-            bool,
-        },
-    };
-
-    const el = try document.asLeaky(Schema, null, .{});
-    const tuple = el.@"\"Name rue"[0];
-
-    try std.testing.expectEqualDeep(.{
-        116,
-        "\"",
-        234,
-        "true",
-        false,
-    }, tuple);
-}
+// JSON examples taken from https://github.com/simdjson/simdjson-data
 
 test "small/demo" {
     var parser = Parser.init;
@@ -130,6 +103,35 @@ test "small/demo2" {
     try std.testing.expectEqual(100, value.thumbnail.width);
     try std.testing.expectEqual(false, value.animated);
     try std.testing.expectEqualSlices(u16, &.{ 116, 943, 234, 38793 }, value.ids.items);
+}
+
+test "small/adversarial" {
+    var parser = Parser.init;
+    defer parser.deinit(allocator);
+    const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonexamples/small/adversarial.json", .{});
+    defer file.close();
+    const document = try parser.parseFromReader(allocator, file.reader().any());
+
+    const Schema = struct {
+        @"\"Name rue": [1]struct {
+            u8,
+            []const u8,
+            u8,
+            []const u8,
+            bool,
+        },
+    };
+
+    const el = try document.asLeaky(Schema, null, .{});
+    const tuple = el.@"\"Name rue"[0];
+
+    try std.testing.expectEqualDeep(.{
+        116,
+        "\"",
+        234,
+        "true",
+        false,
+    }, tuple);
 }
 
 test "small/truenull" {

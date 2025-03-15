@@ -26,7 +26,7 @@ pub fn run() !void {
     var systems = (try doc.asArray()).iterator();
     while (try systems.next()) |s| {
         if (try s.at("id64").asUnsigned() == find_id) {
-            result = try s.at("name").asString().get();
+            result = try s.at("name").asString();
             return;
         }
     }

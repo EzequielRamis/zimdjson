@@ -227,7 +227,7 @@ test "simdjson/issues/2084" {
         defer parser.deinit(allocator);
         const document = try parser.parseFromSlice(allocator, json);
 
-        _ = try document.at("foo").asString().get();
+        _ = try document.at("foo").asString();
         try std.testing.expectError(error.OutOfOrderIteration, document.asAny());
     }
     {
@@ -235,7 +235,7 @@ test "simdjson/issues/2084" {
         defer parser.deinit(allocator);
         const document = try parser.parseFromSlice(allocator, json);
 
-        _ = try document.at("foo").asString().get();
+        _ = try document.at("foo").asString();
         try document.reset();
         _ = try document.asAny();
     }

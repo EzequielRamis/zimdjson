@@ -38,15 +38,15 @@ pub fn run() !void {
     var statuses = (try doc.at("statuses").asArray()).iterator();
     while (try statuses.next()) |tweet| {
         try result.append(.{
-            .created_at = try tweet.at("created_at").asString().get(),
+            .created_at = try tweet.at("created_at").asString(),
             .id = try tweet.at("id").asUnsigned(),
-            .result = try tweet.at("text").asString().get(),
+            .result = try tweet.at("text").asString(),
             .in_reply_to_status_id = try tweet.at("in_reply_to_status_id").asLeaky(?u64, null, .{}) orelse 0,
             .user = brk: {
                 const user = tweet.at("user");
                 break :brk .{
                     .id = try user.at("id").asUnsigned(),
-                    .screen_name = try user.at("screen_name").asString().get(),
+                    .screen_name = try user.at("screen_name").asString(),
                 };
             },
             .retweet_count = try tweet.at("retweet_count").asUnsigned(),

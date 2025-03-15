@@ -27,7 +27,7 @@ pub fn run() !void {
     var tweet = (try doc.at("statuses").asArray()).iterator();
     while (try tweet.next()) |t| {
         if (try t.at("id").asUnsigned() == find_id) {
-            result = try t.at("text").asString().get();
+            result = try t.at("text").asString();
             return;
         }
     }

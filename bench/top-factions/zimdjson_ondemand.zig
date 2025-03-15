@@ -37,7 +37,7 @@ pub fn run() !void {
     var systems = (try doc.asArray()).iterator();
     while (try systems.next()) |system| {
         const id = try system.at("id64").asUnsigned();
-        const name = try system.at("name").asString().get();
+        const name = try system.at("name").asString();
         const factions = system.at("factions");
         if (factions.err) |err| if (err == error.MissingField) continue else return err;
         var arr = (try factions.asArray()).iterator();

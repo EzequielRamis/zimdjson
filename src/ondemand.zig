@@ -2688,6 +2688,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
 
             fn parseEnum(comptime T: type, comptime S: schema.Enum(T), allocator: ?Allocator, value: Value) schema.Error!T {
                 _ = allocator;
+                if (@typeInfo(T).@"enum".fields.len == 0) @compileError("Unable to parse into empty enum '" ++ @typeName(T) ++ "'");
                 if (!@typeInfo(T).@"enum".is_exhaustive) @compileError("Unable to parse into non-exhaustive enum '" ++ @typeName(T) ++ "'");
                 const variant = try value.asRawString().getTemporal();
                 return parseEnumFromSlice(T, S, variant);
@@ -2762,6 +2763,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             }
 
             fn parseUnion(comptime T: type, comptime S: schema.Union(T), allocator: ?Allocator, value: Value) schema.Error!T {
+                if (@typeInfo(T).@"union".fields.len == 0) @compileError("Unable to parse into empty union '" ++ @typeName(T) ++ "'");
                 const string_index = value.iter.cursor.document.string_buffer.saveIndex();
                 const fields = _std.meta.fields(T);
                 if (S.representation == .untagged) {
@@ -3268,7 +3270,16 @@ fn undefinedInit(comptime T: type) T {
     comptime var result: T = undefined;
     inline for (std.meta.fields(T)) |field| {
         switch (@typeInfo(field.type)) {
-            .optional => @field(result, field.name) = null,
+            .optional => {
+                if (field.default_value_ptr) |default_value_ptr| {
+                    const default_value: *field.type = @constCast(@alignCast(@ptrCast(
+                        default_value_ptr,
+                    )));
+                    @field(result, field.name) = default_value.*;
+                } else {
+                    @field(result, field.name) = null;
+                }
+            },
             else => {
                 const default_value: *field.type = @constCast(@alignCast(@ptrCast(
                     field.default_value_ptr orelse continue,

@@ -937,3 +937,89 @@ test "handle duplicate field" {
     try std.testing.expectEqualStrings("Zero the Ziguana", user.value.mascot);
     try std.testing.expectEqualStrings("Carmen the Allocgator", try user.value.duplicate.get("mascot").?.string.get());
 }
+
+test "zig/issues/19356" {
+    // https://discord.com/developers/docs/topics/permissions#role-object-role-tags-structure
+
+    var parser = Parser.init;
+    defer parser.deinit(allocator);
+    const document = try parser.parseFromSlice(allocator,
+        \\{
+        \\    "bot_id": "123456789012345678",
+        \\    "integration_id": "987654321098765432",
+        \\    "premium_subscriber": null,
+        \\    "subscription_listing_id": "111222333444555666",
+        \\    "guild_connections": null
+        \\}
+    );
+
+    const RoleTags = struct {
+        bot_id: ?[]const u8,
+        integration_id: ?[]const u8,
+        premium_subscriber: ?void = {},
+        subscription_listing_id: ?[]const u8,
+        available_for_purchase: ?void = {}, // if present, the value is null, otherwise it's void
+        guild_connections: ?void = {},
+    };
+
+    const role_tags = try document.as(RoleTags, allocator, .{});
+    defer role_tags.deinit();
+
+    try std.testing.expectEqualStrings("123456789012345678", role_tags.value.bot_id.?);
+    try std.testing.expectEqualStrings("987654321098765432", role_tags.value.integration_id.?);
+    try std.testing.expectEqualStrings("111222333444555666", role_tags.value.subscription_listing_id.?);
+
+    try std.testing.expectEqual(null, role_tags.value.premium_subscriber);
+    try std.testing.expectEqual({}, role_tags.value.available_for_purchase);
+    try std.testing.expectEqual(null, role_tags.value.guild_connections);
+}
+
+test "rgb" {
+    var parser = Parser.init;
+    defer parser.deinit(allocator);
+    const document = try parser.parseFromSlice(allocator,
+        \\{
+        \\  "color_name": "violet",
+        \\  "rgb": [160, 37, 232]
+        \\}
+    );
+
+    const Color = struct {
+        color_name: []const u8,
+        rgb: struct { u8, u8, u8 },
+    };
+
+    const rgb = try document.as(Color, allocator, .{});
+    defer rgb.deinit();
+
+    try std.testing.expectEqualDeep(Color{
+        .color_name = "violet",
+        .rgb = .{ 160, 37, 232 },
+    }, rgb.value);
+}
+
+test "rgb2" {
+    var parser = Parser.init;
+    defer parser.deinit(allocator);
+    const document = try parser.parseFromSlice(allocator,
+        \\{
+        \\  "color_name": "violet",
+        \\  "rgb": [160, 37, 232]
+        \\}
+    );
+
+    const Color = struct {
+        color_name: []const u8,
+        rgb: []const u8,
+    };
+
+    const rgb = try document.as(Color, allocator, .{
+        .schema = .{ .fields = .{ .rgb = .{ .schema = .{ .bytes_as_string = false } } } },
+    });
+    defer rgb.deinit();
+
+    try std.testing.expectEqualDeep(Color{
+        .color_name = "violet",
+        .rgb = &.{ 160, 37, 232 },
+    }, rgb.value);
+}

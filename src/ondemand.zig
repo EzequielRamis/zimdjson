@@ -4,6 +4,7 @@ const common = @import("common.zig");
 const types = @import("types.zig");
 const intr = @import("intrinsics.zig");
 const tokens = @import("tokens.zig");
+const Map = @import("schema_map.zig").SchemaMap;
 const Vector = types.Vector;
 const Pred = types.Predicate;
 const Allocator = std.mem.Allocator;
@@ -1229,7 +1230,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     self.iter.reset() catch |err| (self.iter.cursor.reportError(err) catch {});
                     self.iter.cursor.document.string_buffer.loadIndex(string_index);
                 }
-                if (P) |handler| return handler.parse(allocator, self, dest);
+                if (P) |handler| return handler.parse(dest, allocator, self);
                 const info = @typeInfo(T);
                 switch (info) {
                     .@"struct" => {
@@ -1686,7 +1687,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             }
 
             pub fn CustomParserHandler(comptime T: type) type {
-                return fn (allocator: ?Allocator, value: Value, dest: *T) schema.Error!void;
+                return fn (self: *T, allocator: ?Allocator, value: Value) schema.Error!void;
             }
 
             /// This interface allows you to define custom parsers for your types using
@@ -1726,12 +1727,12 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     const Custom = struct {
                         pub const init: Parsed = .empty;
 
-                        pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
+                        pub fn parse(self: *Parsed, allocator: ?Allocator, value: Value) schema.Error!void {
                             const alloc = allocator orelse return error.ExpectedAllocator;
                             var arr = (try value.asArray()).iterator();
                             while (try arr.next()) |child| {
                                 const item = try child.asLeaky(T, alloc, .{});
-                                try dest.append(alloc, item);
+                                try self.append(alloc, item);
                             }
                         }
                     };
@@ -1745,12 +1746,12 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     const Custom = struct {
                         pub const init: Parsed = .empty;
 
-                        pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
+                        pub fn parse(self: *Parsed, allocator: ?Allocator, value: Value) schema.Error!void {
                             const alloc = allocator orelse return error.ExpectedAllocator;
                             var arr = (try value.asArray()).iterator();
                             while (try arr.next()) |child| {
                                 const item = try child.asLeaky(T, alloc, .{});
-                                try dest.append(alloc, item);
+                                try self.append(alloc, item);
                             }
                         }
                     };
@@ -1780,11 +1781,11 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     const Custom = struct {
                         pub const init: Parsed = Parsed.init(0) catch unreachable;
 
-                        pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
+                        pub fn parse(self: *Parsed, allocator: ?Allocator, value: Value) schema.Error!void {
                             var arr = (try value.asArray()).iterator();
                             while (try arr.next()) |child| {
                                 const item = try child.asLeaky(T, allocator, .{});
-                                dest.append(item) catch return error.ExceededCapacity;
+                                self.append(item) catch return error.ExceededCapacity;
                             }
                         }
                     };
@@ -1802,11 +1803,11 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     const Custom = struct {
                         pub const init: Parsed = Parsed.init(0) catch unreachable;
 
-                        pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
+                        pub fn parse(self: *Parsed, allocator: ?Allocator, value: Value) schema.Error!void {
                             var arr = (try value.asArray()).iterator();
                             while (try arr.next()) |child| {
                                 const item = try child.asLeaky(T, allocator, .{});
-                                dest.append(item) catch return error.ExceededCapacity;
+                                self.append(item) catch return error.ExceededCapacity;
                             }
                         }
                     };
@@ -1853,14 +1854,14 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     const Custom = struct {
                         pub const init: Parsed = .{};
 
-                        pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
+                        pub fn parse(self: *Parsed, allocator: ?Allocator, value: Value) schema.Error!void {
                             const alloc = allocator orelse return error.ExpectedAllocator;
                             var arr = (try value.asArray()).iterator();
                             while (try arr.next()) |child| {
                                 const item = try child.asLeaky(T, allocator, .{});
                                 const node = try alloc.create(Parsed.Node);
                                 node.* = .{ .data = item };
-                                dest.append(node);
+                                self.append(node);
                             }
                         }
                     };
@@ -1874,14 +1875,14 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     const Custom = struct {
                         pub const init: Parsed = .init(.{});
 
-                        pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
+                        pub fn parse(self: *Parsed, allocator: ?Allocator, value: Value) schema.Error!void {
                             const enum_schema = comptime resolveSchema(E, null);
                             var obj = (try value.asObject()).iterator();
                             while (try obj.next()) |field| {
                                 const variant = try field.key.getTemporal();
                                 const enum_literal = try parseEnumFromSlice(E, enum_schema, variant);
                                 const enum_value = try field.value.asLeaky(V, allocator, .{});
-                                dest.put(enum_literal, enum_value);
+                                self.put(enum_literal, enum_value);
                             }
                         }
                     };
@@ -1895,12 +1896,12 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     const Custom = struct {
                         pub const init: Parsed = .empty;
 
-                        pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
+                        pub fn parse(self: *Parsed, allocator: ?Allocator, value: Value) schema.Error!void {
                             const alloc = allocator orelse return error.ExpectedAllocator;
                             var arr = (try value.asArray()).iterator();
                             while (try arr.next()) |child| {
                                 const item = try child.asLeaky(T, alloc, .{});
-                                try dest.append(alloc, item);
+                                try self.append(alloc, item);
                             }
                         }
                     };
@@ -1914,12 +1915,12 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     const Custom = struct {
                         pub const init: Parsed = .{};
 
-                        pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
+                        pub fn parse(self: *Parsed, allocator: ?Allocator, value: Value) schema.Error!void {
                             const alloc = allocator orelse return error.ExpectedAllocator;
                             var arr = (try value.asArray()).iterator();
                             while (try arr.next()) |child| {
                                 const item = try child.asLeaky(T, alloc, .{});
-                                try dest.append(alloc, item);
+                                try self.append(alloc, item);
                             }
                         }
                     };
@@ -1933,7 +1934,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     const Custom = struct {
                         pub const init: Parsed = .{};
 
-                        pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
+                        pub fn parse(self: *Parsed, allocator: ?Allocator, value: Value) schema.Error!void {
                             const alloc = allocator orelse return error.ExpectedAllocator;
                             var arr = (try value.asArray()).iterator();
                             if (try arr.next()) |first| {
@@ -1941,9 +1942,9 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                                     const item = try first.asLeaky(T, allocator, .{});
                                     const node = try alloc.create(Parsed.Node);
                                     node.* = .{ .data = item };
-                                    dest.prepend(node);
+                                    self.prepend(node);
                                 }
-                                var head = dest.first.?;
+                                var head = self.first.?;
                                 while (try arr.next()) |child| {
                                     const item = try child.asLeaky(T, allocator, .{});
                                     const node = try alloc.create(Parsed.Node);
@@ -1964,13 +1965,13 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     const Custom = struct {
                         pub const init: Parsed = .empty;
 
-                        pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
+                        pub fn parse(self: *Parsed, allocator: ?Allocator, value: Value) schema.Error!void {
                             const alloc = allocator orelse return error.ExpectedAllocator;
                             var obj = (try value.asObject()).iterator();
                             while (try obj.next()) |field| {
                                 const key = try field.key.get();
                                 const val = try field.value.asLeaky(V, alloc, .{});
-                                try dest.put(alloc, key, val);
+                                try self.put(alloc, key, val);
                             }
                         }
                     };
@@ -1984,13 +1985,13 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     const Custom = struct {
                         pub const init: Parsed = .empty;
 
-                        pub fn parse(allocator: ?Allocator, value: Value, dest: *Parsed) schema.Error!void {
+                        pub fn parse(self: *Parsed, allocator: ?Allocator, value: Value) schema.Error!void {
                             const alloc = allocator orelse return error.ExpectedAllocator;
                             var obj = (try value.asObject()).iterator();
                             while (try obj.next()) |field| {
                                 const key = try field.key.get();
                                 const val = try field.value.asLeaky(V, alloc, .{});
-                                try dest.put(alloc, key, val);
+                                try self.put(alloc, key, val);
                             }
                         }
                     };
@@ -2051,7 +2052,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             }
 
             pub fn StructFieldHandler(comptime T: type) type {
-                return fn (allocator: ?Allocator, key: []const u8, value: Value, dest: *T) schema.Error!void;
+                return fn (self: *T, allocator: ?Allocator, key: []const u8, value: Value) schema.Error!void;
             }
 
             pub fn StructUnknownField(comptime T: type) type {
@@ -2173,7 +2174,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     switch (S.on_unknown_field) {
                         .ignore => {},
                         .@"error" => if (try it.next()) |_| return error.UnknownField,
-                        .handle => |handle| while (try it.next()) |field| try handle(allocator, try field.key.get(), field.value, &dest),
+                        .handle => |handle| while (try it.next()) |field| try handle(&dest, allocator, try field.key.get(), field.value),
                     }
                     return dest;
                 }
@@ -2201,7 +2202,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                                     .@"error" => return error.UnknownField,
                                     .handle => |handle| {
                                         prev_field_value.iter.cursor.document.string_buffer.advance(prev_key.len);
-                                        try handle(allocator, prev_key, prev_field_value, &dest);
+                                        try handle(&dest, allocator, prev_key, prev_field_value);
                                     },
                                 }
                             }
@@ -2224,7 +2225,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                                     .@"error" => return error.UnknownField,
                                     .handle => |handle| {
                                         next_field.value.iter.cursor.document.string_buffer.advance(field_key.len);
-                                        try handle(allocator, field_key, next_field.value, &dest);
+                                        try handle(&dest, allocator, field_key, next_field.value);
                                     },
                                 }
                             } else {
@@ -2257,7 +2258,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                                         },
                                         .handle => |handle| {
                                             next_field.value.iter.cursor.document.string_buffer.advance(next_field_key.len);
-                                            try handle(allocator, next_field_key, next_field_value, &dest);
+                                            try handle(&dest, allocator, next_field_key, next_field_value);
                                         },
                                     }
                                 } else {
@@ -2273,7 +2274,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     switch (S.on_unknown_field) {
                         .ignore => {},
                         .@"error" => if (try it.next()) |_| return error.UnknownField,
-                        .handle => |handle| while (try it.next()) |field| try handle(allocator, try field.key.get(), field.value, &dest),
+                        .handle => |handle| while (try it.next()) |field| try handle(&dest, allocator, try field.key.get(), field.value),
                     }
                 } else {
                     var seen: [non_skipped_field_count]bool = @splat(false);
@@ -2306,7 +2307,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                             .@"error" => return error.UnknownField,
                             .handle => |handle| {
                                 field.value.iter.cursor.document.string_buffer.advance(key.len);
-                                try handle(allocator, key, field.value, &dest);
+                                try handle(&dest, allocator, key, field.value);
                                 continue;
                             },
                         };
@@ -2319,7 +2320,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                                 .@"error" => return error.DuplicateField,
                                 .handle => |handle| {
                                     field.value.iter.cursor.document.string_buffer.advance(key.len);
-                                    try handle(allocator, key, field.value, &dest);
+                                    try handle(&dest, allocator, key, field.value);
                                     continue;
                                 },
                             }
@@ -2329,10 +2330,10 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                         }
                         if (is_packed) {
                             var packed_field_value: _std.meta.Int(.unsigned, @bitSizeOf(T)) = undefined;
-                            try dispatch.handle(allocator, field.value, @ptrCast(&packed_field_value));
+                            try dispatch.handle(@ptrCast(&packed_field_value), allocator, field.value);
                             _std.mem.writeVarPackedInt(_std.mem.asBytes(&dest), dispatch.offset, dispatch.bit_count, packed_field_value, builtin.cpu.arch.endian());
                         } else {
-                            try dispatch.handle(allocator, field.value, @ptrFromInt(@intFromPtr(&dest) + dispatch.offset));
+                            try dispatch.handle(@ptrFromInt(@intFromPtr(&dest) + dispatch.offset), allocator, field.value);
                         }
                     }
                     if (undefined_count_runtime > 0) {
@@ -2546,7 +2547,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                             if (try object.next()) |content| {
                                 const tag_key = try content.key.getTemporal();
                                 const dispatch = union_map.get(tag_key) orelse return error.UnknownUnionVariant;
-                                try dispatch.handle(allocator, content.value, &dest);
+                                try dispatch.handle(&dest, allocator, content.value);
                             } else return error.MissingField;
                             if (try object.next()) |_| return error.IncorrectType;
                         },
@@ -2557,7 +2558,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                                 if (!_std.mem.eql(u8, tag_key, t)) return error.UnknownField;
                                 const tag_value = try tag.value.asRawString().getTemporal();
                                 const dispatch = union_map.get(tag_value) orelse return error.UnknownUnionVariant;
-                                try dispatch.handle(allocator, value, &dest);
+                                try dispatch.handle(&dest, allocator, value);
                             } else return error.MissingField;
                         },
                         .adjacently_tagged => |a| {
@@ -2570,7 +2571,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                                 if (try object.next()) |content| {
                                     const content_key = try content.key.getTemporal();
                                     if (!_std.mem.eql(u8, content_key, a.content)) return error.UnknownField;
-                                    try dispatch.handle(allocator, content.value, &dest);
+                                    try dispatch.handle(&dest, allocator, content.value);
                                 } else return error.MissingField;
                                 if (try object.next()) |_| return error.IncorrectType;
                             } else return error.MissingField;
@@ -2625,7 +2626,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                         }
                     }
 
-                    pub fn parseTypeErased(allocator: ?Allocator, value: Value, dest: *anyopaque) schema.Error!void {
+                    pub fn parseTypeErased(dest: *anyopaque, allocator: ?Allocator, value: Value) schema.Error!void {
                         const typed_dest: *T = @alignCast(@ptrCast(dest));
                         typed_dest.* = try @This().parse(allocator, value);
                     }
@@ -2715,7 +2716,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                                     const alloc = allocator orelse return error.ExpectedAllocator;
                                     const arr_parser = schema.std.ArrayListUnmanaged(info.child);
                                     var arr = arr_parser.init;
-                                    try arr_parser.parse(alloc, value, &arr);
+                                    try arr_parser.parse(&arr, alloc, value);
                                     if (info.sentinel()) |s| {
                                         return try arr.toOwnedSliceSentinel(alloc, s);
                                     } else {
@@ -2752,7 +2753,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
 
             fn TypeErasedParser(comptime T: type, comptime S: schema.Infer(T), comptime P: ?CustomParser(T)) type {
                 return struct {
-                    pub fn handler(allocator: ?Allocator, value: Value, dest: *anyopaque) schema.Error!void {
+                    pub fn handler(dest: *anyopaque, allocator: ?Allocator, value: Value) schema.Error!void {
                         return value.asTypeErased(T, S, P, allocator, dest);
                     }
                 };
@@ -2833,8 +2834,6 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
         };
     };
 }
-
-const Map = @import("schema_map.zig").SchemaMap;
 
 const UnionRepresentation = union(enum) {
     /// Consider the following union type:

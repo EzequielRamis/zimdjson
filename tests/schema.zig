@@ -862,3 +862,78 @@ test "std.MultiArrayList" {
     try std.testing.expectEqual(Coordinate{ .x = 4, .y = 5, .z = 6 }, coords.value.get(1));
     try std.testing.expectEqual(Coordinate{ .x = 7, .y = 8, .z = 9 }, coords.value.get(2));
 }
+
+test "handle unknown field" {
+    var parser = Parser.init;
+    defer parser.deinit(allocator);
+    const document = try parser.parseFromSlice(allocator,
+        \\{
+        \\  "id": "49824073-979f-4814-be10-5ea416ee1c2f",
+        \\  "username": "john_doe",
+        \\  "mascot": "Ziggy the Ziguana"
+        \\}
+    );
+
+    const User = struct {
+        pub const schema: Parser.schema.Infer(@This()) = .{
+            .fields = .{ .extra = .{ .skip = true } },
+            .on_unknown_field = .{ .handle = @This().handleUnknownField },
+        };
+
+        id: []const u8,
+        username: []const u8,
+
+        extra: std.StringHashMapUnmanaged(Parser.AnyValue),
+
+        pub fn handleUnknownField(self: *@This(), alloc: ?std.mem.Allocator, key: []const u8, value: Parser.Value) Parser.schema.Error!void {
+            const gpa = alloc orelse return error.ExpectedAllocator;
+            return self.extra.put(gpa, key, try value.asAny());
+        }
+    };
+
+    const user = try document.as(User, allocator, .{});
+    defer user.deinit();
+
+    try std.testing.expectEqualStrings("49824073-979f-4814-be10-5ea416ee1c2f", user.value.id);
+    try std.testing.expectEqualStrings("john_doe", user.value.username);
+    try std.testing.expectEqualStrings("Ziggy the Ziguana", try user.value.extra.get("mascot").?.string.get());
+}
+
+test "handle duplicate field" {
+    var parser = Parser.init;
+    defer parser.deinit(allocator);
+    const document = try parser.parseFromSlice(allocator,
+        \\{
+        \\  "id": "49824073-979f-4814-be10-5ea416ee1c2f",
+        \\  "username": "john_doe",
+        \\  "mascot": "Zero the Ziguana",
+        \\  "mascot": "Carmen the Allocgator"
+        \\}
+    );
+
+    const User = struct {
+        pub const schema: Parser.schema.Infer(@This()) = .{
+            .fields = .{ .duplicate = .{ .skip = true } },
+            .on_duplicate_field = .{ .handle = @This().handleDuplicateField },
+        };
+
+        id: []const u8,
+        username: []const u8,
+        mascot: []const u8,
+
+        duplicate: std.StringHashMapUnmanaged(Parser.AnyValue),
+
+        pub fn handleDuplicateField(self: *@This(), alloc: ?std.mem.Allocator, key: []const u8, value: Parser.Value) Parser.schema.Error!void {
+            const gpa = alloc orelse return error.ExpectedAllocator;
+            return self.duplicate.put(gpa, key, try value.asAny());
+        }
+    };
+
+    const user = try document.as(User, allocator, .{});
+    defer user.deinit();
+
+    try std.testing.expectEqualStrings("49824073-979f-4814-be10-5ea416ee1c2f", user.value.id);
+    try std.testing.expectEqualStrings("john_doe", user.value.username);
+    try std.testing.expectEqualStrings("Zero the Ziguana", user.value.mascot);
+    try std.testing.expectEqualStrings("Carmen the Allocgator", try user.value.duplicate.get("mascot").?.string.get());
+}

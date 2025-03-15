@@ -12,7 +12,8 @@ pub fn build(b: *std.Build) !void {
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
 
-    var center = try CommandCenter.init(allocator, b);
+    const zimdjson_dev_mode = b.option(bool, "zimdjson_dev_mode", "Enable zimdjson_dev_mode. It is only used for fetching dev dependencies") orelse false;
+    var center = try CommandCenter.init(allocator, b, zimdjson_dev_mode);
     defer center.deinit();
 
     const zimdjson = getZimdjsonModule(b, .{

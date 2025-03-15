@@ -5,14 +5,16 @@ pub const CommandCenter = struct {
     allocator: std.mem.Allocator,
     names: std.ArrayList(u8),
     args: []const [:0]u8,
+    enabled: bool,
 
-    pub fn init(allocator: std.mem.Allocator, b: *std.Build) !CommandCenter {
+    pub fn init(allocator: std.mem.Allocator, b: *std.Build, enabled: bool) !CommandCenter {
         const args = try std.process.argsAlloc(allocator);
         return .{
             .b = b,
             .allocator = allocator,
             .names = .init(allocator),
             .args = args,
+            .enabled = enabled,
         };
     }
 
@@ -66,7 +68,7 @@ pub const Command = struct {
     }
 
     pub fn with(self: Command, dependency: []const u8) ?*std.Build.Dependency {
-        return if (self.isExecuted())
+        return if (self.center.enabled and self.isExecuted())
             self.center.b.lazyDependency(dependency, .{})
         else
             null;

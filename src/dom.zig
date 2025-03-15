@@ -193,7 +193,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
         }
 
         /// Parse a JSON document from slice. Allocated resources are owned by the parser.
-        pub fn parseFromSlice(self: *Self, allocator: Allocator, document: Aligned.slice) Error!Value {
+        pub fn parseFromSlice(self: *Self, allocator: Allocator, document: Aligned.slice) Error!Document {
             if (want_stream) @compileError("Parsing from a slice is not supported in streaming mode");
             self.reader_error = null;
 
@@ -204,12 +204,12 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             try self.tape.buildFromSlice(allocator, document);
             return .{
                 .tape = &self.tape,
-                .index = 0,
+                .index = 1,
             };
         }
 
         /// Parse a JSON document from reader. Allocated resources are owned by the parser.
-        pub fn parseFromReader(self: *Self, allocator: Allocator, reader: std.io.AnyReader) (Error || ReaderError)!Value {
+        pub fn parseFromReader(self: *Self, allocator: Allocator, reader: std.io.AnyReader) (Error || ReaderError)!Document {
             self.reader_error = null;
 
             self.tape.string_buffer.reset();
@@ -239,7 +239,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             }
             return .{
                 .tape = &self.tape,
-                .index = 0,
+                .index = 1,
             };
         }
 
@@ -251,6 +251,135 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             string: []const u8,
             object: Object,
             array: Array,
+        };
+
+        /// Represents a JSON document.
+        pub const Document = struct {
+            tape: *const Tape,
+            index: u32,
+
+            /// Cast the document to a JSON value.
+            pub fn asValue(self: Document) Value {
+                return .{ .tape = self.tape, .index = self.index };
+            }
+
+            /// Cast the document to an object.
+            pub fn asObject(self: Document) Error!Object {
+                return self.asValue().asObject();
+            }
+
+            /// Cast the document to an array.
+            pub fn asArray(self: Document) Error!Array {
+                return self.asValue().asArray();
+            }
+
+            /// Cast the document to a string.
+            /// The string is guaranteed to be valid UTF-8.
+            ///
+            /// **Note**: The string is stored in the parser and will be invalidated the next time it
+            /// parses a document or when it is destroyed.
+            pub fn asString(self: Document) Error![]const u8 {
+                return self.asValue().asString();
+            }
+
+            /// Cast the document to a number.
+            pub fn asNumber(self: Document) Error!Number {
+                return self.asValue().asNumber();
+            }
+
+            /// Cast the document to an unsigned integer.
+            pub fn asUnsigned(self: Document) Error!u64 {
+                return self.asValue().asUnsigned();
+            }
+
+            /// Cast the document to a signed integer.
+            pub fn asSigned(self: Document) Error!i64 {
+                return self.asValue().asSigned();
+            }
+
+            /// Cast the document to a double floating point.
+            pub fn asDouble(self: Document) Error!f64 {
+                return self.asValue().asDouble();
+            }
+
+            /// Cast the document to a bool.
+            pub fn asBool(self: Document) Error!bool {
+                return self.asValue().asBool();
+            }
+
+            /// Check whether the document is a JSON `null`.
+            pub fn isNull(self: Document) Error!bool {
+                return self.asValue().isNull();
+            }
+
+            /// Cast the document to any valid JSON value.
+            pub fn asAny(self: Document) Error!AnyValue {
+                return self.asValue().asAny();
+            }
+
+            /// Cast the document to the specified type.
+            ///
+            /// **Note**: This method is limited to simple types. For more complex deserialization,
+            /// consider using the [`ondemand.Parser.schema`](#zimdjson.ondemand.Parser.schema) interface.
+            pub fn as(self: Document, comptime T: type) Error!T {
+                return self.asValue().as(T);
+            }
+
+            /// Get the type of the document.
+            pub fn getType(self: Document) Error!types.ValueType {
+                return self.asValue().getType();
+            }
+
+            /// Get the value associated with the given key.
+            /// The key is matched against **unescaped** JSON.
+            /// This method has linear-time complexity.
+            ///
+            /// Since this method is chainable, it can be called multiple times in a row.
+            /// For example:
+            ///
+            /// ```zig
+            /// const document = try parser.parseFromSlice(allocator, "{ \"a\": { \"b\": 1 } }");
+            /// const value = try document.at("a").at("b").asUnsigned();
+            /// std.debug.assert(value == 1);
+            /// ```
+            ///
+            /// If the key is not found, an `error.MissingField` will be returned when a cast method is used.
+            ///
+            /// **Note**: Avoid calling the `at` method repeatedly.
+            pub fn at(self: Document, key: []const u8) Value {
+                return self.asValue().at(key);
+            }
+
+            /// Get the value at the given index.
+            /// This method has linear-time complexity.
+            ///
+            /// Since this method is chainable, it can be called multiple times in a row.
+            /// For example:
+            ///
+            /// ```zig
+            /// const document = try parser.parseFromSlice(allocator, "[ [], [1] ]");
+            /// const value = try document.atIndex(1).atIndex(0).asUnsigned();
+            /// std.debug.assert(value == 1);
+            /// ```
+            ///
+            /// If the value is not found, an `error.IndexOutOfBounds` will be returned when a cast method is used.
+            ///
+            /// **Note**: Avoid calling the `atIndex` method repeatedly.
+            pub fn atIndex(self: Document, index: usize) Value {
+                return self.asValue().atIndex(index);
+            }
+
+            /// Get the size of the array (number of immediate children).
+            /// It is a saturated value with a maximum of `std.math.maxInt(u24)`.
+            pub fn getArraySize(self: Document) Error!u24 {
+                return self.asValue().getArraySize();
+            }
+
+            /// Get the size of the object (number of keys).
+            /// It is a saturated value with a maximum of `std.math.maxInt(u24)`.
+            pub fn getObjectSize(self: Document) Error!u24 {
+                return self.asValue().getObjectSize();
+            }
         };
 
         /// Represents a value in a JSON document.
@@ -670,6 +799,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             };
 
             const Tag = enum(u8) {
+                root = 'r',
                 true = 't',
                 false = 'f',
                 null = 'n',
@@ -873,6 +1003,16 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 // var tracer = tracy.traceNamed(@src(), "dispatch");
                 // defer tracer.end();
 
+                try self.stack.push(.{
+                    .tag = .root,
+                    .data = .{
+                        .ptr = self.currentWord(),
+                        .len = undefined,
+                    },
+                });
+                if (want_stream) try self.words.ensureUnusedCapacity(allocator, 1);
+                self.advanceWord(1);
+
                 state: switch (State.start) {
                     .start => {
                         const t = try self.tokens.next();
@@ -1001,7 +1141,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                             },
                         });
                         self.stack.pop();
-                        if (self.stack.len() == 0) {
+                        if (self.stack.len() == 1) {
                             @branchHint(.unlikely);
                             continue :state .end;
                         }
@@ -1012,6 +1152,26 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                         const trail = try self.tokens.next();
                         if (!common.tables.is_whitespace[trail[0]]) return error.TrailingContent;
                         if (self.currentWord() == 0) return error.Empty;
+
+                        assert(self.stack.getScopeType() == .root);
+                        const root = self.stack.getScopeData();
+                        if (want_stream) try self.words.ensureUnusedCapacity(allocator, 1);
+                        self.appendWordAssumeCapacity(.{
+                            .tag = .root,
+                            .data = .{
+                                .ptr = root.ptr,
+                                .len = undefined,
+                            },
+                        });
+                        self.words.items().ptr[root.ptr] = @bitCast(Word{
+                            .tag = .root,
+                            .data = .{
+                                .ptr = self.currentWord(),
+                                .len = undefined,
+                            },
+                        });
+                        self.stack.pop();
+                        assert(self.stack.len() == 0);
                     },
                 }
             }

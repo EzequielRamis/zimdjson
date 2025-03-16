@@ -6,7 +6,7 @@
 //! https://github.com/simdjson/simdjson with the addition of some fundamental features
 //! like:
 //! * Streaming support which can handle arbitrarily large documents.
-//! * An ergonomic [Serde](https://serde.rs)-like deserialization interface thanks to
+//! * An ergonomic, [Serde](https://serde.rs)-like deserialization interface thanks to
 //! compile-time reflection.
 //! See [`ondemand.Parser.schema`](#zimdjson.ondemand.Parser.schema).
 //! * More efficient memory usage.
@@ -14,8 +14,8 @@
 //! To get started, choose one of the following parsing approaches:
 //! * `dom`: A simple and "user friendly" API in which an intermediate tree-like
 //! structure is constructed for the whole document and can be traversed.
-//! * `ondemand`: At the cost of incomplete validation, this API allows you to parse
-//! documents on-the-fly, without the need to store an entire document structure in
+//! * `ondemand`: At the cost of incomplete validation, this API allows you to do
+//! just-in-time parsing, without the need to store an entire document structure in
 //! memory.
 //!
 //! For daily use, the `ondemand` approach is recommended, as it is more efficient and

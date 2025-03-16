@@ -1,17 +1,12 @@
 //! With a Document Object Model (DOM) parser, unlike On-Demand, the entire document is
 //! parsed, validated, and stored in memory as a tree-like structure. Only after the
-//! process is complete can the user access and navigate the content.
+//! process is complete can the programmer access and navigate the content.
 //!
-//! During parsing, the input must remain unmodified. Once parsing finishes, the input
-//! can safely be discarded.
-//!
-//! A parser instance manages one document at a time and owns all allocated resources.
-//! For optimal performance, it should be reused over several documents when possible.
-//! If there is a need to have multiple documents in memory, multiple parser instances
-//! should be used.
-//!
-//! Although the Document Object Model is an approach, it has two distinct variants:
-//! * `FullParser`: The parser reads the entire document before parsing.
+//! ## Variants
+//! Although the Document Object Model is an approach, `zimdjson` offers two distinct
+//! variants:
+//! * `FullParser`: The parser reads the entire document before parsing. This is what
+//! `simdjson` currently does.
 //! * `StreamParser`: The parser reads and parses the document progressively, handling it
 //! in chunks as data arrives.
 //!
@@ -19,6 +14,15 @@
 //!
 //! If memory usage is a concern or the document is too large, consider using the
 //! `StreamParser`. Otherwise, the `FullParser` is recommended.
+//!
+//! ## Lifetimes
+//! During parsing, the input must remain unmodified. Once parsing finishes, the input
+//! can safely be discarded.
+//!
+//! A parser instance manages one document at a time and owns all allocated resources.
+//! For optimal performance, it should be reused over several documents when possible.
+//! If there is a need to have multiple documents in memory, multiple parser instances
+//! should be used.
 
 const std = @import("std");
 const builtin = @import("builtin");

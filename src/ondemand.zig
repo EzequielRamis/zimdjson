@@ -1,3 +1,45 @@
+//! Using an On-Demand parser, with an API similar to DOM, the programmer is able to parse
+//! and validate the content it only needs, reaching massive performance gains and
+//! minimizing memory usage.
+//!
+//! ## Variants
+//! Although the On-Demand is an approach, `zimdjson` offers two distinct variants:
+//! * `FullParser`: The parser reads the entire document before the programmer is able to
+//! process it, similar to how `simdjson` currently works.
+//! * `StreamParser`: The parser reads the document progressively, parsing it in chunks as
+//! the programmer demands it. It is the "laziest" and most memory-efficient (`O(1)`)
+//! variant.
+//!
+//! If memory usage is a concern or the document is too large, consider using the
+//! `StreamParser`. Otherwise, the `FullParser` is recommended.
+//!
+//! ## Schema-based parser generator
+//! At first glance, you may think that On-Demand is an unsafe approach to deal with JSON
+//! documents:
+//! * **True**: Its philosophy is *"validate what you use"*, which means it is possible to
+//! successfully parse malformed JSON documents.
+//! * **False**: On-Demand's smart design is capable of detecting common bugs caused by
+//! poorly written code.
+//!
+//! With that in mind, in real-world scenarios, where codebases are complex, parsing
+//! manually lots of JSON documents uninevitably leads to hard-to-maintain, bug-prone code.
+//!
+//! To address this, `zimdjson` integrates an ergonomic, [Serde](https://serde.rs)-like
+//! deserialization interface for On-Demand parsing.
+//! Thanks to Zig's powerful compile-time capabilities, the parser knows how to handle
+//! JSON documents based on Zig types, leading to a more readable and maintainable code.
+//!
+//! For more information, see `Parser.schema`.
+//!
+//! ## Lifetimes
+//! During parsing, the input must remain unmodified. Once the programmer finishes
+//! parsing, the input can safely be discarded.
+//!
+//! A parser instance manages one document at a time and owns all allocated resources.
+//! For optimal performance, it should be reused over several documents when possible.
+//! If there is a need to have multiple documents in memory, multiple parser instances
+//! should be used.
+
 const std = @import("std");
 const builtin = @import("builtin");
 const common = @import("common.zig");
@@ -68,7 +110,8 @@ pub const FullOptions = struct {
     /// ```
     ///
     /// With `.schema_identifier = "S"`, the parser interprets that:
-    /// * The `Image` struct has a schema that renames all fields to `.PascalCase`, except `ids`, which is renamed to `"IDs"`.
+    /// * The `Image` struct has a schema that renames all fields using the Pascal case
+    /// naming convention, except `ids`, which is renamed to `"IDs"`.
     /// * The `thumbnail` field has its own schema, also renaming all fields to `.PascalCase`.
     ///
     /// While this option exists, it is not recommended to change it unless absolutely necessary.
@@ -118,7 +161,8 @@ pub const StreamOptions = struct {
     /// ```
     ///
     /// With `.schema_identifier = "S"`, the parser interprets that:
-    /// * The `Image` struct has a schema that renames all fields to `.PascalCase`, except `ids`, which is renamed to `"IDs"`.
+    /// * The `Image` struct has a schema that renames all fields using the Pascal case
+    /// naming convention, except `ids`, which is renamed to `"IDs"`.
     /// * The `thumbnail` field has its own schema, also renaming all fields to `.PascalCase`.
     ///
     /// While this option exists, it is not recommended to change it unless absolutely necessary.
@@ -169,13 +213,13 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
 
         pub const Error = Tokens.Error || types.ParseError || Allocator.Error ||
             error{
-            /// An allocator was not provided.
-            ExpectedAllocator,
-        } ||
+                /// An allocator was not provided.
+                ExpectedAllocator,
+            } ||
             (if (builtin.mode == .Debug) error{
-            /// Found an illegal iteration order.
-            OutOfOrderIteration,
-        } else error{});
+                /// Found an illegal iteration order.
+                OutOfOrderIteration,
+            } else error{});
 
         /// The `FullParser` supports JSON documents up to **4GiB**, while the
         /// the `StreamParser` supports JSON documents of **unlimited size**.
@@ -1987,7 +2031,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
 
             /// This interface allows you to define custom parsers for your types using
             /// the `ondemand` base functionality.
-            /// On zimdjson, this interface is used to support data structures from the Zig Standard Library.
+            /// On `zimdjson`, this interface is used to support data structures from the Zig Standard Library.
             pub fn CustomParser(comptime T: type) type {
                 return struct {
                     init: T,
@@ -2329,7 +2373,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     rename_all: ?FieldsRenaming = null,
 
                     /// Schema options for each field of this struct.
-                    /// See `StructField`.
+                    /// See [`StructField`](#zimdjson.ondemand.Parser.schema.StructField).
                     fields: StructFields(T) = .{},
 
                     /// Assume the field order in the JSON object matches the field order in the struct.
@@ -2424,7 +2468,9 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                         if (field_schema.rename) |_| @compileError("Renamed fields are not supported in tuple struct '" ++ @typeName(T) ++ "'");
                         if (field_schema.skip) @compileError("Skipped fields are not supported in tuple struct '" ++ @typeName(T) ++ "'");
                         const sp = @field(fields_schema_parser, field.name);
-                        if (sp[1]) |handler| @field(dest, field.name) = handler.init;
+                        if (field.default_value_ptr == null) {
+                            if (sp[1]) |handler| @field(dest, field.name) = handler.init;
+                        }
                     }
                     var array = (try value.asArray()).iterator();
                     @setEvalBranchQuota(1000 * fields.len);
@@ -2459,7 +2505,9 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 inline for (fields) |field| {
                     const field_schema = @field(S.fields, field.name);
                     const sp = @field(fields_schema_parser, field.name);
-                    if (sp[1]) |handler| @field(dest, field.name) = handler.init;
+                    if (field.default_value_ptr == null) {
+                        if (sp[1]) |handler| @field(dest, field.name) = handler.init;
+                    }
                     if (field_schema.skip) {
                         if (sp[1]) |_| {} else @compileError("Missing default value for skipped field '" ++ @typeName(T) ++ "." ++ field.name ++ "'");
                     } else {
@@ -2677,7 +2725,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     rename_all: ?FieldsRenaming = null,
 
                     /// Schema options for each field of this enum.
-                    /// See `EnumField`.
+                    /// See [`EnumField`](#zimdjson.ondemand.Parser.schema.EnumField).
                     fields: EnumFields(T) = .{},
                 };
             }
@@ -2748,7 +2796,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     representation: UnionRepresentation = .externally_tagged,
 
                     /// Schema options for each variant of this union.
-                    /// See `UnionField`.
+                    /// See [`UnionField`](#zimdjson.ondemand.Parser.schema.UnionField).
                     fields: UnionFields(T) = .{},
                 };
             }
@@ -3154,7 +3202,7 @@ const UnionRepresentation = union(enum) {
     /// {"id": "...", "method": "...", "params": {...}}
     /// ```
     ///
-    /// There is no explicit tag identifying which variant the data contains. Zimdjson will
+    /// There is no explicit tag identifying which variant the data contains. `zimdjson` will
     /// try to match the data against each variant in order and the first one that
     /// deserializes successfully is the one returned.
     ///

@@ -559,6 +559,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             /// The string is guaranteed to be valid UTF-8.
             ///
             /// **Note**: The string is stored in the parser and will be invalidated the next time it
+            /// parses a document or when it is destroyed.
             ///
             /// **Note**: A value should be consumed once. Calling `asString` twice on the same value
             /// is an error.
@@ -697,6 +698,12 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 return size;
             }
 
+            /// Cast the document to the provided type, packaged in a `std.json.Parsed`.
+            /// You must call `deinit` of the returned object to clean up allocated resources.
+            /// If you are using a `std.heap.ArenaAllocator` or similar, consider calling `asLeaky`
+            /// instead.
+            ///
+            /// For more details on how it is parsed, see [`Parser.schema`](#zimdjson.ondemand.Parser.schema).
             pub inline fn as(
                 self: Document,
                 comptime T: type,
@@ -708,6 +715,12 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 return error.TrailingContent;
             }
 
+            /// Cast the document to the provided type and returns the result.
+            /// Allocations made during this operation are not carefully tracked and may not be
+            /// possible to individually clean up.
+            /// It is recommended to use a `std.heap.ArenaAllocator` or similar.
+            ///
+            /// For more details on how it is parsed, see [`Parser.schema`](#zimdjson.ondemand.Parser.schema).
             pub inline fn asLeaky(
                 self: Document,
                 comptime T: type,
@@ -1254,6 +1267,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             /// The string is guaranteed to be valid UTF-8.
             ///
             /// **Note**: The string is stored in the parser and will be invalidated the next time it
+            /// parses a document or when it is destroyed.
             ///
             /// **Note**: A value should be consumed once. Calling `asString` twice on the same value
             /// is an error.
@@ -1378,6 +1392,12 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 return size;
             }
 
+            /// Cast the value to the provided type, packaged in a `std.json.Parsed`.
+            /// You must call `deinit` of the returned object to clean up allocated resources.
+            /// If you are using a `std.heap.ArenaAllocator` or similar, consider calling `asLeaky`
+            /// instead.
+            ///
+            /// For more details on how it is parsed, see [`Parser.schema`](#zimdjson.ondemand.Parser.schema).
             pub inline fn as(
                 self: Value,
                 comptime T: type,
@@ -1395,6 +1415,12 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 return dest;
             }
 
+            /// Cast the value to the provided type and returns the result.
+            /// Allocations made during this operation are not carefully tracked and may not be
+            /// possible to individually clean up.
+            /// It is recommended to use a `std.heap.ArenaAllocator` or similar.
+            ///
+            /// For more details on how it is parsed, see [`Parser.schema`](#zimdjson.ondemand.Parser.schema).
             pub inline fn asLeaky(
                 self: Value,
                 comptime T: type,
@@ -2303,6 +2329,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     rename_all: ?FieldsRenaming = null,
 
                     /// Schema options for each field of this struct.
+                    /// See `StructField`.
                     fields: StructFields(T) = .{},
 
                     /// Assume the field order in the JSON object matches the field order in the struct.
@@ -2650,6 +2677,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     rename_all: ?FieldsRenaming = null,
 
                     /// Schema options for each field of this enum.
+                    /// See `EnumField`.
                     fields: EnumFields(T) = .{},
                 };
             }
@@ -2720,6 +2748,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     representation: UnionRepresentation = .externally_tagged,
 
                     /// Schema options for each variant of this union.
+                    /// See `UnionField`.
                     fields: UnionFields(T) = .{},
                 };
             }

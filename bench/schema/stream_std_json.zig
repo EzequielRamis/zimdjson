@@ -75,7 +75,7 @@ const LanguageCode = enum { @"zh-cn", cn, en, es, it, ja, zh };
 
 const StatusEntities = struct {
     hashtags: []const HashTag,
-    symbols: []const struct {},
+    // symbols: []const struct {}, // produces compile error
     urls: []const Url,
     user_mentions: []const UserMention,
     // media: ?[]const Media, // produces error.MissingField

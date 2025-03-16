@@ -79,7 +79,7 @@ const LanguageCode = enum { @"zh-cn", cn, en, es, it, ja, zh };
 
 const StatusEntities = struct {
     hashtags: ArrayList(HashTag),
-    symbols: [0]void,
+    // symbols: [0]void, // see std_json.zig
     urls: ArrayList(Url),
     user_mentions: ArrayList(UserMention),
     // media: ?[]const Media, // see std_json.zig
@@ -326,8 +326,8 @@ fn parseStatusEntities(value: Parser.Value, alloc: std.mem.Allocator) !StatusEnt
     while (try hashtags_arr.next()) |hashtag| {
         try hashtags_result.append(alloc, try parseHashTag(hashtag));
     }
-    const symbols_arr = try value.at("symbols").asArray();
-    if (!try symbols_arr.isEmpty()) return error.IncorrectType;
+    // const symbols_arr = try value.at("symbols").asArray();
+    // if (!try symbols_arr.isEmpty()) return error.IncorrectType;
     var urls_arr = (try value.at("urls").asArray()).iterator();
     var urls_result: ArrayList(Url) = .empty;
     while (try urls_arr.next()) |url| {
@@ -340,7 +340,7 @@ fn parseStatusEntities(value: Parser.Value, alloc: std.mem.Allocator) !StatusEnt
     }
     return .{
         .hashtags = hashtags_result,
-        .symbols = .{},
+        // .symbols = .{},
         .urls = urls_result,
         .user_mentions = user_mentions_result,
     };

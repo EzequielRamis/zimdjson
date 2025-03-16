@@ -80,7 +80,7 @@ const LanguageCode = enum { @"zh-cn", cn, en, es, it, ja, zh };
 
 const StatusEntities = struct {
     hashtags: ArrayList(HashTag),
-    symbols: [0]?struct {},
+    // symbols: [0]?struct {}, // see std_json.zig
     urls: ArrayList(Url),
     user_mentions: ArrayList(UserMention),
     // media: ?[]const Media, // see std_json.zig

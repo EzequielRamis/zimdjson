@@ -81,7 +81,7 @@ const StatusEntities = struct {
     // media: ?[]const Media, // see std_json.zig
     user_mentions: ArrayList(UserMention),
     urls: ArrayList(Url),
-    symbols: [0]void,
+    // symbols: [0]void, // see std_json.zig
     hashtags: ArrayList(HashTag),
 };
 
@@ -333,8 +333,8 @@ fn parseStatusEntities(value: Parser.Value, alloc: std.mem.Allocator) !StatusEnt
         try urls_result.append(alloc, try parseUrl(url));
     }
 
-    const symbols_arr = try value.at("symbols").asArray();
-    if (!try symbols_arr.isEmpty()) return error.IncorrectType;
+    // const symbols_arr = try value.at("symbols").asArray();
+    // if (!try symbols_arr.isEmpty()) return error.IncorrectType;
 
     var hashtags_arr = (try value.at("hashtags").asArray()).iterator();
     var hashtags_result: ArrayList(HashTag) = .empty;
@@ -343,7 +343,7 @@ fn parseStatusEntities(value: Parser.Value, alloc: std.mem.Allocator) !StatusEnt
     }
     return .{
         .hashtags = hashtags_result,
-        .symbols = .{},
+        // .symbols = .{},
         .urls = urls_result,
         .user_mentions = user_mentions_result,
     };

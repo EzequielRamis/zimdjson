@@ -8,27 +8,27 @@
     .dependencies = .{
         .@"simdjson-data" = .{
             .url = "git+https://github.com/simdjson/simdjson-data.git#a5b13babe65c1bba7186b41b43d4cbdc20a5c470",
-            .hash = "1220b889265da3e0bc471a53803786ad6a4f4ee23fbdf9af683af467e995136bd1f4",
+            .hash = "N-V-__8AAMQVtAG4iSZdo-C8RxpTgDeGrWpPTuI_vfmvaDr0",
             .lazy = true,
         },
         .parse_number_fxx = .{
             .url = "git+https://github.com/nigeltao/parse-number-fxx-test-data.git#55d79b184b7d8fac2e143e89dc19b766ec4e54b8",
-            .hash = "12201656f7fb84a9cc63c8a9067de435a21efba72d41d75c853542fb37ab0504e9a0",
+            .hash = "N-V-__8AACBIdhAWVvf7hKnMY8ipBn3kNaIe-6ctQddchTVC",
             .lazy = true,
         },
         .simdjson = .{
             .url = "git+https://github.com/simdjson/simdjson.git#v3.10.1",
-            .hash = "1220daa60a74b1d7d87c5baf3132af7aafd581c9599e105c2ef43f4e87c995d254fc",
+            .hash = "N-V-__8AAOPwugDapgp0sdfYfFuvMTKveq_VgclZnhBcLvQ_",
             .lazy = true,
         },
         .yyjson = .{
             .url = "git+https://github.com/ibireme/yyjson.git#0.10.0",
-            .hash = "122042efdb4807799a361ed8758404dfd25965757812ce587bea0f917015720fff26",
+            .hash = "N-V-__8AAKmVZgBC79tIB3maNh7YdYQE39JZZXV4Es5Ye-oP",
             .lazy = true,
         },
         .rapidjson = .{
             .url = "git+https://github.com/EzequielRamis/rapidjson.git#bf11b43f8eac3173ca88f82430917ad919feee2b",
-            .hash = "1220f3c05afeb13948456cb1b49800aaaa4dffa589010bdc9373ebfb4e4b32e78c15",
+            .hash = "N-V-__8AAOiaNQDzwFr-sTlIRWyxtJgAqqpN_6WJAQvck3Pr",
             .lazy = true,
         },
     },

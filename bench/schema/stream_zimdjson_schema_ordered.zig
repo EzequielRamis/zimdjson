@@ -84,7 +84,7 @@ const LanguageCode = enum { @"zh-cn", cn, en, es, it, ja, zh };
 const StatusEntities = struct {
     pub const schema: Parser.schema.Struct(@This()) = .{ .assume_ordering = true };
     hashtags: ArrayList(HashTag),
-    symbols: [0]void,
+    // symbols: [0]void, // see std_json.zig
     urls: ArrayList(Url),
     user_mentions: ArrayList(UserMention),
     // media: ?[]const Media, // see std_json.zig

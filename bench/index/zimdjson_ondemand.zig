@@ -19,7 +19,7 @@ pub fn init(path: []const u8) !void {
 pub fn prerun() !void {}
 
 pub fn run() !void {
-    _ = try parser.parseFromSlice(json);
+    _ = try parser.parseFromSlice(allocator, json);
 }
 
 pub fn postrun() !void {}

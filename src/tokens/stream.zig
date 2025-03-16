@@ -17,6 +17,7 @@ const Options = struct {
 };
 
 pub const StreamError = error{
+    /// Exceeded batch limit while parsing.
     BatchOverflow,
 };
 

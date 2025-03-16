@@ -1,7 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
 // const tracy = @import("tracy");
-// const debug = @import("debug");
 const common = @import("common.zig");
 const types = @import("types.zig");
 const intr = @import("intrinsics.zig");
@@ -280,9 +279,9 @@ pub fn Indexer(comptime T: type, comptime options: Options) type {
         ) void {
             const offset: if (options.relative) u8 else T =
                 if (cpu.arch.isArm())
-                @clz(mask.*)
-            else
-                @ctz(mask.*);
+                    @clz(mask.*)
+                else
+                    @ctz(mask.*);
 
             if (options.relative) {
                 dest[i] = offset - offsets[i];

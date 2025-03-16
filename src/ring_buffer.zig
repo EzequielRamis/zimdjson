@@ -8,7 +8,7 @@ const native_os = builtin.os.tag;
 const w = std.os.windows;
 
 pub const default_chunk_length = 1024 * 64;
-const min_chunk_length = if (native_os == .windows) 1024 * 64 else std.mem.page_size;
+const min_chunk_length = if (native_os == .windows) 1024 * 64 else std.heap.page_size_min;
 
 pub const Error =
     std.posix.MemFdCreateError ||
@@ -26,7 +26,7 @@ pub fn RingBuffer(comptime T: type, comptime length: usize) type {
         base: Buffer,
 
         const Buffer = struct {
-            buffer: [*]align(std.mem.page_size) u8,
+            buffer: [*]align(std.heap.page_size_min) u8,
             handle: if (native_os == .windows) w.HANDLE else std.fs.File.Handle,
 
             pub fn init() Error!Buffer {

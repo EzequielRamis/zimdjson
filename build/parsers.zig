@@ -1,5 +1,4 @@
 const std = @import("std");
-const Command = @import("center.zig").Command;
 
 pub const Parsers = struct {
     simdjson: *std.Build.Step.Compile,
@@ -7,18 +6,19 @@ pub const Parsers = struct {
     rapidjson: *std.Build.Step.Compile,
 
     pub fn get(
-        command: Command,
+        b: *std.Build,
         target: std.Build.ResolvedTarget,
         optimize: std.builtin.OptimizeMode,
     ) ?Parsers {
-        const com = command;
-        const b = com.step.owner;
-
-        const simdjson_dep = com.with("simdjson") orelse return null;
-        const simdjson = b.addStaticLibrary(.{
+        const simdjson_dep = b.lazyDependency("simdjson", .{}) orelse return null;
+        const simdjson = b.addLibrary(.{
+            .linkage = .static,
             .name = "simdjson",
-            .target = target,
-            .optimize = optimize,
+            .root_module = b.createModule(.{
+                .root_source_file = null,
+                .target = target,
+                .optimize = optimize,
+            }),
         });
         simdjson.linkLibCpp();
         simdjson.addCSourceFile(.{
@@ -29,21 +29,29 @@ pub const Parsers = struct {
         });
         simdjson.installHeadersDirectory(simdjson_dep.path("singleheader"), "", .{});
 
-        const yyjson_dep = com.with("yyjson") orelse return null;
-        const yyjson = b.addStaticLibrary(.{
+        const yyjson_dep = b.lazyDependency("yyjson", .{}) orelse return null;
+        const yyjson = b.addLibrary(.{
+            .linkage = .static,
             .name = "yyjson",
-            .target = target,
-            .optimize = optimize,
+            .root_module = b.createModule(.{
+                .root_source_file = null,
+                .target = target,
+                .optimize = optimize,
+            }),
         });
         yyjson.linkLibC();
         yyjson.addCSourceFile(.{ .file = yyjson_dep.path("src/yyjson.c") });
         yyjson.installHeadersDirectory(yyjson_dep.path("src"), "", .{});
 
-        const rapidjson_dep = com.with("rapidjson") orelse return null;
-        const rapidjson = b.addStaticLibrary(.{
+        const rapidjson_dep = b.lazyDependency("rapidjson", .{}) orelse return null;
+        const rapidjson = b.addLibrary(.{
+            .linkage = .static,
             .name = "rapidjson",
-            .target = target,
-            .optimize = optimize,
+            .root_module = b.createModule(.{
+                .root_source_file = null,
+                .target = target,
+                .optimize = optimize,
+            }),
         });
         rapidjson.linkLibCpp();
         rapidjson.addCSourceFile(.{ .file = rapidjson_dep.path("include/rapidjson.cpp") });

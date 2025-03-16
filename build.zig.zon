@@ -1,6 +1,10 @@
 .{
-    .name = "zimdjson",
+    .name = .zimdjson,
     .version = "0.0.0",
+
+    .minimum_zig_version = "0.14.0",
+    .fingerprint = 0xd4076c57c560daf3,
+
     .dependencies = .{
         .@"simdjson-data" = .{
             .url = "git+https://github.com/simdjson/simdjson-data.git#a5b13babe65c1bba7186b41b43d4cbdc20a5c470",

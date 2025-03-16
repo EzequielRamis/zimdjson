@@ -48,10 +48,13 @@ pub fn Suite(comptime suite: []const u8) type {
         ) Benchmark {
             const b = self.zimdjson.owner;
             const identifier = self.suite ++ "/" ++ name;
-            const lib = b.addSharedLibrary(.{
+            const lib = b.addLibrary(.{
+                .linkage = .dynamic,
                 .name = self.suite ++ "_" ++ name,
-                .target = self.target,
-                .optimize = self.optimize,
+                .root_module = b.createModule(.{
+                    .target = self.target,
+                    .optimize = self.optimize,
+                }),
             });
             lib.installHeader(b.addWriteFiles().add(identifier, formatTemplateHeader(name)), identifier ++ ".h");
             lib.addCSourceFile(.{ .file = b.path("bench/" ++ identifier ++ ".cpp") });
@@ -74,10 +77,13 @@ pub fn Suite(comptime suite: []const u8) type {
         ) Benchmark {
             const b = self.zimdjson.owner;
             const identifier = self.suite ++ "/" ++ name;
-            const lib = b.addSharedLibrary(.{
+            const lib = b.addLibrary(.{
+                .linkage = .dynamic,
                 .name = self.suite ++ "_" ++ name,
-                .target = self.target,
-                .optimize = self.optimize,
+                .root_module = b.createModule(.{
+                    .target = self.target,
+                    .optimize = self.optimize,
+                }),
             });
             lib.installHeader(b.addWriteFiles().add(identifier, formatTemplateHeader(name)), identifier ++ ".h");
             lib.addCSourceFile(.{ .file = b.path("bench/" ++ identifier ++ ".c") });
@@ -138,9 +144,11 @@ pub fn Suite(comptime suite: []const u8) type {
             }
             const runner = b.addExecutable(.{
                 .name = self.suite,
-                .root_source_file = b.path("bench/runner.zig"),
-                .target = self.target,
-                .optimize = self.optimize,
+                .root_module = b.createModule(.{
+                    .root_source_file = b.path("bench/runner.zig"),
+                    .target = self.target,
+                    .optimize = self.optimize,
+                }),
             });
             runner.linkLibCpp();
             runner.root_module.addImport("benchmarks", mod);

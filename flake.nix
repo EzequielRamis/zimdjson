@@ -13,7 +13,7 @@
           inherit system;
           overlays = [
             (final: prev: rec {
-              zig-master = inputs.zig.packages.${system}."master";
+              zig-master = inputs.zig.packages.${system}."0.14.0";
               zls-master = inputs.zls.packages.${system}.default;
             })
           ];

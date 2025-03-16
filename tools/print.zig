@@ -7,7 +7,6 @@ const allocator = gpa.allocator();
 
 var buf = std.io.bufferedWriter(std.io.getStdOut().writer());
 var w = buf.writer();
-var string_buf: [zimdjson.ondemand.default_stream_chunk_length]u8 = undefined;
 
 var depth: usize = 0;
 

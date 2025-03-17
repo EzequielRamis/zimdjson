@@ -17,8 +17,8 @@ const Options = struct {
 };
 
 pub const StreamError = error{
-    /// Exceeded batch limit while parsing.
-    BatchOverflow,
+    /// Exceeded chunk limit while parsing.
+    StreamChunkOverflow,
 };
 
 pub fn Stream(comptime options: Options) type {
@@ -136,7 +136,7 @@ pub fn Stream(comptime options: Options) type {
         }
 
         inline fn calculateDocumentOffset(self: Self, pos: usize) Error!usize {
-            if (self.head.ixs - pos > chunk_len) return error.BatchOverflow;
+            if (self.head.ixs - pos > chunk_len) return error.StreamChunkOverflow;
             var doc_offset: usize = 0;
             for (pos..self.tail.ixs) |i| doc_offset += self.indexes.ptr()[self.indexes.mask(i)];
             return doc_offset;
@@ -185,9 +185,9 @@ pub fn Stream(comptime options: Options) type {
                     const chunk = buf[0..std.mem.alignForward(usize, read + bogus_indexed_tokens.len, types.block_len)];
                     const indexes = self.indexes.ptr()[self.indexes.mask(head.ixs)..][0..chunk_len];
                     const written = self.indexChunk(@alignCast(chunk), indexes.ptr);
-                    if (written == 0) return error.BatchOverflow;
+                    if (written == 0) return error.StreamChunkOverflow;
                     const first_offset = indexes[0];
-                    if (first_offset > chunk_len) return error.BatchOverflow;
+                    if (first_offset > chunk_len) return error.StreamChunkOverflow;
                     try self.indexer.validate();
                     try self.indexer.validateEof();
                     buf[read + bogus_indexed_tokens.len - 1] = bogus_token;
@@ -200,9 +200,9 @@ pub fn Stream(comptime options: Options) type {
             const chunk = buf;
             const indexes = self.indexes.ptr()[self.indexes.mask(head.ixs)..][0..chunk_len];
             const written = self.indexChunk(@alignCast(chunk), indexes.ptr);
-            if (written == 0) return error.BatchOverflow;
+            if (written == 0) return error.StreamChunkOverflow;
             const first_offset = indexes[0];
-            if (first_offset > chunk_len) return error.BatchOverflow;
+            if (first_offset > chunk_len) return error.StreamChunkOverflow;
             try self.indexer.validate();
 
             return written;

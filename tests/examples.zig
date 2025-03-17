@@ -2,7 +2,7 @@
 
 const std = @import("std");
 const zimdjson = @import("zimdjson");
-const Parser = zimdjson.dom.FullParser(.default);
+const Parser = zimdjson.dom.StreamParser(.default);
 const simdjson_data = @embedFile("simdjson-data");
 
 test "apache_builds" {
@@ -274,3 +274,4 @@ test "update-center" {
     defer file.close();
     _ = try parser.parseFromReader(allocator, file.reader().any());
 }
+

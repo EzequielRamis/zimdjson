@@ -3752,3 +3752,4 @@ test "y_structure_whitespace_array" {
     defer file.close();
     _ = try parser.parseFromReader(allocator, file.reader().any());
 }
+

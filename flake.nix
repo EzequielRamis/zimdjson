@@ -33,6 +33,8 @@
             clippy
             rustfmt
             (python3.withPackages (p: with p; [ seaborn python-lsp-server ]))
+            qemu
+            gdb
           ];
         };
       });

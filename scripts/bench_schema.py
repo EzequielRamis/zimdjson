@@ -46,6 +46,6 @@ g.set_xlabels("")
 g.set_ylabels("throughput (GB/s)")
 g.legend.set_title("")
 
-plt.savefig("assets/bench_schema.png", dpi=300)
+plt.savefig("docs/assets/bench_schema.png", dpi=300)
 
 # plt.show()

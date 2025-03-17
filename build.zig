@@ -145,6 +145,9 @@ pub fn build(b: *std.Build) !void {
                         .optimize = optimize,
                     }),
                 });
+                if (target.result.os.tag == .macos) {
+                    examples.linkLibC();
+                }
                 if (b.lazyDependency("simdjson-data", .{})) |dep| {
                     addEmbeddedPath(b, examples, dep, "simdjson-data");
                     addEmbeddedPath(b, examples_gen, dep, "simdjson-data");

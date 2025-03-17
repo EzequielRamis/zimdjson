@@ -25,7 +25,7 @@ pub fn main() !void {
         \\
         \\const std = @import("std");
         \\const zimdjson = @import("zimdjson");
-        \\const Parser = zimdjson.dom.FullParser(.default);
+        \\const Parser = zimdjson.dom.StreamParser(.default);
         \\const simdjson_data = @embedFile("simdjson-data");
         \\
         \\

@@ -13,11 +13,13 @@ const min_chunk_length = if (native_os == .windows) 1024 * 64 else std.heap.page
 pub const Error =
     std.posix.MemFdCreateError ||
     std.posix.TruncateError ||
-    std.posix.MMapError;
+    std.posix.MMapError ||
+    (if (native_os == .macos) std.posix.GetRandomError else error{});
 
 pub fn RingBuffer(comptime T: type, comptime length: usize) type {
     const byte_len = @sizeOf(T) * length;
     assert(byte_len >= min_chunk_length and std.math.isPowerOfTwo(byte_len));
+    assert(if (native_os == .macos) byte_len <= 1024 * 1024 * 4 else true);
 
     return struct {
         const Self = @This();
@@ -41,7 +43,7 @@ pub fn RingBuffer(comptime T: type, comptime length: usize) type {
                         const MEM_REPLACE_PLACEHOLDER = 0x04000;
                         const MEM_PRESERVE_PLACEHOLDER = 0x00002;
 
-                        const buffer: [*]align(std.mem.page_size) u8 = @alignCast(@ptrCast(VirtualAlloc2(
+                        const buffer: [*]align(std.heap.page_size_min) u8 = @alignCast(@ptrCast(VirtualAlloc2(
                             null,
                             null,
                             byte_len * 2,
@@ -106,6 +108,79 @@ pub fn RingBuffer(comptime T: type, comptime length: usize) type {
                         free_mirror = false;
 
                         return .{ .buffer = buffer, .handle = handle };
+                    },
+                    .macos => {
+                        // taken from https://github.com/marler8997/zigx/blob/master/src/DoubleBuffer.zig
+
+                        const pshmnamlen = 31;
+                        const shm_prefix = "zimdrb_"; // 7
+                        const base64_len = pshmnamlen - shm_prefix.len; // 24
+                        const encoder: std.base64.Base64Encoder = comptime .init(std.base64.url_safe_alphabet_chars, '=');
+                        var encoded_buffer: [pshmnamlen + 1]u8 = undefined;
+                        @memcpy(encoded_buffer[0..shm_prefix.len], shm_prefix);
+                        var rand_bytes: [18]u8 = undefined; // 18 is the required bytes for 24 base64 encoded bytes
+                        try std.posix.getrandom(&rand_bytes);
+                        const encoded = encoder.encode(encoded_buffer[shm_prefix.len..], &rand_bytes);
+                        assert(encoded.len == base64_len);
+                        encoded_buffer[pshmnamlen] = 0;
+                        const name: [*:0]const u8 = @ptrCast(encoded_buffer[0 .. shm_prefix.len + encoded.len]);
+
+                        const handle = std.c.shm_open(
+                            name,
+                            @bitCast(std.posix.O{
+                                .ACCMODE = .RDWR,
+                                .CREAT = true,
+                                .EXCL = true,
+                            }),
+                            std.posix.S.IRUSR | std.posix.S.IWUSR,
+                        );
+                        if (handle == -1) switch (@as(std.posix.E, @enumFromInt(std.c._errno().*))) {
+                            .EXIST => return error.PathAlreadyExists,
+                            .NAMETOOLONG => return error.NameTooLong,
+                            else => |err| return std.posix.unexpectedErrno(err),
+                        };
+                        errdefer posix.close(handle);
+
+                        try posix.ftruncate(handle, byte_len);
+
+                        const buffer = try posix.mmap(
+                            null,
+                            byte_len * 2,
+                            posix.PROT.READ | posix.PROT.WRITE,
+                            .{
+                                .TYPE = .PRIVATE,
+                                .ANONYMOUS = true,
+                            },
+                            -1,
+                            0,
+                        );
+                        errdefer posix.munmap(buffer);
+
+                        _ = try posix.mmap(
+                            @alignCast(buffer.ptr),
+                            byte_len,
+                            posix.PROT.READ | posix.PROT.WRITE,
+                            .{
+                                .TYPE = .SHARED,
+                                .FIXED = true,
+                            },
+                            handle,
+                            0,
+                        );
+
+                        _ = try posix.mmap(
+                            @alignCast(buffer.ptr + byte_len),
+                            byte_len,
+                            posix.PROT.READ | posix.PROT.WRITE,
+                            .{
+                                .TYPE = .SHARED,
+                                .FIXED = true,
+                            },
+                            handle,
+                            0,
+                        );
+
+                        return .{ .buffer = buffer.ptr, .handle = handle };
                     },
                     else => {
                         const handle = try posix.memfd_create("zimdjson_ringbuffer", posix.FD_CLOEXEC);

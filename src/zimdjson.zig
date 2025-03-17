@@ -1,5 +1,5 @@
-//! Welcome to the documentation of zimdjson: a high-performance JSON parser that takes
-//! advantage of SIMD vector instructions, based on the paper
+//! Welcome to zimdjson: a high-performance JSON parser that takes advantage of
+//! SIMD vector instructions, based on the paper
 //! [Parsing Gigabytes JSON per Second](https://arxiv.org/abs/1902.08318).
 //!
 //! The majority of the source code is based on the C++ implementation of

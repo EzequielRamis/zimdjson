@@ -3,7 +3,7 @@ const bench = @import("build/bench.zig");
 const Parsers = @import("build/parsers.zig").Parsers;
 
 pub fn build(b: *std.Build) !void {
-    const is_dev_mode = std.mem.eql(u8, "", b.pkg_hash);
+    const is_root = std.mem.eql(u8, "", b.pkg_hash);
 
     const target = b.standardTargetOptions(.{});
     const optimize = b.standardOptimizeOption(.{});
@@ -14,7 +14,12 @@ pub fn build(b: *std.Build) !void {
         .optimize = optimize,
     });
 
-    if (is_dev_mode) {
+    const is_dev_mode = b.option(bool, "dev_mode", "Enable zimdjson development mode (default: true)") orelse is_root;
+    const build_options = b.addOptions();
+    build_options.addOption(bool, "is_dev_mode", is_dev_mode);
+    zimdjson.addImport("build_options", build_options.createModule());
+
+    if (is_root) {
         const use_cwd = b.option(bool, "use-cwd",
             \\Prefix the file path with the current directory instead
             \\                               of simdjson/simdjson-data (default: no)

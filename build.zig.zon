@@ -7,27 +7,27 @@
 
     .dependencies = .{
         .@"simdjson-data" = .{
-            .url = "git+https://github.com/simdjson/simdjson-data.git#a5b13babe65c1bba7186b41b43d4cbdc20a5c470",
+            .url = "https://github.com/simdjson/simdjson-data/archive/refs/heads/master.tar.gz",
             .hash = "N-V-__8AAMQVtAG4iSZdo-C8RxpTgDeGrWpPTuI_vfmvaDr0",
             .lazy = true,
         },
         .parse_number_fxx = .{
-            .url = "git+https://github.com/nigeltao/parse-number-fxx-test-data.git#55d79b184b7d8fac2e143e89dc19b766ec4e54b8",
+            .url = "https://github.com/nigeltao/parse-number-fxx-test-data/archive/refs/heads/main.tar.gz",
             .hash = "N-V-__8AACBIdhAWVvf7hKnMY8ipBn3kNaIe-6ctQddchTVC",
             .lazy = true,
         },
         .simdjson = .{
-            .url = "git+https://github.com/simdjson/simdjson.git#v3.10.1",
-            .hash = "N-V-__8AAOPwugDapgp0sdfYfFuvMTKveq_VgclZnhBcLvQ_",
+            .url = "https://github.com/simdjson/simdjson/archive/refs/tags/v3.10.1.tar.gz",
+            .hash = "N-V-__8AAP3gugBlcehtzstAJiwgQGMwxp3kYs98-Rbb1Iqa",
             .lazy = true,
         },
         .yyjson = .{
-            .url = "git+https://github.com/ibireme/yyjson.git#0.10.0",
+            .url = "https://github.com/ibireme/yyjson/archive/refs/tags/0.10.0.tar.gz",
             .hash = "N-V-__8AAKmVZgBC79tIB3maNh7YdYQE39JZZXV4Es5Ye-oP",
             .lazy = true,
         },
         .rapidjson = .{
-            .url = "git+https://github.com/EzequielRamis/rapidjson.git#bf11b43f8eac3173ca88f82430917ad919feee2b",
+            .url = "https://github.com/EzequielRamis/rapidjson/archive/refs/heads/master.tar.gz",
             .hash = "N-V-__8AAOiaNQDzwFr-sTlIRWyxtJgAqqpN_6WJAQvck3Pr",
             .lazy = true,
         },

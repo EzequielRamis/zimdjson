@@ -1,5 +1,6 @@
 const std = @import("std");
 const builtin = @import("builtin");
+const build_options = @import("build_options");
 // const tracy = @import("tracy");
 const common = @import("common.zig");
 const types = @import("types.zig");
@@ -32,12 +33,14 @@ const Options = struct {
     relative: bool,
 };
 
+const debug_indexer = builtin.mode == .Debug and build_options.is_dev_mode;
+
 pub fn Indexer(comptime T: type, comptime options: Options) type {
     return struct {
         const Self = @This();
         const Aligned = types.Aligned(options.aligned);
 
-        // debug: if (debug.is_set) Debug else void = if (debug.is_set) .{} else {},
+        debug: if (debug_indexer) Debug else void = if (debug_indexer) .{} else {},
 
         prev_scalar: umask,
         prev_inside_string: umask,
@@ -200,7 +203,9 @@ pub fn Indexer(comptime T: type, comptime options: Options) type {
                 unescaped |= @as(umask, u) << @truncate(offset);
             }
             self.utf8.check(vecs);
-            const written = self.extract(block.structuralStart(), dest);
+            const structurals = block.structuralStart();
+            if (debug_indexer) self.debug.expectIdentified(vecs, structurals);
+            const written = self.extract(structurals, dest);
             self.unescaped_error |= block.nonQuoteInsideString(unescaped);
             return written;
         }
@@ -598,21 +603,23 @@ const Debug = struct {
                 c.* = '*';
             }
         }
-        assert(
-            expected == actual,
-            \\Misindexed chunk at line {}
-            \\
-            \\Chunk:    '{s}'
-            \\Actual:   '{b:0>64}'
-            \\Expected: '{b:0>64}'
-            \\
-        ,
-            .{
-                self.loc,
-                printable_chunk,
-                @as(umask, @bitCast(std.simd.reverseOrder(@as(@Vector(64, u1), @bitCast(actual))))),
-                @as(umask, @bitCast(std.simd.reverseOrder(@as(@Vector(64, u1), @bitCast(expected))))),
-            },
-        );
+
+        if (expected != actual) {
+            std.debug.panic(
+                \\Misindexed chunk at line {}
+                \\
+                \\Chunk:    '{s}'
+                \\Actual:   '{b:0>64}'
+                \\Expected: '{b:0>64}'
+                \\
+            ,
+                .{
+                    self.loc,
+                    printable_chunk,
+                    @as(umask, @bitCast(std.simd.reverseOrder(@as(@Vector(64, u1), @bitCast(actual))))),
+                    @as(umask, @bitCast(std.simd.reverseOrder(@as(@Vector(64, u1), @bitCast(expected))))),
+                },
+            );
+        }
     }
 };

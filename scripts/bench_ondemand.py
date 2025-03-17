@@ -7,6 +7,8 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import pandas as pd
 
+flags = sys.argv[1:]
+
 better_names = {
     'simdjson_dom': 'simdjson (DOM)',
     'zimdjson_dom': 'zimdjson (DOM)',
@@ -21,10 +23,18 @@ large_file = 'systemsPopulated' # from https://www.edsm.net/en/nightly-dumps
 large_file_path = '../simdjson-data/jsonexamples/' + large_file + '.json'
 
 twitter_benchmarks = [
-    'find-tweet',
+    # 'find-tweet',
     'top-tweet',
     'partial-tweets',
 ]
+
+if '--find-tweet' in flags:
+    twitter_benchmarks = [
+        'find-tweet',
+        'top-tweet',
+        'partial-tweets',
+    ]
+
 
 elite_benchmarks = [
     'find-system',
@@ -32,7 +42,6 @@ elite_benchmarks = [
     'coordinates',
 ]
 
-flags = sys.argv[1:]
 if '--run' in flags:
     for bench in twitter_benchmarks:
         for i in range(0, 2): # warmup
@@ -62,15 +71,19 @@ elite_data = pd.concat(
 
 data = pd.concat([twitter_data, elite_data])
 
-sns.set_theme(context="notebook", palette="bright", style="whitegrid")
+sns.set_theme(context="paper", palette="bright", style="whitegrid")
 
-g = sns.catplot(data, kind="bar", y="suite", x="perf", hue="name", legend_out=False, hue_order=better_names.values())
-g.set_ylabels("")
-g.set_xlabels("throughput (GB/s)")
+g = sns.catplot(data, kind="bar", x="suite", y="perf", hue="name", legend_out=False, hue_order=better_names.values(), height=5, aspect=1.8)
+g.set_xlabels("")
+g.set_ylabels("throughput (GB/s)")
 g.legend.set_title("")
 
 # plt.xticks(rotation=45)
-plt.show()
+if '--find-tweet' in flags:
+    plt.savefig("assets/bench_ondemand_find_tweet.png", dpi=300)
+else:
+    plt.savefig("assets/bench_ondemand.png", dpi=300)
+# plt.show()
 
 pivot_df = data.pivot(index='suite', columns='name', values='perf')
 pivot_df['relative to simdjson'] = pivot_df[better_names['simdjson_ondemand']] / pivot_df[better_names['zimdjson_ondemand']]

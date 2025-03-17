@@ -605,7 +605,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             /// **Note**: The string is stored in the parser and will be invalidated the next time it
             /// parses a document or when it is destroyed.
             ///
-            /// **Note**: A value should be consumed once. Calling `asString` twice on the same value
+            /// **Another note**: A value should be consumed once. Calling `asString` twice on the same value
             /// is an error.
             pub fn asString(self: Document) Error![]const u8 {
                 if (builtin.mode == .Debug) if (!self.iter.isAtRoot()) return error.OutOfOrderIteration;
@@ -1313,7 +1313,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             /// **Note**: The string is stored in the parser and will be invalidated the next time it
             /// parses a document or when it is destroyed.
             ///
-            /// **Note**: A value should be consumed once. Calling `asString` twice on the same value
+            /// **Another note**: A value should be consumed once. Calling `asString` twice on the same value
             /// is an error.
             pub fn asString(self: Value) Error![]const u8 {
                 if (self.err) |err| return err;

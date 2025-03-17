@@ -166,7 +166,7 @@ struct Media {
 #[derive(Debug, Deserialize)]
 struct StatusEntities {
     hashtags: Vec<HashTag>,
-    symbols: Vec<()>,
+    // symbols: Vec<()>, // see std_json.zig
     urls: Vec<Url>,
     user_mentions: Vec<UserMention>,
     // media: Option<Vec<Media>>, // see std_json.zig

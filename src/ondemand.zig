@@ -124,7 +124,7 @@ pub const StreamOptions = struct {
     /// This option sets the stream's chunk length, which determines the number of
     /// bytes available for parsing at any time.
     ///
-    /// Exceeding the chunk length results in an `error.BatchOverflow`, which can occur in
+    /// Exceeding the chunk length results in an `error.StreamChunkOverflow`, which can occur in
     /// three ways:
     /// * A JSON literal (string or number) exceeds the chunk length.
     /// * Whitespace exceeds the chunk length.

@@ -80,9 +80,9 @@ g.legend.set_title("")
 
 # plt.xticks(rotation=45)
 if '--find-tweet' in flags:
-    plt.savefig("assets/bench_ondemand_find_tweet.png", dpi=300)
+    plt.savefig("docs/assets/bench_ondemand_find_tweet.png", dpi=300)
 else:
-    plt.savefig("assets/bench_ondemand.png", dpi=300)
+    plt.savefig("docs/assets/bench_ondemand.png", dpi=300)
 # plt.show()
 
 pivot_df = data.pivot(index='suite', columns='name', values='perf')

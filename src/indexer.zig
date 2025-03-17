@@ -33,7 +33,7 @@ const Options = struct {
     relative: bool,
 };
 
-const debug_indexer = builtin.mode == .Debug and build_options.is_dev_mode;
+const debug_indexer = false;
 
 pub fn Indexer(comptime T: type, comptime options: Options) type {
     return struct {
@@ -100,6 +100,7 @@ pub fn Indexer(comptime T: type, comptime options: Options) type {
             };
 
             const chars = classify(vecs);
+            // if (debug_indexer) self.debug.expectClassified(vecs, chars);
             const nonquote_scalar = chars.scalar() & ~strings.quotes;
             const follows_nonquote_scalar = nonquote_scalar << 1 | self.prev_scalar;
             self.prev_scalar = nonquote_scalar >> Mask.last_bit;
@@ -138,8 +139,8 @@ pub fn Indexer(comptime T: type, comptime options: Options) type {
                 }
                 return .{ .structural = structural, .whitespace = whitespace };
             } else {
-                const ln_table: vector = simd.repeat(Vector.bytes_len, [_]u8{ 16, 0, 0, 0, 0, 0, 0, 0, 0, 8, 10, 4, 1, 12, 0, 0 });
-                const hn_table: vector = simd.repeat(Vector.bytes_len, [_]u8{ 8, 0, 17, 2, 0, 4, 0, 4, 0, 0, 0, 0, 0, 0, 0, 0 });
+                const ln_table: vector = simd.repeat(Vector.bytes_len, [_]u8{ 16, 0, 0, 0, 0, 0, 0, 0, 0, 8, 12, 1, 2, 9, 0, 0 });
+                const hn_table: vector = simd.repeat(Vector.bytes_len, [_]u8{ 8, 0, 18, 4, 0, 1, 0, 1, 0, 0, 0, 3, 2, 1, 0, 0 });
                 const whitespace_table: vector = @splat(0b11000);
                 const structural_table: vector = @splat(0b00111);
                 const vec = vecs[0];
@@ -533,61 +534,48 @@ const Debug = struct {
     prev_inside_string: bool = false,
     next_is_escaped: bool = false,
 
-    fn isX86Relaxed(c: u8) bool {
-        return if (cpu.arch.isX86()) c == 26 or c == 255 else true;
-    }
-
     pub fn expectIdentified(self: *Debug, vecs: types.vectors, actual: umask) void {
         const chunk: [Mask.bits_len]u8 = @bitCast(vecs);
-
-        // Structural chars
-        var expected_structural: umask = 0;
-        for (chunk, 0..) |c, i| {
-            if (common.tables.is_structural[c] or isX86Relaxed(c)) {
-                expected_structural |= @as(umask, 1) << @truncate(i);
-            }
-        }
-
-        // Scalars
-        for (chunk, 0..) |c, i| {
-            if (i == 0) {
-                if (!self.prev_scalar and !(common.tables.is_structural_or_whitespace[c] or isX86Relaxed(c))) {
-                    expected_structural |= @as(umask, 1) << @truncate(i);
-                }
-                continue;
-            }
-            const prev = chunk[i - 1];
-            if ((prev == '"' or common.tables.is_structural_or_whitespace[prev] or isX86Relaxed(prev)) and !common.tables.is_whitespace[c]) {
-                expected_structural |= @as(umask, 1) << @truncate(i);
-                continue;
-            }
-        }
-        self.prev_scalar = !(common.tables.is_structural_or_whitespace[chunk[chunk.len - 1]] or isX86Relaxed(chunk[chunk.len - 1]));
-
-        // Escaped chars
-        var expected_escaped: umask = 0;
-        for (chunk, 0..) |c, i| {
-            if (self.next_is_escaped) {
-                expected_escaped |= @as(umask, 1) << @truncate(i);
-                self.next_is_escaped = false;
-                continue;
-            }
-            if (c == '\\') {
-                self.next_is_escaped = true;
-            }
-        }
-
-        // Filter inside strings
-        var expected_string_ranges: umask = 0;
-        for (chunk, 0..) |c, i| {
+        var expected: umask = 0;
+        for (0..64) |i| {
+            const c = chunk[i];
             if (self.prev_inside_string) {
-                expected_string_ranges |= @as(umask, 1) << @truncate(i);
-            }
-            if (c == '"' and @as(u1, @truncate(expected_escaped >> @truncate(i))) == 0) {
-                self.prev_inside_string = !self.prev_inside_string;
+                if (self.next_is_escaped) {
+                    self.next_is_escaped = false;
+                    continue;
+                }
+                if (c == '"') {
+                    self.prev_inside_string = false;
+                } else if (c == '\\') {
+                    self.next_is_escaped = true;
+                }
+            } else {
+                if (self.prev_scalar) {
+                    if (common.tables.is_structural[c]) {
+                        expected |= @as(umask, 1) << @truncate(i);
+                    } else if (c == '"') {
+                        // expected |= @as(umask, 1) << @truncate(i);
+                        self.prev_inside_string = true;
+                        self.prev_scalar = false;
+                    } else if (common.tables.is_whitespace[c]) {
+                        self.prev_scalar = false;
+                    }
+                    continue;
+                }
+                if (common.tables.is_structural[c]) {
+                    expected |= @as(umask, 1) << @truncate(i);
+                } else if (c == '"') {
+                    expected |= @as(umask, 1) << @truncate(i);
+                    self.prev_inside_string = true;
+                    self.prev_scalar = false;
+                } else if (!common.tables.is_whitespace[c]) {
+                    expected |= @as(umask, 1) << @truncate(i);
+                    self.prev_scalar = true;
+                } else {
+                    self.prev_scalar = false;
+                }
             }
         }
-        const expected = expected_structural & ~expected_string_ranges;
 
         for (chunk) |c| {
             if (c == '\n') self.loc += 1;

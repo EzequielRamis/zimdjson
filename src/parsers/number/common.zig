@@ -78,7 +78,7 @@ pub inline fn parseEightDigits(src: [*]const u8) u32 {
         const t4 = intr.mulWrappingAdd(@bitCast(t3), mul_1_10000);
         return @intCast(t4[0]);
     } else {
-        var val = readInt(u64, src, native_endian);
+        var val = readInt(u64, src[0..8], native_endian);
         const mask = 0x000000FF000000FF;
         const mul1 = 0x000F424000000064; // 100 + (1000000ULL << 32)
         const mul2 = 0x0000271000000001; // 1 + (10000ULL << 32)

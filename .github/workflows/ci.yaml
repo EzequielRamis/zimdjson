@@ -1,0 +1,35 @@
+name: ci
+on:
+  pull_request:
+  push:
+    branches:
+      - main
+
+jobs:
+  test:
+    name: Build and test
+    runs-on: ${{ matrix.os }}
+    continue-on-error: true
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ ubuntu-latest, windows-latest, macos-latest ]
+
+    steps:
+    - uses: actions/checkout@v3
+    - uses: mlugg/setup-zig@v1
+      with:
+        version: 0.14.0
+
+    - name: Run test suite 'minefield'
+      run: zig build tests/minefield
+    - name: Run test suite 'adversarial'
+      run: zig build tests/adversarial
+    - name: Run test suite 'examples'
+      run: zig build tests/examples
+    - name: Run test suite 'ondemand'
+      run: zig build tests/ondemand
+    - name: Run test suite 'schema'
+      run: zig build tests/schema
+    - name: Run test suite 'float parsing'
+      run: zig build tests/float-parsing

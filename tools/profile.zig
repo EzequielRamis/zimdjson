@@ -1,7 +1,7 @@
 const std = @import("std");
 const zimdjson = @import("zimdjson");
 const tracy = @import("tracy");
-const Parser = zimdjson.ondemand.FullParser(.default);
+const Parser = zimdjson.ondemand.FullParser(.reader_only);
 
 pub fn main() !void {
     var arena = std.heap.ArenaAllocator.init(std.heap.page_allocator);

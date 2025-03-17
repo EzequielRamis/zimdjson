@@ -7,12 +7,12 @@
 
     .dependencies = .{
         .@"simdjson-data" = .{
-            .url = "https://github.com/simdjson/simdjson-data/archive/refs/heads/master.tar.gz",
+            .url = "https://github.com/simdjson/simdjson-data/archive/a5b13babe65c1bba7186b41b43d4cbdc20a5c470.tar.gz",
             .hash = "N-V-__8AAMQVtAG4iSZdo-C8RxpTgDeGrWpPTuI_vfmvaDr0",
             .lazy = true,
         },
         .parse_number_fxx = .{
-            .url = "https://github.com/nigeltao/parse-number-fxx-test-data/archive/refs/heads/main.tar.gz",
+            .url = "https://github.com/nigeltao/parse-number-fxx-test-data/archive/55d79b184b7d8fac2e143e89dc19b766ec4e54b8.tar.gz",
             .hash = "N-V-__8AACBIdhAWVvf7hKnMY8ipBn3kNaIe-6ctQddchTVC",
             .lazy = true,
         },
@@ -27,7 +27,7 @@
             .lazy = true,
         },
         .rapidjson = .{
-            .url = "https://github.com/EzequielRamis/rapidjson/archive/refs/heads/master.tar.gz",
+            .url = "https://github.com/EzequielRamis/rapidjson/archive/bf11b43f8eac3173ca88f82430917ad919feee2b.tar.gz",
             .hash = "N-V-__8AAOiaNQDzwFr-sTlIRWyxtJgAqqpN_6WJAQvck3Pr",
             .lazy = true,
         },
@@ -38,6 +38,6 @@
         "build.zig.zon",
         "src",
         "LICENSE",
-        "Readme.md",
+        "README.md",
     },
 }

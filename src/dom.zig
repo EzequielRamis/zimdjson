@@ -70,8 +70,8 @@ pub const StreamOptions = struct {
     ///
     /// Exceeding the chunk length results in an `error.StreamChunkOverflow`, which can occur in
     /// two ways:
-    /// * A JSON literal (string or number) exceeds the chunk length.
-    /// * Whitespace exceeds the chunk length.
+    /// * A JSON literal (string or number) is larger than a chunk.
+    /// * Whitespace is larger than a chunk.
     ///
     /// By default, the chunk length is set to 64KiB.
     chunk_length: u32 = tokens.ring_buffer.default_chunk_length,
@@ -178,7 +178,9 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
         fn ensureTotalCapacityForSlice(self: *Self, allocator: Allocator, new_capacity: usize) Error!void {
             if (new_capacity > self.max_capacity) return error.ExceededCapacity;
 
-            try self.tape.tokens.ensureTotalCapacity(allocator, new_capacity);
+            try self.tape.tokens.ensureTotalCapacity(allocator, new_capacity
+                // root words
+                + 2);
 
             self.tape.string_buffer.allocator = allocator;
             try self.tape.string_buffer.ensureTotalCapacity(new_capacity);
@@ -189,7 +191,9 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
 
             if (!want_stream) {
                 try self.document_buffer.ensureTotalCapacity(allocator, new_capacity + types.Vector.bytes_len);
-                try self.tape.tokens.ensureTotalCapacity(allocator, new_capacity);
+                try self.tape.tokens.ensureTotalCapacity(allocator, new_capacity
+                    // root words
+                    + 2);
             }
 
             self.tape.string_buffer.allocator = allocator;
@@ -923,7 +927,9 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
 
                 const tokens_count = self.tokens.indexes.items.len;
                 // if there are only n numbers, there must be n - 1 commas plus an ending container token, so almost half of the tokens are numbers
-                try self.words.ensureTotalCapacity(allocator, tokens_count + (tokens_count >> 1) + 1);
+                try self.words.ensureTotalCapacity(allocator, tokens_count + (tokens_count >> 1) + 1
+                    // root words
+                + 2);
 
                 self.words.list.clearRetainingCapacity();
                 self.stack.clearRetainingCapacity();

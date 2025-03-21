@@ -7,13 +7,13 @@
 //! * `FullParser`: The parser reads the entire document before the programmer is able to
 //! process it, similar to how `simdjson` currently works.
 //! * `StreamParser`: The parser reads the document progressively, parsing it in chunks as
-//! the programmer demands it. It is the "laziest" and most memory-efficient (`O(1)`)
+//! the programmer demands it. It is the "laziest" and most memory-efficient (O(1))
 //! variant.
 //!
 //! If memory usage is a concern or the document is too large, consider using the
 //! `StreamParser`. Otherwise, the `FullParser` is recommended.
 //!
-//! ## Schema-based parser generator
+//! ## Reflection-based JSON
 //! At first glance, you may think that On-Demand is an unsafe approach to deal with JSON
 //! documents:
 //! * **True**: Its philosophy is *"validate what you use"*, which means it is possible to
@@ -126,10 +126,10 @@ pub const StreamOptions = struct {
     ///
     /// Exceeding the chunk length results in an `error.StreamChunkOverflow`, which can occur in
     /// three ways:
-    /// * A JSON literal (string or number) exceeds the chunk length.
-    /// * Whitespace exceeds the chunk length.
+    /// * A JSON literal (string or number) is larger than a chunk.
+    /// * Whitespace is larger than a chunk.
     /// * Rewinding to a previous position, such as resetting an array iterator, that
-    /// surpasses the chunk length.
+    /// surpasses the current chunk boundary.
     ///
     /// By default, the chunk length is set to 64KiB.
     chunk_length: u32 = tokens.ring_buffer.default_chunk_length,
@@ -385,7 +385,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             };
         }
 
-        /// Represents any valid JSON value.
+        /// Represents any JSON value.
         pub const AnyValue = union(types.ValueType) {
             null,
             bool: bool,

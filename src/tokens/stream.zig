@@ -17,7 +17,12 @@ const Options = struct {
 };
 
 pub const StreamError = error{
-    /// Exceeded chunk limit while parsing.
+    /// Exceeded chunk limit while parsing, which can occur in
+    /// three ways:
+    /// * A JSON literal (string or number) is larger than a chunk.
+    /// * Whitespace is larger than a chunk.
+    /// * Rewinding to a previous position, such as resetting an array iterator, that
+    /// surpasses the current chunk boundary.
     StreamChunkOverflow,
 };
 

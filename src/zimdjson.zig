@@ -2,12 +2,12 @@
 //! SIMD vector instructions, based on the paper
 //! [Parsing Gigabytes JSON per Second](https://arxiv.org/abs/1902.08318).
 //!
-//! The majority of the source code is based on the C++ implementation of
+//! The majority of the source code is based on the C++ implementation
 //! https://github.com/simdjson/simdjson with the addition of some fundamental features
 //! like:
-//! * Streaming support which can handle arbitrarily large documents.
+//! * Streaming support which can handle arbitrarily large documents with O(1) of memory usage.
 //! * An ergonomic, [Serde](https://serde.rs)-like deserialization interface thanks to
-//! compile-time reflection.
+//! Zig's compile-time reflection.
 //! See [`ondemand.Parser.schema`](#zimdjson.ondemand.Parser.schema).
 //! * More efficient memory usage.
 //!

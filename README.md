@@ -15,7 +15,7 @@ The majority of the source code is based on the C++ implementation https://githu
 Install the zimdjson library by running the following command in your project root:
 
 ```
-zig fetch --save git+https://github.com/ezequielramis/zimdjson#0.1.0
+zig fetch --save git+https://github.com/ezequielramis/zimdjson#0.1.1
 ```
 
 Then write the following in your `build.zig`:
@@ -70,7 +70,7 @@ The most recent documentation can be found in https://zimdjson.ramis.ar.
 
 Although the provided interfaces are simple enough, it is expected to have unnecessary boilerplate when deserializing lots of data structures. Thank to Zig's compile-time reflection, we can eliminate it:
 
-``` zig
+```zig
 const std = @import("std");
 const zimdjson = @import("zimdjson");
 
@@ -124,10 +124,11 @@ pub fn main() !void {
 ```
 
 This is just a simple example, but this way of deserializing is as powerful as [Serde](https://serde.rs), so there is a lot of more features we can use, such as:
- - Deserializing data structures from the Zig Standard Library.
- - Renaming fields.
- - Using different union representations.
- - Custom handling unknown fields.
+
+- Deserializing data structures from the Zig Standard Library.
+- Renaming fields.
+- Using different union representations.
+- Custom handling unknown fields.
 
 To see all available options it offers checkout its [reference](https://zimdjson.ramis.ar/#zimdjson.ondemand.Parser.schema).
 

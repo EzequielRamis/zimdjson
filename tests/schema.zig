@@ -1062,3 +1062,57 @@ test "iso code" {
     const code = try document.asLeaky(Iso3166, null, .{ .schema = .{ .rename_all = .UPPERCASE } });
     try std.testing.expectEqual(Iso3166.es, code);
 }
+
+test "CustomParser, lossyCast" {
+    var parser = Parser.init;
+    defer parser.deinit(allocator);
+    const document = try parser.parseFromSlice(allocator,
+        \\{
+        \\  "x": 243,
+        \\  "y": -20.0
+        \\}
+    );
+
+    const Position = struct {
+        const Self = @This();
+        pub const schema: Parser.schema.Infer(Self) = .{
+            .parse_with = Self.customParser(),
+        };
+
+        x: i16,
+        y: i16,
+
+        fn customParser() Parser.schema.CustomParser(Self) {
+            const Custom = struct {
+                pub const init: Self = undefined;
+
+                pub fn parse(self: *Self, alloc: ?std.mem.Allocator, value: Parser.Value) Parser.schema.Error!void {
+                    const helper = try value.asLeaky(
+                        struct {
+                            x: zimdjson.Number,
+                            y: zimdjson.Number,
+                        },
+                        alloc,
+                        .{},
+                    );
+
+                    self.* = .{
+                        .x = helper.x.lossyCast(i16),
+                        .y = helper.y.lossyCast(i16),
+                    };
+                }
+            };
+            return .{
+                .init = Custom.init,
+                .parse = Custom.parse,
+            };
+        }
+    };
+
+    const pos = try document.asLeaky(Position, allocator, .{});
+
+    try std.testing.expectEqual(Position{
+        .x = 243,
+        .y = -20,
+    }, pos);
+}

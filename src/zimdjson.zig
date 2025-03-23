@@ -30,6 +30,8 @@ const types = @import("types.zig");
 pub const dom = @import("dom.zig");
 pub const ondemand = @import("ondemand.zig");
 
+pub const Number = @import("types.zig").Number;
+
 /// Depending on the processor, aligned SIMD vector instructions may provide higher
 /// performance (benchmarking is recommended). To enforce the use of these instructions,
 /// the input must be properly aligned.

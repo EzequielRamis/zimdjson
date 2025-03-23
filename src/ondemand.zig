@@ -115,6 +115,8 @@ pub const FullOptions = struct {
     /// * The `thumbnail` field has its own schema, also renaming all fields to `.PascalCase`.
     ///
     /// While this option exists, it is not recommended to change it unless absolutely necessary.
+    ///
+    /// **Note**: The schema declaration must be public, otherwise the parser will not be able to find it.
     schema_identifier: []const u8 = "schema",
 };
 
@@ -166,6 +168,8 @@ pub const StreamOptions = struct {
     /// * The `thumbnail` field has its own schema, also renaming all fields to `.PascalCase`.
     ///
     /// While this option exists, it is not recommended to change it unless absolutely necessary.
+    ///
+    /// **Note**: The schema declaration must be public, otherwise the parser will not be able to find it.
     schema_identifier: []const u8 = "schema",
 };
 
@@ -1473,7 +1477,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             ) schema.Error!T {
                 var dest = undefinedInit(T);
                 const sch = comptime schema.resolveSchema(T, schema_options.schema);
-                const custom_parser = comptime sch.parse_with orelse schema.CustomParser(T).infer();
+                const custom_parser: ?schema.CustomParser(T) = comptime sch.parse_with orelse schema.CustomParser(T).infer();
                 if (custom_parser) |handler| dest = handler.init;
                 try self.asAdvancedInner(T, sch, custom_parser, allocator, &dest);
                 return dest;
@@ -2700,7 +2704,8 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 inline for (fields, &tuple_fields) |field, *tuple| {
                     const field_schema = @field(R.fields, field.name);
                     const S = comptime resolveSchema(field.type, field_schema.schema);
-                    const P = comptime S.parse_with orelse CustomParser(field.type).infer();
+
+                    const P: ?CustomParser(field.type) = comptime S.parse_with orelse CustomParser(field.type).infer();
                     tuple.name = field.name;
                     tuple.type = struct { @TypeOf(S), @TypeOf(P) };
                     tuple.default_value_ptr = &@as(struct { @TypeOf(S), @TypeOf(P) }, .{ S, P });
@@ -2947,7 +2952,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                             switch (@typeInfo(F.type)) {
                                 .@"struct" => {
                                     const g = comptime resolveSchema(F.type, G);
-                                    const custom_parser = comptime g.parse_with orelse schema.CustomParser(F.type).infer();
+                                    const custom_parser: ?schema.CustomParser(F.type) = comptime g.parse_with orelse schema.CustomParser(F.type).infer();
                                     if (custom_parser) |_| @compileError(
                                         "Unable to parse internally tagged union variant '" ++
                                             @typeName(T) ++ "." ++ F.name ++

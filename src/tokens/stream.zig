@@ -52,7 +52,7 @@ pub fn Stream(comptime options: Options) type {
             ixs: usize = 0,
         };
 
-        reader: std.io.AnyReader = undefined,
+        reader: *std.Io.Reader = undefined,
         reader_error: ?std.meta.Int(.unsigned, @bitSizeOf(anyerror)),
 
         document: RingBuffer(u8, chunk_len * options.slots) = undefined,
@@ -68,9 +68,10 @@ pub fn Stream(comptime options: Options) type {
         pub const init = std.mem.zeroInit(Self, .{
             .reader_error = null,
             .mapped = false,
+            .reader = undefined,
         });
 
-        pub fn build(self: *Self, _: std.mem.Allocator, reader: std.io.AnyReader) Error!void {
+        pub fn build(self: *Self, _: std.mem.Allocator, reader: *std.Io.Reader) Error!void {
             if (self.mapped) {
                 const document = self.document;
                 const indexes = self.indexes;
@@ -168,7 +169,7 @@ pub fn Stream(comptime options: Options) type {
 
         fn index(self: *Self, head: Cursor) Error!usize {
             const buf = self.document.ptr()[self.document.mask(head.doc)..][0..chunk_len];
-            const read: u32 = @intCast(self.reader.readAll(buf) catch |err| {
+            const read: u32 = @intCast(self.reader.readSliceShort(buf) catch |err| {
                 self.reader_error = @intFromError(err);
                 return error.AnyReader;
             });

@@ -1,8 +1,8 @@
-//! This file is auto-generated with `zig build test/generate`
+//! This file is auto-generated with `zig build tests/generate`
 
 const std = @import("std");
 const zimdjson = @import("zimdjson");
-const Parser = zimdjson.dom.FullParser(.default);
+const Parser = zimdjson.dom.StreamParser(.default);
 const simdjson_data = @embedFile("simdjson-data");
 
 test "fail02" {
@@ -11,7 +11,8 @@ test "fail02" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail02.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -21,7 +22,8 @@ test "fail03" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail03.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -31,7 +33,8 @@ test "fail04" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail04.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -41,7 +44,8 @@ test "fail05" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail05.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -51,7 +55,8 @@ test "fail06" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail06.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -61,7 +66,8 @@ test "fail07" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail07.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -71,7 +77,8 @@ test "fail08" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail08.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -81,7 +88,8 @@ test "fail09" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail09.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -91,7 +99,8 @@ test "fail10" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail10.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -101,7 +110,8 @@ test "fail11" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail11.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -111,7 +121,8 @@ test "fail12" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail12.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -121,7 +132,8 @@ test "fail13" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail13.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -131,7 +143,8 @@ test "fail14" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail14.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -141,7 +154,8 @@ test "fail15" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail15.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -151,7 +165,8 @@ test "fail16" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail16.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -161,7 +176,8 @@ test "fail17" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail17.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -171,7 +187,8 @@ test "fail19" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail19.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -181,7 +198,8 @@ test "fail20" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail20.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -191,7 +209,8 @@ test "fail21" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail21.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -201,7 +220,8 @@ test "fail22" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail22.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -211,7 +231,8 @@ test "fail23" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail23.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -221,7 +242,8 @@ test "fail24" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail24.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -231,7 +253,8 @@ test "fail25" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail25.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -241,7 +264,8 @@ test "fail26" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail26.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -251,7 +275,8 @@ test "fail27" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail27.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -261,7 +286,8 @@ test "fail28" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail28.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -271,7 +297,8 @@ test "fail29" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail29.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -281,7 +308,8 @@ test "fail30" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail30.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -291,7 +319,8 @@ test "fail31" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail31.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -301,7 +330,8 @@ test "fail32" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail32.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -311,7 +341,8 @@ test "fail33" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail33.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -321,7 +352,8 @@ test "fail34" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail34.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -331,7 +363,8 @@ test "fail35" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail35.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -341,7 +374,8 @@ test "fail36" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail36.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -351,7 +385,8 @@ test "fail37" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail37.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -361,7 +396,8 @@ test "fail38" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail38.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -371,7 +407,8 @@ test "fail42" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail42.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -381,7 +418,8 @@ test "fail43" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail43.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -391,7 +429,8 @@ test "fail44" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail44.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -401,7 +440,8 @@ test "fail45" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail45.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -411,7 +451,8 @@ test "fail46" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail46.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -421,7 +462,8 @@ test "fail47" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail47.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -431,7 +473,8 @@ test "fail48" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail48.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -441,7 +484,8 @@ test "fail49" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail49.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -451,7 +495,8 @@ test "fail50" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail50.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -461,7 +506,8 @@ test "fail51" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail51.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -471,7 +517,8 @@ test "fail52" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail52.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -481,7 +528,8 @@ test "fail53" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail53.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -491,7 +539,8 @@ test "fail54" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail54.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -501,7 +550,8 @@ test "fail55" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail55.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -511,7 +561,8 @@ test "fail56" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail56.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -521,7 +572,8 @@ test "fail57" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail57.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -531,7 +583,8 @@ test "fail58" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail58.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -541,7 +594,8 @@ test "fail59" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail59.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -551,7 +605,8 @@ test "fail60" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail60.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -561,7 +616,8 @@ test "fail61" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail61.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -571,7 +627,8 @@ test "fail62" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail62.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -581,7 +638,8 @@ test "fail63" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail63.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -591,7 +649,8 @@ test "fail64" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail64.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -601,7 +660,8 @@ test "fail65" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail65.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -611,7 +671,8 @@ test "fail66" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail66.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -621,7 +682,8 @@ test "fail67" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail67.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -631,7 +693,8 @@ test "fail68" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail68.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -641,7 +704,8 @@ test "fail69" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail69.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -651,7 +715,8 @@ test "fail70" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail70.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -661,7 +726,8 @@ test "fail71" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail71.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -671,7 +737,8 @@ test "fail72" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail72.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -681,7 +748,8 @@ test "fail73" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail73.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -691,7 +759,8 @@ test "fail74" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail74.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -701,7 +770,8 @@ test "fail75" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail75.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -711,7 +781,8 @@ test "fail76" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail76.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -721,7 +792,8 @@ test "fail77" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail77.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -731,7 +803,8 @@ test "fail78" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail78.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -741,7 +814,8 @@ test "fail79" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail79.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -751,7 +825,8 @@ test "fail80" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail80.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -761,7 +836,8 @@ test "fail81" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail81.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -771,7 +847,8 @@ test "fail82" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/fail82.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -781,7 +858,8 @@ test "n_array_1_true_without_comma" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_array_1_true_without_comma.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -791,7 +869,8 @@ test "n_array_a_invalid_utf8" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_array_a_invalid_utf8.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -801,7 +880,8 @@ test "n_array_colon_instead_of_comma" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_array_colon_instead_of_comma.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -811,7 +891,8 @@ test "n_array_comma_after_close" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_array_comma_after_close.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -821,7 +902,8 @@ test "n_array_comma_and_number" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_array_comma_and_number.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -831,7 +913,8 @@ test "n_array_double_comma" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_array_double_comma.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -841,7 +924,8 @@ test "n_array_double_extra_comma" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_array_double_extra_comma.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -851,7 +935,8 @@ test "n_array_extra_close" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_array_extra_close.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -861,7 +946,8 @@ test "n_array_extra_comma" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_array_extra_comma.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -871,7 +957,8 @@ test "n_array_incomplete" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_array_incomplete.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -881,7 +968,8 @@ test "n_array_incomplete_invalid_value" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_array_incomplete_invalid_value.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -891,7 +979,8 @@ test "n_array_inner_array_no_comma" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_array_inner_array_no_comma.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -901,7 +990,8 @@ test "n_array_invalid_utf8" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_array_invalid_utf8.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -911,7 +1001,8 @@ test "n_array_items_separated_by_semicolon" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_array_items_separated_by_semicolon.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -921,7 +1012,8 @@ test "n_array_just_comma" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_array_just_comma.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -931,7 +1023,8 @@ test "n_array_just_minus" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_array_just_minus.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -941,7 +1034,8 @@ test "n_array_missing_value" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_array_missing_value.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -951,7 +1045,8 @@ test "n_array_newlines_unclosed" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_array_newlines_unclosed.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -961,7 +1056,8 @@ test "n_array_number_and_comma" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_array_number_and_comma.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -971,7 +1067,8 @@ test "n_array_number_and_several_commas" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_array_number_and_several_commas.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -981,7 +1078,8 @@ test "n_array_spaces_vertical_tab_formfeed" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_array_spaces_vertical_tab_formfeed.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -991,7 +1089,8 @@ test "n_array_star_inside" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_array_star_inside.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1001,7 +1100,8 @@ test "n_array_unclosed" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_array_unclosed.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1011,7 +1111,8 @@ test "n_array_unclosed_trailing_comma" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_array_unclosed_trailing_comma.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1021,7 +1122,8 @@ test "n_array_unclosed_with_new_lines" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_array_unclosed_with_new_lines.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1031,7 +1133,8 @@ test "n_array_unclosed_with_object_inside" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_array_unclosed_with_object_inside.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1041,7 +1144,8 @@ test "n_incomplete_false" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_incomplete_false.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1051,7 +1155,8 @@ test "n_incomplete_null" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_incomplete_null.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1061,7 +1166,8 @@ test "n_incomplete_true" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_incomplete_true.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1071,7 +1177,8 @@ test "n_multidigit_number_then_00" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_multidigit_number_then_00.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1081,7 +1188,8 @@ test "n_number_++" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_++.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1091,7 +1199,8 @@ test "n_number_+1" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_+1.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1101,7 +1210,8 @@ test "n_number_+Inf" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_+Inf.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1111,7 +1221,8 @@ test "n_number_-01" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_-01.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1121,7 +1232,8 @@ test "n_number_-1.0." {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_-1.0..json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1131,7 +1243,8 @@ test "n_number_-2." {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_-2..json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1141,7 +1254,8 @@ test "n_number_-NaN" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_-NaN.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1151,7 +1265,8 @@ test "n_number_.-1" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_.-1.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1161,7 +1276,8 @@ test "n_number_.2e-3" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_.2e-3.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1171,7 +1287,8 @@ test "n_number_0.1.2" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_0.1.2.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1181,7 +1298,8 @@ test "n_number_0.3e+" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_0.3e+.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1191,7 +1309,8 @@ test "n_number_0.3e" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_0.3e.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1201,7 +1320,8 @@ test "n_number_0.e1" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_0.e1.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1211,7 +1331,8 @@ test "n_number_0_capital_E+" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_0_capital_E+.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1221,7 +1342,8 @@ test "n_number_0_capital_E" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_0_capital_E.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1231,7 +1353,8 @@ test "n_number_0e+" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_0e+.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1241,7 +1364,8 @@ test "n_number_0e" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_0e.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1251,7 +1375,8 @@ test "n_number_1.0e+" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_1.0e+.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1261,7 +1386,8 @@ test "n_number_1.0e-" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_1.0e-.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1271,7 +1397,8 @@ test "n_number_1.0e" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_1.0e.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1281,7 +1408,8 @@ test "n_number_1_000" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_1_000.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1291,7 +1419,8 @@ test "n_number_1eE2" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_1eE2.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1301,7 +1430,8 @@ test "n_number_2.e+3" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_2.e+3.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1311,7 +1441,8 @@ test "n_number_2.e-3" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_2.e-3.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1321,7 +1452,8 @@ test "n_number_2.e3" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_2.e3.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1331,7 +1463,8 @@ test "n_number_9.e+" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_9.e+.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1341,7 +1474,8 @@ test "n_number_Inf" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_Inf.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1351,7 +1485,8 @@ test "n_number_NaN" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_NaN.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1361,7 +1496,8 @@ test "n_number_U+FF11_fullwidth_digit_one" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_U+FF11_fullwidth_digit_one.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1371,7 +1507,8 @@ test "n_number_expression" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_expression.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1381,7 +1518,8 @@ test "n_number_hex_1_digit" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_hex_1_digit.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1391,7 +1529,8 @@ test "n_number_hex_2_digits" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_hex_2_digits.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1401,7 +1540,8 @@ test "n_number_infinity" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_infinity.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1411,7 +1551,8 @@ test "n_number_invalid+-" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_invalid+-.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1421,7 +1562,8 @@ test "n_number_invalid-negative-real" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_invalid-negative-real.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1431,7 +1573,8 @@ test "n_number_invalid-utf-8-in-bigger-int" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_invalid-utf-8-in-bigger-int.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1441,7 +1584,8 @@ test "n_number_invalid-utf-8-in-exponent" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_invalid-utf-8-in-exponent.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1451,7 +1595,8 @@ test "n_number_invalid-utf-8-in-int" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_invalid-utf-8-in-int.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1461,7 +1606,8 @@ test "n_number_minus_infinity" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_minus_infinity.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1471,7 +1617,8 @@ test "n_number_minus_sign_with_trailing_garbage" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_minus_sign_with_trailing_garbage.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1481,7 +1628,8 @@ test "n_number_minus_space_1" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_minus_space_1.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1491,7 +1639,8 @@ test "n_number_neg_int_starting_with_zero" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_neg_int_starting_with_zero.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1501,7 +1650,8 @@ test "n_number_neg_real_without_int_part" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_neg_real_without_int_part.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1511,7 +1661,8 @@ test "n_number_neg_with_garbage_at_end" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_neg_with_garbage_at_end.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1521,7 +1672,8 @@ test "n_number_real_garbage_after_e" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_real_garbage_after_e.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1531,7 +1683,8 @@ test "n_number_real_with_invalid_utf8_after_e" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_real_with_invalid_utf8_after_e.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1541,7 +1694,8 @@ test "n_number_real_without_fractional_part" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_real_without_fractional_part.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1551,7 +1705,8 @@ test "n_number_starting_with_dot" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_starting_with_dot.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1561,7 +1716,8 @@ test "n_number_with_alpha" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_with_alpha.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1571,7 +1727,8 @@ test "n_number_with_alpha_char" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_with_alpha_char.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1581,7 +1738,8 @@ test "n_number_with_leading_zero" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_number_with_leading_zero.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1591,7 +1749,8 @@ test "n_object_bad_value" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_object_bad_value.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1601,7 +1760,8 @@ test "n_object_bracket_key" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_object_bracket_key.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1611,7 +1771,8 @@ test "n_object_comma_instead_of_colon" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_object_comma_instead_of_colon.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1621,7 +1782,8 @@ test "n_object_double_colon" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_object_double_colon.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1631,7 +1793,8 @@ test "n_object_emoji" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_object_emoji.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1641,7 +1804,8 @@ test "n_object_garbage_at_end" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_object_garbage_at_end.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1651,7 +1815,8 @@ test "n_object_key_with_single_quotes" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_object_key_with_single_quotes.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1661,7 +1826,8 @@ test "n_object_lone_continuation_byte_in_key_and_trailing_comma" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_object_lone_continuation_byte_in_key_and_trailing_comma.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1671,7 +1837,8 @@ test "n_object_missing_colon" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_object_missing_colon.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1681,7 +1848,8 @@ test "n_object_missing_key" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_object_missing_key.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1691,7 +1859,8 @@ test "n_object_missing_semicolon" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_object_missing_semicolon.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1701,7 +1870,8 @@ test "n_object_missing_value" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_object_missing_value.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1711,7 +1881,8 @@ test "n_object_no-colon" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_object_no-colon.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1721,7 +1892,8 @@ test "n_object_non_string_key" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_object_non_string_key.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1731,7 +1903,8 @@ test "n_object_non_string_key_but_huge_number_instead" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_object_non_string_key_but_huge_number_instead.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1741,7 +1914,8 @@ test "n_object_repeated_null_null" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_object_repeated_null_null.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1751,7 +1925,8 @@ test "n_object_several_trailing_commas" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_object_several_trailing_commas.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1761,7 +1936,8 @@ test "n_object_single_quote" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_object_single_quote.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1771,7 +1947,8 @@ test "n_object_trailing_comma" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_object_trailing_comma.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1781,7 +1958,8 @@ test "n_object_trailing_comment" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_object_trailing_comment.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1791,7 +1969,8 @@ test "n_object_trailing_comment_open" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_object_trailing_comment_open.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1801,7 +1980,8 @@ test "n_object_trailing_comment_slash_open" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_object_trailing_comment_slash_open.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1811,7 +1991,8 @@ test "n_object_trailing_comment_slash_open_incomplete" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_object_trailing_comment_slash_open_incomplete.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1821,7 +2002,8 @@ test "n_object_two_commas_in_a_row" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_object_two_commas_in_a_row.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1831,7 +2013,8 @@ test "n_object_unquoted_key" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_object_unquoted_key.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1841,7 +2024,8 @@ test "n_object_unterminated-value" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_object_unterminated-value.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1851,7 +2035,8 @@ test "n_object_with_single_string" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_object_with_single_string.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1861,7 +2046,8 @@ test "n_object_with_trailing_garbage" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_object_with_trailing_garbage.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1871,7 +2057,8 @@ test "n_single_space" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_single_space.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1881,7 +2068,8 @@ test "n_string_1_surrogate_then_escape" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_string_1_surrogate_then_escape.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1891,7 +2079,8 @@ test "n_string_1_surrogate_then_escape_u" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_string_1_surrogate_then_escape_u.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1901,7 +2090,8 @@ test "n_string_1_surrogate_then_escape_u1" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_string_1_surrogate_then_escape_u1.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1911,7 +2101,8 @@ test "n_string_1_surrogate_then_escape_u1x" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_string_1_surrogate_then_escape_u1x.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1921,7 +2112,8 @@ test "n_string_accentuated_char_no_quotes" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_string_accentuated_char_no_quotes.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1931,7 +2123,8 @@ test "n_string_backslash_00" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_string_backslash_00.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1941,7 +2134,8 @@ test "n_string_escape_x" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_string_escape_x.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1951,7 +2145,8 @@ test "n_string_escaped_backslash_bad" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_string_escaped_backslash_bad.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1961,7 +2156,8 @@ test "n_string_escaped_ctrl_char_tab" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_string_escaped_ctrl_char_tab.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1971,7 +2167,8 @@ test "n_string_escaped_emoji" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_string_escaped_emoji.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1981,7 +2178,8 @@ test "n_string_incomplete_escape" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_string_incomplete_escape.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -1991,7 +2189,8 @@ test "n_string_incomplete_escaped_character" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_string_incomplete_escaped_character.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2001,7 +2200,8 @@ test "n_string_incomplete_surrogate" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_string_incomplete_surrogate.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2011,7 +2211,8 @@ test "n_string_incomplete_surrogate_escape_invalid" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_string_incomplete_surrogate_escape_invalid.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2021,7 +2222,8 @@ test "n_string_invalid-utf-8-in-escape" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_string_invalid-utf-8-in-escape.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2031,7 +2233,8 @@ test "n_string_invalid_backslash_esc" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_string_invalid_backslash_esc.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2041,7 +2244,8 @@ test "n_string_invalid_unicode_escape" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_string_invalid_unicode_escape.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2051,7 +2255,8 @@ test "n_string_invalid_utf8_after_escape" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_string_invalid_utf8_after_escape.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2061,7 +2266,8 @@ test "n_string_leading_uescaped_thinspace" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_string_leading_uescaped_thinspace.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2071,7 +2277,8 @@ test "n_string_no_quotes_with_bad_escape" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_string_no_quotes_with_bad_escape.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2081,7 +2288,8 @@ test "n_string_single_doublequote" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_string_single_doublequote.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2091,7 +2299,8 @@ test "n_string_single_quote" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_string_single_quote.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2101,7 +2310,8 @@ test "n_string_single_string_no_double_quotes" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_string_single_string_no_double_quotes.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2111,7 +2321,8 @@ test "n_string_start_escape_unclosed" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_string_start_escape_unclosed.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2121,7 +2332,8 @@ test "n_string_unescaped_crtl_char" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_string_unescaped_crtl_char.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2131,7 +2343,8 @@ test "n_string_unescaped_newline" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_string_unescaped_newline.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2141,7 +2354,8 @@ test "n_string_unescaped_tab" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_string_unescaped_tab.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2151,7 +2365,8 @@ test "n_string_unicode_CapitalU" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_string_unicode_CapitalU.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2161,7 +2376,8 @@ test "n_string_with_trailing_garbage" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_string_with_trailing_garbage.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2171,7 +2387,8 @@ test "n_structure_100000_opening_arrays" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_100000_opening_arrays.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2181,7 +2398,8 @@ test "n_structure_U+2060_word_joined" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_U+2060_word_joined.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2191,7 +2409,8 @@ test "n_structure_UTF8_BOM_no_data" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_UTF8_BOM_no_data.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2201,7 +2420,8 @@ test "n_structure_angle_bracket_." {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_angle_bracket_..json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2211,7 +2431,8 @@ test "n_structure_angle_bracket_null" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_angle_bracket_null.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2221,7 +2442,8 @@ test "n_structure_array_trailing_garbage" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_array_trailing_garbage.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2231,7 +2453,8 @@ test "n_structure_array_with_extra_array_close" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_array_with_extra_array_close.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2241,7 +2464,8 @@ test "n_structure_array_with_unclosed_string" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_array_with_unclosed_string.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2251,7 +2475,8 @@ test "n_structure_ascii-unicode-identifier" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_ascii-unicode-identifier.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2261,7 +2486,8 @@ test "n_structure_capitalized_True" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_capitalized_True.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2271,7 +2497,8 @@ test "n_structure_close_unopened_array" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_close_unopened_array.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2281,7 +2508,8 @@ test "n_structure_comma_instead_of_closing_brace" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_comma_instead_of_closing_brace.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2291,7 +2519,8 @@ test "n_structure_double_array" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_double_array.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2301,7 +2530,8 @@ test "n_structure_end_array" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_end_array.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2311,7 +2541,8 @@ test "n_structure_incomplete_UTF8_BOM" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_incomplete_UTF8_BOM.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2321,7 +2552,8 @@ test "n_structure_lone-invalid-utf-8" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_lone-invalid-utf-8.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2331,7 +2563,8 @@ test "n_structure_lone-open-bracket" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_lone-open-bracket.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2341,7 +2574,8 @@ test "n_structure_no_data" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_no_data.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2351,7 +2585,8 @@ test "n_structure_null-byte-outside-string" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_null-byte-outside-string.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2361,7 +2596,8 @@ test "n_structure_number_with_trailing_garbage" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_number_with_trailing_garbage.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2371,7 +2607,8 @@ test "n_structure_object_followed_by_closing_object" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_object_followed_by_closing_object.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2381,7 +2618,8 @@ test "n_structure_object_unclosed_no_value" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_object_unclosed_no_value.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2391,7 +2629,8 @@ test "n_structure_object_with_comment" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_object_with_comment.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2401,7 +2640,8 @@ test "n_structure_object_with_trailing_garbage" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_object_with_trailing_garbage.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2411,7 +2651,8 @@ test "n_structure_open_array_apostrophe" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_open_array_apostrophe.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2421,7 +2662,8 @@ test "n_structure_open_array_comma" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_open_array_comma.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2431,7 +2673,8 @@ test "n_structure_open_array_object" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_open_array_object.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2441,7 +2684,8 @@ test "n_structure_open_array_open_object" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_open_array_open_object.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2451,7 +2695,8 @@ test "n_structure_open_array_open_string" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_open_array_open_string.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2461,7 +2706,8 @@ test "n_structure_open_array_string" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_open_array_string.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2471,7 +2717,8 @@ test "n_structure_open_object" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_open_object.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2481,7 +2728,8 @@ test "n_structure_open_object_close_array" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_open_object_close_array.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2491,7 +2739,8 @@ test "n_structure_open_object_comma" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_open_object_comma.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2501,7 +2750,8 @@ test "n_structure_open_object_open_array" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_open_object_open_array.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2511,7 +2761,8 @@ test "n_structure_open_object_open_string" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_open_object_open_string.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2521,7 +2772,8 @@ test "n_structure_open_object_string_with_apostrophes" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_open_object_string_with_apostrophes.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2531,7 +2783,8 @@ test "n_structure_open_open" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_open_open.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2541,7 +2794,8 @@ test "n_structure_single_eacute" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_single_eacute.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2551,7 +2805,8 @@ test "n_structure_single_star" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_single_star.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2561,7 +2816,8 @@ test "n_structure_trailing_#" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_trailing_#.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2571,7 +2827,8 @@ test "n_structure_uescaped_LF_before_string" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_uescaped_LF_before_string.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2581,7 +2838,8 @@ test "n_structure_unclosed_array" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_unclosed_array.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2591,7 +2849,8 @@ test "n_structure_unclosed_array_partial_null" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_unclosed_array_partial_null.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2601,7 +2860,8 @@ test "n_structure_unclosed_array_unfinished_false" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_unclosed_array_unfinished_false.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2611,7 +2871,8 @@ test "n_structure_unclosed_array_unfinished_true" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_unclosed_array_unfinished_true.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2621,7 +2882,8 @@ test "n_structure_unclosed_object" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_unclosed_object.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2631,7 +2893,8 @@ test "n_structure_unicode-identifier" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_unicode-identifier.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2641,7 +2904,8 @@ test "n_structure_whitespace_U+2060_word_joiner" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_whitespace_U+2060_word_joiner.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2651,7 +2915,8 @@ test "n_structure_whitespace_formfeed" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/n_structure_whitespace_formfeed.json", .{});
     defer file.close();
-    _ = parser.parseFromReader(allocator, file.reader().any()) catch return;
+    var reader = file.reader(&.{});
+    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
     return error.MustHaveFailed;
 }
 
@@ -2661,7 +2926,8 @@ test "pass01" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass01.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "pass02" {
@@ -2670,7 +2936,8 @@ test "pass02" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass02.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "pass03" {
@@ -2679,7 +2946,8 @@ test "pass03" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass03.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "pass04" {
@@ -2688,7 +2956,8 @@ test "pass04" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass04.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "pass05" {
@@ -2697,7 +2966,8 @@ test "pass05" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass05.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "pass06" {
@@ -2706,7 +2976,8 @@ test "pass06" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass06.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "pass07" {
@@ -2715,7 +2986,8 @@ test "pass07" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass07.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "pass08" {
@@ -2724,7 +2996,8 @@ test "pass08" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass08.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "pass09" {
@@ -2733,7 +3006,8 @@ test "pass09" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass09.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "pass10" {
@@ -2742,7 +3016,8 @@ test "pass10" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass10.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "pass11" {
@@ -2751,7 +3026,8 @@ test "pass11" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass11.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "pass12" {
@@ -2760,7 +3036,8 @@ test "pass12" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass12.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "pass13" {
@@ -2769,7 +3046,8 @@ test "pass13" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass13.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "pass14" {
@@ -2778,7 +3056,8 @@ test "pass14" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass14.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "pass15" {
@@ -2787,7 +3066,8 @@ test "pass15" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass15.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "pass16" {
@@ -2796,7 +3076,8 @@ test "pass16" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass16.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "pass17" {
@@ -2805,7 +3086,8 @@ test "pass17" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass17.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "pass18" {
@@ -2814,7 +3096,8 @@ test "pass18" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass18.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "pass19" {
@@ -2823,7 +3106,8 @@ test "pass19" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass19.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "pass20" {
@@ -2832,7 +3116,8 @@ test "pass20" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass20.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "pass21" {
@@ -2841,7 +3126,8 @@ test "pass21" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass21.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "pass22" {
@@ -2850,7 +3136,8 @@ test "pass22" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass22.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "pass23" {
@@ -2859,7 +3146,8 @@ test "pass23" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass23.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "pass24" {
@@ -2868,7 +3156,8 @@ test "pass24" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass24.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "pass25" {
@@ -2877,7 +3166,8 @@ test "pass25" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass25.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "pass26" {
@@ -2886,7 +3176,8 @@ test "pass26" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass26.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "pass27" {
@@ -2895,7 +3186,8 @@ test "pass27" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/pass27.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_array_arraysWithSpaces" {
@@ -2904,7 +3196,8 @@ test "y_array_arraysWithSpaces" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_array_arraysWithSpaces.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_array_empty-string" {
@@ -2913,7 +3206,8 @@ test "y_array_empty-string" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_array_empty-string.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_array_empty" {
@@ -2922,7 +3216,8 @@ test "y_array_empty" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_array_empty.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_array_ending_with_newline" {
@@ -2931,7 +3226,8 @@ test "y_array_ending_with_newline" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_array_ending_with_newline.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_array_false" {
@@ -2940,7 +3236,8 @@ test "y_array_false" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_array_false.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_array_heterogeneous" {
@@ -2949,7 +3246,8 @@ test "y_array_heterogeneous" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_array_heterogeneous.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_array_null" {
@@ -2958,7 +3256,8 @@ test "y_array_null" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_array_null.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_array_with_1_and_newline" {
@@ -2967,7 +3266,8 @@ test "y_array_with_1_and_newline" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_array_with_1_and_newline.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_array_with_leading_space" {
@@ -2976,7 +3276,8 @@ test "y_array_with_leading_space" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_array_with_leading_space.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_array_with_several_null" {
@@ -2985,7 +3286,8 @@ test "y_array_with_several_null" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_array_with_several_null.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_array_with_trailing_space" {
@@ -2994,7 +3296,8 @@ test "y_array_with_trailing_space" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_array_with_trailing_space.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_number" {
@@ -3003,7 +3306,8 @@ test "y_number" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_number_0e+1" {
@@ -3012,7 +3316,8 @@ test "y_number_0e+1" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number_0e+1.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_number_0e1" {
@@ -3021,7 +3326,8 @@ test "y_number_0e1" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number_0e1.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_number_after_space" {
@@ -3030,7 +3336,8 @@ test "y_number_after_space" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number_after_space.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_number_double_close_to_zero" {
@@ -3039,7 +3346,8 @@ test "y_number_double_close_to_zero" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number_double_close_to_zero.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_number_int_with_exp" {
@@ -3048,7 +3356,8 @@ test "y_number_int_with_exp" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number_int_with_exp.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_number_minus_zero" {
@@ -3057,7 +3366,8 @@ test "y_number_minus_zero" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number_minus_zero.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_number_negative_int" {
@@ -3066,7 +3376,8 @@ test "y_number_negative_int" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number_negative_int.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_number_negative_one" {
@@ -3075,7 +3386,8 @@ test "y_number_negative_one" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number_negative_one.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_number_negative_zero" {
@@ -3084,7 +3396,8 @@ test "y_number_negative_zero" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number_negative_zero.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_number_real_capital_e" {
@@ -3093,7 +3406,8 @@ test "y_number_real_capital_e" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number_real_capital_e.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_number_real_capital_e_neg_exp" {
@@ -3102,7 +3416,8 @@ test "y_number_real_capital_e_neg_exp" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number_real_capital_e_neg_exp.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_number_real_capital_e_pos_exp" {
@@ -3111,7 +3426,8 @@ test "y_number_real_capital_e_pos_exp" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number_real_capital_e_pos_exp.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_number_real_exponent" {
@@ -3120,7 +3436,8 @@ test "y_number_real_exponent" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number_real_exponent.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_number_real_fraction_exponent" {
@@ -3129,7 +3446,8 @@ test "y_number_real_fraction_exponent" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number_real_fraction_exponent.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_number_real_neg_exp" {
@@ -3138,7 +3456,8 @@ test "y_number_real_neg_exp" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number_real_neg_exp.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_number_real_pos_exponent" {
@@ -3147,7 +3466,8 @@ test "y_number_real_pos_exponent" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number_real_pos_exponent.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_number_simple_int" {
@@ -3156,7 +3476,8 @@ test "y_number_simple_int" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number_simple_int.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_number_simple_real" {
@@ -3165,7 +3486,8 @@ test "y_number_simple_real" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_number_simple_real.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_object" {
@@ -3174,7 +3496,8 @@ test "y_object" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_object.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_object_basic" {
@@ -3183,7 +3506,8 @@ test "y_object_basic" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_object_basic.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_object_duplicated_key" {
@@ -3192,7 +3516,8 @@ test "y_object_duplicated_key" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_object_duplicated_key.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_object_duplicated_key_and_value" {
@@ -3201,7 +3526,8 @@ test "y_object_duplicated_key_and_value" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_object_duplicated_key_and_value.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_object_empty" {
@@ -3210,7 +3536,8 @@ test "y_object_empty" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_object_empty.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_object_empty_key" {
@@ -3219,7 +3546,8 @@ test "y_object_empty_key" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_object_empty_key.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_object_escaped_null_in_key" {
@@ -3228,7 +3556,8 @@ test "y_object_escaped_null_in_key" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_object_escaped_null_in_key.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_object_extreme_numbers" {
@@ -3237,7 +3566,8 @@ test "y_object_extreme_numbers" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_object_extreme_numbers.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_object_long_strings" {
@@ -3246,7 +3576,8 @@ test "y_object_long_strings" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_object_long_strings.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_object_simple" {
@@ -3255,7 +3586,8 @@ test "y_object_simple" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_object_simple.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_object_string_unicode" {
@@ -3264,7 +3596,8 @@ test "y_object_string_unicode" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_object_string_unicode.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_object_with_newlines" {
@@ -3273,7 +3606,8 @@ test "y_object_with_newlines" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_object_with_newlines.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_1_2_3_bytes_UTF-8_sequences" {
@@ -3282,7 +3616,8 @@ test "y_string_1_2_3_bytes_UTF-8_sequences" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_1_2_3_bytes_UTF-8_sequences.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_accepted_surrogate_pair" {
@@ -3291,7 +3626,8 @@ test "y_string_accepted_surrogate_pair" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_accepted_surrogate_pair.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_accepted_surrogate_pairs" {
@@ -3300,7 +3636,8 @@ test "y_string_accepted_surrogate_pairs" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_accepted_surrogate_pairs.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_allowed_escapes" {
@@ -3309,7 +3646,8 @@ test "y_string_allowed_escapes" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_allowed_escapes.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_backslash_and_u_escaped_zero" {
@@ -3318,7 +3656,8 @@ test "y_string_backslash_and_u_escaped_zero" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_backslash_and_u_escaped_zero.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_backslash_doublequotes" {
@@ -3327,7 +3666,8 @@ test "y_string_backslash_doublequotes" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_backslash_doublequotes.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_comments" {
@@ -3336,7 +3676,8 @@ test "y_string_comments" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_comments.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_double_escape_a" {
@@ -3345,7 +3686,8 @@ test "y_string_double_escape_a" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_double_escape_a.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_double_escape_n" {
@@ -3354,7 +3696,8 @@ test "y_string_double_escape_n" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_double_escape_n.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_escaped_control_character" {
@@ -3363,7 +3706,8 @@ test "y_string_escaped_control_character" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_escaped_control_character.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_escaped_noncharacter" {
@@ -3372,7 +3716,8 @@ test "y_string_escaped_noncharacter" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_escaped_noncharacter.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_in_array" {
@@ -3381,7 +3726,8 @@ test "y_string_in_array" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_in_array.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_in_array_with_leading_space" {
@@ -3390,7 +3736,8 @@ test "y_string_in_array_with_leading_space" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_in_array_with_leading_space.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_last_surrogates_1_and_2" {
@@ -3399,7 +3746,8 @@ test "y_string_last_surrogates_1_and_2" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_last_surrogates_1_and_2.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_nbsp_uescaped" {
@@ -3408,7 +3756,8 @@ test "y_string_nbsp_uescaped" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_nbsp_uescaped.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_nonCharacterInUTF-8_U+10FFFF" {
@@ -3417,7 +3766,8 @@ test "y_string_nonCharacterInUTF-8_U+10FFFF" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_nonCharacterInUTF-8_U+10FFFF.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_nonCharacterInUTF-8_U+FFFF" {
@@ -3426,7 +3776,8 @@ test "y_string_nonCharacterInUTF-8_U+FFFF" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_nonCharacterInUTF-8_U+FFFF.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_null_escape" {
@@ -3435,7 +3786,8 @@ test "y_string_null_escape" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_null_escape.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_one-byte-utf-8" {
@@ -3444,7 +3796,8 @@ test "y_string_one-byte-utf-8" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_one-byte-utf-8.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_pi" {
@@ -3453,7 +3806,8 @@ test "y_string_pi" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_pi.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_reservedCharacterInUTF-8_U+1BFFF" {
@@ -3462,7 +3816,8 @@ test "y_string_reservedCharacterInUTF-8_U+1BFFF" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_reservedCharacterInUTF-8_U+1BFFF.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_simple_ascii" {
@@ -3471,7 +3826,8 @@ test "y_string_simple_ascii" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_simple_ascii.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_space" {
@@ -3480,7 +3836,8 @@ test "y_string_space" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_space.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_surrogates_U+1D11E_MUSICAL_SYMBOL_G_CLEF" {
@@ -3489,7 +3846,8 @@ test "y_string_surrogates_U+1D11E_MUSICAL_SYMBOL_G_CLEF" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_surrogates_U+1D11E_MUSICAL_SYMBOL_G_CLEF.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_three-byte-utf-8" {
@@ -3498,7 +3856,8 @@ test "y_string_three-byte-utf-8" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_three-byte-utf-8.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_two-byte-utf-8" {
@@ -3507,7 +3866,8 @@ test "y_string_two-byte-utf-8" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_two-byte-utf-8.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_u+2028_line_sep" {
@@ -3516,7 +3876,8 @@ test "y_string_u+2028_line_sep" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_u+2028_line_sep.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_u+2029_par_sep" {
@@ -3525,7 +3886,8 @@ test "y_string_u+2029_par_sep" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_u+2029_par_sep.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_uEscape" {
@@ -3534,7 +3896,8 @@ test "y_string_uEscape" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_uEscape.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_uescaped_newline" {
@@ -3543,7 +3906,8 @@ test "y_string_uescaped_newline" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_uescaped_newline.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_unescaped_char_delete" {
@@ -3552,7 +3916,8 @@ test "y_string_unescaped_char_delete" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_unescaped_char_delete.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_unicode" {
@@ -3561,7 +3926,8 @@ test "y_string_unicode" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_unicode.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_unicodeEscapedBackslash" {
@@ -3570,7 +3936,8 @@ test "y_string_unicodeEscapedBackslash" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_unicodeEscapedBackslash.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_unicode_2" {
@@ -3579,7 +3946,8 @@ test "y_string_unicode_2" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_unicode_2.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_unicode_U+10FFFE_nonchar" {
@@ -3588,7 +3956,8 @@ test "y_string_unicode_U+10FFFE_nonchar" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_unicode_U+10FFFE_nonchar.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_unicode_U+1FFFE_nonchar" {
@@ -3597,7 +3966,8 @@ test "y_string_unicode_U+1FFFE_nonchar" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_unicode_U+1FFFE_nonchar.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_unicode_U+200B_ZERO_WIDTH_SPACE" {
@@ -3606,7 +3976,8 @@ test "y_string_unicode_U+200B_ZERO_WIDTH_SPACE" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_unicode_U+200B_ZERO_WIDTH_SPACE.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_unicode_U+2064_invisible_plus" {
@@ -3615,7 +3986,8 @@ test "y_string_unicode_U+2064_invisible_plus" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_unicode_U+2064_invisible_plus.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_unicode_U+FDD0_nonchar" {
@@ -3624,7 +3996,8 @@ test "y_string_unicode_U+FDD0_nonchar" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_unicode_U+FDD0_nonchar.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_unicode_U+FFFE_nonchar" {
@@ -3633,7 +4006,8 @@ test "y_string_unicode_U+FFFE_nonchar" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_unicode_U+FFFE_nonchar.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_unicode_escaped_double_quote" {
@@ -3642,7 +4016,8 @@ test "y_string_unicode_escaped_double_quote" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_unicode_escaped_double_quote.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_utf8" {
@@ -3651,7 +4026,8 @@ test "y_string_utf8" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_utf8.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_string_with_del_character" {
@@ -3660,7 +4036,8 @@ test "y_string_with_del_character" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_string_with_del_character.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_structure_lonely_false" {
@@ -3669,7 +4046,8 @@ test "y_structure_lonely_false" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_structure_lonely_false.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_structure_lonely_int" {
@@ -3678,7 +4056,8 @@ test "y_structure_lonely_int" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_structure_lonely_int.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_structure_lonely_negative_real" {
@@ -3687,7 +4066,8 @@ test "y_structure_lonely_negative_real" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_structure_lonely_negative_real.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_structure_lonely_null" {
@@ -3696,7 +4076,8 @@ test "y_structure_lonely_null" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_structure_lonely_null.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_structure_lonely_string" {
@@ -3705,7 +4086,8 @@ test "y_structure_lonely_string" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_structure_lonely_string.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_structure_lonely_true" {
@@ -3714,7 +4096,8 @@ test "y_structure_lonely_true" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_structure_lonely_true.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_structure_string_empty" {
@@ -3723,7 +4106,8 @@ test "y_structure_string_empty" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_structure_string_empty.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_structure_trailing_newline" {
@@ -3732,7 +4116,8 @@ test "y_structure_trailing_newline" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_structure_trailing_newline.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_structure_true_in_array" {
@@ -3741,7 +4126,8 @@ test "y_structure_true_in_array" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_structure_true_in_array.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 
 test "y_structure_whitespace_array" {
@@ -3750,6 +4136,7 @@ test "y_structure_whitespace_array" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/minefield/y_structure_whitespace_array.json", .{});
     defer file.close();
-    _ = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    _ = try parser.parseFromReader(allocator, &reader.interface);
 }
 

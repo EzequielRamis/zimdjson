@@ -668,56 +668,6 @@ test "std.ArrayListAlignedUnmanaged" {
     try std.testing.expectEqual(Coordinate{ .x = 7, .y = 8, .z = 9 }, coords.value.items[2]);
 }
 
-test "std.SinglyLinkedList" {
-    var parser = Parser.init;
-    defer parser.deinit(allocator);
-    const document = try parser.parseFromSlice(allocator,
-        \\[
-        \\    { "x": 1, "y": 2, "z": 3 },
-        \\    { "x": 4, "y": 5, "z": 6 },
-        \\    { "x": 7, "y": 8, "z": 9 }
-        \\]
-    );
-
-    const Coordinate = struct { x: i32, y: i32, z: i32 };
-    var coords = try document.as(std.SinglyLinkedList(Coordinate), allocator, .{});
-    defer coords.deinit();
-
-    var it = coords.value.first;
-    try std.testing.expectEqual(Coordinate{ .x = 1, .y = 2, .z = 3 }, it.?.data);
-    it = it.?.next;
-    try std.testing.expectEqual(Coordinate{ .x = 4, .y = 5, .z = 6 }, it.?.data);
-    it = it.?.next;
-    try std.testing.expectEqual(Coordinate{ .x = 7, .y = 8, .z = 9 }, it.?.data);
-    it = it.?.next;
-    try std.testing.expectEqual(null, it);
-}
-
-test "std.DoublyLinkedList" {
-    var parser = Parser.init;
-    defer parser.deinit(allocator);
-    const document = try parser.parseFromSlice(allocator,
-        \\[
-        \\    { "x": 1, "y": 2, "z": 3 },
-        \\    { "x": 4, "y": 5, "z": 6 },
-        \\    { "x": 7, "y": 8, "z": 9 }
-        \\]
-    );
-
-    const Coordinate = struct { x: i32, y: i32, z: i32 };
-    var coords = try document.as(std.DoublyLinkedList(Coordinate), allocator, .{});
-    defer coords.deinit();
-
-    var it = coords.value.first;
-    try std.testing.expectEqual(Coordinate{ .x = 1, .y = 2, .z = 3 }, it.?.data);
-    it = it.?.next;
-    try std.testing.expectEqual(Coordinate{ .x = 4, .y = 5, .z = 6 }, it.?.data);
-    it = it.?.next;
-    try std.testing.expectEqual(Coordinate{ .x = 7, .y = 8, .z = 9 }, it.?.data);
-    it = it.?.next;
-    try std.testing.expectEqual(null, it);
-}
-
 test "std.StringArrayHashMapUnmanaged" {
     var parser = Parser.init;
     defer parser.deinit(allocator);
@@ -758,48 +708,6 @@ test "std.StringHashMapUnmanaged" {
     try std.testing.expectEqual(Coordinate{ .x = 1, .y = 2, .z = 3 }, coords.value.get("car").?);
     try std.testing.expectEqual(Coordinate{ .x = 4, .y = 5, .z = 6 }, coords.value.get("bike").?);
     try std.testing.expectEqual(Coordinate{ .x = 7, .y = 8, .z = 9 }, coords.value.get("4x4").?);
-}
-
-test "std.BoundedArray" {
-    var parser = Parser.init;
-    defer parser.deinit(allocator);
-    const document = try parser.parseFromSlice(allocator,
-        \\[
-        \\    { "x": 1, "y": 2, "z": 3 },
-        \\    { "x": 4, "y": 5, "z": 6 },
-        \\    { "x": 7, "y": 8, "z": 9 }
-        \\]
-    );
-
-    const Coordinate = struct { x: i32, y: i32, z: i32 };
-    var coords = try document.as(std.BoundedArray(Coordinate, 3), allocator, .{});
-    defer coords.deinit();
-
-    try std.testing.expectEqual(coords.value.len, 3);
-    try std.testing.expectEqual(Coordinate{ .x = 1, .y = 2, .z = 3 }, coords.value.get(0));
-    try std.testing.expectEqual(Coordinate{ .x = 4, .y = 5, .z = 6 }, coords.value.get(1));
-    try std.testing.expectEqual(Coordinate{ .x = 7, .y = 8, .z = 9 }, coords.value.get(2));
-}
-
-test "std.BoundedArrayAligned" {
-    var parser = Parser.init;
-    defer parser.deinit(allocator);
-    const document = try parser.parseFromSlice(allocator,
-        \\[
-        \\    { "x": 1, "y": 2, "z": 3 },
-        \\    { "x": 4, "y": 5, "z": 6 },
-        \\    { "x": 7, "y": 8, "z": 9 }
-        \\]
-    );
-
-    const Coordinate = struct { x: i32, y: i32, z: i32 };
-    var coords = try document.as(std.BoundedArrayAligned(Coordinate, 32, 4), allocator, .{});
-    defer coords.deinit();
-
-    try std.testing.expectEqual(coords.value.len, 3);
-    try std.testing.expectEqual(Coordinate{ .x = 1, .y = 2, .z = 3 }, coords.value.get(0));
-    try std.testing.expectEqual(Coordinate{ .x = 4, .y = 5, .z = 6 }, coords.value.get(1));
-    try std.testing.expectEqual(Coordinate{ .x = 7, .y = 8, .z = 9 }, coords.value.get(2));
 }
 
 test "std.EnumMap" {

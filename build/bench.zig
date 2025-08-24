@@ -129,11 +129,12 @@ pub fn Suite(comptime suite: []const u8) type {
             file_path: []const u8,
         ) *std.Build.Step.Run {
             const b = self.zimdjson.owner;
-            var buf = std.BoundedArray(u8, 1024).init(0) catch unreachable;
-            buf.appendSliceAssumeCapacity("pub const suite = \"");
-            buf.appendSliceAssumeCapacity(self.suite);
-            buf.appendSliceAssumeCapacity("\";\n");
-            const wrappers = formatWrappers(&buf, benchs);
+            var buf: [1024]u8 = undefined;
+            var arr = std.ArrayListUnmanaged(u8).initBuffer(&buf);
+            arr.appendSliceAssumeCapacity("pub const suite = \"");
+            arr.appendSliceAssumeCapacity(self.suite);
+            arr.appendSliceAssumeCapacity("\";\n");
+            const wrappers = formatWrappers(&arr, benchs);
             const mod = b.createModule(.{
                 .root_source_file = b.addWriteFiles().add(self.suite ++ ".zig", wrappers),
                 .target = self.target,
@@ -201,7 +202,7 @@ inline fn formatWrapper(comptime header: []const u8, comptime name: []const u8) 
     , .{ .header = header, .id = name });
 }
 
-fn formatWrappers(content: *std.BoundedArray(u8, 1024), benchmarks: []const Benchmark) []const u8 {
+fn formatWrappers(content: *std.ArrayListUnmanaged(u8), benchmarks: []const Benchmark) []const u8 {
     content.appendSliceAssumeCapacity("pub const wrappers = .{");
     for (benchmarks) |b| {
         content.appendSliceAssumeCapacity("@import(\"");
@@ -216,5 +217,5 @@ fn formatWrappers(content: *std.BoundedArray(u8, 1024), benchmarks: []const Benc
         content.appendSliceAssumeCapacity("\",");
     }
     content.appendSliceAssumeCapacity("};");
-    return content.constSlice();
+    return content.items;
 }

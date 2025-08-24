@@ -13,9 +13,9 @@ pub inline fn clmul(quotes_mask: umask) umask {
             const ones: @Vector(16, u8) = @splat(0xFF);
             return asm (
                 \\vpclmulqdq $0, %[ones], %[quotes], %[ret]
-                : [ret] "=v" (-> umask),
-                : [ones] "v" (ones),
-                  [quotes] "v" (quotes_mask),
+                : [ret] "=x" (-> umask),
+                : [ones] "x" (ones),
+                  [quotes] "x" (quotes_mask),
             );
         },
         else => {
@@ -36,9 +36,9 @@ pub inline fn lookupTable(table: vector, nibbles: vector) vector {
         .x86_64 => {
             return asm (
                 \\vpshufb %[nibbles], %[table], %[ret]
-                : [ret] "=v" (-> vector),
-                : [table] "v" (table),
-                  [nibbles] "v" (nibbles),
+                : [ret] "=x" (-> vector),
+                : [table] "x" (table),
+                  [nibbles] "x" (nibbles),
             );
         },
         .aarch64 => {
@@ -59,9 +59,9 @@ pub inline fn pack(vec1: @Vector(4, i32), vec2: @Vector(4, i32)) @Vector(8, u16)
         .x86_64 => {
             return asm (
                 \\vpackusdw %[vec1], %[vec2], %[ret]
-                : [ret] "=v" (-> @Vector(8, u16)),
-                : [vec1] "v" (vec1),
-                  [vec2] "v" (vec2),
+                : [ret] "=x" (-> @Vector(8, u16)),
+                : [vec1] "x" (vec1),
+                  [vec2] "x" (vec2),
             );
         },
         else => @compileError("Intrinsic not implemented for this target"),
@@ -74,9 +74,9 @@ pub inline fn mulSaturatingAdd(vec1: @Vector(16, u8), vec2: @Vector(16, u8)) @Ve
         .x86_64 => {
             return asm (
                 \\vpmaddubsw %[vec1], %[vec2], %[ret]
-                : [ret] "=v" (-> @Vector(8, u16)),
-                : [vec1] "v" (vec1),
-                  [vec2] "v" (vec2),
+                : [ret] "=x" (-> @Vector(8, u16)),
+                : [vec1] "x" (vec1),
+                  [vec2] "x" (vec2),
             );
         },
         else => @compileError("Intrinsic not implemented for this target"),
@@ -89,9 +89,9 @@ pub inline fn mulWrappingAdd(vec1: @Vector(8, i16), vec2: @Vector(8, i16)) @Vect
         .x86_64 => {
             return asm (
                 \\vpmaddwd %[vec1], %[vec2], %[ret]
-                : [ret] "=v" (-> @Vector(4, i32)),
-                : [vec1] "v" (vec1),
-                  [vec2] "v" (vec2),
+                : [ret] "=x" (-> @Vector(4, i32)),
+                : [vec1] "x" (vec1),
+                  [vec2] "x" (vec2),
             );
         },
         else => @compileError("Intrinsic not implemented for this target"),

@@ -65,7 +65,7 @@ pub const tables = struct {
 pub fn readAllRetainingCapacity(
     allocator: Allocator,
     self: anytype,
-    comptime alignment: ?u29,
+    comptime alignment: ?std.mem.Alignment,
     array_list: *std.ArrayListAlignedUnmanaged(u8, alignment),
     max_append_size: usize,
 ) !void {

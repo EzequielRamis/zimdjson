@@ -124,7 +124,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
         pub const max_capacity_bound = if (want_stream) std.math.maxInt(u32) * @sizeOf(Tape.Word) else std.math.maxInt(u32);
 
         // only used in full mode
-        document_buffer: std.ArrayListAlignedUnmanaged(u8, types.Aligned(true).alignment),
+        document_buffer: std.ArrayListAlignedUnmanaged(u8, .fromByteUnits(types.Aligned(true).alignment)),
         reader_error: ?std.meta.Int(.unsigned, @bitSizeOf(anyerror)),
 
         tape: Tape,
@@ -217,7 +217,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
         }
 
         /// Parse a JSON document from reader. Allocated resources are owned by the parser.
-        pub fn parseFromReader(self: *Self, allocator: Allocator, reader: std.io.AnyReader) (Error || ReaderError)!Document {
+        pub fn parseFromReader(self: *Self, allocator: Allocator, reader: *std.Io.Reader) (Error || ReaderError)!Document {
             self.reader_error = null;
 
             self.tape.string_buffer.reset();
@@ -940,7 +940,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 return self.dispatch(allocator);
             }
 
-            pub inline fn buildFromReader(self: *Tape, allocator: Allocator, reader: std.io.AnyReader) Error!void {
+            pub inline fn buildFromReader(self: *Tape, allocator: Allocator, reader: *std.Io.Reader) Error!void {
                 try self.tokens.build(allocator, reader);
                 try self.stack.ensureTotalCapacity(allocator, self.stack.max_depth);
 

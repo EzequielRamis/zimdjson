@@ -1,16 +1,19 @@
 const std = @import("std");
-const simdjson_data = @embedFile("simdjson-data");
+const data_info = @import("simdjson-data");
 
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}){};
+pub fn main(init: std.process.Init) !void {
+    var gpa = std.heap.DebugAllocator(.{}){};
     const alloc = gpa.allocator();
 
-    const args = try std.process.argsAlloc(alloc);
-    const output_file_path = args[1];
-    var output_file = std.fs.createFileAbsolute(output_file_path, .{}) catch |err| {
+    var args_it = init.minimal.args.iterate();
+    _ = args_it.next();
+
+    const output_file_path = args_it.next().?;
+
+    var output_file = std.Io.Dir.createFileAbsolute(init.io, output_file_path, .{}) catch |err| {
         fatal("unable to open '{s}': {s}", .{ output_file_path, @errorName(err) });
     };
-    defer output_file.close();
+    defer output_file.close(init.io);
 
     var checker_zig_content = std.ArrayList(u8).empty;
     defer checker_zig_content.deinit(alloc);
@@ -26,33 +29,35 @@ pub fn main() !void {
         \\const std = @import("std");
         \\const zimdjson = @import("zimdjson");
         \\const Parser = zimdjson.dom.StreamParser(.default);
-        \\const simdjson_data = @embedFile("simdjson-data");
+        \\const data_path = @import("simdjson-data").path;
         \\
         \\
     );
 
-    const checker_path = simdjson_data ++ "/jsonchecker";
-    var checker_dir = try std.fs.openDirAbsolute(checker_path, .{ .iterate = true });
-    defer checker_dir.close();
+    const checker_path = data_info.path ++ "/jsonchecker";
+    var checker_dir = try std.Io.Dir.openDirAbsolute(init.io, checker_path, .{ .iterate = true });
+    defer checker_dir.close(init.io);
 
     var checker_it = checker_dir.iterate();
-    while (try checker_it.next()) |file| {
+    while (try checker_it.next(init.io)) |file| {
         if (file.kind == .file and std.mem.endsWith(u8, file.name, ".json")) {
             try strings.append(alloc, @truncate(file.name.len));
             try strings.appendSlice(alloc, file.name);
         }
     }
-    const minefield_path = simdjson_data ++ "/jsonchecker/minefield";
-    var minefield_dir = try std.fs.openDirAbsolute(minefield_path, .{ .iterate = true });
-    defer minefield_dir.close();
+
+    const minefield_path = data_info.path ++ "/jsonchecker/minefield";
+    var minefield_dir = try std.Io.Dir.openDirAbsolute(init.io, minefield_path, .{ .iterate = true });
+    defer minefield_dir.close(init.io);
 
     var minefield_it = minefield_dir.iterate();
-    while (try minefield_it.next()) |file| {
+    while (try minefield_it.next(init.io)) |file| {
         if (file.kind == .file and std.mem.endsWith(u8, file.name, ".json")) {
             try strings.append(alloc, @truncate(file.name.len));
             try strings.appendSlice(alloc, file.name);
         }
     }
+
     var i: usize = 0;
     while (i < strings.items.len) {
         const len = strings.items[i];
@@ -61,6 +66,7 @@ pub fn main() !void {
         i += len + 1;
     }
     std.sort.insertion([]const u8, files.items, {}, lessThanSlice);
+
     for (files.items) |file| {
         const is_pass = std.mem.startsWith(u8, file, "pass") or std.mem.startsWith(u8, file, "y_");
         const is_excluded =
@@ -69,52 +75,47 @@ pub fn main() !void {
             std.mem.endsWith(u8, file, "_toolarge.json");
         const is_minefield = std.mem.startsWith(u8, file, "y_") or std.mem.startsWith(u8, file, "n_");
         const identifier = file[0 .. file.len - 5];
+
         if (!is_excluded) {
             var buf: [1024]u8 = undefined;
             try checker_zig_content.appendSlice(alloc, try std.fmt.bufPrint(&buf,
                 \\test "{[id]s}" {{
                 \\    const allocator = std.testing.allocator;
                 \\    var parser = Parser.init;
-                \\    defer parser.deinit(allocator);
+                \\    defer parser.deinit(std.testing.io, allocator);
                 \\
             , .{ .id = identifier }));
+
+            const folder = if (is_minefield) "minefield/" else "";
+
             if (is_pass) {
-                try checker_zig_content.appendSlice(alloc,
-                    \\    const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/
-                );
-                if (is_minefield) try checker_zig_content.appendSlice(alloc, "minefield/");
-                try checker_zig_content.appendSlice(alloc, file);
-                try checker_zig_content.appendSlice(alloc,
-                    \\", .{});
-                    \\    defer file.close();
-                    \\    var reader = file.reader(&.{});
-                    \\    _ = try parser.parseFromReader(allocator, &reader.interface);
-                );
+                try checker_zig_content.appendSlice(alloc, try std.fmt.allocPrint(alloc,
+                    \\    const file = try std.Io.Dir.openFileAbsolute(std.testing.io, data_path ++ "/jsonchecker/{s}{s}", .{{}});
+                    \\    defer file.close(std.testing.io);
+                    \\    var reader = file.reader(std.testing.io, &.{{}});
+                    \\    _ = try parser.parseFromReader(std.testing.io, allocator, &reader.interface);
+                    \\}}
+                    \\
+                    \\
+                , .{ folder, file }));
             } else {
-                try checker_zig_content.appendSlice(alloc,
-                    \\    const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonchecker/
-                );
-                if (is_minefield) try checker_zig_content.appendSlice(alloc, "minefield/");
-                try checker_zig_content.appendSlice(alloc, file);
-                try checker_zig_content.appendSlice(alloc,
-                    \\", .{});
-                    \\    defer file.close();
-                    \\    var reader = file.reader(&.{});
-                    \\    _ = parser.parseFromReader(allocator, &reader.interface) catch return;
+                try checker_zig_content.appendSlice(alloc, try std.fmt.allocPrint(alloc,
+                    \\    const file = try std.Io.Dir.openFileAbsolute(std.testing.io, data_path ++ "/jsonchecker/{s}{s}", .{{}});
+                    \\    defer file.close(std.testing.io);
+                    \\    var reader = file.reader(std.testing.io, &.{{}});
+                    \\    _ = parser.parseFromReader(std.testing.io, allocator, &reader.interface) catch return;
                     \\    return error.MustHaveFailed;
-                );
+                    \\}}
+                    \\
+                    \\
+                , .{ folder, file }));
             }
-            try checker_zig_content.appendSlice(alloc,
-                \\
-                \\}
-                \\
-                \\
-            );
         }
     }
 
-    try output_file.writeAll(checker_zig_content.items);
-    return std.process.cleanExit();
+    var writer = output_file.writer(init.io, &.{});
+    try writer.interface.writeAll(checker_zig_content.items);
+    return std.process.cleanExit(init.io);
 }
 
 fn lessThanSlice(_: void, lhs: []const u8, rhs: []const u8) bool {

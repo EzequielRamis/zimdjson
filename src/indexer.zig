@@ -69,7 +69,7 @@ pub fn Indexer(comptime T: type, comptime options: Options) type {
                 const offset = @as(comptime_int, m) * Mask.bits_len;
                 const chunk: Aligned.chunk = block[offset..][0..Mask.bits_len];
                 inline for (0..Mask.computed_vectors) |j| {
-                    vectors[m][j] = @as(Aligned.vector, chunk[j * Vector.bytes_len ..][0..Vector.bytes_len]).*;
+                    vectors[m][j] = @bitCast(chunk[j * Vector.bytes_len ..][0..Vector.bytes_len].*);
                 }
             }
             inline for (0..types.masks_per_iter) |m| {

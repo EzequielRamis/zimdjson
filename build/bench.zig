@@ -57,10 +57,10 @@ pub fn Suite(comptime suite: []const u8) type {
                 }),
             });
             lib.installHeader(b.addWriteFiles().add(identifier, formatTemplateHeader(name)), identifier ++ ".h");
-            lib.addCSourceFile(.{ .file = b.path("bench/" ++ identifier ++ ".cpp") });
-            lib.linkLibrary(self.simdjson);
-            lib.linkLibrary(parser);
-            lib.addIncludePath(b.path("bench"));
+            lib.root_module.addCSourceFile(.{ .file = b.path("bench/" ++ identifier ++ ".cpp") });
+            lib.root_module.linkLibrary(self.simdjson);
+            lib.root_module.linkLibrary(parser);
+            lib.root_module.addIncludePath(b.path("bench"));
             const mod = b.createModule(.{
                 .root_source_file = b.addWriteFiles().add(identifier ++ ".zig", formatWrapper(identifier, name)),
                 .target = self.target,
@@ -86,9 +86,9 @@ pub fn Suite(comptime suite: []const u8) type {
                 }),
             });
             lib.installHeader(b.addWriteFiles().add(identifier, formatTemplateHeader(name)), identifier ++ ".h");
-            lib.addCSourceFile(.{ .file = b.path("bench/" ++ identifier ++ ".c") });
-            lib.linkLibrary(parser);
-            lib.addIncludePath(b.path("bench"));
+            lib.root_module.addCSourceFile(.{ .file = b.path("bench/" ++ identifier ++ ".c") });
+            lib.root_module.linkLibrary(parser);
+            lib.root_module.addIncludePath(b.path("bench"));
             const mod = b.createModule(.{
                 .root_source_file = b.addWriteFiles().add(identifier ++ ".zig", formatWrapper(identifier, name)),
                 .target = self.target,
@@ -126,7 +126,7 @@ pub fn Suite(comptime suite: []const u8) type {
         pub fn create(
             self: Self,
             benchs: []const Benchmark,
-            file_path: []const u8,
+            file_path: std.Build.LazyPath,
         ) *std.Build.Step.Run {
             const b = self.zimdjson.owner;
             var buf: [1024]u8 = undefined;
@@ -151,10 +151,10 @@ pub fn Suite(comptime suite: []const u8) type {
                     .optimize = self.optimize,
                 }),
             });
-            runner.linkLibCpp();
+            runner.root_module.link_libcpp = true;
             runner.root_module.addImport("benchmarks", mod);
             const artifact = b.addRunArtifact(runner);
-            artifact.addArg(file_path);
+            artifact.addFileArg(file_path);
             return artifact;
         }
     };
@@ -175,20 +175,21 @@ inline fn formatTemplateHeader(comptime name: []const u8) []const u8 {
 inline fn formatWrapper(comptime header: []const u8, comptime name: []const u8) []const u8 {
     return std.fmt.comptimePrint(
         \\const c = @cImport({{ @cInclude("{[header]s}.h"); }});
+        \\const std = @import("std");
         \\
-        \\pub fn init(slice: []u8) !void {{
+        \\pub fn init(_: std.Io,slice: []u8) !void {{
         \\    return c.{[id]s}__init(@ptrCast(slice.ptr), slice.len);
         \\}}
         \\
-        \\pub fn prerun() !void {{
+        \\pub fn prerun(_: std.Io) !void {{
         \\    return c.{[id]s}__prerun();
         \\}}
         \\
-        \\pub fn run() !void {{
+        \\pub fn run(_: std.Io) !void {{
         \\    return c.{[id]s}__run();
         \\}}
         \\
-        \\pub fn postrun() !void {{
+        \\pub fn postrun(_: std.Io) !void {{
         \\    return c.{[id]s}__postrun();
         \\}}
         \\

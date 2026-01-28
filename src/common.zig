@@ -64,7 +64,7 @@ pub const tables = struct {
 
 pub fn readAllRetainingCapacity(
     allocator: Allocator,
-    self: anytype,
+    self: *std.Io.Reader,
     comptime alignment: ?std.mem.Alignment,
     array_list: *std.ArrayListAlignedUnmanaged(u8, alignment),
     max_append_size: usize,
@@ -75,7 +75,8 @@ pub fn readAllRetainingCapacity(
     while (true) {
         array_list.expandToCapacity();
         const dest_slice = array_list.items[start_index..];
-        const bytes_read = try self.readAll(dest_slice);
+        var dest_vec: [1][]u8 = .{dest_slice};
+        const bytes_read = try self.readVec(&dest_vec);
         start_index += bytes_read;
 
         if (start_index - original_len > max_append_size) {

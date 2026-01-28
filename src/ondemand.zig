@@ -251,8 +251,8 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
         };
 
         /// Release all allocated memory, including the strings.
-        pub fn deinit(self: *Self, allocator: Allocator) void {
-            self.cursor.deinit(allocator);
+        pub fn deinit(self: *Self, io: std.Io, allocator: Allocator) void {
+            self.cursor.deinit(io, allocator);
             self.document_buffer.deinit(allocator);
             self.string_buffer.deinit();
         }
@@ -341,7 +341,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
         }
 
         /// Parse a JSON document from reader. Allocated resources are owned by the parser.
-        pub fn parseFromReader(self: *Self, allocator: Allocator, reader: *std.Io.Reader) (Error || ReaderError)!Document {
+        pub fn parseFromReader(self: *Self, io: std.Io, allocator: Allocator, reader: *std.Io.Reader) (Error || ReaderError)!Document {
             if (builtin.mode == .Debug) {
                 try self.cursor.start_positions.ensureTotalCapacity(allocator, self.max_depth);
                 self.cursor.start_positions.expandToCapacity();
@@ -352,13 +352,13 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             self.string_buffer.allocator = allocator;
 
             if (want_stream) {
-                try self.cursor.tokens.build(allocator, reader);
+                try self.cursor.tokens.build(io, allocator, reader);
             } else {
                 self.document_buffer.clearRetainingCapacity();
                 common.readAllRetainingCapacity(
                     allocator,
                     reader,
-                    types.Aligned(true).alignment,
+                    .fromByteUnits(types.Aligned(true).alignment),
                     &self.document_buffer,
                     self.max_capacity,
                 ) catch |err| switch (err) {
@@ -414,8 +414,9 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 .err = null,
             };
 
-            pub fn deinit(self: *Cursor, allocator: Allocator) void {
-                self.tokens.deinit(allocator);
+            pub fn deinit(self: *Cursor, io: std.Io, allocator: Allocator) void {
+                // we dont need io here
+                self.tokens.deinit(io, allocator);
                 if (builtin.mode == .Debug) {
                     self.start_positions.deinit(allocator);
                 }
@@ -521,7 +522,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 });
             }
 
-            inline fn reportError(self: *Cursor, err: Error) Error!void {
+            inline fn reportError(self: *Cursor, err: Error) Error {
                 self.err = err;
                 return err;
             }
@@ -1270,7 +1271,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     assert(self.start_depth > 1);
                 }
 
-                inline fn reportError(self: Iterator, err: Error) Error!void {
+                inline fn reportError(self: Iterator, err: Error) Error {
                     return self.cursor.reportError(err);
                 }
             };
@@ -1528,7 +1529,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 allocator: ?Allocator,
                 dest: *anyopaque,
             ) schema.Error!void {
-                return self.asAdvancedInner(T, S, P, allocator, @alignCast(@ptrCast(dest)));
+                return self.asAdvancedInner(T, S, P, allocator, @ptrCast(@alignCast(dest)));
             }
 
             fn skip(self: Value) Error!void {
@@ -2051,7 +2052,6 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                             // .buf_set => schema.std.BufSet,
                             .enum_map => |p| schema.std.EnumMap(p[0], p[1]),
                             .multi_array_list => |p| schema.std.MultiArrayList(p[0]),
-                            .segmented_list => |p| schema.std.SegmentedList(p[0], p[1]),
                             .string_array_hash_map => |p| schema.std.StringArrayHashMapUnmanaged(p[0]),
                             .string_hash_map => |p| schema.std.StringHashMapUnmanaged(p[0]),
                         };
@@ -2188,25 +2188,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                         .parse = Custom.parse,
                     };
                 }
-                pub fn SegmentedList(comptime T: type, comptime prealloc_item_count: usize) CustomParser(_std.SegmentedList(T, prealloc_item_count)) {
-                    const Parsed = _std.SegmentedList(T, prealloc_item_count);
-                    const Custom = struct {
-                        pub const init: Parsed = .{};
 
-                        pub fn parse(self: *Parsed, allocator: ?Allocator, value: Value) schema.Error!void {
-                            const alloc = allocator orelse return error.ExpectedAllocator;
-                            var arr = (try value.asArray()).iterator();
-                            while (try arr.next()) |child| {
-                                const item = try child.asLeaky(T, alloc, .{});
-                                try self.append(alloc, item);
-                            }
-                        }
-                    };
-                    return .{
-                        .init = Custom.init,
-                        .parse = Custom.parse,
-                    };
-                }
                 pub fn StringArrayHashMapUnmanaged(comptime V: type) CustomParser(_std.StringArrayHashMapUnmanaged(V)) {
                     const Parsed = _std.StringArrayHashMapUnmanaged(V);
                     const Custom = struct {
@@ -2323,28 +2305,24 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             fn StructFields(comptime T: type) type {
                 assert(@typeInfo(T) == .@"struct");
                 const fields = _std.meta.fields(T);
-                comptime var schema_fields: [fields.len]_std.builtin.Type.StructField = undefined;
-                inline for (0..fields.len) |i| {
-                    const field = fields[i];
+
+                comptime var names: [fields.len][]const u8 = undefined;
+                comptime var types_arr: [fields.len]type = undefined;
+                comptime var attrs: [fields.len]_std.builtin.Type.StructField.Attributes = undefined;
+
+                inline for (fields, 0..) |field, i| {
                     if (field.is_comptime) @compileError("comptime fields are not supported: " ++ @typeName(T) ++ "." ++ field.name);
-                    const schema_field = StructField(field.type);
-                    schema_fields[i] = .{
-                        .type = schema_field,
-                        .name = field.name,
-                        .default_value_ptr = &schema_field{},
-                        .is_comptime = false,
-                        .alignment = @alignOf(schema_field),
+
+                    const schema_field_type = StructField(field.type);
+                    names[i] = field.name;
+                    types_arr[i] = schema_field_type;
+                    attrs[i] = .{
+                        .default_value_ptr = &@as(schema_field_type, .{}),
+                        .@"align" = @alignOf(schema_field_type),
                     };
                 }
-                const sf = schema_fields;
-                return @Type(.{
-                    .@"struct" = .{
-                        .fields = &sf,
-                        .layout = .auto,
-                        .decls = &.{},
-                        .is_tuple = false,
-                    },
-                });
+
+                return @Struct(.auto, null, &names, &types_arr, &attrs);
             }
 
             /// Schema options for a struct field.
@@ -2603,26 +2581,27 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             };
 
             inline fn makeFieldsSPTuple(comptime T: type, comptime R: schema.Struct(T), comptime fields: []const _std.builtin.Type.StructField) type {
-                comptime var tuple_fields: [fields.len]_std.builtin.Type.StructField = undefined;
-                @setEvalBranchQuota(1000 * fields.len);
-                inline for (fields, &tuple_fields) |field, *tuple| {
+                comptime var names: [fields.len][]const u8 = undefined;
+                comptime var types_arr: [fields.len]type = undefined;
+                comptime var attrs: [fields.len]_std.builtin.Type.StructField.Attributes = undefined;
+
+                inline for (fields, 0..) |field, i| {
                     const field_schema = @field(R.fields, field.name);
                     const S = comptime resolveSchema(field.type, field_schema.schema);
-
                     const P: ?CustomParser(field.type) = comptime S.parse_with orelse CustomParser(field.type).infer();
-                    tuple.name = field.name;
-                    tuple.type = struct { @TypeOf(S), @TypeOf(P) };
-                    tuple.default_value_ptr = &@as(struct { @TypeOf(S), @TypeOf(P) }, .{ S, P });
-                    tuple.alignment = @alignOf(tuple.type);
-                    tuple.is_comptime = true;
+
+                    const TupleT = struct { @TypeOf(S), @TypeOf(P) };
+
+                    names[i] = field.name;
+                    types_arr[i] = TupleT;
+                    attrs[i] = .{
+                        .@"comptime" = true,
+                        .default_value_ptr = &@as(TupleT, .{ S, P }),
+                        .@"align" = @alignOf(TupleT),
+                    };
                 }
-                const result_fields = tuple_fields;
-                return @Type(.{ .@"struct" = .{
-                    .fields = &result_fields,
-                    .decls = &.{},
-                    .layout = .auto,
-                    .is_tuple = false,
-                } });
+
+                return @Struct(.auto, null, &names, &types_arr, &attrs);
             }
 
             pub fn Enum(comptime T: type) type {
@@ -2642,27 +2621,21 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             fn EnumFields(comptime T: type) type {
                 assert(@typeInfo(T) == .@"enum");
                 const fields = _std.meta.fields(T);
-                comptime var schema_fields: [fields.len]_std.builtin.Type.StructField = undefined;
-                inline for (0..fields.len) |i| {
-                    const field = fields[i];
-                    const schema_field = EnumField;
-                    schema_fields[i] = .{
-                        .type = schema_field,
-                        .name = field.name,
-                        .default_value_ptr = &schema_field{},
-                        .is_comptime = false,
-                        .alignment = @alignOf(schema_field),
+
+                comptime var names: [fields.len][]const u8 = undefined;
+                comptime var types_arr: [fields.len]type = undefined;
+                comptime var attrs: [fields.len]_std.builtin.Type.StructField.Attributes = undefined;
+
+                inline for (fields, 0..) |field, i| {
+                    names[i] = field.name;
+                    types_arr[i] = EnumField;
+                    attrs[i] = .{
+                        .default_value_ptr = &EnumField{},
+                        .@"align" = @alignOf(EnumField),
                     };
                 }
-                const sf = schema_fields;
-                return @Type(.{
-                    .@"struct" = .{
-                        .fields = &sf,
-                        .layout = .auto,
-                        .decls = &.{},
-                        .is_tuple = false,
-                    },
-                });
+
+                return @Struct(.auto, null, &names, &types_arr, &attrs);
             }
 
             /// Schema options for an enum field.
@@ -2713,27 +2686,22 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             fn UnionFields(comptime T: type) type {
                 assert(@typeInfo(T) == .@"union");
                 const fields = _std.meta.fields(T);
-                comptime var schema_fields: [fields.len]_std.builtin.Type.StructField = undefined;
-                inline for (0..fields.len) |i| {
-                    const field = fields[i];
-                    const schema_field = UnionField(field.type);
-                    schema_fields[i] = .{
-                        .type = schema_field,
-                        .name = field.name,
-                        .default_value_ptr = &schema_field{},
-                        .is_comptime = false,
-                        .alignment = @alignOf(schema_field),
+
+                comptime var names: [fields.len][]const u8 = undefined;
+                comptime var types_arr: [fields.len]type = undefined;
+                comptime var attrs: [fields.len]_std.builtin.Type.StructField.Attributes = undefined;
+
+                inline for (fields, 0..) |field, i| {
+                    const schema_field_type = UnionField(field.type);
+                    names[i] = field.name;
+                    types_arr[i] = schema_field_type;
+                    attrs[i] = .{
+                        .default_value_ptr = &@as(schema_field_type, .{}),
+                        .@"align" = @alignOf(schema_field_type),
                     };
                 }
-                const sf = schema_fields;
-                return @Type(.{
-                    .@"struct" = .{
-                        .fields = &sf,
-                        .layout = .auto,
-                        .decls = &.{},
-                        .is_tuple = false,
-                    },
-                });
+
+                return @Struct(.auto, null, &names, &types_arr, &attrs);
             }
 
             /// Schema options for an union field.
@@ -2884,7 +2852,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     }
 
                     pub fn parseTypeErased(dest: *anyopaque, allocator: ?Allocator, value: Value) schema.Error!void {
-                        const typed_dest: *T = @alignCast(@ptrCast(dest));
+                        const typed_dest: *T = @ptrCast(@alignCast(dest));
                         typed_dest.* = try @This().parse(allocator, value);
                     }
                 };
@@ -3258,7 +3226,7 @@ fn undefinedInit(comptime T: type) T {
         switch (@typeInfo(field.type)) {
             .optional => {
                 if (field.default_value_ptr) |default_value_ptr| {
-                    const default_value: *field.type = @constCast(@alignCast(@ptrCast(
+                    const default_value: *field.type = @ptrCast(@alignCast(@constCast(
                         default_value_ptr,
                     )));
                     @field(result, field.name) = default_value.*;
@@ -3267,7 +3235,7 @@ fn undefinedInit(comptime T: type) T {
                 }
             },
             else => {
-                const default_value: *field.type = @constCast(@alignCast(@ptrCast(
+                const default_value: *field.type = @ptrCast(@alignCast(@constCast(
                     field.default_value_ptr orelse continue,
                 )));
                 @field(result, field.name) = default_value.*;
@@ -3285,7 +3253,6 @@ const StandardDataStructure = union(enum) {
     // buf_set,
     enum_map: struct { type, type },
     multi_array_list: struct { type },
-    segmented_list: struct { type, usize },
     string_array_hash_map: struct { type },
     string_hash_map: struct { type },
 
@@ -3308,8 +3275,8 @@ const StandardDataStructure = union(enum) {
                         const child = info.child;
                         if (T == std.ArrayListUnmanaged(child))
                             return .{ .array_list = .{child} };
-                        if (T == std.ArrayListAlignedUnmanaged(child, .fromByteUnits(info.alignment)))
-                            return .{ .array_list_aligned = .{ child, .fromByteUnits(info.alignment) } };
+                        if (T == std.ArrayListAlignedUnmanaged(child, .fromByteUnits(info.alignment orelse @alignOf(child))))
+                            return .{ .array_list_aligned = .{ child, .fromByteUnits(info.alignment orelse @alignOf(child)) } };
                     }
                 },
                 else => {},
@@ -3331,17 +3298,6 @@ const StandardDataStructure = union(enum) {
             const E = @field(T, "Key");
             const V = @field(T, "Value");
             if (T == std.EnumMap(E, V)) return .{ .enum_map = .{ E, V } };
-        }
-
-        if (@hasField(T, "prealloc_segment")) {
-            const prealloc_segment = @FieldType(T, "prealloc_segment");
-            switch (@typeInfo(prealloc_segment)) {
-                .array => |info| {
-                    if (T == std.SegmentedList(info.child, info.len))
-                        return .{ .segmented_list = .{ info.child, info.len } };
-                },
-                else => {},
-            }
         }
 
         if (@hasDecl(T, "get")) {

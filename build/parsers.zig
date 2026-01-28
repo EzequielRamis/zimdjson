@@ -20,8 +20,8 @@ pub const Parsers = struct {
                 .optimize = optimize,
             }),
         });
-        simdjson.linkLibCpp();
-        simdjson.addCSourceFile(.{
+        simdjson.root_module.link_libcpp = true;
+        simdjson.root_module.addCSourceFile(.{
             .file = simdjson_dep.path("singleheader/simdjson.cpp"),
             .flags = &.{
                 "-DSIMDJSON_IMPLEMENTATION_ICELAKE=0", // https://github.com/ziglang/zig/issues/20414
@@ -39,8 +39,8 @@ pub const Parsers = struct {
                 .optimize = optimize,
             }),
         });
-        yyjson.linkLibC();
-        yyjson.addCSourceFile(.{ .file = yyjson_dep.path("src/yyjson.c") });
+        yyjson.root_module.link_libc = true;
+        yyjson.root_module.addCSourceFile(.{ .file = yyjson_dep.path("src/yyjson.c") });
         yyjson.installHeadersDirectory(yyjson_dep.path("src"), "", .{});
 
         const rapidjson_dep = b.lazyDependency("rapidjson", .{}) orelse return null;
@@ -53,8 +53,8 @@ pub const Parsers = struct {
                 .optimize = optimize,
             }),
         });
-        rapidjson.linkLibCpp();
-        rapidjson.addCSourceFile(.{ .file = rapidjson_dep.path("include/rapidjson.cpp") });
+        rapidjson.root_module.link_libcpp = true;
+        rapidjson.root_module.addCSourceFile(.{ .file = rapidjson_dep.path("include/rapidjson.cpp") });
         rapidjson.installHeadersDirectory(rapidjson_dep.path("include"), "", .{});
 
         return .{

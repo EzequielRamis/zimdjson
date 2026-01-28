@@ -17,23 +17,24 @@ const expected = TopFactions{
 var traced = TracedAllocator{ .wrapped = std.heap.c_allocator };
 const allocator = traced.allocator();
 
-var file: std.fs.File = undefined;
+var file: std.Io.File = undefined;
 var path: []const u8 = undefined;
 var parser = zimdjson.ondemand.FullParser(.default).init;
 var result: TopFactions = undefined;
 
-pub fn init(_path: []const u8) !void {
+pub fn init(_: std.Io, _path: []const u8) !void {
     path = _path;
 }
 
-pub fn prerun() !void {}
+pub fn prerun(_: std.Io) !void {}
 
-pub fn run() !void {
+pub fn run(io: std.Io) !void {
     result.factions_count = 0;
 
-    file = try std.fs.openFileAbsolute(path, .{});
-    try parser.expectDocumentSize(allocator, (try file.stat()).size);
-    const doc = try parser.parseFromReader(allocator, file.reader().any());
+    file = try std.Io.Dir.openFileAbsolute(io, path, .{});
+    try parser.expectDocumentSize(allocator, (try file.stat(io)).size);
+    var reader = file.reader(io, &.{});
+    const doc = try parser.parseFromReader(io, allocator, &reader.interface);
     var systems = (try doc.asArray()).iterator();
     while (try systems.next()) |system| {
         const id = try system.at("id64").asUnsigned();
@@ -53,18 +54,18 @@ pub fn run() !void {
     }
 }
 
-pub fn postrun() !void {
+pub fn postrun(io: std.Io) !void {
     if (!(result.id == expected.id and
         std.mem.eql(u8, result.name, expected.name) and
         result.factions_count == expected.factions_count))
     {
         @panic("top factions unequal to expected");
     }
-    file.close();
+    file.close(io);
 }
 
-pub fn deinit() void {
-    parser.deinit(allocator);
+pub fn deinit(io: std.Io) void {
+    parser.deinit(io, allocator);
 }
 
 pub fn memusage() usize {

@@ -7,31 +7,32 @@ const ArrayList = std.ArrayListUnmanaged;
 var traced = TracedAllocator{ .wrapped = std.heap.c_allocator };
 const allocator = traced.allocator();
 
-var file: std.fs.File = undefined;
+var file: std.Io.File = undefined;
 var json: []const u8 = undefined;
 var doc: std.json.Parsed(Schema) = undefined;
 var parser = Parser.init;
 
-pub fn init(path: []const u8) !void {
+pub fn init(_: std.Io, path: []const u8) !void {
     json = path;
 }
 
-pub fn prerun() !void {}
+pub fn prerun(_: std.Io) !void {}
 
-pub fn run() !void {
+pub fn run(io: std.Io) !void {
     file = try std.fs.openFileAbsolute(json, .{});
-    try parser.expectDocumentSize(allocator, (try file.stat()).size);
-    const document = try parser.parseFromReader(allocator, file.reader().any());
+    try parser.expectDocumentSize(allocator, (try file.stat(io)).size);
+    var reader = file.reader(io, &.{});
+    const document = try parser.parseFromReader(io, allocator, &reader.interface);
     doc = try document.as(Schema, allocator, .{});
 }
 
-pub fn postrun() !void {
-    file.close();
+pub fn postrun(io: std.Io) !void {
+    file.close(io);
     doc.deinit();
 }
 
-pub fn deinit() void {
-    parser.deinit(allocator);
+pub fn deinit(io: std.Io) void {
+    parser.deinit(io, allocator);
 }
 
 pub fn memusage() usize {

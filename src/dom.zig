@@ -139,8 +139,8 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
         };
 
         /// Release all allocated memory, including the strings.
-        pub fn deinit(self: *Self, allocator: Allocator) void {
-            self.tape.deinit(allocator);
+        pub fn deinit(self: *Self, io: std.Io, allocator: Allocator) void {
+            self.tape.deinit(io, allocator);
             self.document_buffer.deinit(allocator);
         }
 
@@ -217,20 +217,20 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
         }
 
         /// Parse a JSON document from reader. Allocated resources are owned by the parser.
-        pub fn parseFromReader(self: *Self, allocator: Allocator, reader: *std.Io.Reader) (Error || ReaderError)!Document {
+        pub fn parseFromReader(self: *Self, io: std.Io, allocator: Allocator, reader: *std.Io.Reader) (Error || ReaderError)!Document {
             self.reader_error = null;
 
             self.tape.string_buffer.reset();
             self.tape.string_buffer.allocator = allocator;
 
             if (want_stream) {
-                try self.tape.buildFromReader(allocator, reader);
+                try self.tape.buildFromReader(io, allocator, reader);
             } else {
                 self.document_buffer.clearRetainingCapacity();
                 common.readAllRetainingCapacity(
                     allocator,
                     reader,
-                    types.Aligned(true).alignment,
+                    std.mem.Alignment.fromByteUnits(types.Aligned(true).alignment),
                     &self.document_buffer,
                     self.max_capacity,
                 ) catch |err| switch (err) {
@@ -914,10 +914,10 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 .string_buffer = .init,
             };
 
-            pub fn deinit(self: *Tape, allocator: Allocator) void {
+            pub fn deinit(self: *Tape, io: std.Io, allocator: Allocator) void {
                 self.words.deinit(allocator);
                 self.stack.deinit(allocator);
-                self.tokens.deinit(allocator);
+                self.tokens.deinit(io, allocator);
                 self.string_buffer.deinit();
             }
 
@@ -940,8 +940,8 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 return self.dispatch(allocator);
             }
 
-            pub inline fn buildFromReader(self: *Tape, allocator: Allocator, reader: *std.Io.Reader) Error!void {
-                try self.tokens.build(allocator, reader);
+            pub inline fn buildFromReader(self: *Tape, io: std.Io, allocator: Allocator, reader: *std.Io.Reader) Error!void {
+                try self.tokens.build(io, allocator, reader);
                 try self.stack.ensureTotalCapacity(allocator, self.stack.max_depth);
 
                 self.words.list.clearRetainingCapacity();
@@ -981,7 +981,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
 
             inline fn appendTwoWordsAssumeCapacity(self: *Tape, words: [2]Word) void {
                 const vec: @Vector(2, u64) = @bitCast(words);
-                const slice: *const [2]u64 = &vec;
+                const slice: *const [2]u64 = @ptrCast(&vec);
                 if (want_stream) {
                     const arr = self.words.list.addManyAsArrayAssumeCapacity(2);
                     @memcpy(arr, slice);

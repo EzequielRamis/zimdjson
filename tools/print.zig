@@ -2,7 +2,7 @@ const std = @import("std");
 const zimdjson = @import("zimdjson");
 const Parser = zimdjson.ondemand.StreamParser(.default);
 
-var gpa = std.heap.GeneralPurposeAllocator(.{}).init;
+var gpa = std.heap.DebugAllocator(.{}).init;
 const allocator = gpa.allocator();
 
 var buf = std.io.bufferedWriter(std.io.getStdOut().writer());
@@ -66,7 +66,8 @@ pub fn main() !void {
     const file = try std.fs.openFileAbsolute(args[1], .{});
     defer file.close();
 
-    const json = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    const json = try parser.parseFromReader(allocator, &reader.interface);
     try walk(json.asValue());
     try buf.flush();
 }

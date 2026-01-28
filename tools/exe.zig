@@ -17,7 +17,7 @@ pub fn main() !void {
     const file = try std.fs.openFileAbsolute(path, .{});
     defer file.close();
 
-    try parser.ensureTotalCapacity((try file.stat()).size);
+    try parser.ensureTotalCapacity((try file.stat(io)).size);
 
     _ = try parser.parseAssumeCapacity(file.reader());
 }

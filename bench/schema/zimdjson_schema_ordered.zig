@@ -11,26 +11,26 @@ var json: []u8 = undefined;
 var doc: std.json.Parsed(Schema) = undefined;
 var parser = Parser.init;
 
-pub fn init(path: []const u8) !void {
-    const file = try std.fs.openFileAbsolute(path, .{});
-    defer file.close();
+pub fn init(io: std.Io, path: []const u8) !void {
+    const file = try std.Io.Dir.openFileAbsolute(io, path, .{});
+    defer file.close(io);
     json = try file.readToEndAlloc(allocator, std.math.maxInt(u32));
 }
 
-pub fn prerun() !void {}
+pub fn prerun(_: std.Io) !void {}
 
-pub fn run() !void {
+pub fn run(_: std.Io) !void {
     const document = try parser.parseFromSlice(allocator, json);
     doc = try document.as(Schema, allocator, .{});
 }
 
-pub fn postrun() !void {
+pub fn postrun(_: std.Io) !void {
     doc.deinit();
 }
 
-pub fn deinit() void {
+pub fn deinit(io: std.Io) void {
     allocator.free(json);
-    parser.deinit(allocator);
+    parser.deinit(io, allocator);
 }
 
 pub fn memusage() usize {

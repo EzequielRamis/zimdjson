@@ -71,7 +71,7 @@ pub fn Stream(comptime options: Options) type {
             .reader = undefined,
         });
 
-        pub fn build(self: *Self, _: std.mem.Allocator, reader: *std.Io.Reader) Error!void {
+        pub fn build(self: *Self, io: std.Io, _: std.mem.Allocator, reader: *std.Io.Reader) Error!void {
             if (self.mapped) {
                 const document = self.document;
                 const indexes = self.indexes;
@@ -88,8 +88,8 @@ pub fn Stream(comptime options: Options) type {
                     .reader_error = null,
                     .mapped = false,
                 };
-                self.document = try .init();
-                self.indexes = try .init();
+                self.document = try .init(io);
+                self.indexes = try .init(io);
                 self.mapped = true;
             }
             const written = try self.index(self.head);
@@ -97,10 +97,10 @@ pub fn Stream(comptime options: Options) type {
             self.head.ixs += written;
         }
 
-        pub fn deinit(self: *Self, _: std.mem.Allocator) void {
+        pub fn deinit(self: *Self, io: std.Io, _: std.mem.Allocator) void {
             if (self.mapped) {
-                self.document.deinit();
-                self.indexes.deinit();
+                self.document.deinit(io);
+                self.indexes.deinit(io);
             }
         }
 

@@ -1,12 +1,9 @@
 .direnv
-zig-cache
-zig-out
 *.o
 *.a
 exe
 .gdb_history
 .ccls-cache
-.zig-cache
-.zig-out
+*zig-*
 results
 target

@@ -41,7 +41,7 @@ pub fn Iterator(comptime options: Options) type {
             .padding = if (!options.assume_padding) .empty else {},
         };
 
-        pub fn deinit(self: *Self, allocator: Allocator) void {
+        pub fn deinit(self: *Self, _: std.Io, allocator: Allocator) void {
             self.indexes.deinit(allocator);
             if (!options.assume_padding) self.padding.deinit(allocator);
         }

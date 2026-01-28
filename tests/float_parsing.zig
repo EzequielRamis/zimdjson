@@ -1,4 +1,5 @@
 const std = @import("std");
+const builtin = @import("builtin");
 const ondemand = @import("zimdjson").ondemand;
 const parse_number_fxx = @embedFile("parse_number_fxx");
 
@@ -13,7 +14,7 @@ fn testFrom(comptime set: []const u8) !void {
     const file = try std.fs.cwd().openFile(path, .{});
     var reader = file.reader(buf);
     var i: usize = 1;
-    while (reader.interface.takeDelimiterExclusive('\n')) |line| : (i += 1) {
+    while (parse(&reader.interface, '\n')) |line| : (i += 1) {
         const expected = line[4 + 8 + 2 ..][0..16];
         var actual_buf: [16]u8 = undefined;
         const str = line[4 + 8 + 16 + 3 ..];
@@ -32,8 +33,18 @@ fn testFrom(comptime set: []const u8) !void {
             std.debug.print("FAIL: {} {s}\n", .{ i, str });
             @breakpoint();
         };
-    } else |_| return;
+    }
     // std.debug.print("END:     {s}\n\n", .{set});
+}
+
+fn parse(r: *std.io.Reader, delimiter: u8) ?[]u8 {
+    const zig_version = builtin.zig_version;
+    // https://github.com/ziglang/zig/issues/25597#issuecomment-3410445340
+    if (zig_version.major == 0 and zig_version.minor == 15 and zig_version.patch == 1) {
+        return std.Io.Reader.takeDelimiterExclusive(r, delimiter) catch null;
+    } else {
+        return std.Io.Reader.takeDelimiter(r, delimiter) catch null;
+    }
 }
 
 test "exhaustive-float16" {

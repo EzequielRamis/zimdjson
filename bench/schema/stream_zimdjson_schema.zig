@@ -21,7 +21,8 @@ pub fn prerun() !void {}
 pub fn run() !void {
     file = try std.fs.openFileAbsolute(json, .{});
     try parser.expectDocumentSize(allocator, (try file.stat()).size);
-    const document = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    const document = try parser.parseFromReader(allocator, &reader.interface);
     doc = try document.as(Schema, allocator, .{});
 }
 

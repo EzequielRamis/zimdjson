@@ -358,7 +358,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 common.readAllRetainingCapacity(
                     allocator,
                     reader,
-                    types.Aligned(true).alignment,
+                    .fromByteUnits(types.Aligned(true).alignment),
                     &self.document_buffer,
                     self.max_capacity,
                 ) catch |err| switch (err) {
@@ -1528,7 +1528,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 allocator: ?Allocator,
                 dest: *anyopaque,
             ) schema.Error!void {
-                return self.asAdvancedInner(T, S, P, allocator, @alignCast(@ptrCast(dest)));
+                return self.asAdvancedInner(T, S, P, allocator, @ptrCast(@alignCast(dest)));
             }
 
             fn skip(self: Value) Error!void {
@@ -2884,7 +2884,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     }
 
                     pub fn parseTypeErased(dest: *anyopaque, allocator: ?Allocator, value: Value) schema.Error!void {
-                        const typed_dest: *T = @alignCast(@ptrCast(dest));
+                        const typed_dest: *T = @ptrCast(@alignCast(dest));
                         typed_dest.* = try @This().parse(allocator, value);
                     }
                 };
@@ -3258,7 +3258,7 @@ fn undefinedInit(comptime T: type) T {
         switch (@typeInfo(field.type)) {
             .optional => {
                 if (field.default_value_ptr) |default_value_ptr| {
-                    const default_value: *field.type = @constCast(@alignCast(@ptrCast(
+                    const default_value: *field.type = @ptrCast(@alignCast(@constCast(
                         default_value_ptr,
                     )));
                     @field(result, field.name) = default_value.*;
@@ -3267,7 +3267,7 @@ fn undefinedInit(comptime T: type) T {
                 }
             },
             else => {
-                const default_value: *field.type = @constCast(@alignCast(@ptrCast(
+                const default_value: *field.type = @ptrCast(@alignCast(@constCast(
                     field.default_value_ptr orelse continue,
                 )));
                 @field(result, field.name) = default_value.*;

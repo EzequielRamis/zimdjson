@@ -27,7 +27,8 @@ pub fn prerun() !void {
 pub fn run() !void {
     file = try std.fs.openFileAbsolute(path, .{});
     try parser.expectDocumentSize(allocator, (try file.stat()).size);
-    const doc = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    const doc = try parser.parseFromReader(allocator, &reader.interface);
     var systems = (try doc.asArray()).iterator();
     while (systems.next()) |sys| {
         const coords = try sys.at("coords").asObject();

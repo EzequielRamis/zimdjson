@@ -23,7 +23,8 @@ pub fn prerun() !void {}
 pub fn run() !void {
     file = try std.fs.openFileAbsolute(path, .{});
     try parser.expectDocumentSize(allocator, (try file.stat()).size);
-    const doc = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    const doc = try parser.parseFromReader(allocator, &reader.interface);
     var tweet = (try doc.at("statuses").asArray()).iterator();
     while (try tweet.next()) |t| {
         if (try t.at("id").asUnsigned() == find_id) {

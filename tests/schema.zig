@@ -11,7 +11,8 @@ test "small/demo" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonexamples/small/demo.json", .{});
     defer file.close();
-    const document = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    const document = try parser.parseFromReader(allocator, &reader.interface);
 
     const Image = struct {
         pub const schema: Parser.schema.Infer(@This()) = .{
@@ -110,7 +111,8 @@ test "small/adversarial" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonexamples/small/adversarial.json", .{});
     defer file.close();
-    const document = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    const document = try parser.parseFromReader(allocator, &reader.interface);
 
     const Schema = struct {
         @"\"Name rue": [1]struct {
@@ -139,7 +141,8 @@ test "small/truenull" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonexamples/small/truenull.json", .{});
     defer file.close();
-    const document = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    const document = try parser.parseFromReader(allocator, &reader.interface);
 
     const arr = try document.as([]const ?bool, allocator, .{});
     defer arr.deinit();
@@ -154,7 +157,8 @@ test "github_events" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonexamples/github_events.json", .{});
     defer file.close();
-    const document = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    const document = try parser.parseFromReader(allocator, &reader.interface);
 
     const Event = union(enum) {
         pub const schema: Parser.schema.Infer(@This()) = .{
@@ -215,7 +219,8 @@ test "github_events untagged payload" {
     defer parser.deinit(allocator);
     const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonexamples/github_events.json", .{});
     defer file.close();
-    const document = try parser.parseFromReader(allocator, file.reader().any());
+    var reader = file.reader(&.{});
+    const document = try parser.parseFromReader(allocator, &reader.interface);
 
     const Payload = union(enum) {
         pub const schema: Parser.schema.Infer(@This()) = .{
@@ -659,7 +664,7 @@ test "std.ArrayListAlignedUnmanaged" {
     );
 
     const Coordinate = struct { x: i32, y: i32, z: i32 };
-    var coords = try document.as(std.ArrayListAlignedUnmanaged(Coordinate, 32), allocator, .{});
+    var coords = try document.as(std.ArrayListAlignedUnmanaged(Coordinate, .@"32"), allocator, .{});
     defer coords.deinit();
 
     try std.testing.expectEqual(coords.value.items.len, 3);

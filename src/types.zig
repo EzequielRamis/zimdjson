@@ -82,7 +82,8 @@ pub const ReaderError = error{
     /// which specific error occurred, you can "recover" it using the following pattern:
     ///
     /// ```zig
-    /// const document = parser.parseFromReader(allocator, file.reader().any()) catch |err| switch (err) {
+    ///     var reader = file.reader(&.{});
+    /// const document = parser.parseFromReader(allocator, &reader.interface) catch |err| switch (err) {
     ///    error.AnyReader => return parser.recoverReaderError(@TypeOf(file.reader())),
     ///    else => |e| return e,
     /// };

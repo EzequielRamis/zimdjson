@@ -14,7 +14,13 @@ var parser = Parser.init;
 pub fn init(io: std.Io, path: []const u8) !void {
     const file = try std.Io.Dir.openFileAbsolute(io, path, .{});
     defer file.close(io);
-    json = try file.readToEndAlloc(allocator, std.math.maxInt(u32));
+
+    json = try allocator.alloc(u8, (try file.stat(io)).size);
+    var reader = file.reader(
+        io,
+        &.{},
+    );
+    _ = try reader.interface.readSliceShort(json);
 }
 
 pub fn prerun(_: std.Io) !void {}

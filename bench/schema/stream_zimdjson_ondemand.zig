@@ -19,7 +19,7 @@ pub fn init(_: std.Io, path: []const u8) !void {
 pub fn prerun(_: std.Io) !void {}
 
 pub fn run(io: std.Io) !void {
-    file = try std.fs.openFileAbsolute(json, .{});
+    file = try std.Io.Dir.openFileAbsolute(io, json, .{});
     try parser.expectDocumentSize(allocator, (try file.stat(io)).size);
     var reader = file.reader(io, &.{});
     const document = try parser.parseFromReader(io, allocator, &reader.interface);

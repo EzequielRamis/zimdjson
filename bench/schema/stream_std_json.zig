@@ -14,10 +14,14 @@ pub fn init(_: std.Io, path: []const u8) !void {
 pub fn prerun(_: std.Io) !void {}
 
 pub fn run(io: std.Io) !void {
-    const file = try std.fs.openFileAbsolute(json, .{});
+    const file = try std.Io.Dir.openFileAbsolute(io, json, .{});
     defer file.close(io);
-    var reader = std.json.reader(allocator, file.reader());
+
+    var read_buf: [4096]u8 = undefined;
+    var file_reader = file.reader(io, &read_buf);
+    var reader = std.json.Reader.init(allocator, &file_reader.interface);
     defer reader.deinit();
+
     doc = try std.json.parseFromTokenSource(Schema, allocator, &reader, .{
         .ignore_unknown_fields = true,
     });

@@ -478,44 +478,42 @@ pub fn build(b: *std.Build) !void {
             }
         }
 
-        // TODO: update to 0.16
-        // {
-        //     const name = "schema";
-        //     const bench_step = b.step("bench/" ++ name, "Run benchmark 'schema'");
-        //     const parsers = Parsers.get(b, target, optimize);
-        //     const file_path = if (b.lazyDependency("simdjson-data", .{})) |dep|
-        //         dep.path("jsonexamples/twitter.json")
-        //     else
-        //         b.path("");
-        //
-        //     if (parsers) |p| {
-        //         var suite = bench.Suite(name){
-        //             .zimdjson = zimdjson,
-        //             .simdjson = p.simdjson,
-        //             .target = target,
-        //             .optimize = optimize,
-        //         };
-        //         const runner = suite.create(
-        //             &.{
-        //                 suite.addZigBenchmark("zimdjson_ondemand"),
-        //                 suite.addZigBenchmark("zimdjson_ondemand_unordered"),
-        //                 suite.addZigBenchmark("stream_zimdjson_ondemand"),
-        //                 suite.addZigBenchmark("stream_zimdjson_ondemand_unordered"),
-        //                 suite.addZigBenchmark("zimdjson_schema"),
-        //                 suite.addZigBenchmark("zimdjson_schema_ordered"),
-        //                 suite.addZigBenchmark("stream_zimdjson_schema"),
-        //                 suite.addZigBenchmark("stream_zimdjson_schema_ordered"),
-        //                 suite.addZigBenchmark("std_json"),
-        //                 suite.addZigBenchmark("stream_std_json"),
-        //                 suite.addRustBenchmark("serde"),
-        //                 suite.addRustBenchmark("stream_serde"),
-        //             },
-        //             file_path,
-        //         );
-        //         bench_step.dependOn(&runner.step);
-        //     }
-        // }
+        {
+            const name = "schema";
+            const bench_step = b.step("bench/" ++ name, "Run benchmark 'schema'");
+            const parsers = Parsers.get(b, target, optimize);
+            const file_path = if (b.lazyDependency("simdjson-data", .{})) |dep|
+                dep.path("jsonexamples/twitter.json")
+            else
+                b.path("");
 
+            if (parsers) |p| {
+                var suite = bench.Suite(name){
+                    .zimdjson = zimdjson,
+                    .simdjson = p.simdjson,
+                    .target = target,
+                    .optimize = optimize,
+                };
+                const runner = suite.create(
+                    &.{
+                        suite.addZigBenchmark("zimdjson_ondemand"),
+                        suite.addZigBenchmark("zimdjson_ondemand_unordered"),
+                        suite.addZigBenchmark("stream_zimdjson_ondemand"),
+                        suite.addZigBenchmark("stream_zimdjson_ondemand_unordered"),
+                        suite.addZigBenchmark("zimdjson_schema"),
+                        suite.addZigBenchmark("zimdjson_schema_ordered"),
+                        suite.addZigBenchmark("stream_zimdjson_schema"),
+                        suite.addZigBenchmark("stream_zimdjson_schema_ordered"),
+                        suite.addZigBenchmark("std_json"),
+                        suite.addZigBenchmark("stream_std_json"),
+                        suite.addRustBenchmark("serde"),
+                        suite.addRustBenchmark("stream_serde"),
+                    },
+                    file_path,
+                );
+                bench_step.dependOn(&runner.step);
+            }
+        }
     }
     // --
 

@@ -37,6 +37,8 @@ pub fn RingBuffer(comptime T: type, comptime length: usize) type {
                         if (!(builtin.os.isAtLeast(.windows, .win10_rs4) orelse false))
                             @compileError("RingBuffer mirrored mapping requires Windows 10 version 1803 or later");
 
+                        // from https://learn.microsoft.com/en-us/windows/win32/api/memoryapi/nf-memoryapi-virtualalloc2#examples
+
                         const buffer_ptr = VirtualAlloc2(
                             null,
                             null,
@@ -87,6 +89,8 @@ pub fn RingBuffer(comptime T: type, comptime length: usize) type {
                         return .{ .buffer = buffer, .file = file };
                     },
                     .macos => {
+                        // taken from https://github.com/marler8997/zigx/blob/master/src/DoubleBuffer.zig
+
                         const buffer = try posix.mmap(null, byte_len * 2, .{ .READ = true, .WRITE = true }, .{ .TYPE = .PRIVATE, .ANONYMOUS = true }, -1, 0);
                         errdefer posix.munmap(buffer);
 

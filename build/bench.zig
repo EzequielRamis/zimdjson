@@ -130,7 +130,7 @@ pub fn Suite(comptime suite: []const u8) type {
         ) *std.Build.Step.Run {
             const b = self.zimdjson.owner;
             var buf: [1024]u8 = undefined;
-            var arr = std.ArrayListUnmanaged(u8).initBuffer(&buf);
+            var arr = std.ArrayList(u8).initBuffer(&buf);
             arr.appendSliceAssumeCapacity("pub const suite = \"");
             arr.appendSliceAssumeCapacity(self.suite);
             arr.appendSliceAssumeCapacity("\";\n");
@@ -203,7 +203,7 @@ inline fn formatWrapper(comptime header: []const u8, comptime name: []const u8) 
     , .{ .header = header, .id = name });
 }
 
-fn formatWrappers(content: *std.ArrayListUnmanaged(u8), benchmarks: []const Benchmark) []const u8 {
+fn formatWrappers(content: *std.ArrayList(u8), benchmarks: []const Benchmark) []const u8 {
     content.appendSliceAssumeCapacity("pub const wrappers = .{");
     for (benchmarks) |b| {
         content.appendSliceAssumeCapacity("@import(\"");

@@ -77,25 +77,6 @@ pub const ValueType = enum {
     array,
 };
 
-pub const ReaderError = error{
-    /// A generic error occurred while reading from the provided reader. If you want to know
-    /// which specific error occurred, you can "recover" it using the following pattern:
-    ///
-    /// ```zig
-    ///     var reader = file.reader(&.{});
-    /// const document = parser.parseFromReader(allocator, &reader.interface) catch |err| switch (err) {
-    ///    error.AnyReader => return parser.recoverReaderError(@TypeOf(file.reader())),
-    ///    else => |e| return e,
-    /// };
-    ///
-    /// const array = document.asArray() catch |err| switch (err) {
-    ///    error.AnyReader => return parser.recoverReaderError(@TypeOf(file.reader())),
-    ///    else => |e| return e,
-    /// };
-    /// ```
-    AnyReader,
-};
-
 pub const ParseError = error{
     /// The document exceeds the user-specified depth limitation.
     ExceededDepth,
@@ -193,7 +174,7 @@ pub fn BoundedArrayList(comptime T: type, comptime initial_max_capacity: usize) 
         const Self = @This();
 
         max_capacity: usize,
-        list: std.ArrayListUnmanaged(T),
+        list: std.ArrayList(T),
 
         pub const empty = Self{
             .list = .empty,

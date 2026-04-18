@@ -42,9 +42,9 @@ pub fn Stream(comptime options: Options) type {
         });
 
         pub const Error =
+            std.Io.Reader.Error ||
             indexer.Error ||
             ring_buffer.Error ||
-            types.ReaderError ||
             StreamError;
 
         const Cursor = struct {
@@ -169,10 +169,7 @@ pub fn Stream(comptime options: Options) type {
 
         fn index(self: *Self, head: Cursor) Error!usize {
             const buf = self.document.ptr()[self.document.mask(head.doc)..][0..chunk_len];
-            const read: u32 = @intCast(self.reader.readSliceShort(buf) catch |err| {
-                self.reader_error = @intFromError(err);
-                return error.AnyReader;
-            });
+            const read: u32 = @intCast(try self.reader.readSliceShort(buf));
 
             if (read < chunk_len) {
                 @branchHint(.unlikely);

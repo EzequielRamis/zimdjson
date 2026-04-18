@@ -90,7 +90,6 @@ pub fn StreamParser(comptime options: StreamOptions) type {
     return Parser(.json, .{ .stream = options });
 }
 
-pub const ReaderError = types.ReaderError;
 pub const ParseError = types.ParseError;
 pub const StreamError = tokens.stream.StreamError;
 pub const IndexerError = @import("indexer.zig").Error;
@@ -124,7 +123,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
         pub const max_capacity_bound = if (want_stream) std.math.maxInt(u32) * @sizeOf(Tape.Word) else std.math.maxInt(u32);
 
         // only used in full mode
-        document_buffer: std.ArrayListAlignedUnmanaged(u8, .fromByteUnits(types.Aligned(true).alignment)),
+        document_buffer: std.array_list.Aligned(u8, .fromByteUnits(types.Aligned(true).alignment)),
         reader_error: ?std.meta.Int(.unsigned, @bitSizeOf(anyerror)),
 
         tape: Tape,
@@ -153,19 +152,6 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
         /// Set the maximum depth of a JSON document.
         pub fn setMaximumDepth(self: *Self, new_depth: usize) void {
             self.max_depth = new_depth;
-        }
-
-        /// Recover the error returned from the reader.
-        /// This method should be used only when the parser returns [`error.AnyReader`](#zimdjson.types.ReaderError).
-        /// Otherwise, it results in undefined behavior.
-        pub fn recoverReaderError(self: Self, comptime Reader: type) Reader.Error {
-            if (want_stream) {
-                assert(self.tape.tokens.reader_error != null);
-                return @errorCast(@errorFromInt(self.tape.tokens.reader_error.?));
-            } else {
-                assert(self.reader_error != null);
-                return @errorCast(@errorFromInt(self.reader_error.?));
-            }
         }
 
         /// This method preallocates the necessary memory for a document based on its size.
@@ -217,7 +203,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
         }
 
         /// Parse a JSON document from reader. Allocated resources are owned by the parser.
-        pub fn parseFromReader(self: *Self, io: std.Io, allocator: Allocator, reader: *std.Io.Reader) (Error || ReaderError)!Document {
+        pub fn parseFromReader(self: *Self, io: std.Io, allocator: Allocator, reader: *std.Io.Reader) (Error || std.Io.Reader.LimitedAllocError)!Document {
             self.reader_error = null;
 
             self.tape.string_buffer.reset();
@@ -227,19 +213,12 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 try self.tape.buildFromReader(io, allocator, reader);
             } else {
                 self.document_buffer.clearRetainingCapacity();
-                common.readAllRetainingCapacity(
+                try reader.appendRemainingAligned(
                     allocator,
-                    reader,
-                    std.mem.Alignment.fromByteUnits(types.Aligned(true).alignment),
+                    .fromByteUnits(types.Aligned(true).alignment),
                     &self.document_buffer,
-                    self.max_capacity,
-                ) catch |err| switch (err) {
-                    Allocator.Error.OutOfMemory => |e| return e,
-                    else => |e| {
-                        self.reader_error = @intFromError(e);
-                        return error.AnyReader;
-                    },
-                };
+                    .limited(max_capacity_bound),
+                );
                 const len = self.document_buffer.items.len;
                 try self.ensureTotalCapacityForReader(allocator, len);
                 self.document_buffer.appendNTimesAssumeCapacity(' ', types.Vector.bytes_len);

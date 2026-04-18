@@ -33,17 +33,20 @@ Then execute the following:
 const std = @import("std");
 const zimdjson = @import("zimdjson");
 
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}).init;
-    const allocator = gpa.allocator();
+pub fn main(init: std.process.Init) !void {
+    const gpa = init.gpa;
+    const io = init.io;
 
     var parser = zimdjson.ondemand.StreamParser(.default).init;
-    defer parser.deinit(allocator);
+    defer parser.deinit(io, gpa);
 
-    const file = try std.fs.cwd().openFile("twitter.json", .{});
-    defer file.close();
+    const file = try std.Io.Dir.cwd().openFile(io, "twitter.json", .{});
+    defer file.close(io);
 
-    const document = try parser.parseFromReader(allocator, file.reader().any());
+    var read_buf: [4096]u8 = undefined;
+    var reader = file.reader(io, &read_buf);
+
+    const document = try parser.parseFromReader(io, gpa, &reader.interface);
 
     const metadata_count = try document.at("search_metadata").at("count").asUnsigned();
     std.debug.print("{} results.", .{metadata_count});
@@ -60,7 +63,11 @@ To see how the streaming parser above handles multi-gigabyte JSON documents with
 
 ## Requirements
 
-Currently, targets with Linux, Windows, or macOS operating systems and CPUs with SIMD capabilities are supported. Missing targets can be added by contributing.
+- Zig 0.16.0
+- Linux, Windows or macOS target
+- CPU with SIMD capabilities
+
+Missing targets can be added by contributing.
 
 ## Documentation
 
@@ -80,12 +87,11 @@ const Film = struct {
     characters: []const []const u8, // we could also use std.ArrayListUnmanaged([]const u8)
 };
 
-pub fn main() !void {
-    var gpa = std.heap.GeneralPurposeAllocator(.{}).init;
-    const allocator = gpa.allocator();
+pub fn main(init: std.process.Init) !void {
+    const gpa = init.gpa;
 
     var parser = zimdjson.ondemand.FullParser(.default).init;
-    defer parser.deinit(allocator);
+    defer parser.deinit(init.io, gpa);
 
     const json =
         \\{
@@ -101,9 +107,9 @@ pub fn main() !void {
         \\}
     ;
 
-    const document = try parser.parseFromSlice(allocator, json);
+    const document = try parser.parseFromSlice(gpa, json);
 
-    const film = try document.as(Film, allocator, .{});
+    const film = try document.as(Film, gpa, .{});
     defer film.deinit();
 
     try std.testing.expectEqualDeep(

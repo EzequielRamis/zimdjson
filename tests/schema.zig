@@ -89,7 +89,7 @@ test "small/demo2" {
             width: u16,
         },
         animated: bool,
-        ids: std.ArrayListUnmanaged(u16),
+        ids: std.ArrayList(u16),
     };
 
     const image = try document.at("Image").as(Image, allocator, .{});
@@ -560,78 +560,7 @@ test "missing field while handling duplicate, assuming ordering" {
     ));
 }
 
-// test "std.BitStack" {
-// //     var parser = Parser.init;
-//     defer parser.deinit(std.testing.io,allocator);
-//     const document = try parser.parseFromSlice(allocator,
-//         \\[ 0,1,1,1, 1,0,1,1, 1,0,1,1, 0,1,0,1 ]
-//     );
-
-//     var bits = try document.as(std.BitStack,.{});
-//     defer bits.deinit();
-
-//     try std.testing.expectEqual(bits.value.bit_len, 16);
-//     try std.testing.expectEqualSlices(
-//         u8,
-//         @as([]const u8, &.{ 0xDE, 0xAD }),
-//         bits.value.bytes.items,
-//     );
-// }
-
-// test "std.BufMap" {
-// //     var parser = Parser.init;
-//     defer parser.deinit(std.testing.io,allocator);
-//     const document = try parser.parseFromSlice(allocator,
-//         \\{
-//         \\  "car": "blue",
-//         \\  "bike": "red",
-//         \\  "4x4": "green"
-//         \\}
-//     );
-
-//     var map = try document.as(std.BufMap,.{});
-//     defer map.deinit();
-
-//     try std.testing.expectEqual(map.value.count(), 3);
-//     try std.testing.expectEqualStrings("blue", map.value.get("car").?);
-//     try std.testing.expectEqualStrings("red", map.value.get("bike").?);
-//     try std.testing.expectEqualStrings("green", map.value.get("4x4").?);
-// }
-
-// test "std.BufSet" {
-// //     var parser = Parser.init;
-//     defer parser.deinit(std.testing.io,allocator);
-//     const document = try parser.parseFromSlice(allocator,
-//         \\[
-//         \\  "car", "blue",
-//         \\  "bike", "red",
-//         \\  "4x4", "green"
-//         \\]
-//     );
-
-//     var set = try document.as(std.BufSet,.{});
-//     defer set.deinit();
-
-//     try std.testing.expectEqual(set.value.count(), 6);
-//     var expected = std.StringHashMap(bool).init(allocator);
-//     defer expected.deinit();
-
-//     try expected.put("car", false);
-//     try expected.put("blue", false);
-//     try expected.put("bike", false);
-//     try expected.put("red", false);
-//     try expected.put("4x4", false);
-//     try expected.put("green", false);
-
-//     var it = set.value.iterator();
-
-//     while (it.next()) |item| {
-//         const visited = expected.fetchPutAssumeCapacity(item.*, true);
-//         try std.testing.expectEqual(visited.?.value, false);
-//     }
-// }
-
-test "std.ArrayListUnmanaged" {
+test "std.ArrayList" {
     var parser = Parser.init;
     defer parser.deinit(std.testing.io, allocator);
     const document = try parser.parseFromSlice(allocator,
@@ -643,7 +572,7 @@ test "std.ArrayListUnmanaged" {
     );
 
     const Coordinate = struct { x: i32, y: i32, z: i32 };
-    var coords = try document.as(std.ArrayListUnmanaged(Coordinate), allocator, .{});
+    var coords = try document.as(std.ArrayList(Coordinate), allocator, .{});
     defer coords.deinit();
 
     try std.testing.expectEqual(coords.value.items.len, 3);
@@ -652,7 +581,7 @@ test "std.ArrayListUnmanaged" {
     try std.testing.expectEqual(Coordinate{ .x = 7, .y = 8, .z = 9 }, coords.value.items[2]);
 }
 
-test "std.ArrayListAlignedUnmanaged" {
+test "std.array_list.Aligned" {
     var parser = Parser.init;
     defer parser.deinit(std.testing.io, allocator);
     const document = try parser.parseFromSlice(allocator,
@@ -664,7 +593,7 @@ test "std.ArrayListAlignedUnmanaged" {
     );
 
     const Coordinate = struct { x: i32, y: i32, z: i32 };
-    var coords = try document.as(std.ArrayListAlignedUnmanaged(Coordinate, .@"32"), allocator, .{});
+    var coords = try document.as(std.array_list.Aligned(Coordinate, .@"32"), allocator, .{});
     defer coords.deinit();
 
     try std.testing.expectEqual(coords.value.items.len, 3);
@@ -673,7 +602,7 @@ test "std.ArrayListAlignedUnmanaged" {
     try std.testing.expectEqual(Coordinate{ .x = 7, .y = 8, .z = 9 }, coords.value.items[2]);
 }
 
-test "std.StringArrayHashMapUnmanaged" {
+test "std.array_hash_map.String" {
     var parser = Parser.init;
     defer parser.deinit(std.testing.io, allocator);
     const document = try parser.parseFromSlice(allocator,
@@ -685,7 +614,7 @@ test "std.StringArrayHashMapUnmanaged" {
     );
 
     const Coordinate = struct { x: i32, y: i32, z: i32 };
-    var coords = try document.as(std.StringArrayHashMapUnmanaged(Coordinate), allocator, .{});
+    var coords = try document.as(std.array_hash_map.String(Coordinate), allocator, .{});
     defer coords.deinit();
 
     try std.testing.expectEqual(coords.value.count(), 3);

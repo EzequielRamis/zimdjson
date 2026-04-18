@@ -2,7 +2,6 @@ const std = @import("std");
 const zimdjson = @import("zimdjson");
 const TracedAllocator = @import("TracedAllocator");
 const Parser = zimdjson.ondemand.FullParser(.default);
-const ArrayList = std.ArrayListUnmanaged;
 
 var traced = TracedAllocator{ .wrapped = std.heap.c_allocator };
 const allocator = traced.allocator();
@@ -45,7 +44,7 @@ pub fn memusage() usize {
 
 const Schema = struct {
     pub const schema: Parser.schema.Struct(@This()) = .{ .assume_ordering = true };
-    statuses: ArrayList(Status),
+    statuses: std.ArrayList(Status),
 };
 
 const Status = struct {
@@ -88,10 +87,10 @@ const LanguageCode = enum { @"zh-cn", cn, en, es, it, ja, zh };
 
 const StatusEntities = struct {
     pub const schema: Parser.schema.Struct(@This()) = .{ .assume_ordering = true };
-    hashtags: ArrayList(HashTag),
+    hashtags: std.ArrayList(HashTag),
     // symbols: [0]void, // see std_json.zig
-    urls: ArrayList(Url),
-    user_mentions: ArrayList(UserMention),
+    urls: std.ArrayList(Url),
+    user_mentions: std.ArrayList(UserMention),
     // media: ?[]const Media, // see std_json.zig
 };
 
@@ -197,6 +196,6 @@ const UserEntities = struct {
     // url: ?struct { urls: []const Url }, // see std_json.zig
     description: struct {
         pub const schema: Parser.schema.Struct(@This()) = .{ .assume_ordering = true };
-        urls: ArrayList(Url),
+        urls: std.ArrayList(Url),
     },
 };

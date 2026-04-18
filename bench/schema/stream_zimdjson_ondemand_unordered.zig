@@ -2,7 +2,6 @@ const std = @import("std");
 const zimdjson = @import("zimdjson");
 const TracedAllocator = @import("TracedAllocator");
 const Parser = zimdjson.ondemand.StreamParser(.default);
-const ArrayList = std.ArrayListUnmanaged;
 
 var traced = TracedAllocator{ .wrapped = std.heap.c_allocator };
 const allocator = traced.allocator();
@@ -40,7 +39,7 @@ pub fn memusage() usize {
 }
 
 const Schema = struct {
-    statuses: ArrayList(Status),
+    statuses: std.ArrayList(Status),
 };
 
 const Status = struct {
@@ -81,10 +80,10 @@ const LanguageCode = enum { @"zh-cn", cn, en, es, it, ja, zh };
 
 const StatusEntities = struct {
     // media: ?[]const Media, // see std_json.zig
-    user_mentions: ArrayList(UserMention),
-    urls: ArrayList(Url),
+    user_mentions: std.ArrayList(UserMention),
+    urls: std.ArrayList(Url),
     // symbols: [0]void, // see std_json.zig
-    hashtags: ArrayList(HashTag),
+    hashtags: std.ArrayList(HashTag),
 };
 
 const HashTag = struct {
@@ -178,7 +177,7 @@ const User = struct {
 };
 
 const UserEntities = struct {
-    description: struct { urls: ArrayList(Url) },
+    description: struct { urls: std.ArrayList(Url) },
     // url: ?struct { urls: []const Url }, // see std_json.zig
 };
 
@@ -300,7 +299,7 @@ fn parseUser(value: Parser.Value, alloc: std.mem.Allocator) !User {
 
 fn parseUserEntities(value: Parser.Value, alloc: std.mem.Allocator) !UserEntities {
     var arr = (try value.at("description").at("urls").asArray()).iterator();
-    var arr_result: ArrayList(Url) = .empty;
+    var arr_result: std.ArrayList(Url) = .empty;
     while (try arr.next()) |url| {
         try arr_result.append(alloc, try parseUrl(url));
     }
@@ -324,13 +323,13 @@ fn parseUrl(value: Parser.Value) !Url {
 
 fn parseStatusEntities(value: Parser.Value, alloc: std.mem.Allocator) !StatusEntities {
     var user_mentions_arr = (try value.at("user_mentions").asArray()).iterator();
-    var user_mentions_result: ArrayList(UserMention) = .empty;
+    var user_mentions_result: std.ArrayList(UserMention) = .empty;
     while (try user_mentions_arr.next()) |user_mention| {
         try user_mentions_result.append(alloc, try parseUserMention(user_mention));
     }
 
     var urls_arr = (try value.at("urls").asArray()).iterator();
-    var urls_result: ArrayList(Url) = .empty;
+    var urls_result: std.ArrayList(Url) = .empty;
     while (try urls_arr.next()) |url| {
         try urls_result.append(alloc, try parseUrl(url));
     }
@@ -339,7 +338,7 @@ fn parseStatusEntities(value: Parser.Value, alloc: std.mem.Allocator) !StatusEnt
     // if (!try symbols_arr.isEmpty()) return error.IncorrectType;
 
     var hashtags_arr = (try value.at("hashtags").asArray()).iterator();
-    var hashtags_result: ArrayList(HashTag) = .empty;
+    var hashtags_result: std.ArrayList(HashTag) = .empty;
     while (try hashtags_arr.next()) |hashtag| {
         try hashtags_result.append(alloc, try parseHashTag(hashtag));
     }

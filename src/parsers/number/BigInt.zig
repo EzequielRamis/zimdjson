@@ -5,7 +5,7 @@ pub const Limb = usize;
 pub const limb_bits = @sizeOf(Limb) * 8;
 const Self = @This();
 pub const capacity = 58; // ceil(log2(10 ** (max_big_digits + -min_pow10)) / 64)
-const Limbs = std.ArrayListUnmanaged(Limb);
+const Limbs = std.ArrayList(Limb);
 
 limbs: Limbs,
 

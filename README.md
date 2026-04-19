@@ -84,7 +84,7 @@ const zimdjson = @import("zimdjson");
 const Film = struct {
     name: []const u8,
     year: u32,
-    characters: []const []const u8, // we could also use std.ArrayListUnmanaged([]const u8)
+    characters: []const []const u8, // we could also use std.ArrayList([]const u8)
 };
 
 pub fn main(init: std.process.Init) !void {

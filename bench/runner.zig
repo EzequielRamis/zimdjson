@@ -293,7 +293,7 @@ pub fn main(init: std.process.Init) !void {
 
             try terminal.setColor(.bold);
             try stdout_w.interface.writeAll("  measurement");
-            for (0..25 - "  measurement".len) |_| try stdout_w.interface.writeByte(' ');
+            for (0..26 - "  measurement".len) |_| try stdout_w.interface.writeByte(' ');
             try terminal.setColor(.bright_green);
             try stdout_w.interface.writeAll("mean");
             try terminal.setColor(.reset);
@@ -322,7 +322,7 @@ pub fn main(init: std.process.Init) !void {
 
             if (commands.len >= 2) {
                 try terminal.setColor(.bold);
-                for (0..9) |_| try stdout_w.interface.writeByte(' ');
+                for (0..14) |_| try stdout_w.interface.writeByte(' ');
                 try stdout_w.interface.writeAll("delta");
                 try terminal.setColor(.reset);
             }
@@ -490,14 +490,15 @@ fn printMeasurement(
     var count: usize = 0;
 
     const color_enabled = terminal.mode != .no_color;
-    const spaces = 32 - ("  (mean  ):".len + name.len + 2);
-    for (0..spaces) |_| try w.writeByte(' ');
+    for (0..32 - ("mean ± σ".len + name.len + 2)) |_| try w.writeByte(' ');
     if (m.unit != .throughput) for (0..2) |_| try w.writeByte(' ');
+
     try terminal.setColor(.bright_green);
     try printUnit(&fbs, m.mean, m.unit, m.std_dev, color_enabled, true);
     try w.writeAll(fbs.buffered());
     count += fbs.consumeAll();
     try terminal.setColor(.reset);
+
     try w.writeAll(" ± ");
     try terminal.setColor(.green);
     try printUnit(&fbs, m.std_dev, m.unit, 0, color_enabled, true);
@@ -505,7 +506,8 @@ fn printMeasurement(
     count += fbs.consumeAll();
     try terminal.setColor(.reset);
 
-    for (0..66 - ("  measurement      ".len + count + 3)) |_| try w.writeByte(' ');
+    if (m.unit != .throughput) for (0..4) |_| try w.writeByte(' ');
+    for (0..14 - ("mean ± σ".len + count + 2)) |_| try w.writeByte(' ');
     count = 0;
 
     try terminal.setColor(.cyan);
@@ -520,8 +522,8 @@ fn printMeasurement(
     count += fbs.consumeAll();
     try terminal.setColor(.reset);
 
-    for (0..46 - (count + 1)) |_| try w.writeByte(' ');
-    if (m.unit == .throughput) for (0..2) |_| try w.writeByte(' ');
+    if (m.unit != .throughput) for (0..2) |_| try w.writeByte(' ');
+    for (0..15 - ("min … max".len + count + 1)) |_| try w.writeByte(' ');
     count = 0;
 
     const outlier_percent = @as(f64, @floatFromInt(m.outlier_count)) / @as(f64, @floatFromInt(m.sample_count)) * 100;
@@ -534,7 +536,8 @@ fn printMeasurement(
     count += fbs.consumeAll();
     try terminal.setColor(.reset);
 
-    for (0..19 - (count + 1)) |_| try w.writeByte(' ');
+    //if (m.unit != .throughput) for (0..2) |_| try w.writeByte(' ');
+    for (0..15 - ("outliers".len + count + 1)) |_| try w.writeByte(' ');
 
     // ratio
     if (command_count > 1) {

@@ -6,7 +6,6 @@ const Vector = types.Vector;
 const vector = types.vector;
 const umask = types.umask;
 const assert = std.debug.assert;
-const ArrayList = std.ArrayListUnmanaged;
 const Allocator = std.mem.Allocator;
 
 pub const Options = struct {
@@ -21,7 +20,7 @@ pub fn Iterator(comptime options: Options) type {
 
         pub const Error = indexer.Error || std.mem.Allocator.Error;
 
-        indexes: ArrayList(u32),
+        indexes: std.ArrayList(u32),
         indexer: indexer.Indexer(u32, .{
             .aligned = options.aligned,
             .relative = false,
@@ -29,7 +28,7 @@ pub fn Iterator(comptime options: Options) type {
         document: Aligned.slice = undefined,
         token: [*]const u32 = undefined,
 
-        padding: if (!options.assume_padding) ArrayList(u8) else void,
+        padding: if (!options.assume_padding) std.ArrayList(u8) else void,
         padding_token: if (!options.assume_padding) [*]const u32 else void = undefined,
         padding_offset: if (!options.assume_padding) [*]const u8 else void = undefined,
 
@@ -41,7 +40,7 @@ pub fn Iterator(comptime options: Options) type {
             .padding = if (!options.assume_padding) .empty else {},
         };
 
-        pub fn deinit(self: *Self, allocator: Allocator) void {
+        pub fn deinit(self: *Self, _: std.Io, allocator: Allocator) void {
             self.indexes.deinit(allocator);
             if (!options.assume_padding) self.padding.deinit(allocator);
         }

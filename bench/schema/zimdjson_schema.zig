@@ -2,7 +2,6 @@ const std = @import("std");
 const zimdjson = @import("zimdjson");
 const TracedAllocator = @import("TracedAllocator");
 const Parser = zimdjson.ondemand.FullParser(.default);
-const ArrayList = std.ArrayListUnmanaged;
 
 var traced = TracedAllocator{ .wrapped = std.heap.c_allocator };
 const allocator = traced.allocator();
@@ -11,26 +10,32 @@ var json: []u8 = undefined;
 var doc: std.json.Parsed(Schema) = undefined;
 var parser = Parser.init;
 
-pub fn init(path: []const u8) !void {
-    const file = try std.fs.openFileAbsolute(path, .{});
-    defer file.close();
-    json = try file.readToEndAlloc(allocator, std.math.maxInt(u32));
+pub fn init(io: std.Io, path: []const u8) !void {
+    const file = try std.Io.Dir.openFileAbsolute(io, path, .{});
+    defer file.close(io);
+
+    json = try allocator.alloc(u8, (try file.stat(io)).size);
+    var reader = file.reader(
+        io,
+        &.{},
+    );
+    _ = try reader.interface.readSliceShort(json);
 }
 
-pub fn prerun() !void {}
+pub fn prerun(_: std.Io) !void {}
 
-pub fn run() !void {
+pub fn run(_: std.Io) !void {
     const document = try parser.parseFromSlice(allocator, json);
     doc = try document.as(Schema, allocator, .{});
 }
 
-pub fn postrun() !void {
+pub fn postrun(_: std.Io) !void {
     doc.deinit();
 }
 
-pub fn deinit() void {
+pub fn deinit(io: std.Io) void {
     allocator.free(json);
-    parser.deinit(allocator);
+    parser.deinit(io, allocator);
 }
 
 pub fn memusage() usize {
@@ -38,7 +43,7 @@ pub fn memusage() usize {
 }
 
 const Schema = struct {
-    statuses: ArrayList(Status),
+    statuses: std.ArrayList(Status),
 };
 
 const Status = struct {
@@ -78,10 +83,10 @@ const ResultType = enum { recent };
 const LanguageCode = enum { @"zh-cn", cn, en, es, it, ja, zh };
 
 const StatusEntities = struct {
-    hashtags: ArrayList(HashTag),
+    hashtags: std.ArrayList(HashTag),
     // symbols: [0]void, // see std_json.zig
-    urls: ArrayList(Url),
-    user_mentions: ArrayList(UserMention),
+    urls: std.ArrayList(Url),
+    user_mentions: std.ArrayList(UserMention),
     // media: ?[]const Media, // see std_json.zig
 };
 
@@ -177,5 +182,5 @@ const User = struct {
 
 const UserEntities = struct {
     // url: ?struct { urls: []const Url }, // see std_json.zig
-    description: struct { urls: ArrayList(Url) },
+    description: struct { urls: std.ArrayList(Url) },
 };

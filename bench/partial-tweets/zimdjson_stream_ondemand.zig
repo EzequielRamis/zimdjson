@@ -18,26 +18,27 @@ const PartialTweet = struct {
 var traced = TracedAllocator{ .wrapped = std.heap.c_allocator };
 const allocator = traced.allocator();
 
-var file: std.fs.File = undefined;
+var file: std.Io.File = undefined;
 var path: []const u8 = undefined;
 var parser = zimdjson.ondemand.StreamParser(.default).init;
-var result = std.ArrayList(PartialTweet).init(allocator);
+var result = std.ArrayList(PartialTweet).empty;
 
-pub fn init(_path: []const u8) !void {
+pub fn init(_: std.Io, _path: []const u8) !void {
     path = _path;
 }
 
-pub fn prerun() !void {
+pub fn prerun(_: std.Io) !void {
     result.clearRetainingCapacity();
 }
 
-pub fn run() !void {
-    file = try std.fs.openFileAbsolute(path, .{});
-    try parser.expectDocumentSize(allocator, (try file.stat()).size);
-    const doc = try parser.parseFromReader(allocator, file.reader().any());
+pub fn run(io: std.Io) !void {
+    file = try std.Io.Dir.openFileAbsolute(io, path, .{});
+    try parser.expectDocumentSize(allocator, (try file.stat(io)).size);
+    var reader = file.reader(io, &.{});
+    const doc = try parser.parseFromReader(io, allocator, &reader.interface);
     var statuses = (try doc.at("statuses").asArray()).iterator();
     while (try statuses.next()) |tweet| {
-        try result.append(.{
+        try result.append(allocator, .{
             .created_at = try tweet.at("created_at").asString(),
             .id = try tweet.at("id").asUnsigned(),
             .result = try tweet.at("text").asString(),
@@ -55,12 +56,12 @@ pub fn run() !void {
     }
 }
 
-pub fn postrun() !void {
-    file.close();
+pub fn postrun(io: std.Io) !void {
+    file.close(io);
 }
 
-pub fn deinit() void {
-    parser.deinit(allocator);
+pub fn deinit(io: std.Io) void {
+    parser.deinit(io, allocator);
 }
 
 pub fn memusage() usize {

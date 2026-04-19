@@ -42,9 +42,9 @@ pub fn Stream(comptime options: Options) type {
         });
 
         pub const Error =
+            std.Io.Reader.Error ||
             indexer.Error ||
             ring_buffer.Error ||
-            types.ReaderError ||
             StreamError;
 
         const Cursor = struct {
@@ -52,7 +52,7 @@ pub fn Stream(comptime options: Options) type {
             ixs: usize = 0,
         };
 
-        reader: std.io.AnyReader = undefined,
+        reader: *std.Io.Reader = undefined,
         reader_error: ?std.meta.Int(.unsigned, @bitSizeOf(anyerror)),
 
         document: RingBuffer(u8, chunk_len * options.slots) = undefined,
@@ -68,9 +68,10 @@ pub fn Stream(comptime options: Options) type {
         pub const init = std.mem.zeroInit(Self, .{
             .reader_error = null,
             .mapped = false,
+            .reader = undefined,
         });
 
-        pub fn build(self: *Self, _: std.mem.Allocator, reader: std.io.AnyReader) Error!void {
+        pub fn build(self: *Self, io: std.Io, _: std.mem.Allocator, reader: *std.Io.Reader) Error!void {
             if (self.mapped) {
                 const document = self.document;
                 const indexes = self.indexes;
@@ -87,8 +88,8 @@ pub fn Stream(comptime options: Options) type {
                     .reader_error = null,
                     .mapped = false,
                 };
-                self.document = try .init();
-                self.indexes = try .init();
+                self.document = try .init(io);
+                self.indexes = try .init(io);
                 self.mapped = true;
             }
             const written = try self.index(self.head);
@@ -96,10 +97,10 @@ pub fn Stream(comptime options: Options) type {
             self.head.ixs += written;
         }
 
-        pub fn deinit(self: *Self, _: std.mem.Allocator) void {
+        pub fn deinit(self: *Self, io: std.Io, _: std.mem.Allocator) void {
             if (self.mapped) {
-                self.document.deinit();
-                self.indexes.deinit();
+                self.document.deinit(io);
+                self.indexes.deinit(io);
             }
         }
 
@@ -168,10 +169,7 @@ pub fn Stream(comptime options: Options) type {
 
         fn index(self: *Self, head: Cursor) Error!usize {
             const buf = self.document.ptr()[self.document.mask(head.doc)..][0..chunk_len];
-            const read: u32 = @intCast(self.reader.readAll(buf) catch |err| {
-                self.reader_error = @intFromError(err);
-                return error.AnyReader;
-            });
+            const read: u32 = @intCast(try self.reader.readSliceShort(buf));
 
             if (read < chunk_len) {
                 @branchHint(.unlikely);

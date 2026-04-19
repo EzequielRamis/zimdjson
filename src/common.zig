@@ -61,34 +61,3 @@ pub const tables = struct {
         break :init res;
     };
 };
-
-pub fn readAllRetainingCapacity(
-    allocator: Allocator,
-    self: anytype,
-    comptime alignment: ?u29,
-    array_list: *std.ArrayListAlignedUnmanaged(u8, alignment),
-    max_append_size: usize,
-) !void {
-    try array_list.ensureTotalCapacity(allocator, @min(max_append_size, 4096));
-    const original_len = array_list.items.len;
-    var start_index: usize = original_len;
-    while (true) {
-        array_list.expandToCapacity();
-        const dest_slice = array_list.items[start_index..];
-        const bytes_read = try self.readAll(dest_slice);
-        start_index += bytes_read;
-
-        if (start_index - original_len > max_append_size) {
-            array_list.shrinkRetainingCapacity(original_len + max_append_size);
-            return error.StreamTooLong;
-        }
-
-        if (bytes_read != dest_slice.len) {
-            array_list.shrinkRetainingCapacity(start_index);
-            return;
-        }
-
-        // This will trigger ArrayList to expand superlinearly at whatever its growth rate is.
-        try array_list.ensureTotalCapacity(allocator, start_index + 1);
-    }
-}

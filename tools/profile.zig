@@ -26,7 +26,8 @@ pub fn main() !void {
         const file = try std.fs.openFileAbsolute(path, .{});
         defer file.close();
         // const index = rand.uintLessThan(u8, 100);
-        _ = try parser.parseFromReader(allocator, file.reader().any());
+        var reader = file.reader(&.{});
+        _ = try parser.parseFromReader(allocator, &reader.interface);
         // const created_at = try document.at(index).at("reportedOn").getString();
         // tracy.messageCopy(created_at);
     }

@@ -4,17 +4,19 @@ const assert = std.debug.assert;
 pub const Limb = usize;
 pub const limb_bits = @sizeOf(Limb) * 8;
 const Self = @This();
-const capacity = 58; // ceil(log2(10 ** (max_big_digits + -min_pow10)) / 64)
-const Limbs = std.BoundedArray(Limb, capacity);
+pub const capacity = 58; // ceil(log2(10 ** (max_big_digits + -min_pow10)) / 64)
+const Limbs = std.ArrayList(Limb);
 
 limbs: Limbs,
 
-pub fn init() Self {
-    return .{ .limbs = Limbs.init(0) catch unreachable };
+pub fn init(buffer: []Limb) Self {
+    return .{
+        .limbs = Limbs.initBuffer(buffer),
+    };
 }
 
-pub fn from(value: u64) Self {
-    var self = Self.init();
+pub fn from(buffer: []Limb, value: u64) Self {
+    var self = Self.init(buffer);
     self.limbs.appendAssumeCapacity(value);
     return self;
 }
@@ -28,35 +30,36 @@ pub fn addScalar(self: *Self, n: Limb) !void {
 }
 
 pub fn mul(self: *Self, n: []const Limb) !void {
-    const m = Limbs.fromSlice(self.limbs.slice()) catch unreachable;
+    var m_buffer: [capacity]Limb = undefined;
+    var m: Limbs = Limbs.initBuffer(&m_buffer);
+    m.appendSliceAssumeCapacity(self.limbs.items);
 
     try self.mulScalar(n[0]);
     if (n.len == 1) return;
 
-    const ms = m.slice();
-
-    var mi = Self.init();
+    var mi_buffer: [capacity]Limb = undefined;
+    var mi = Self.init(&mi_buffer);
 
     for (n[1..], 1..) |limb, i| {
         if (limb != 0) {
-            mi.limbs.len = 0;
-            mi.limbs.appendSliceAssumeCapacity(ms);
+            mi.limbs.items.len = 0;
+            mi.limbs.appendSliceAssumeCapacity(m.items);
             try mi.mulScalar(limb);
-            try self.addFrom(mi.limbs.slice(), i);
+            try self.addFrom(mi.limbs.items, i);
         }
     }
 }
 
 pub fn mulScalar(self: *Self, n: Limb) !void {
     var carry: Limb = 0;
-    for (self.limbs.slice()) |*limb| {
+    for (self.limbs.items) |*limb| {
         const wide = std.math.mulWide(Limb, limb.*, n) + carry;
         const res: Limb = @truncate(wide);
         limb.* = res;
         carry = @truncate(wide >> limb_bits);
     }
 
-    if (carry != 0) return self.limbs.append(carry);
+    if (carry != 0) return self.limbs.appendBounded(carry);
 }
 
 pub fn pow2(self: *Self, n: u32) !void {
@@ -71,26 +74,25 @@ fn shlBits(self: *Self, n: u8) !void {
     const shl = n;
     const shr = limb_bits - shl;
     var prev: Limb = 0;
-    for (self.limbs.slice()) |*m| {
+    for (self.limbs.items) |*m| {
         const p = m.*;
         m.* = (p << @intCast(shl)) | (prev >> @intCast(shr));
         prev = p;
     }
     const carry = prev >> @intCast(shr);
-    if (carry != 0) try self.limbs.append(carry);
+    if (carry != 0) return self.limbs.appendBounded(carry);
 }
 
 fn shlLimbs(self: *Self, n: u8) !void {
     assert(n > 0);
-    if (n + self.len() > self.limbs.capacity()) return error.Overflow;
+    if (n + self.len() > self.limbs.capacity) return error.Overflow;
     if (self.len() != 0) {
-        std.mem.copyBackwards(
-            Limb,
-            self.limbs.buffer[n..][0..self.len()],
-            self.limbs.slice(),
+        @memmove(
+            self.limbs.items.ptr[n..][0..self.len()],
+            self.limbs.items.ptr,
         );
-        @memset(self.limbs.buffer[0..n], 0);
-        self.limbs.len += @intCast(n);
+        @memset(self.limbs.items.ptr[0..n], 0);
+        self.limbs.items.len += @intCast(n);
     }
 }
 
@@ -121,14 +123,14 @@ pub fn high64(self: Self) struct { bits: u64, truncated: bool } {
         .truncated = false,
     };
     if (self.len() == 1) {
-        const r0 = self.limbs.get(0);
+        const r0 = self.limbs.items[0];
         return .{
             .bits = r0 << @intCast(@clz(r0)),
             .truncated = false,
         };
     }
-    const r0 = self.limbs.get(self.len() - 1);
-    const r1 = self.limbs.get(self.len() - 2);
+    const r0 = self.limbs.items[self.len() - 1];
+    const r1 = self.limbs.items[self.len() - 2];
     const shl = @clz(r0);
     var truncated: bool = undefined;
     var bits: Limb = undefined;
@@ -143,7 +145,7 @@ pub fn high64(self: Self) struct { bits: u64, truncated: bool } {
     var nonzero = false;
     var i: usize = 2;
     while (i < self.len()) : (i += 1) {
-        if (self.limbs.get(self.len() - 1 - i) != 0) {
+        if (self.limbs.items[self.len() - 1 - i] != 0) {
             nonzero = true;
             break;
         }
@@ -157,7 +159,7 @@ pub fn high64(self: Self) struct { bits: u64, truncated: bool } {
 
 pub fn clz(self: Self) u6 {
     if (self.len() == 0) return 0;
-    return @intCast(@clz(self.limbs.get(self.len() - 1)));
+    return @intCast(@clz(self.limbs.items[self.len() - 1]));
 }
 
 pub fn bitsLen(self: Self) u16 {
@@ -169,8 +171,8 @@ pub fn order(self: Self, other: Self) std.math.Order {
     if (self.len() < other.len()) return .lt;
     var i = self.len();
     while (i > 0) : (i -= 1) {
-        const x = self.limbs.get(i - 1);
-        const y = other.limbs.get(i - 1);
+        const x = self.limbs.items[i - 1];
+        const y = other.limbs.items[i - 1];
         if (x > y) return .gt;
         if (x < y) return .lt;
     }
@@ -178,19 +180,19 @@ pub fn order(self: Self, other: Self) std.math.Order {
 }
 
 pub fn len(self: Self) u8 {
-    return @intCast(self.limbs.len);
+    return @intCast(self.limbs.items.len);
 }
 
 fn addScalarFrom(self: *Self, n: Limb, _i: usize) !void {
     var i: usize = _i;
     var carry: Limb = n;
     while (carry != 0 and i < self.len()) : (i += 1) {
-        const res, const c = @addWithOverflow(self.limbs.buffer[i], carry);
-        self.limbs.buffer[i] = res;
+        const res, const c = @addWithOverflow(self.limbs.items[i], carry);
+        self.limbs.items[i] = res;
         carry = c;
     }
 
-    if (carry != 0) return self.limbs.append(carry);
+    if (carry != 0) return self.limbs.appendBounded(carry);
 }
 
 fn addFrom(self: *Self, n: []const Limb, i: usize) !void {
@@ -202,11 +204,11 @@ fn addFrom(self: *Self, n: []const Limb, i: usize) !void {
     for (n, 0..) |d, j| {
         var c1: u1 = 0;
         var c2: u1 = 0;
-        var res, c1 = @addWithOverflow(self.limbs.buffer[i + j], d);
+        var res, c1 = @addWithOverflow(self.limbs.items[i + j], d);
         if (carry) {
             res, c2 = @addWithOverflow(res, 1);
         }
-        self.limbs.buffer[i + j] = res;
+        self.limbs.items[i + j] = res;
         carry = @bitCast(c1 | c2);
     }
 
@@ -215,8 +217,8 @@ fn addFrom(self: *Self, n: []const Limb, i: usize) !void {
 
 fn resize(self: *Self, n: usize, v: Limb) !void {
     const old_len = self.len();
-    try self.limbs.resize(n);
-    @memset(self.limbs.buffer[old_len..][0..n -| old_len], v);
+    self.limbs.items.len = n;
+    @memset(self.limbs.items[old_len..][0..n -| old_len], v);
 }
 
 const power_of_five_smalls: [28]u64 = brk: {

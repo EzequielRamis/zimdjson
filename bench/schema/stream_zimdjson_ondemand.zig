@@ -2,36 +2,36 @@ const std = @import("std");
 const zimdjson = @import("zimdjson");
 const TracedAllocator = @import("TracedAllocator");
 const Parser = zimdjson.ondemand.StreamParser(.default);
-const ArrayList = std.ArrayListUnmanaged;
 
 var traced = TracedAllocator{ .wrapped = std.heap.c_allocator };
 const allocator = traced.allocator();
 
-var file: std.fs.File = undefined;
+var file: std.Io.File = undefined;
 var json: []const u8 = undefined;
 var doc: std.json.Parsed(Schema) = undefined;
 var parser = Parser.init;
 
-pub fn init(path: []const u8) !void {
+pub fn init(_: std.Io, path: []const u8) !void {
     json = path;
 }
 
-pub fn prerun() !void {}
+pub fn prerun(_: std.Io) !void {}
 
-pub fn run() !void {
-    file = try std.fs.openFileAbsolute(json, .{});
-    try parser.expectDocumentSize(allocator, (try file.stat()).size);
-    const document = try parser.parseFromReader(allocator, file.reader().any());
+pub fn run(io: std.Io) !void {
+    file = try std.Io.Dir.openFileAbsolute(io, json, .{});
+    try parser.expectDocumentSize(allocator, (try file.stat(io)).size);
+    var reader = file.reader(io, &.{});
+    const document = try parser.parseFromReader(io, allocator, &reader.interface);
     doc = try document.as(Schema, allocator, .{});
 }
 
-pub fn postrun() !void {
-    file.close();
+pub fn postrun(io: std.Io) !void {
+    file.close(io);
     doc.deinit();
 }
 
-pub fn deinit() void {
-    parser.deinit(allocator);
+pub fn deinit(io: std.Io) void {
+    parser.deinit(io, allocator);
 }
 
 pub fn memusage() usize {
@@ -39,7 +39,7 @@ pub fn memusage() usize {
 }
 
 const Schema = struct {
-    statuses: ArrayList(Status),
+    statuses: std.ArrayList(Status),
 };
 
 const Status = struct {
@@ -79,10 +79,10 @@ const ResultType = enum { recent };
 const LanguageCode = enum { @"zh-cn", cn, en, es, it, ja, zh };
 
 const StatusEntities = struct {
-    hashtags: ArrayList(HashTag),
+    hashtags: std.ArrayList(HashTag),
     // symbols: [0]void, // see std_json.zig
-    urls: ArrayList(Url),
-    user_mentions: ArrayList(UserMention),
+    urls: std.ArrayList(Url),
+    user_mentions: std.ArrayList(UserMention),
     // media: ?[]const Media, // see std_json.zig
 };
 
@@ -178,7 +178,7 @@ const User = struct {
 
 const UserEntities = struct {
     // url: ?struct { urls: []const Url }, // see std_json.zig
-    description: struct { urls: ArrayList(Url) },
+    description: struct { urls: std.ArrayList(Url) },
 };
 
 fn parseSchema(document: Parser.Document) !std.json.Parsed(Schema) {
@@ -299,7 +299,7 @@ fn parseUser(value: Parser.Value, alloc: std.mem.Allocator) !User {
 
 fn parseUserEntities(value: Parser.Value, alloc: std.mem.Allocator) !UserEntities {
     var arr = (try value.at("description").at("urls").asArray()).iterator();
-    var arr_result: ArrayList(Url) = .empty;
+    var arr_result: std.ArrayList(Url) = .empty;
     while (try arr.next()) |url| {
         try arr_result.append(alloc, try parseUrl(url));
     }
@@ -323,19 +323,19 @@ fn parseUrl(value: Parser.Value) !Url {
 
 fn parseStatusEntities(value: Parser.Value, alloc: std.mem.Allocator) !StatusEntities {
     var hashtags_arr = (try value.at("hashtags").asArray()).iterator();
-    var hashtags_result: ArrayList(HashTag) = .empty;
+    var hashtags_result: std.ArrayList(HashTag) = .empty;
     while (try hashtags_arr.next()) |hashtag| {
         try hashtags_result.append(alloc, try parseHashTag(hashtag));
     }
     // const symbols_arr = try value.at("symbols").asArray();
     // if (!try symbols_arr.isEmpty()) return error.IncorrectType;
     var urls_arr = (try value.at("urls").asArray()).iterator();
-    var urls_result: ArrayList(Url) = .empty;
+    var urls_result: std.ArrayList(Url) = .empty;
     while (try urls_arr.next()) |url| {
         try urls_result.append(alloc, try parseUrl(url));
     }
     var user_mentions_arr = (try value.at("user_mentions").asArray()).iterator();
-    var user_mentions_result: ArrayList(UserMention) = .empty;
+    var user_mentions_result: std.ArrayList(UserMention) = .empty;
     while (try user_mentions_arr.next()) |user_mention| {
         try user_mentions_result.append(alloc, try parseUserMention(user_mention));
     }

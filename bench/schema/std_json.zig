@@ -7,25 +7,31 @@ const allocator = traced.allocator();
 var json: []u8 = undefined;
 var doc: std.json.Parsed(Schema) = undefined;
 
-pub fn init(path: []const u8) !void {
-    const file = try std.fs.openFileAbsolute(path, .{});
-    defer file.close();
-    json = try file.readToEndAlloc(allocator, std.math.maxInt(u32));
+pub fn init(io: std.Io, path: []const u8) !void {
+    const file = try std.Io.Dir.openFileAbsolute(io, path, .{});
+    defer file.close(io);
+
+    json = try allocator.alloc(u8, (try file.stat(io)).size);
+    var reader = file.reader(
+        io,
+        &.{},
+    );
+    _ = try reader.interface.readSliceShort(json);
 }
 
-pub fn prerun() !void {}
+pub fn prerun(_: std.Io) !void {}
 
-pub fn run() !void {
+pub fn run(_: std.Io) !void {
     doc = try std.json.parseFromSlice(Schema, allocator, json, .{
         .ignore_unknown_fields = true,
     });
 }
 
-pub fn postrun() !void {
+pub fn postrun(_: std.Io) !void {
     doc.deinit();
 }
 
-pub fn deinit() void {
+pub fn deinit(_: std.Io) void {
     allocator.free(json);
 }
 

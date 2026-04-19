@@ -7,27 +7,31 @@ const allocator = traced.allocator();
 var json: []const u8 = undefined;
 var doc: std.json.Parsed(Schema) = undefined;
 
-pub fn init(path: []const u8) !void {
+pub fn init(_: std.Io, path: []const u8) !void {
     json = path;
 }
 
-pub fn prerun() !void {}
+pub fn prerun(_: std.Io) !void {}
 
-pub fn run() !void {
-    const file = try std.fs.openFileAbsolute(json, .{});
-    defer file.close();
-    var reader = std.json.reader(allocator, file.reader());
+pub fn run(io: std.Io) !void {
+    const file = try std.Io.Dir.openFileAbsolute(io, json, .{});
+    defer file.close(io);
+
+    var read_buf: [4096]u8 = undefined;
+    var file_reader = file.reader(io, &read_buf);
+    var reader = std.json.Reader.init(allocator, &file_reader.interface);
     defer reader.deinit();
+
     doc = try std.json.parseFromTokenSource(Schema, allocator, &reader, .{
         .ignore_unknown_fields = true,
     });
 }
 
-pub fn postrun() !void {
+pub fn postrun(_: std.Io) !void {
     doc.deinit();
 }
 
-pub fn deinit() void {}
+pub fn deinit(_: std.Io) void {}
 
 pub fn memusage() usize {
     return traced.total;

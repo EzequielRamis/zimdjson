@@ -60,6 +60,7 @@ pub const BiasedFp = struct {
 
 pub inline fn isEightDigits(src: [*]const u8) bool {
     const val = readInt(u64, src[0..8], native_endian);
+    @prefetch(src + 64, .{ .rw = .read, .locality = 1 });
     const a = val +% 0x4646464646464646;
     const b = val -% 0x3030303030303030;
     return (((a | b) & 0x8080808080808080)) == 0;
@@ -77,6 +78,20 @@ pub inline fn parseEightDigits(src: [*]const u8) u32 {
         const t3 = intr.pack(t2, t2);
         const t4 = intr.mulWrappingAdd(@bitCast(t3), mul_1_10000);
         return @intCast(t4[0]);
+    } else if (cpu.arch == .aarch64) {
+        const ascii0: @Vector(8, u8) = @splat('0');
+        const input = @as(@Vector(8, u8), src[0..8].*) -% ascii0;
+        const mul_1_10: @Vector(8, u8) = .{ 10, 1, 10, 1, 10, 1, 10, 1 };
+        const lo = input *% mul_1_10;
+        const pair_sum: @Vector(4, u16) = .{
+            @as(u16, lo[0]) + @as(u16, lo[1]),
+            @as(u16, lo[2]) + @as(u16, lo[3]),
+            @as(u16, lo[4]) + @as(u16, lo[5]),
+            @as(u16, lo[6]) + @as(u16, lo[7]),
+        };
+        const q_lo = @as(u32, pair_sum[0]) * 100 + @as(u32, pair_sum[1]);
+        const q_hi = @as(u32, pair_sum[2]) * 100 + @as(u32, pair_sum[3]);
+        return @intCast(q_lo * 10000 + q_hi);
     } else {
         var val = readInt(u64, src[0..8], native_endian);
         const mask = 0x000000FF000000FF;

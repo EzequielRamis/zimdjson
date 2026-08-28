@@ -15,7 +15,7 @@ The majority of the source code is based on the C++ implementation https://githu
 Install the zimdjson library by running the following command in your project root:
 
 ```
-zig fetch --save git+https://github.com/ezequielramis/zimdjson#0.2.0
+zig fetch --save git+https://github.com/ezequielramis/zimdjson#0.3.0
 ```
 
 Then write the following in your `build.zig`:

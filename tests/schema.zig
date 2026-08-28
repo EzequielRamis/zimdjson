@@ -9,9 +9,11 @@ const allocator = std.testing.allocator;
 test "small/demo" {
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonexamples/small/demo.json", .{});
-    defer file.close();
-    const document = try parser.parseFromReader(allocator, file.reader().any());
+    const file = try std.Io.Dir.cwd().openFile(std.testing.io, simdjson_data ++ "/jsonexamples/small/demo.json", .{});
+    defer file.close(std.testing.io);
+    var read_buf: [8192]u8 = undefined;
+    var reader = file.reader(std.testing.io, &read_buf);
+    const document = try parser.parseFromReader(allocator, &reader.interface);
 
     const Image = struct {
         pub const schema: Parser.schema.Infer(@This()) = .{
@@ -108,9 +110,11 @@ test "small/demo2" {
 test "small/adversarial" {
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonexamples/small/adversarial.json", .{});
-    defer file.close();
-    const document = try parser.parseFromReader(allocator, file.reader().any());
+    const file = try std.Io.Dir.cwd().openFile(std.testing.io, simdjson_data ++ "/jsonexamples/small/adversarial.json", .{});
+    defer file.close(std.testing.io);
+    var read_buf: [8192]u8 = undefined;
+    var reader = file.reader(std.testing.io, &read_buf);
+    const document = try parser.parseFromReader(allocator, &reader.interface);
 
     const Schema = struct {
         @"\"Name rue": [1]struct {
@@ -137,9 +141,11 @@ test "small/adversarial" {
 test "small/truenull" {
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonexamples/small/truenull.json", .{});
-    defer file.close();
-    const document = try parser.parseFromReader(allocator, file.reader().any());
+    const file = try std.Io.Dir.cwd().openFile(std.testing.io, simdjson_data ++ "/jsonexamples/small/truenull.json", .{});
+    defer file.close(std.testing.io);
+    var read_buf: [8192]u8 = undefined;
+    var reader = file.reader(std.testing.io, &read_buf);
+    const document = try parser.parseFromReader(allocator, &reader.interface);
 
     const arr = try document.as([]const ?bool, allocator, .{});
     defer arr.deinit();
@@ -152,9 +158,11 @@ test "small/truenull" {
 test "github_events" {
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonexamples/github_events.json", .{});
-    defer file.close();
-    const document = try parser.parseFromReader(allocator, file.reader().any());
+    const file = try std.Io.Dir.cwd().openFile(std.testing.io, simdjson_data ++ "/jsonexamples/github_events.json", .{});
+    defer file.close(std.testing.io);
+    var read_buf: [8192]u8 = undefined;
+    var reader = file.reader(std.testing.io, &read_buf);
+    const document = try parser.parseFromReader(allocator, &reader.interface);
 
     const Event = union(enum) {
         pub const schema: Parser.schema.Infer(@This()) = .{
@@ -213,9 +221,11 @@ test "github_events" {
 test "github_events untagged payload" {
     var parser = Parser.init;
     defer parser.deinit(allocator);
-    const file = try std.fs.cwd().openFile(simdjson_data ++ "/jsonexamples/github_events.json", .{});
-    defer file.close();
-    const document = try parser.parseFromReader(allocator, file.reader().any());
+    const file = try std.Io.Dir.cwd().openFile(std.testing.io, simdjson_data ++ "/jsonexamples/github_events.json", .{});
+    defer file.close(std.testing.io);
+    var read_buf: [8192]u8 = undefined;
+    var reader = file.reader(std.testing.io, &read_buf);
+    const document = try parser.parseFromReader(allocator, &reader.interface);
 
     const Payload = union(enum) {
         pub const schema: Parser.schema.Infer(@This()) = .{
@@ -659,7 +669,7 @@ test "std.ArrayListAlignedUnmanaged" {
     );
 
     const Coordinate = struct { x: i32, y: i32, z: i32 };
-    var coords = try document.as(std.ArrayListAlignedUnmanaged(Coordinate, 32), allocator, .{});
+    var coords = try document.as(std.ArrayListAlignedUnmanaged(Coordinate, .@"32"), allocator, .{});
     defer coords.deinit();
 
     try std.testing.expectEqual(coords.value.items.len, 3);
@@ -741,13 +751,13 @@ test "std.SegmentedList" {
     );
 
     const Coordinate = struct { x: i32, y: i32, z: i32 };
-    var coords = try document.as(std.SegmentedList(Coordinate, 0), allocator, .{});
+    var coords = try document.as(std.ArrayListUnmanaged(Coordinate), allocator, .{});
     defer coords.deinit();
 
-    try std.testing.expectEqual(coords.value.len, 3);
-    try std.testing.expectEqual(Coordinate{ .x = 1, .y = 2, .z = 3 }, coords.value.at(0).*);
-    try std.testing.expectEqual(Coordinate{ .x = 4, .y = 5, .z = 6 }, coords.value.at(1).*);
-    try std.testing.expectEqual(Coordinate{ .x = 7, .y = 8, .z = 9 }, coords.value.at(2).*);
+    try std.testing.expectEqual(coords.value.items.len, 3);
+    try std.testing.expectEqual(Coordinate{ .x = 1, .y = 2, .z = 3 }, coords.value.items[0]);
+    try std.testing.expectEqual(Coordinate{ .x = 4, .y = 5, .z = 6 }, coords.value.items[1]);
+    try std.testing.expectEqual(Coordinate{ .x = 7, .y = 8, .z = 9 }, coords.value.items[2]);
 }
 
 test "std.MultiArrayList" {

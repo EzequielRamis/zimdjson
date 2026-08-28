@@ -42,5 +42,5 @@ pub const alignment = types.Aligned(true).alignment;
 pub const padding = std.simd.suggestVectorLength(u8) orelse @compileError("No SIMD features available");
 
 test {
-    std.testing.refAllDeclsRecursive(@This());
+    std.testing.refAllDecls(@This());
 }

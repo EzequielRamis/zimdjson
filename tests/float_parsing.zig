@@ -10,8 +10,8 @@ fn testFrom(comptime set: []const u8) !void {
     defer parser.deinit(allocator);
     const buf = try allocator.alloc(u8, 2048);
     defer allocator.free(buf);
-    const file = try std.fs.cwd().openFile(path, .{});
-    var reader = file.reader(buf);
+    const file = try std.Io.Dir.cwd().openFile(std.testing.io, path, .{});
+    var reader = file.reader(std.testing.io, buf);
     var i: usize = 1;
     while (reader.interface.takeDelimiterExclusive('\n')) |line| : (i += 1) {
         const expected = line[4 + 8 + 2 ..][0..16];

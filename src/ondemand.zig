@@ -358,7 +358,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 common.readAllRetainingCapacity(
                     allocator,
                     reader,
-                    types.Aligned(true).alignment,
+                    comptime std.mem.Alignment.fromByteUnits(types.Aligned(true).alignment),
                     &self.document_buffer,
                     self.max_capacity,
                 ) catch |err| switch (err) {
@@ -1048,7 +1048,10 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                             self.endContainer();
                             return false;
                         },
-                        else => return self.reportError(error.ExpectedObjectCommaOrEnd),
+                        else => {
+                            try self.reportError(error.ExpectedObjectCommaOrEnd);
+                            unreachable;
+                        },
                     }
                 }
 
@@ -1064,7 +1067,10 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                             self.endContainer();
                             return false;
                         },
-                        else => return self.reportError(error.ExpectedArrayCommaOrEnd),
+                        else => {
+                            try self.reportError(error.ExpectedArrayCommaOrEnd);
+                            unreachable;
+                        },
                     }
                 }
 
@@ -1831,11 +1837,17 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 inline fn start(iter: Value.Iterator) Error!Field {
                     iter.assertAtNext();
                     const key_quote = try iter.cursor.next();
-                    if (key_quote[0] != '"') return iter.reportError(error.ExpectedKey);
+                    if (key_quote[0] != '"') {
+                        try iter.reportError(error.ExpectedKey);
+                        unreachable;
+                    }
 
                     iter.assertAtNext();
                     const colon = try iter.cursor.next();
-                    if (colon[0] != ':') return iter.reportError(error.ExpectedColon);
+                    if (colon[0] != ':') {
+                        try iter.reportError(error.ExpectedColon);
+                        unreachable;
+                    }
                     iter.cursor.descend(iter.start_depth + 1);
 
                     return .{
@@ -2337,14 +2349,19 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     };
                 }
                 const sf = schema_fields;
-                return @Type(.{
-                    .@"struct" = .{
-                        .fields = &sf,
-                        .layout = .auto,
-                        .decls = &.{},
-                        .is_tuple = false,
-                    },
-                });
+                comptime var _names: [sf.len][]const u8 = undefined;
+                comptime var _types: [sf.len]type = undefined;
+                comptime var _attrs: [sf.len]_std.builtin.Type.StructField.Attributes = undefined;
+                inline for (0..sf.len) |i| {
+                    _names[i] = sf[i].name;
+                    _types[i] = sf[i].type;
+                    _attrs[i] = .{
+                        .@"comptime" = sf[i].is_comptime,
+                        .@"align" = sf[i].alignment,
+                        .default_value_ptr = sf[i].default_value_ptr,
+                    };
+                }
+                return @Struct(.auto, null, &_names, &_types, &_attrs);
             }
 
             /// Schema options for a struct field.
@@ -2617,12 +2634,19 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     tuple.is_comptime = true;
                 }
                 const result_fields = tuple_fields;
-                return @Type(.{ .@"struct" = .{
-                    .fields = &result_fields,
-                    .decls = &.{},
-                    .layout = .auto,
-                    .is_tuple = false,
-                } });
+                comptime var _names2: [result_fields.len][]const u8 = undefined;
+                comptime var _types2: [result_fields.len]type = undefined;
+                comptime var _attrs2: [result_fields.len]_std.builtin.Type.StructField.Attributes = undefined;
+                inline for (0..result_fields.len) |i| {
+                    _names2[i] = result_fields[i].name;
+                    _types2[i] = result_fields[i].type;
+                    _attrs2[i] = .{
+                        .@"comptime" = result_fields[i].is_comptime,
+                        .@"align" = result_fields[i].alignment,
+                        .default_value_ptr = result_fields[i].default_value_ptr,
+                    };
+                }
+                return @Struct(.auto, null, &_names2, &_types2, &_attrs2);
             }
 
             pub fn Enum(comptime T: type) type {
@@ -2655,14 +2679,19 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     };
                 }
                 const sf = schema_fields;
-                return @Type(.{
-                    .@"struct" = .{
-                        .fields = &sf,
-                        .layout = .auto,
-                        .decls = &.{},
-                        .is_tuple = false,
-                    },
-                });
+                comptime var _names3: [sf.len][]const u8 = undefined;
+                comptime var _types3: [sf.len]type = undefined;
+                comptime var _attrs3: [sf.len]_std.builtin.Type.StructField.Attributes = undefined;
+                inline for (0..sf.len) |i| {
+                    _names3[i] = sf[i].name;
+                    _types3[i] = sf[i].type;
+                    _attrs3[i] = .{
+                        .@"comptime" = sf[i].is_comptime,
+                        .@"align" = sf[i].alignment,
+                        .default_value_ptr = sf[i].default_value_ptr,
+                    };
+                }
+                return @Struct(.auto, null, &_names3, &_types3, &_attrs3);
             }
 
             /// Schema options for an enum field.
@@ -2726,14 +2755,19 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                     };
                 }
                 const sf = schema_fields;
-                return @Type(.{
-                    .@"struct" = .{
-                        .fields = &sf,
-                        .layout = .auto,
-                        .decls = &.{},
-                        .is_tuple = false,
-                    },
-                });
+                comptime var _names4: [sf.len][]const u8 = undefined;
+                comptime var _types4: [sf.len]type = undefined;
+                comptime var _attrs4: [sf.len]_std.builtin.Type.StructField.Attributes = undefined;
+                inline for (0..sf.len) |i| {
+                    _names4[i] = sf[i].name;
+                    _types4[i] = sf[i].type;
+                    _attrs4[i] = .{
+                        .@"comptime" = sf[i].is_comptime,
+                        .@"align" = sf[i].alignment,
+                        .default_value_ptr = sf[i].default_value_ptr,
+                    };
+                }
+                return @Struct(.auto, null, &_names4, &_types4, &_attrs4);
             }
 
             /// Schema options for an union field.
@@ -3308,8 +3342,10 @@ const StandardDataStructure = union(enum) {
                         const child = info.child;
                         if (T == std.ArrayListUnmanaged(child))
                             return .{ .array_list = .{child} };
-                        if (T == std.ArrayListAlignedUnmanaged(child, .fromByteUnits(info.alignment)))
-                            return .{ .array_list_aligned = .{ child, .fromByteUnits(info.alignment) } };
+                        if (info.alignment) |a| {
+                            if (T == std.ArrayListAlignedUnmanaged(child, .fromByteUnits(a)))
+                                return .{ .array_list_aligned = .{ child, .fromByteUnits(a) } };
+                        }
                     }
                 },
                 else => {},

@@ -12,9 +12,9 @@ const min_chunk_length = if (native_os == .windows) 1024 * 64 else std.heap.page
 
 pub const Error =
     std.posix.MemFdCreateError ||
-    std.posix.TruncateError ||
+    error{ TruncateFailed, GetRandomFailed } ||
     std.posix.MMapError ||
-    (if (native_os == .macos) std.posix.GetRandomError else error{});
+    (if (native_os == .macos) error{ GetRandomFailed, PathAlreadyExists, NameTooLong } else error{});
 
 pub fn RingBuffer(comptime T: type, comptime length: usize) type {
     const byte_len = @sizeOf(T) * length;
@@ -29,7 +29,7 @@ pub fn RingBuffer(comptime T: type, comptime length: usize) type {
 
         const Buffer = struct {
             buffer: [*]align(std.heap.page_size_min) u8,
-            handle: if (native_os == .windows) w.HANDLE else std.fs.File.Handle,
+            handle: if (native_os == .windows) w.HANDLE else std.posix.fd_t,
 
             pub fn init() Error!Buffer {
                 switch (native_os) {
@@ -119,7 +119,7 @@ pub fn RingBuffer(comptime T: type, comptime length: usize) type {
                         var encoded_buffer: [pshmnamlen + 1]u8 = undefined;
                         @memcpy(encoded_buffer[0..shm_prefix.len], shm_prefix);
                         var rand_bytes: [18]u8 = undefined; // 18 is the required bytes for 24 base64 encoded bytes
-                        try std.posix.getrandom(&rand_bytes);
+                        if (std.os.linux.getrandom(@ptrCast(&rand_bytes), rand_bytes.len, 0) != rand_bytes.len) return error.GetRandomFailed;
                         const encoded = encoder.encode(encoded_buffer[shm_prefix.len..], &rand_bytes);
                         assert(encoded.len == base64_len);
                         encoded_buffer[pshmnamlen] = 0;
@@ -139,14 +139,14 @@ pub fn RingBuffer(comptime T: type, comptime length: usize) type {
                             .NAMETOOLONG => return error.NameTooLong,
                             else => |err| return std.posix.unexpectedErrno(err),
                         };
-                        errdefer posix.close(handle);
+                        errdefer _ = std.os.linux.close(handle);
 
-                        try posix.ftruncate(handle, byte_len);
+                        if (std.os.linux.ftruncate(handle, @intCast(byte_len)) != 0) return error.TruncateFailed;
 
                         const buffer = try posix.mmap(
                             null,
                             byte_len * 2,
-                            posix.PROT.READ | posix.PROT.WRITE,
+                            .{ .READ = true, .WRITE = true },
                             .{
                                 .TYPE = .PRIVATE,
                                 .ANONYMOUS = true,
@@ -159,7 +159,7 @@ pub fn RingBuffer(comptime T: type, comptime length: usize) type {
                         _ = try posix.mmap(
                             @alignCast(buffer.ptr),
                             byte_len,
-                            posix.PROT.READ | posix.PROT.WRITE,
+                            .{ .READ = true, .WRITE = true },
                             .{
                                 .TYPE = .SHARED,
                                 .FIXED = true,
@@ -171,7 +171,7 @@ pub fn RingBuffer(comptime T: type, comptime length: usize) type {
                         _ = try posix.mmap(
                             @alignCast(buffer.ptr + byte_len),
                             byte_len,
-                            posix.PROT.READ | posix.PROT.WRITE,
+                            .{ .READ = true, .WRITE = true },
                             .{
                                 .TYPE = .SHARED,
                                 .FIXED = true,
@@ -184,13 +184,13 @@ pub fn RingBuffer(comptime T: type, comptime length: usize) type {
                     },
                     else => {
                         const handle = try posix.memfd_create("zimdjson_ringbuffer", posix.FD_CLOEXEC);
-                        errdefer posix.close(handle);
-                        try posix.ftruncate(handle, byte_len);
+                        errdefer _ = std.os.linux.close(handle);
+                        if (std.os.linux.ftruncate(handle, @intCast(byte_len)) != 0) return error.TruncateFailed;
 
                         const buffer = try posix.mmap(
                             null,
                             byte_len * 2,
-                            posix.PROT.READ | posix.PROT.WRITE,
+                            .{ .READ = true, .WRITE = true },
                             .{
                                 .TYPE = .PRIVATE,
                                 .ANONYMOUS = true,
@@ -203,7 +203,7 @@ pub fn RingBuffer(comptime T: type, comptime length: usize) type {
                         _ = try posix.mmap(
                             @alignCast(buffer.ptr),
                             byte_len,
-                            posix.PROT.READ | posix.PROT.WRITE,
+                            .{ .READ = true, .WRITE = true },
                             .{
                                 .TYPE = .SHARED,
                                 .FIXED = true,
@@ -215,7 +215,7 @@ pub fn RingBuffer(comptime T: type, comptime length: usize) type {
                         _ = try posix.mmap(
                             @alignCast(buffer.ptr + byte_len),
                             byte_len,
-                            posix.PROT.READ | posix.PROT.WRITE,
+                            .{ .READ = true, .WRITE = true },
                             .{
                                 .TYPE = .SHARED,
                                 .FIXED = true,
@@ -237,7 +237,7 @@ pub fn RingBuffer(comptime T: type, comptime length: usize) type {
                     },
                     else => {
                         posix.munmap(self.buffer[0 .. byte_len * 2]);
-                        posix.close(self.handle);
+                        _ = std.os.linux.close(self.handle);
                     },
                 }
             }

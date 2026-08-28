@@ -75,7 +75,7 @@ pub fn readAllRetainingCapacity(
     while (true) {
         array_list.expandToCapacity();
         const dest_slice = array_list.items[start_index..];
-        const bytes_read = try self.readAll(dest_slice);
+        const bytes_read = try self.readSliceShort(dest_slice);
         start_index += bytes_read;
 
         if (start_index - original_len > max_append_size) {

@@ -230,7 +230,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
                 common.readAllRetainingCapacity(
                     allocator,
                     reader,
-                    types.Aligned(true).alignment,
+                    comptime std.mem.Alignment.fromByteUnits(types.Aligned(true).alignment),
                     &self.document_buffer,
                     self.max_capacity,
                 ) catch |err| switch (err) {
@@ -980,8 +980,7 @@ pub fn Parser(comptime format: types.Format, comptime options: Options) type {
             }
 
             inline fn appendTwoWordsAssumeCapacity(self: *Tape, words: [2]Word) void {
-                const vec: @Vector(2, u64) = @bitCast(words);
-                const slice: *const [2]u64 = &vec;
+                const slice: *const [2]u64 = @ptrCast(&words);
                 if (want_stream) {
                     const arr = self.words.list.addManyAsArrayAssumeCapacity(2);
                     @memcpy(arr, slice);

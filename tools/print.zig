@@ -2,20 +2,14 @@ const std = @import("std");
 const zimdjson = @import("zimdjson");
 const Parser = zimdjson.ondemand.StreamParser(.default);
 
-var gpa = std.heap.GeneralPurposeAllocator(.{}).init;
-const allocator = gpa.allocator();
-
-var buf = std.io.bufferedWriter(std.io.getStdOut().writer());
-var w = buf.writer();
-
 var depth: usize = 0;
 
-fn printDepth() !void {
+fn printDepth(w: *std.Io.Writer) !void {
     try w.writeByte('\n');
-    try w.writeBytesNTimes("  ", depth);
+    try w.splatByteAll(' ', depth * 2);
 }
 
-fn walk(v: Parser.Value) !void {
+fn walk(w: *std.Io.Writer, v: Parser.Value) !void {
     const any = try v.asAny();
     switch (any) {
         .object => |c| {
@@ -24,12 +18,12 @@ fn walk(v: Parser.Value) !void {
             var size: usize = 0;
             var it = c.iterator();
             while (try it.next()) |field| : (size += 1) {
-                try printDepth();
+                try printDepth(w);
                 try w.print("{s}: ", .{try field.key.getTemporal()});
-                try walk(field.value);
+                try walk(w, field.value);
             }
             depth -= 1;
-            if (size != 0) try printDepth();
+            if (size != 0) try printDepth(w);
             try w.writeByte('}');
         },
         .array => |c| {
@@ -38,11 +32,11 @@ fn walk(v: Parser.Value) !void {
             var size: usize = 0;
             var it = c.iterator();
             while (try it.next()) |value| : (size += 1) {
-                try printDepth();
-                try walk(value);
+                try printDepth(w);
+                try walk(w, value);
             }
             depth -= 1;
-            if (size != 0) try printDepth();
+            if (size != 0) try printDepth(w);
             try w.writeByte(']');
         },
         .string => |value| try w.print("\"{s}\"", .{try value.getTemporal()}),
@@ -54,19 +48,24 @@ fn walk(v: Parser.Value) !void {
     }
 }
 
-pub fn main() !void {
-    const args = try std.process.argsAlloc(allocator);
-    defer std.process.argsFree(allocator, args);
+pub fn main(init: std.process.Init) !void {
+    const args = try init.minimal.args.toSlice(init.arena.allocator());
 
     if (args.len == 1) return;
 
     var parser = Parser.init;
-    defer parser.deinit(allocator);
+    defer parser.deinit(init.gpa);
 
-    const file = try std.fs.openFileAbsolute(args[1], .{});
-    defer file.close();
+    const file = try std.Io.Dir.openFileAbsolute(init.io, args[1], .{});
+    defer file.close(init.io);
 
-    const json = try parser.parseFromReader(allocator, file.reader().any());
-    try walk(json.asValue());
-    try buf.flush();
+    var read_buf: [8192]u8 = undefined;
+    var file_reader = file.reader(init.io, &read_buf);
+
+    var write_buf: [8192]u8 = undefined;
+    var stdout_writer = std.Io.File.stdout().writer(init.io, &write_buf);
+
+    const json = try parser.parseFromReader(init.gpa, &file_reader.interface);
+    try walk(&stdout_writer.interface, json.asValue());
+    try stdout_writer.interface.flush();
 }

@@ -57,10 +57,10 @@ pub fn Suite(comptime suite: []const u8) type {
                 }),
             });
             lib.installHeader(b.addWriteFiles().add(identifier, formatTemplateHeader(name)), identifier ++ ".h");
-            lib.addCSourceFile(.{ .file = b.path("bench/" ++ identifier ++ ".cpp") });
-            lib.linkLibrary(self.simdjson);
-            lib.linkLibrary(parser);
-            lib.addIncludePath(b.path("bench"));
+            lib.root_module.addCSourceFile(.{ .file = b.path("bench/" ++ identifier ++ ".cpp") });
+            lib.root_module.linkLibrary(self.simdjson);
+            lib.root_module.linkLibrary(parser);
+            lib.root_module.addIncludePath(b.path("bench"));
             const mod = b.createModule(.{
                 .root_source_file = b.addWriteFiles().add(identifier ++ ".zig", formatWrapper(identifier, name)),
                 .target = self.target,
@@ -86,9 +86,9 @@ pub fn Suite(comptime suite: []const u8) type {
                 }),
             });
             lib.installHeader(b.addWriteFiles().add(identifier, formatTemplateHeader(name)), identifier ++ ".h");
-            lib.addCSourceFile(.{ .file = b.path("bench/" ++ identifier ++ ".c") });
-            lib.linkLibrary(parser);
-            lib.addIncludePath(b.path("bench"));
+            lib.root_module.addCSourceFile(.{ .file = b.path("bench/" ++ identifier ++ ".c") });
+            lib.root_module.linkLibrary(parser);
+            lib.root_module.addIncludePath(b.path("bench"));
             const mod = b.createModule(.{
                 .root_source_file = b.addWriteFiles().add(identifier ++ ".zig", formatWrapper(identifier, name)),
                 .target = self.target,
@@ -151,7 +151,7 @@ pub fn Suite(comptime suite: []const u8) type {
                     .optimize = self.optimize,
                 }),
             });
-            runner.linkLibCpp();
+            runner.root_module.link_libcpp = true;
             runner.root_module.addImport("benchmarks", mod);
             const artifact = b.addRunArtifact(runner);
             artifact.addArg(file_path);

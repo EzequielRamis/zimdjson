@@ -71,6 +71,9 @@ pub fn Iterator(comptime options: Options) type {
 
                 var i: usize = 0;
                 while (i < last_full_index) : (i += types.block_len) {
+                    if (i + types.block_len < last_full_index) {
+                        @prefetch(document.ptr + i + types.block_len, .{ .rw = .read, .locality = 3 });
+                    }
                     const block: Aligned.block = @alignCast(document[i..][0..types.block_len]);
                     written += self.indexer.index(block, self.indexes.items.ptr[written..]);
                 }

@@ -57,10 +57,10 @@ pub fn Suite(comptime suite: []const u8) type {
                 }),
             });
             lib.installHeader(b.addWriteFiles().add(identifier, formatTemplateHeader(name)), identifier ++ ".h");
-            lib.addCSourceFile(.{ .file = b.path("bench/" ++ identifier ++ ".cpp") });
-            lib.linkLibrary(self.simdjson);
-            lib.linkLibrary(parser);
-            lib.addIncludePath(b.path("bench"));
+            lib.root_module.addCSourceFile(.{ .file = b.path("bench/" ++ identifier ++ ".cpp") });
+            lib.root_module.linkLibrary(self.simdjson);
+            lib.root_module.linkLibrary(parser);
+            lib.root_module.addIncludePath(b.path("bench"));
             const mod = b.createModule(.{
                 .root_source_file = b.addWriteFiles().add(identifier ++ ".zig", formatWrapper(identifier, name)),
                 .target = self.target,
@@ -86,9 +86,9 @@ pub fn Suite(comptime suite: []const u8) type {
                 }),
             });
             lib.installHeader(b.addWriteFiles().add(identifier, formatTemplateHeader(name)), identifier ++ ".h");
-            lib.addCSourceFile(.{ .file = b.path("bench/" ++ identifier ++ ".c") });
-            lib.linkLibrary(parser);
-            lib.addIncludePath(b.path("bench"));
+            lib.root_module.addCSourceFile(.{ .file = b.path("bench/" ++ identifier ++ ".c") });
+            lib.root_module.linkLibrary(parser);
+            lib.root_module.addIncludePath(b.path("bench"));
             const mod = b.createModule(.{
                 .root_source_file = b.addWriteFiles().add(identifier ++ ".zig", formatWrapper(identifier, name)),
                 .target = self.target,
@@ -129,11 +129,12 @@ pub fn Suite(comptime suite: []const u8) type {
             file_path: []const u8,
         ) *std.Build.Step.Run {
             const b = self.zimdjson.owner;
-            var buf = std.BoundedArray(u8, 1024).init(0) catch unreachable;
-            buf.appendSliceAssumeCapacity("pub const suite = \"");
-            buf.appendSliceAssumeCapacity(self.suite);
-            buf.appendSliceAssumeCapacity("\";\n");
-            const wrappers = formatWrappers(&buf, benchs);
+            var buf: [1024]u8 = undefined;
+            var arr = std.ArrayListUnmanaged(u8).initBuffer(&buf);
+            arr.appendSliceAssumeCapacity("pub const suite = \"");
+            arr.appendSliceAssumeCapacity(self.suite);
+            arr.appendSliceAssumeCapacity("\";\n");
+            const wrappers = formatWrappers(&arr, benchs);
             const mod = b.createModule(.{
                 .root_source_file = b.addWriteFiles().add(self.suite ++ ".zig", wrappers),
                 .target = self.target,
@@ -150,7 +151,7 @@ pub fn Suite(comptime suite: []const u8) type {
                     .optimize = self.optimize,
                 }),
             });
-            runner.linkLibCpp();
+            runner.root_module.link_libcpp = true;
             runner.root_module.addImport("benchmarks", mod);
             const artifact = b.addRunArtifact(runner);
             artifact.addArg(file_path);
@@ -201,7 +202,7 @@ inline fn formatWrapper(comptime header: []const u8, comptime name: []const u8) 
     , .{ .header = header, .id = name });
 }
 
-fn formatWrappers(content: *std.BoundedArray(u8, 1024), benchmarks: []const Benchmark) []const u8 {
+fn formatWrappers(content: *std.ArrayListUnmanaged(u8), benchmarks: []const Benchmark) []const u8 {
     content.appendSliceAssumeCapacity("pub const wrappers = .{");
     for (benchmarks) |b| {
         content.appendSliceAssumeCapacity("@import(\"");
@@ -216,5 +217,5 @@ fn formatWrappers(content: *std.BoundedArray(u8, 1024), benchmarks: []const Benc
         content.appendSliceAssumeCapacity("\",");
     }
     content.appendSliceAssumeCapacity("};");
-    return content.constSlice();
+    return content.items;
 }

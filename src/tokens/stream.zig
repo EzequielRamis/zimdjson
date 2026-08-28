@@ -52,11 +52,14 @@ pub fn Stream(comptime options: Options) type {
             ixs: usize = 0,
         };
 
-        reader: std.io.AnyReader = undefined,
+        reader: *std.Io.Reader = undefined,
         reader_error: ?std.meta.Int(.unsigned, @bitSizeOf(anyerror)),
 
         document: RingBuffer(u8, chunk_len * options.slots) = undefined,
         indexes: RingBuffer(index_type, chunk_len * options.slots) = undefined,
+        // Prefix-sum of document byte offsets for O(1) calculateDocumentOffset.
+        // Trades ~2x index buffer memory for eliminating O(n) iteration.
+        cumulative_doc_offsets: RingBuffer(usize, chunk_len * options.slots) = undefined,
         indexer: Indexer = .init,
 
         head: Cursor align(atomic.cache_line) = .{},
@@ -68,12 +71,14 @@ pub fn Stream(comptime options: Options) type {
         pub const init = std.mem.zeroInit(Self, .{
             .reader_error = null,
             .mapped = false,
+            .reader = undefined,
         });
 
-        pub fn build(self: *Self, _: std.mem.Allocator, reader: std.io.AnyReader) Error!void {
+        pub fn build(self: *Self, _: std.mem.Allocator, reader: *std.Io.Reader) Error!void {
             if (self.mapped) {
                 const document = self.document;
                 const indexes = self.indexes;
+                const cumulative_doc_offsets = self.cumulative_doc_offsets;
                 self.* = .{
                     .reader = reader,
                     .reader_error = null,
@@ -81,6 +86,7 @@ pub fn Stream(comptime options: Options) type {
                 };
                 self.document = document;
                 self.indexes = indexes;
+                self.cumulative_doc_offsets = cumulative_doc_offsets;
             } else {
                 self.* = .{
                     .reader = reader,
@@ -89,6 +95,7 @@ pub fn Stream(comptime options: Options) type {
                 };
                 self.document = try .init();
                 self.indexes = try .init();
+                self.cumulative_doc_offsets = try .init();
                 self.mapped = true;
             }
             const written = try self.index(self.head);
@@ -100,6 +107,7 @@ pub fn Stream(comptime options: Options) type {
             if (self.mapped) {
                 self.document.deinit();
                 self.indexes.deinit();
+                self.cumulative_doc_offsets.deinit();
             }
         }
 
@@ -142,9 +150,12 @@ pub fn Stream(comptime options: Options) type {
 
         inline fn calculateDocumentOffset(self: Self, pos: usize) Error!usize {
             if (self.head.ixs - pos > chunk_len) return error.StreamChunkOverflow;
-            var doc_offset: usize = 0;
-            for (pos..self.tail.ixs) |i| doc_offset += self.indexes.ptr()[self.indexes.mask(i)];
-            return doc_offset;
+            const cum = self.cumulative_doc_offsets;
+            // cum[i] = sum(indexes[0..i]) (exclusive prefix sum).
+            // sum(indexes[pos..tail.ixs]) = cum[tail.ixs] - cum[pos].
+            const tail_cum: usize = cum.ptr()[cum.mask(self.tail.ixs)];
+            const pos_cum: usize = if (pos > 0) cum.ptr()[cum.mask(pos)] else 0;
+            return tail_cum - pos_cum;
         }
 
         inline fn fetch(self: *Self, comptime and_consume: bool) Error![*]const u8 {
@@ -168,7 +179,7 @@ pub fn Stream(comptime options: Options) type {
 
         fn index(self: *Self, head: Cursor) Error!usize {
             const buf = self.document.ptr()[self.document.mask(head.doc)..][0..chunk_len];
-            const read: u32 = @intCast(self.reader.readAll(buf) catch |err| {
+            const read: u32 = @intCast(self.reader.readSliceShort(buf) catch |err| {
                 self.reader_error = @intFromError(err);
                 return error.AnyReader;
             });
@@ -198,6 +209,15 @@ pub fn Stream(comptime options: Options) type {
                     buf[read + bogus_indexed_tokens.len - 1] = bogus_token;
                     buf[read + bogus_indexed_tokens.len - 2] = bogus_token;
 
+                    // Compute cumulative document offsets for O(1) rewind.
+                    const cum = self.cumulative_doc_offsets;
+                    const cum_ptr = cum.ptr();
+                    const cum_base: usize = if (head.ixs > 0) cum_ptr[cum.mask(head.ixs - 1)] else 0;
+                    cum_ptr[cum.mask(head.ixs)] = cum_base;
+                    for (0..written) |k| {
+                        cum_ptr[cum.mask(head.ixs + k + 1)] = cum_ptr[cum.mask(head.ixs + k)] + indexes.ptr[k];
+                    }
+
                     return written;
                 }
             }
@@ -209,6 +229,15 @@ pub fn Stream(comptime options: Options) type {
             const first_offset = indexes[0];
             if (first_offset > chunk_len) return error.StreamChunkOverflow;
             try self.indexer.validate();
+
+            // Compute cumulative document offsets for O(1) rewind.
+            const cum2 = self.cumulative_doc_offsets;
+            const cum_ptr2 = cum2.ptr();
+            const cum_base2: usize = if (head.ixs > 0) cum_ptr2[cum2.mask(head.ixs - 1)] else 0;
+            cum_ptr2[cum2.mask(head.ixs)] = cum_base2;
+            for (0..written) |k| {
+                cum_ptr2[cum2.mask(head.ixs + k + 1)] = cum_ptr2[cum2.mask(head.ixs + k)] + indexes.ptr[k];
+            }
 
             return written;
         }

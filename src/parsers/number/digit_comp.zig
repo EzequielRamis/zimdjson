@@ -10,7 +10,8 @@ const assert = std.debug.assert;
 pub fn compute(parsed_number: FromString, bf: *BiasedFp) void {
     const sci_exp = scientificExponent(parsed_number);
 
-    var bigman = BigInt.init();
+    var bigman_buffer: [BigInt.capacity]Limb = undefined;
+    var bigman = BigInt.init(&bigman_buffer);
     const digits = parseBigMantissa(&bigman, parsed_number);
 
     const exp: i32 = sci_exp + 1 - digits;
@@ -40,7 +41,8 @@ fn negativeDigitComp(real_digits: *BigInt, real_exp: i32, bf: *BiasedFp) void {
     round(&bf2, negativeRound1, {});
     const b2 = bf2.toFloat(false);
     const theor = toExtendedHalfway(b2);
-    var theor_digits = BigInt.from(theor.m);
+    var td_buffer: [BigInt.capacity]Limb = undefined;
+    var theor_digits = BigInt.from(&td_buffer, theor.m);
     const theor_exp = theor.e;
 
     const pow2_exp = theor_exp - real_exp;
@@ -272,8 +274,8 @@ const power_of_ten: [20]u64 = brk: {
     break :brk res;
 };
 
-const RoundCallback = fn (*BiasedFp, u32, anytype) callconv(.Inline) void;
-const NearestCallback = fn (bool, bool, bool, anytype) callconv(.Inline) bool;
+const RoundCallback = fn (*BiasedFp, u32, anytype) callconv(.@"inline") void;
+const NearestCallback = fn (bool, bool, bool, anytype) callconv(.@"inline") bool;
 
 inline fn round(bf: *BiasedFp, callback: RoundCallback, args: anytype) void {
     const man_bits = common.man_bits;

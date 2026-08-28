@@ -16,7 +16,6 @@ pub inline fn writeString(noalias src: [*]const u8, noalias dst: [*]u8) Error![*
     var written = dst;
     while (true) {
         const chunk = read[0..Vector.bytes_len].*;
-        @memcpy(written[0..Vector.bytes_len], &chunk);
 
         const slash = Predicate.pack(Vector.slash == chunk);
         const quote = Predicate.pack(Vector.quote == chunk);
@@ -24,12 +23,14 @@ pub inline fn writeString(noalias src: [*]const u8, noalias dst: [*]u8) Error![*
         const has_quote_first = ((slash -% 1) & quote) != 0;
         if (has_quote_first) {
             const quote_index: u8 = @ctz(quote);
+            @memcpy(written[0..quote_index], read[0..quote_index]);
             return written + quote_index;
         }
 
         const has_any_slash = ((quote -% 1) & slash) != 0;
         if (has_any_slash) {
             const slash_index: u8 = @ctz(slash);
+            @memcpy(written[0..slash_index], read[0..slash_index]);
             read += slash_index;
             written += slash_index;
             escapes: while (true) {
@@ -46,6 +47,7 @@ pub inline fn writeString(noalias src: [*]const u8, noalias dst: [*]u8) Error![*
                 if (read[0] != '\\') break :escapes;
             }
         } else {
+            @memcpy(written[0..Vector.bytes_len], &chunk);
             written += Vector.bytes_len;
             read += Vector.bytes_len;
         }

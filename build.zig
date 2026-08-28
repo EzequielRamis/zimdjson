@@ -49,151 +49,161 @@ pub fn build(b: *std.Build) !void {
             const tests_generate = b.step("tests/generate", "Generate compliant tests");
 
             {
-                const float_parsing_step = b.step("tests/float-parsing", "Run test suite 'float parsing'");
-                const float_parsing = b.addTest(.{
-                    .root_module = b.createModule(.{
-                        .root_source_file = b.path("tests/float_parsing.zig"),
-                        .target = target,
-                        .optimize = optimize,
-                    }),
-                });
                 if (b.lazyDependency("parse_number_fxx", .{})) |dep| {
+                    const float_parsing_step = b.step("tests/float-parsing", "Run test suite 'float parsing'");
+                    const float_parsing = b.addTest(.{
+                        .root_module = b.createModule(.{
+                            .root_source_file = b.path("tests/float_parsing.zig"),
+                            .target = target,
+                            .optimize = optimize,
+                        }),
+                        // .use_llvm = true,
+                    });
                     addEmbeddedPath(b, float_parsing, dep, "parse_number_fxx");
+
+                    float_parsing.root_module.addImport("zimdjson", zimdjson);
+
+                    const run_float_parsing = b.addRunArtifact(float_parsing);
+                    float_parsing_step.dependOn(&run_float_parsing.step);
+                    tests.dependOn(float_parsing_step);
                 }
-
-                float_parsing.root_module.addImport("zimdjson", zimdjson);
-
-                const run_float_parsing = b.addRunArtifact(float_parsing);
-                float_parsing_step.dependOn(&run_float_parsing.step);
-                tests.dependOn(float_parsing_step);
             }
             {
-                const minefield_step = b.step("tests/minefield", "Run test suite 'minefield'");
-                const minefield_gen = b.addExecutable(.{
-                    .name = "minefield_gen",
-                    .root_module = b.createModule(.{
-                        .root_source_file = b.path("tests/minefield_gen.zig"),
-                        .target = target,
-                    }),
-                });
-                const path = b.path("tests/minefield.zig");
-                const run_minefield_gen = b.addRunArtifact(minefield_gen);
-                run_minefield_gen.addArg(path.getPath(b));
-
-                const minefield = b.addTest(.{
-                    .root_module = b.createModule(.{
-                        .root_source_file = path,
-                        .target = target,
-                        .optimize = optimize,
-                    }),
-                });
                 if (b.lazyDependency("simdjson-data", .{})) |dep| {
+                    const minefield_step = b.step("tests/minefield", "Run test suite 'minefield'");
+                    const minefield_gen = b.addExecutable(.{
+                        .name = "minefield_gen",
+                        .root_module = b.createModule(.{
+                            .root_source_file = b.path("tests/minefield_gen.zig"),
+                            .target = target,
+                        }),
+                    });
+                    const path = b.path("tests/minefield.zig");
+                    const run_minefield_gen = b.addRunArtifact(minefield_gen);
+                    run_minefield_gen.addArg(path.getPath(b));
+
+                    const minefield = b.addTest(.{
+                        .root_module = b.createModule(.{
+                            .root_source_file = path,
+                            .target = target,
+                            .optimize = optimize,
+                        }),
+                        // .use_llvm = true,
+                    });
                     addEmbeddedPath(b, minefield, dep, "simdjson-data");
                     addEmbeddedPath(b, minefield_gen, dep, "simdjson-data");
-                }
-                minefield.root_module.addImport("zimdjson", zimdjson);
+                    minefield.root_module.addImport("zimdjson", zimdjson);
 
-                const run_minefield = b.addRunArtifact(minefield);
-                minefield_step.dependOn(&run_minefield.step);
-                tests_generate.dependOn(&run_minefield_gen.step);
-                tests.dependOn(minefield_step);
+                    const run_minefield = b.addRunArtifact(minefield);
+                    minefield_step.dependOn(&run_minefield.step);
+                    tests_generate.dependOn(&run_minefield_gen.step);
+                    tests.dependOn(minefield_step);
+                }
             }
             {
-                const adversarial_step = b.step("tests/adversarial", "Run test suite 'adversarial'");
-                const adversarial_gen = b.addExecutable(.{
-                    .name = "adversarial_gen",
-                    .root_source_file = b.path("tests/adversarial_gen.zig"),
-                    .target = target,
-                });
-                const path = b.path("tests/adversarial.zig");
-                const run_adversarial_gen = b.addRunArtifact(adversarial_gen);
-                run_adversarial_gen.addArg(path.getPath(b));
-
-                const adversarial = b.addTest(.{
-                    .root_module = b.createModule(.{
-                        .root_source_file = path,
-                        .target = target,
-                        .optimize = optimize,
-                    }),
-                });
                 if (b.lazyDependency("simdjson-data", .{})) |dep| {
+                    const adversarial_step = b.step("tests/adversarial", "Run test suite 'adversarial'");
+                    const adversarial_gen = b.addExecutable(.{
+                        .name = "adversarial_gen",
+                        .root_module = b.createModule(.{
+                            .root_source_file = b.path("tests/adversarial_gen.zig"),
+                            .target = target,
+                        }),
+                    });
+                    const path = b.path("tests/adversarial.zig");
+                    const run_adversarial_gen = b.addRunArtifact(adversarial_gen);
+                    run_adversarial_gen.addArg(path.getPath(b));
+
+                    const adversarial = b.addTest(.{
+                        .root_module = b.createModule(.{
+                            .root_source_file = path,
+                            .target = target,
+                            .optimize = optimize,
+                        }),
+                        // .use_llvm = true,
+                    });
                     addEmbeddedPath(b, adversarial, dep, "simdjson-data");
                     addEmbeddedPath(b, adversarial_gen, dep, "simdjson-data");
-                }
-                adversarial.root_module.addImport("zimdjson", zimdjson);
+                    adversarial.root_module.addImport("zimdjson", zimdjson);
 
-                const run_adversarial = b.addRunArtifact(adversarial);
-                adversarial_step.dependOn(&run_adversarial.step);
-                tests_generate.dependOn(&run_adversarial_gen.step);
-                tests.dependOn(adversarial_step);
+                    const run_adversarial = b.addRunArtifact(adversarial);
+                    adversarial_step.dependOn(&run_adversarial.step);
+                    tests_generate.dependOn(&run_adversarial_gen.step);
+                    tests.dependOn(adversarial_step);
+                }
             }
             {
-                const examples_step = b.step("tests/examples", "Run test suite 'examples'");
-                const examples_gen = b.addExecutable(.{
-                    .name = "examples_gen",
-                    .root_source_file = b.path("tests/examples_gen.zig"),
-                    .target = target,
-                });
-                const path = b.path("tests/examples.zig");
-                const run_examples_gen = b.addRunArtifact(examples_gen);
-                run_examples_gen.addArg(path.getPath(b));
-
-                const examples = b.addTest(.{
-                    .root_module = b.createModule(.{
-                        .root_source_file = path,
-                        .target = target,
-                        .optimize = optimize,
-                    }),
-                });
-                if (target.result.os.tag == .macos) {
-                    examples.linkLibC();
-                }
                 if (b.lazyDependency("simdjson-data", .{})) |dep| {
+                    const examples_step = b.step("tests/examples", "Run test suite 'examples'");
+                    const examples_gen = b.addExecutable(.{
+                        .name = "examples_gen",
+                        .root_module = b.createModule(.{
+                            .root_source_file = b.path("tests/examples_gen.zig"),
+                            .target = target,
+                        }),
+                    });
+                    const path = b.path("tests/examples.zig");
+                    const run_examples_gen = b.addRunArtifact(examples_gen);
+                    run_examples_gen.addArg(path.getPath(b));
+
+                    const examples = b.addTest(.{
+                        .root_module = b.createModule(.{
+                            .root_source_file = path,
+                            .target = target,
+                            .optimize = optimize,
+                        }),
+                        // .use_llvm = true,
+                    });
+                    if (target.result.os.tag == .macos) {
+                        examples.root_module.link_libc = true;
+                    }
                     addEmbeddedPath(b, examples, dep, "simdjson-data");
                     addEmbeddedPath(b, examples_gen, dep, "simdjson-data");
-                }
-                examples.root_module.addImport("zimdjson", zimdjson);
+                    examples.root_module.addImport("zimdjson", zimdjson);
 
-                const run_examples = b.addRunArtifact(examples);
-                examples_step.dependOn(&run_examples.step);
-                tests_generate.dependOn(&run_examples_gen.step);
-                tests.dependOn(examples_step);
+                    const run_examples = b.addRunArtifact(examples);
+                    examples_step.dependOn(&run_examples.step);
+                    tests_generate.dependOn(&run_examples_gen.step);
+                    tests.dependOn(examples_step);
+                }
             }
             {
-                const ondemand_step = b.step("tests/ondemand", "Run test suite 'ondemand'");
-                const ondemand = b.addTest(.{
-                    .root_module = b.createModule(.{
-                        .root_source_file = b.path("tests/ondemand.zig"),
-                        .target = target,
-                        .optimize = optimize,
-                    }),
-                });
                 if (b.lazyDependency("simdjson-data", .{})) |dep| {
+                    const ondemand_step = b.step("tests/ondemand", "Run test suite 'ondemand'");
+                    const ondemand = b.addTest(.{
+                        .root_module = b.createModule(.{
+                            .root_source_file = b.path("tests/ondemand.zig"),
+                            .target = target,
+                            .optimize = optimize,
+                        }),
+                        // .use_llvm = true,
+                    });
                     addEmbeddedPath(b, ondemand, dep, "simdjson-data");
-                }
-                ondemand.root_module.addImport("zimdjson", zimdjson);
+                    ondemand.root_module.addImport("zimdjson", zimdjson);
 
-                const run_ondemand = b.addRunArtifact(ondemand);
-                ondemand_step.dependOn(&run_ondemand.step);
-                tests.dependOn(ondemand_step);
+                    const run_ondemand = b.addRunArtifact(ondemand);
+                    ondemand_step.dependOn(&run_ondemand.step);
+                    tests.dependOn(ondemand_step);
+                }
             }
             {
-                const schema_step = b.step("tests/schema", "Run test suite 'schema'");
-                const schema = b.addTest(.{
-                    .root_module = b.createModule(.{
-                        .root_source_file = b.path("tests/schema.zig"),
-                        .target = target,
-                        .optimize = optimize,
-                    }),
-                });
                 if (b.lazyDependency("simdjson-data", .{})) |dep| {
+                    const schema_step = b.step("tests/schema", "Run test suite 'schema'");
+                    const schema = b.addTest(.{
+                        .root_module = b.createModule(.{
+                            .root_source_file = b.path("tests/schema.zig"),
+                            .target = target,
+                            .optimize = optimize,
+                        }),
+                        // .use_llvm = true,
+                    });
                     addEmbeddedPath(b, schema, dep, "simdjson-data");
-                }
-                schema.root_module.addImport("zimdjson", zimdjson);
+                    schema.root_module.addImport("zimdjson", zimdjson);
 
-                const run_schema = b.addRunArtifact(schema);
-                schema_step.dependOn(&run_schema.step);
-                tests.dependOn(schema_step);
+                    const run_schema = b.addRunArtifact(schema);
+                    schema_step.dependOn(&run_schema.step);
+                    tests.dependOn(schema_step);
+                }
             }
         }
         // --
@@ -625,10 +635,10 @@ pub fn build(b: *std.Build) !void {
                         }),
                     });
 
-                    profile.addCSourceFile(.{ .file = b.path("tools/profile.cpp"), .flags = &.{"-DTRACY_ENABLE"} });
-                    profile.linkSystemLibrary("TracyClient");
-                    profile.linkLibrary(p.simdjson);
-                    profile.linkLibrary(p.yyjson);
+                    profile.root_module.addCSourceFile(.{ .file = b.path("tools/profile.cpp"), .flags = &.{"-DTRACY_ENABLE"} });
+                    profile.root_module.linkSystemLibrary("TracyClient", .{});
+                    profile.root_module.linkLibrary(p.simdjson);
+                    profile.root_module.linkLibrary(p.yyjson);
 
                     const run_profile = b.addRunArtifact(profile);
                     run_profile.addArg(file_path);
@@ -668,7 +678,9 @@ fn addEmbeddedPath(b: *std.Build, compile: *std.Build.Step.Compile, dep: *std.Bu
 fn getProvidedPath(b: *std.Build, buf: []u8, use_cwd: bool) ![]const u8 {
     const json_path = if (b.args) |args| args[0] else "";
     if (use_cwd) {
-        return try std.fs.cwd().realpath(json_path, buf);
+        const io = b.graph.io;
+        const n = try std.Io.Dir.cwd().realPathFile(io, json_path, buf);
+        return buf[0..n];
     } else if (b.lazyDependency("simdjson-data", .{})) |dep| {
         return b.pathJoin(&.{ dep.path("jsonexamples").getPath(b), json_path });
     } else return "";
